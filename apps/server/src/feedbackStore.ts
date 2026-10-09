@@ -1,11 +1,11 @@
 /**
  * Player feedback notes. Same shape as the other JSON stores: an adapter loads and saves the file.
- * Node writes `feedback.json` (mode 0600 — a guest may have typed a contact). Tests pass null.
+ * Node writes the SQLite `feedback` table (the database file is mode 0600 — a guest may have typed a contact). Tests pass null.
  */
 import type { FeedbackCategory } from '@tudobem/shared';
 import type { RoomId } from '@tudobem/shared';
 
-export const FEEDBACK_FILE_MAX = 2000;
+export const FEEDBACK_FILE_MAX = 20000;
 
 export interface FeedbackRow {
   id: string;
@@ -30,7 +30,7 @@ export interface FeedbackPersistence {
 }
 
 const CATEGORIES = new Set(['bug', 'idea', 'love']);
-const ROOMS = new Set(['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'kitnet', 'academia', 'escola', 'andar', 'aeroporto']);
+const ROOMS = new Set(['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'kitnet', 'academia', 'escola', 'andar', 'aeroporto', 'desembarque']);
 
 function randomHex(bytes: number) {
   const a = new Uint8Array(bytes);

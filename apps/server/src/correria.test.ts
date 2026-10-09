@@ -231,6 +231,8 @@ describe('Correria no Balcão, server side', () => {
     expect(a.s.profile!.coins).toBe(coins0 + end.end.coins);
     expect(a.s.profile!.tutorial.meveum).toBe(true);
     expect(a.s.profile!.correria).toMatchObject({ shifts: 1, stars: end.end.stars, paid: 1 });
+    // the end card's ladder is the next shift's: one more shift and água opens
+    expect(end.end.ladder).toMatchObject({ open: ['cafe', 'pao'], fresh: [], next: 'agua', nextIn: 1 });
     expect(a.s.mg).toBeUndefined();
     // more shifts the same day: only the first DAILY_PAID_SHIFTS pay RV, stars always count
     let blocked = 0;
@@ -321,6 +323,31 @@ describe('Correria no Balcão, server side', () => {
     const expected = wins[0]!.filter((i) => i in teachable).map((i) => teachable[i]!);
     const taught = b.all('diary').filter((m) => m.phase === 'word' && m.source === 'game').map((m) => (m as { pt: string }).pt);
     expect(taught.sort()).toEqual([...expected].sort());
+  });
+
+  it('a tap after the payout does not replace it with a lost slip', async () => {
+    const world = makeWorld();
+    const a = await player(world);
+    await a.send({ t: 'mg', action: 'start' });
+    await playShiftOut(world, a);
+    const paid = endOf(a)!;
+    expect(paid.lost).toBeFalsy();
+    expect(paid.end.coins).toBeGreaterThan(0);
+    const ends = () => a.all('mg').filter((m) => m.phase === 'end');
+    expect(ends()).toHaveLength(1);
+    await a.send({ t: 'mg', action: 'sync' });
+    await act(a, { a: 'serve' });
+    await act(a, { a: 'clear' });
+    expect(ends()).toEqual([paid]);
+
+    // Jogar de novo opens a real shift again, and a sync on it is a snapshot.
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'start' });
+    expect(states(a).length).toBeGreaterThan(0);
+    const before = states(a).length;
+    await a.send({ t: 'mg', action: 'sync' });
+    expect(states(a).length).toBeGreaterThan(before);
+    expect(a.all('mg').some((m) => m.phase === 'end')).toBe(false);
   });
 
   it('a server restart that lost the shift answers sync and actions with a lost card and no RV', async () => {

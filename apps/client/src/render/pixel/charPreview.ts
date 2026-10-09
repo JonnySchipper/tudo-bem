@@ -2,8 +2,8 @@
  * DOM previews of the composed pixel character, for both views (the iso view has no Phaser): the avatar creator (8x, with a turn button),
  * the wardrobe / hat shop, and the hat icons. They compose through the same layer table and composer as the game scene.
  */
-import { parrotColorById, type Appearance } from '@tudobem/shared';
-import { recolorParrotPixels } from './parrotRecolor';
+import type { Appearance } from '@tudobem/shared';
+import { PARROT_H, PARROT_W, parrotPixels, parrotSpecies } from './parrotSpecies';
 import { sharedCharAssets, type CharAssets } from './charAssets';
 import { composeRgba } from './charcompose';
 import { composeLook } from './composeLook';
@@ -69,7 +69,7 @@ function composedFor(assets: CharAssets, spec: PreviewSpec): { key: string; look
 const parrotImg = new Map<string, HTMLImageElement>();
 const parrotFrameCache = new Map<string, HTMLCanvasElement>();
 
-function parrotStrip(assets: CharAssets): { img: HTMLImageElement; frames: number; frameW: number; h: number } | null {
+function parrotStripImage(assets: CharAssets): { img: HTMLImageElement; frames: number; frameW: number; h: number } | null {
   const meta = assets.manifest.images?.['chars/parrot_strip'];
   if (!meta) return null;
   const url = `${import.meta.env.BASE_URL}pixel/${meta.file}`;
@@ -79,28 +79,33 @@ function parrotStrip(assets: CharAssets): { img: HTMLImageElement; frames: numbe
     img.src = url;
     parrotImg.set(url, img);
   }
-  return img.complete && img.naturalWidth ? { img, frames: meta.frames ?? 4, frameW: meta.frameW ?? 10, h: meta.h } : null;
+  return { img, frames: meta.frames ?? 4, frameW: meta.frameW ?? 10, h: meta.h };
 }
 
-/** One frame of the shoulder parrot, body recolored for the poleiro colour (cached). */
-function parrotFrame(img: HTMLImageElement, frame: number, frameW: number, h: number, colorId: string | null | undefined): HTMLCanvasElement {
-  const tint = parrotColorById(colorId)?.tint ?? 0xffffff;
-  const key = `${img.src}:${tint}:${frame}`;
-  const hit = parrotFrameCache.get(key);
-  if (hit) return hit;
-  const canvas = document.createElement('canvas');
-  canvas.width = frameW;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return canvas;
-  ctx.drawImage(img, frame * frameW, 0, frameW, h, 0, 0, frameW, h);
-  if (tint !== 0xffffff) {
-    const image = ctx.getImageData(0, 0, frameW, h);
-    recolorParrotPixels(image.data, tint);
-    ctx.putImageData(image, 0, 0);
+function parrotStrip(assets: CharAssets): { img: HTMLImageElement; frames: number; frameW: number; h: number } | null {
+  const p = parrotStripImage(assets);
+  return p && p.img.complete && p.img.naturalWidth ? p : null;
+}
+
+/** One frame of the shoulder parrot: the poleiro strip for verde, the authored bird for every other colour (cached). */
+function parrotFrame(img: HTMLImageElement, frame: number, frameW: number, h: number, colorId: string | null | undefined): { canvas: HTMLCanvasElement; w: number; h: number } {
+  const species = parrotSpecies(colorId);
+  const w = species === 'verde' ? frameW : PARROT_W;
+  const fh = species === 'verde' ? h : PARROT_H;
+  const key = species === 'verde' ? `${img.src}:${frame}` : `${species}:${frame}`;
+  let canvas = parrotFrameCache.get(key);
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = fh;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      if (species === 'verde') ctx.drawImage(img, frame * frameW, 0, frameW, h, 0, 0, frameW, h);
+      else ctx.putImageData(new ImageData(parrotPixels(species, frame), PARROT_W, PARROT_H), 0, 0);
+    }
+    parrotFrameCache.set(key, canvas);
   }
-  parrotFrameCache.set(key, canvas);
-  return canvas;
+  return { canvas, w, h: fh };
 }
 
 /**
@@ -155,15 +160,15 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
         const bird = parrotFrame(p.img, pf, p.frameW, p.h, spec.parrotColor);
         const side = facing === 'W' ? 1 : -1;
         const bob = Math.round(Math.sin(now / 420) * 1.5);
-        const px = FX + 8 + side * 9 - Math.round(p.frameW / 2);
-        const py = FY + 31 - 14 + bob - (p.h - 1);
+        const px = FX + 8 + side * 9 - Math.round(bird.w / 2);
+        const py = FY + 31 - 14 + bob - (bird.h - 1);
         if (side === 1) {
           ctx.save();
-          ctx.translate(px + p.frameW, py);
+          ctx.translate(px + bird.w, py);
           ctx.scale(-1, 1);
-          ctx.drawImage(bird, 0, 0);
+          ctx.drawImage(bird.canvas, 0, 0);
           ctx.restore();
-        } else ctx.drawImage(bird, px, py);
+        } else ctx.drawImage(bird.canvas, px, py);
       }
     }
     ctx.drawImage(c.sheet, col * fw, row * fh, fw, fh, FX, FY, fw, fh);
@@ -238,6 +243,43 @@ export async function hatIconUrl(hatId: string, scale = 4): Promise<string> {
   const url = out.toDataURL('image/png');
   iconCache.set(cacheKey, url);
   return url;
+}
+
+/**
+ * The shoulder parrot's first frame in a Puleiro colour, at `scale`, as a PNG data URL: the same sprite and recolour the shoulder uses,
+ * so the stall shows exactly the bird you get. Resolves to '' when the strip is missing.
+ */
+export async function parrotIconUrl(colorId: string, scale = 4): Promise<string> {
+  const cacheKey = `parrot:${colorId}@${scale}`;
+  const hit = iconCache.get(cacheKey);
+  if (hit) return hit;
+  const p = parrotStripImage(await sharedCharAssets());
+  if (!p) return '';
+  if (!p.img.complete || !p.img.naturalWidth) await p.img.decode();
+  const bird = parrotFrame(p.img, 0, p.frameW, p.h, colorId);
+  const out = document.createElement('canvas');
+  out.width = bird.w * scale;
+  out.height = bird.h * scale;
+  const octx = out.getContext('2d');
+  if (!octx) return '';
+  octx.imageSmoothingEnabled = false;
+  octx.drawImage(bird.canvas, 0, 0, out.width, out.height);
+  const url = out.toDataURL('image/png');
+  iconCache.set(cacheKey, url);
+  return url;
+}
+
+/** Fills an <img> with a Puleiro bird icon once the strip is loaded. */
+export function setParrotIcon(img: HTMLImageElement, colorId: string, scale = 4): void {
+  img.style.imageRendering = 'pixelated';
+  img.style.objectFit = 'contain';
+  img.dataset.parrotIcon = colorId;
+  void parrotIconUrl(colorId, scale).then(
+    (url) => {
+      if (url && img.dataset.parrotIcon === colorId) img.src = url;
+    },
+    () => {},
+  );
 }
 
 /** Fills an <img> with the hat icon once the art is ready (keeps the element reusable inside synchronous render code). */

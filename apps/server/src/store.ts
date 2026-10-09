@@ -1,4 +1,4 @@
-import { isBubbleStyle, isPetId, isSubscriptionStatus, normalizeFounderFlag, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
+import { isBubbleStyle, isPetId, isSubscriptionStatus, normalizeFounderFlag, normalizePetNames, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
 import {
   freshMission,
   normalizeCartela,
@@ -47,7 +47,7 @@ export function todaySaoPaulo(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 }
 
-/** Where profiles persist. Node: JSON file. Browser solo mode: localStorage. Tests: none. */
+/** Where profiles persist. Node: SQLite. Browser solo mode: localStorage. Tests: none. */
 export interface PersistenceAdapter {
   load(): StoredProfile[];
   save(rows: StoredProfile[]): void;
@@ -71,6 +71,7 @@ export class ProfileStore {
   private byId = new Map<string, StoredProfile>();
   private byToken = new Map<string, string>();
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private closed = false;
 
   constructor(private adapter: PersistenceAdapter | null) {
     if (!adapter) return;
@@ -112,16 +113,27 @@ export class ProfileStore {
     this.save();
   }
 
-  /** Debounced write. */
+  /** Debounced write. After `shutdown`, further saves are ignored. */
   save() {
-    if (!this.adapter || this.timer) return;
+    if (this.closed || !this.adapter || this.timer) return;
     this.timer = setTimeout(() => {
       this.timer = null;
-      this.flush();
+      if (!this.closed) this.flush();
     }, 800);
   }
 
   flush() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.closed) return;
+    this.adapter?.save([...this.byId.values()]);
+  }
+
+  /** Flush once and ignore later debounced saves (process shutdown). */
+  shutdown() {
+    this.closed = true;
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
@@ -137,6 +149,30 @@ export class ProfileStore {
   all(): StoredProfile[] {
     return [...this.byId.values()];
   }
+}
+
+/** A Testes day offset: whole calendar days, or absent when it is zero. */
+function optDayOffset(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return undefined;
+  const n = Math.trunc(raw);
+  if (n === 0) return undefined;
+  return Math.max(-3660, Math.min(3660, n));
+}
+
+/** A Testes sky offset in milliseconds, or absent when it is zero. */
+function optClockOffset(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return undefined;
+  const n = Math.trunc(raw);
+  if (n === 0) return undefined;
+  const cap = 3660 * 86_400_000;
+  return Math.max(-cap, Math.min(cap, n));
+}
+
+function normalizeTestFeiraPaid(raw: unknown): StoredProfile['testFeiraPaid'] {
+  const r = raw as { day?: unknown; n?: unknown } | undefined;
+  if (!r || typeof r.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(r.day)) return undefined;
+  const n = typeof r.n === 'number' && Number.isFinite(r.n) ? Math.max(0, Math.min(99, Math.floor(r.n))) : 0;
+  return { day: r.day.slice(0, 10), n };
 }
 
 /** The feira's daily RV counter: a date string and a small count, or nothing. */
@@ -161,7 +197,12 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.diary = normalizeDiary(p.diary);
   // saves from before the escola lessons: every diary word is learned (new), nothing mastered, the plate Verde
   p.escola = normalizeEscola(p.escola, p.diary);
-  p.nameplate = earnedTier(p.escola, p.diary);
+  p.testUser = p.testUser === true;
+  p.testDayOffset = optDayOffset(p.testDayOffset);
+  p.testClockOffsetMs = optClockOffset(p.testClockOffsetMs);
+  p.testFeiraPaid = normalizeTestFeiraPaid(p.testFeiraPaid);
+  p.verdeMode = p.verdeMode === true;
+  p.nameplate = p.verdeMode ? 'verde' : earnedTier(p.escola, p.diary);
   p.film = normalizeFilm(p.film);
   p.photos = normalizePhotos(p.photos);
   p.cartela = normalizeCartela(p.cartela);
@@ -180,6 +221,7 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.founderBanner = p.founderBanner === true;
   p.subscription = normalizeSubscription(p.subscription);
   p.pet = isPetId(p.pet) ? p.pet : null;
+  p.petNames = normalizePetNames(p.petNames);
   p.bubbleStyle = isBubbleStyle(p.bubbleStyle) ? p.bubbleStyle : 'classic';
   if (!Array.isArray(p.billingEventIds)) p.billingEventIds = [];
   else p.billingEventIds = p.billingEventIds.filter((id) => typeof id === 'string').slice(-200);
@@ -196,9 +238,9 @@ function normalizeSubscription(raw: unknown): PlayerSubscription | undefined {
   return { status: r.status, currentPeriodEnd: end, portalUrl: portal, providerSubscriptionId: subId, provider };
 }
 
-export function toPrivate(p: StoredProfile): PrivateProfile {
+export function toPrivate(p: StoredProfile, day = today()): PrivateProfile {
   // photos travel in their own `photos` message (World.pushPhotos), only when they change
   const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, photos: _ph, billingEventIds: _ev, ...rest } = p;
-  const mission = p.mission?.date === today() ? p.mission : freshMission(today());
+  const mission = p.mission?.date === day ? p.mission : freshMission(day);
   return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj) });
 }

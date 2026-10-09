@@ -3,6 +3,7 @@ import {
   DAILY_PAID_SHIFTS,
   REGULAR_NPCS,
   UNLOCKS,
+  addCalendarDays,
   cardById,
   frontOf,
   hearts,
@@ -13,6 +14,7 @@ import {
   normalizeCorreria,
   noteLesson,
   npcDefById,
+  menuLadder,
   payBump,
   pendingLesson,
   sanitizeAct,
@@ -45,6 +47,8 @@ export interface CorreriaRun {
 
 export interface CorreriaDeps {
   now: () => number;
+  /** UTC day (YYYY-MM-DD) the paid-shift cap uses. Defaults to the real UTC date. */
+  today?: () => string;
   schedule: (fn: () => void, ms: number) => void;
   store: ProfileStore;
   /** Game-clock minute and day-of-week flag, baker on duty. */
@@ -86,6 +90,8 @@ const EMPTY_END: CorreriaEnd = { served: 0, perfect: 0, second: 0, left: 0, poin
 export class CorreriaEngine {
   private seq = 0;
   private parked = new Map<string, { run: CorreriaRun; room: string; at: number }>();
+  /** Sessions whose shift already paid out on this socket. A late tap must not be told the slip was lost. */
+  private settled = new WeakSet<Session>();
   constructor(private readonly d: CorreriaDeps) {}
 
   /** Test hook: the shift in progress. */
@@ -159,6 +165,7 @@ export class CorreriaEngine {
     shift.debug = this.d.testHints;
     const run: CorreriaRun = { token: ++this.seq, shift, last: this.d.now(), lastSent: 0 };
     s.mg = run;
+    this.settled.delete(s);
     this.send(s, run, []);
     this.armTick(s, run);
   }
@@ -208,7 +215,7 @@ export class CorreriaEngine {
 
   // ------------------------------------------------------------------ the end
 
-  private summaryToEnd(s: Session, sum: ShiftSummary, coins: number, dailyBlocked: boolean, before: number, wordsNew: Bilingual[], menuNote: Bilingual | null): CorreriaEnd {
+  private summaryToEnd(s: Session, sum: ShiftSummary, coins: number, dailyBlocked: boolean, before: number, wordsNew: Bilingual[], menuNote: Bilingual | null, menuIds?: readonly string[]): CorreriaEnd {
     const p = s.profile!;
     const cp = normalizeCorreria(p.correria);
     return {
@@ -230,6 +237,7 @@ export class CorreriaEngine {
       level: levelForStars(cp.stars),
       regulars: sum.regulars.map((k) => npcDefById(k.replace('npc:', '') as NpcId)?.name ?? k),
       menuNote,
+      ladder: menuLadder(cp.shifts, menuIds),
     };
   }
 
@@ -241,8 +249,9 @@ export class CorreriaEngine {
     const sum = summarizeShift(run.shift);
     const cp = (p.correria = normalizeCorreria(p.correria));
     const before = cp.stars;
-    if (cp.date !== today()) {
-      cp.date = today();
+    const day = addCalendarDays(this.d.today?.() ?? today(), p.testDayOffset ?? 0);
+    if (cp.date !== day) {
+      cp.date = day;
       cp.paid = 0;
     }
     const known = (id: string) => (p.caderno?.[id]?.seen ?? 0) > 0 || (p.caderno?.[id]?.heard ?? 0) > 0 || (p.caderno?.[id]?.used ?? 0) > 0;
@@ -269,7 +278,7 @@ export class CorreriaEngine {
       if (!abandoned) this.d.shiftWon?.(s, sum.items);
     }
     this.d.pushProfile(s);
-    const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, wordsNew, run.shift.ctx.bump ?? null);
+    const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, wordsNew, run.shift.ctx.bump ?? null, run.shift.ctx.menuIds);
     const carlos: Bilingual =
       sum.served === 0
         ? { pt: 'Turno encerrado. Dessa vez não deu RV — pode começar de novo quando quiser.', en: 'Shift closed. No RV this time — you can start again whenever you want.' }
@@ -284,6 +293,7 @@ export class CorreriaEngine {
         ? { pt: `Turno fechado na ${house}! O caixa fez ${coins} reais virtuais.`, en: `Shift closed at ${house}! The till made ${coins} RV.` }
         : carlos;
     s.send({ t: 'mg', phase: 'end', end, carlos: line });
+    this.settled.add(s);
   }
 
   private quit(s: Session, run: CorreriaRun): void {
@@ -319,6 +329,8 @@ export class CorreriaEngine {
 
   /** The client still holds a shift this session has none for: resume a parked one, or end in the open with nothing paid (a restart lands here). */
   private noOpenShift(s: Session, action: string): void {
+    // The payout card is already on the way. A sync or tap that crossed the finish line is not a lost slip.
+    if (this.settled.has(s)) return;
     const park = this.fresh(s);
     if (park) {
       if (action === 'quit') {

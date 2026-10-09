@@ -1,6 +1,6 @@
 import { SCENE_NODE_IDS, viewNode, type SceneCtx } from './carlos.js';
 import { CARLOS_AUTHORED_FALLBACK, CONVERSA_CAST } from './conversa.js';
-import { GOODS, VENDORS, moneyPt, priceLine, resultLine, totalLine, type VendorId } from './feira.js';
+import { GOODS, OFF_DUTY, VENDORS, moneyPt, priceLine, resultLine, totalLine, type StallVendorId, type VendorId } from './feira.js';
 import { NPC_TALK, fillTalk } from './npcTalk.js';
 import { challengeBank, finishBank } from './challenges.js';
 import { HOTSPOTS } from './hotspots.js';
@@ -71,6 +71,11 @@ export function collectSpokenLines(): SpokenLine[] {
   for (const [id, v] of Object.entries(VENDORS) as [VendorId, (typeof VENDORS)[VendorId]][]) {
     for (const minute of MINUTES) add(v.npc, localizeGreetingText(v.greet.pt, minute), `feira ${id} greet`);
     add(v.npc, v.closed.pt, `feira ${id} closed`);
+  }
+  // the vendors away from their stall (small talk, and when the feira is back)
+  for (const [npc, t] of Object.entries(OFF_DUTY) as [StallVendorId, (typeof OFF_DUTY)[StallVendorId]][]) {
+    t.lines.forEach((l, i) => add(npc, l.pt, `feira ${npc} off duty ${i}`));
+    add(npc, t.buy.pt, `feira ${npc} off duty buy`);
   }
   for (const g of GOODS) {
     const speakers = new Set<NpcId>(Object.values(VENDORS).filter((v) => v.goods.includes(g.itemId)).map((v) => v.npc));

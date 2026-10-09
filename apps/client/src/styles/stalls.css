@@ -1,0 +1,393 @@
+/*
+ * Market stalls (#157): Nanda's hats and the Puleiro dos Pássaros as the same stall. The header carries the RV wallet; the vitrine shows the
+ * player wearing what is selected; the goods sit on two shelves (yours, for sale), each card with a hanging price tag or a "yours" tag.
+ * Getting something stamps its card and the wallet ticks. Loaded after panels.css.
+ */
+
+.backdrop > .panel.stall-panel {
+  width: min(880px, calc(100vw - 24px));
+}
+
+.backdrop > .panel.parrot-shop.stall-panel {
+  width: min(820px, calc(100vw - 24px));
+}
+
+.stall-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding-right: 52px;
+}
+
+.backdrop > .panel .stall-head h2 {
+  margin: 0;
+}
+
+.stall-head + .en {
+  margin-bottom: 12px;
+}
+
+/* the wallet: a little brass till plate */
+.stall-wallet {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 5px 8px;
+  font-weight: 800;
+  color: var(--hud-ink, #573c2c);
+  background: #fff3c9;
+  box-shadow:
+    0 -2px 0 0 #b88a2a,
+    0 2px 0 0 #b88a2a,
+    -2px 0 0 0 #b88a2a,
+    2px 0 0 0 #b88a2a,
+    inset 0 -3px 0 0 #f0d58a;
+}
+
+.stall-wallet.spent {
+  animation: stall-spend 0.6s steps(6) both;
+}
+
+@keyframes stall-spend {
+  0% {
+    transform: translateY(0);
+    background: #ffd56a;
+  }
+  35% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: none;
+    background: #fff3c9;
+  }
+}
+
+/* ---------- layout: the vitrine on the left, the shelves on the right ---------- */
+
+.stall-panel .shop {
+  grid-template-columns: 200px 1fr;
+  align-items: start;
+}
+
+.stall-side {
+  display: grid;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+}
+
+.stall-panel .shop .preview {
+  height: 268px;
+}
+
+.stall-canvas {
+  position: relative;
+  z-index: 1;
+  /* 28 x 36 art px at 6x */
+  width: 168px;
+  height: 216px;
+  image-rendering: pixelated;
+}
+
+.backdrop > .panel .shop .stall-says {
+  margin: 0;
+}
+
+.stall-goods {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.stall-empty {
+  padding: 12px;
+  font-weight: 700;
+}
+
+/* ---------- shelves ---------- */
+
+.stall-shelf-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 2px 8px;
+  font-family: var(--font-pixel);
+  font-size: 1.2rem;
+  color: var(--terracota-dark);
+}
+
+.stall-shelf-title .en {
+  font-family: var(--font-body, inherit);
+  font-size: 0.7rem;
+}
+
+.stall-shelf.owned .stall-shelf-title {
+  color: #2f6f3a;
+}
+
+.stall-shelf-title .count {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 0 6px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #fff;
+  background: var(--terracota-dark);
+}
+
+.stall-shelf.owned .stall-shelf-title .count {
+  background: #2f6f3a;
+}
+
+/* the cards stand on a wooden plank */
+.stall-shelf .grid-items {
+  padding-bottom: 14px;
+  background:
+    linear-gradient(#6e4126, #6e4126) 0 calc(100% - 0px) / 100% 2px no-repeat,
+    linear-gradient(#a8693a, #a8693a) 0 calc(100% - 2px) / 100% 6px no-repeat;
+}
+
+/* ---------- cards ---------- */
+
+.stall-card {
+  position: relative;
+  padding-top: 22px;
+}
+
+.stall-card .item-icon-box {
+  height: 72px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* a soft floor shadow under the goods */
+  background: radial-gradient(ellipse 30px 5px at 50% 88%, rgba(87, 60, 44, 0.2) 98%, transparent 100%);
+}
+
+.stall-card .item-icon-box img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  image-rendering: pixelated;
+}
+
+.item-card.stall-card.owned {
+  background: #f3f8ea;
+  box-shadow:
+    0 -2px 0 0 #9cc48a,
+    0 2px 0 0 #9cc48a,
+    -2px 0 0 0 #9cc48a,
+    2px 0 0 0 #9cc48a,
+    inset 0 -3px 0 0 #dcebc9;
+}
+
+.item-card.stall-card.using {
+  box-shadow:
+    0 -3px 0 0 #2f6f3a,
+    0 3px 0 0 #2f6f3a,
+    -3px 0 0 0 #2f6f3a,
+    3px 0 0 0 #2f6f3a,
+    inset 0 -3px 0 0 #dcebc9;
+}
+
+.item-card.stall-card.sel {
+  box-shadow:
+    0 -3px 0 0 var(--terracota),
+    0 3px 0 0 var(--terracota),
+    -3px 0 0 0 var(--terracota),
+    3px 0 0 0 var(--terracota),
+    inset 0 -3px 0 0 #f7d9b4;
+}
+
+/* the hanging price tag (for sale) and the "yours" / "wearing" tag, top-right */
+.stall-card .price-tag,
+.stall-card .stall-tag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px 1px 12px;
+  font-size: 0.82em;
+  font-weight: 800;
+  line-height: 1.35;
+  transform: rotate(3deg);
+  transform-origin: 100% 0;
+}
+
+.stall-card .price-tag {
+  color: var(--hud-ink, #573c2c);
+  background:
+    radial-gradient(circle at 5px 50%, #fffdf8 0 2px, transparent 2.5px),
+    #ffe7a8;
+  box-shadow:
+    0 -2px 0 0 #8b5e3c,
+    0 2px 0 0 #8b5e3c,
+    -2px 0 0 0 #8b5e3c,
+    2px 0 0 0 #8b5e3c;
+}
+
+.stall-card .price-tag.free {
+  color: #fff;
+  background:
+    radial-gradient(circle at 5px 50%, #fffdf8 0 2px, transparent 2.5px),
+    var(--verde);
+}
+
+.stall-card .price-tag .coin {
+  width: 14px;
+  height: 14px;
+  background-size: 14px 14px;
+}
+
+.stall-card.cant .price-tag {
+  opacity: 0.7;
+}
+
+.stall-card .stall-tag {
+  transform: none;
+  padding: 1px 7px;
+}
+
+.stall-card .stall-tag.mine {
+  color: #2f6f3a;
+  background: #dcebc9;
+  box-shadow:
+    0 -2px 0 0 #9cc48a,
+    0 2px 0 0 #9cc48a,
+    -2px 0 0 0 #9cc48a,
+    2px 0 0 0 #9cc48a;
+}
+
+.stall-card .stall-tag.using {
+  color: #fff;
+  background: #2f6f3a;
+  box-shadow:
+    0 -2px 0 0 #1f4a27,
+    0 2px 0 0 #1f4a27,
+    -2px 0 0 0 #1f4a27,
+    2px 0 0 0 #1f4a27;
+}
+
+.stall-card .short {
+  font-size: 0.75em;
+  font-weight: 800;
+  color: var(--terracota-dark);
+}
+
+/* ---------- the buy moment ---------- */
+
+.stall-card.just-bought {
+  animation: stall-pop 0.45s steps(5) both;
+}
+
+@keyframes stall-pop {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.stall-stamp {
+  position: absolute;
+  left: 50%;
+  top: 38px;
+  z-index: 2;
+  padding: 3px 10px 4px;
+  font-family: var(--font-pixel);
+  font-size: 1.25rem;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--terracota);
+  pointer-events: none;
+  box-shadow:
+    0 -2px 0 0 var(--terracota-dark),
+    0 2px 0 0 var(--terracota-dark),
+    -2px 0 0 0 var(--terracota-dark),
+    2px 0 0 0 var(--terracota-dark);
+  transform: translateX(-50%) rotate(-8deg);
+  animation: stall-stamp 1.8s steps(18) both;
+}
+
+@keyframes stall-stamp {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-8deg) scale(2);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(-50%) rotate(-8deg) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-8deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stall-wallet.spent,
+  .stall-card.just-bought {
+    animation: none;
+  }
+  .stall-stamp {
+    animation: none;
+  }
+}
+
+/* ---------- phone: the vitrine shrinks to a strip beside the vendor's note ---------- */
+
+@media (max-width: 640px) {
+  .stall-panel .shop {
+    grid-template-columns: 1fr;
+  }
+
+  .stall-side {
+    position: static;
+    grid-template-columns: 124px 1fr;
+    align-items: center;
+  }
+
+  .stall-panel .shop .preview {
+    height: 172px;
+    padding-bottom: 16px;
+  }
+
+  .stall-panel .shop .preview::before {
+    display: none;
+  }
+
+  .stall-panel .shop .preview::after {
+    width: 112px;
+    margin-left: -56px;
+    bottom: 10px;
+  }
+
+  .stall-canvas {
+    /* 4x on a phone */
+    width: 112px;
+    height: 144px;
+  }
+
+  .stall-head {
+    padding-right: 48px;
+  }
+
+  .stall-wallet {
+    margin-left: 0;
+  }
+
+  .stall-panel .grid-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

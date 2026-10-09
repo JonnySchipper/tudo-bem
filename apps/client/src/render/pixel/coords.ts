@@ -32,6 +32,9 @@ export interface CamState {
   /** canvas size in device px */
   w: number;
   h: number;
+  /** Extra look offset in world px (design-mode pan). Clicks use the same centre as the picture. */
+  ox?: number;
+  oy?: number;
 }
 
 /** CSS zoom (art px -> CSS px): about 26-28 tiles across and 14+ tall on a desktop (1280 x 800 -> 3), phones stay at 2, clamped to 2..5. */
@@ -60,14 +63,20 @@ export function bufferPixels(cssW: number, cssH: number, devicePixelRatio: numbe
   return { dpr, width: Math.max(1, Math.floor(w * dpr)), height: Math.max(1, Math.floor(h * dpr)) };
 }
 
+function look(c: CamState): { cx: number; cy: number } {
+  return { cx: c.cx + (c.ox ?? 0), cy: c.cy + (c.oy ?? 0) };
+}
+
 /** World px -> CSS px, relative to the canvas' top-left corner. */
 export function worldToCanvas(c: CamState, wx: number, wy: number): { px: number; py: number } {
-  return { px: ((wx - c.cx) * c.zoom + c.w / 2) / c.dpr, py: ((wy - c.cy) * c.zoom + c.h / 2) / c.dpr };
+  const o = look(c);
+  return { px: ((wx - o.cx) * c.zoom + c.w / 2) / c.dpr, py: ((wy - o.cy) * c.zoom + c.h / 2) / c.dpr };
 }
 
 /** CSS px (relative to the canvas' top-left corner) -> world px. */
 export function canvasToWorld(c: CamState, px: number, py: number): { wx: number; wy: number } {
-  return { wx: (px * c.dpr - c.w / 2) / c.zoom + c.cx, wy: (py * c.dpr - c.h / 2) / c.zoom + c.cy };
+  const o = look(c);
+  return { wx: (px * c.dpr - c.w / 2) / c.zoom + o.cx, wy: (py * c.dpr - c.h / 2) / c.zoom + o.cy };
 }
 
 /** The tile under a world point, or null outside the room. */
@@ -92,11 +101,25 @@ export interface Insets {
 }
 
 /**
+ * Clamp `v` to [min, max] with a soft knee `knee` wide at each end: in the middle `v` passes through, and within `knee` of an end the result
+ * eases into the end (a quadratic, so position and speed are both continuous) instead of stopping dead. The result never leaves [min, max].
+ */
+export function softClamp(v: number, min: number, max: number, knee: number): number {
+  const k = Math.min(knee, (max - min) / 2);
+  if (!(k > 0)) return Math.min(max, Math.max(min, v));
+  const ease = (d: number) => (d <= -k ? 0 : d >= k ? d : (d + k) ** 2 / (4 * k));
+  if (v - min < k) return min + ease(v - min);
+  if (max - v < k) return max - ease(max - v);
+  return v;
+}
+
+/**
  * Camera centre for a focus point. Per axis: if the room (`bounds`) is smaller than the free part of the screen it is centred in
  * that part (the outside shows the backdrop); otherwise the focus is followed and clamped so the view never leaves the bounds.
- * `insets` (device px) reserve screen edges for the HUD; the focus is kept inside the free region.
+ * `insets` (device px) reserve screen edges for the HUD; the focus is kept inside the free region. A `knee` (world px) softens the clamp
+ * (`softClamp`), so a camera following the avatar to the edge of a map slows into it instead of stopping in one frame.
  */
-export function cameraCenter(view: { w: number; h: number; zoom: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets): { cx: number; cy: number } {
+export function cameraCenter(view: { w: number; h: number; zoom: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, knee = 0): { cx: number; cy: number } {
   const axis = (size: number, lo: number, hi: number, b0: number, b1: number, f: number) => {
     // world distance from the centre to the free region's edges
     const toLo = (size / 2 - lo) / view.zoom;
@@ -104,7 +127,7 @@ export function cameraCenter(view: { w: number; h: number; zoom: number }, bound
     const min = b0 + toLo;
     const max = b1 - toHi;
     if (min >= max) return (b0 + b1) / 2 - (toHi - toLo) / 2; // fits: centre the room in the free region
-    return Math.min(max, Math.max(min, f));
+    return softClamp(f, min, max, knee);
   };
   return {
     cx: axis(view.w, insets.left, insets.right, bounds.x0, bounds.x1, focus.x),
@@ -114,6 +137,20 @@ export function cameraCenter(view: { w: number; h: number; zoom: number }, bound
 
 /** Snap a camera coordinate to the device pixel grid so art pixels never straddle two device pixels. */
 export const snapToDevice = (v: number, zoom: number): number => Math.round(v * zoom) / zoom;
+
+/** The HUD's own compact layout (hud.css): one strip on top and the chat bar below, on a narrow phone or a landscape phone. */
+export const HUD_COMPACT_QUERY = '(max-width: 640px), (max-height: 520px)';
+
+/**
+ * HUD space (CSS px) the camera keeps the avatar out of, matching the HUD's layout. Desktop: the top bar and the chat bar with its emote row.
+ * Compact portrait: the strip plus the tracker pill under it, and the chat bar (the old 168 px also held the removed joystick, #127). Compact
+ * landscape: the strip and the chat bar only, so a 390 px tall phone keeps most of its height for the street.
+ */
+export function hudInsets(w: number, h: number, compact: boolean, safeTop = 0, safeBottom = 0): Insets {
+  if (!compact) return { top: 64 + safeTop, bottom: 110 + safeBottom, left: 0, right: 0 };
+  const landscape = w > h && h <= 520;
+  return { top: (landscape ? 60 : 124) + safeTop, bottom: (landscape ? 64 : 72) + safeBottom, left: 0, right: 0 };
+}
 
 /** True when `bounds` (world px) fits inside the free part of the screen (`view` minus the HUD `insets`, device px) at device `zoom`. */
 export function fitsAt(view: { w: number; h: number }, bounds: Rect, insets: Insets, zoom: number): boolean {
@@ -149,11 +186,14 @@ export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus:
  * of the window, so a street on a big desktop is seen at the same scale as everywhere else instead of shrunk onto black.
  */
 export function outdoorFraming(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, cssZoom: number, dpr: number): { zoom: number; cx: number; cy: number; fits: boolean } {
-  return framingAt(view, bounds, focus, insets, deviceZoomFor(cssZoom, dpr), OUTDOOR_NORTH);
+  return framingAt(view, bounds, focus, insets, deviceZoomFor(cssZoom, dpr), OUTDOOR_NORTH, EDGE_KNEE);
 }
 
-function framingAt(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, zoom: number, north: { rows: number; bandPx: number } | false): { zoom: number; cx: number; cy: number; fits: boolean } {
-  const c = cameraCenter({ w: view.w, h: view.h, zoom }, bounds, focus, insets);
+/** World px over which the outdoor camera eases into the edge of the map (issue #154): two tiles, so the stop reads as a slow-down. */
+export const EDGE_KNEE = 2 * T;
+
+function framingAt(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, zoom: number, north: { rows: number; bandPx: number } | false, knee = 0): { zoom: number; cx: number; cy: number; fits: boolean } {
+  const c = cameraCenter({ w: view.w, h: view.h, zoom }, bounds, focus, insets, knee);
   let cy = c.cy;
   const toLoY = (view.h / 2 - insets.top) / zoom;
   // the camera centre that puts the top of the north wall band (3 tiles above row 0; a facade may rise higher, that part may be cropped) at the top of the free region

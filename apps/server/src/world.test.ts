@@ -1,9 +1,14 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import {
   buildGrid,
   CPU_NAMES,
+  DIARY_WORDS,
+  GAME_DAY_MS,
+  gameDay,
   gameMinutes,
+  todayEastern,
   greetingCap,
+  normalizeBjj,
   greetingFor,
   openMatTiles,
   DEFAULT_APPEARANCE,
@@ -13,6 +18,7 @@ import {
   MISSION_REWARD,
   mulberry32,
   ROOMS,
+  revertRoomProps,
   SCORE_FEEDBACK,
   seatTiles,
   TYPED_MISS_HINT,
@@ -22,8 +28,10 @@ import {
   type Tile,
 } from '@tudobem/shared';
 import { sanitizeAppearance, World, MG_RESUME_MS, type AccountLink, type Session, type WorldOptions } from './world.js';
+import { LayoutStore } from './layoutStore.js';
 import { serveFront } from './correriaTestKit.js';
-import { ProfileStore, normalizeProfile, type StoredProfile } from './store.js';
+import { memoryFeiraGames } from './feiraGames.js';
+import { ProfileStore, normalizeProfile, today, todaySaoPaulo, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 1_000_000;
@@ -1081,5 +1089,229 @@ describe('Admin panel', () => {
     const still = a.all('admin').filter((m) => m.phase === 'feiraCart').at(-1);
     expect(still && still.phase === 'feiraCart' && still.games.find((g) => g.id === 'tapioca')?.mode).toBe('on');
     expect(still && still.phase === 'feiraCart' && still.games.find((g) => g.id === 'pastel')?.mode).toBe('off');
+  });
+
+  it('lets you walk the cart tiles while every game is off, then shows Pastel live to people already there and to a new joiner', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const a = await client(world, 'Admin');
+    const b = await client(world, 'Lia');
+    await a.send({ t: 'join', room: 'feira' });
+    await b.send({ t: 'join', room: 'feira' });
+    expect(a.last('roomState')?.feiraCart).toMatchObject({ closed: true, game: null });
+
+    const before = a.all('avatarMoved').length;
+    await a.send({ t: 'move', x: 22, y: 7, sit: false });
+    const onto = a.all('avatarMoved').at(-1);
+    expect(a.all('avatarMoved').length).toBe(before + 1);
+    expect(onto?.path.at(-1)).toEqual({ x: 22, y: 7 });
+
+    await a.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'pastel', mode: 'on' });
+    expect(b.last('feiraGame')).toMatchObject({ phase: 'cart', closed: false, game: 'pastel' });
+    expect(a.last('feiraGame')).toMatchObject({ phase: 'cart', closed: false, game: 'pastel' });
+
+    const stuck = b.all('avatarMoved').length;
+    await b.send({ t: 'move', x: 18, y: 7, sit: false });
+    expect(b.all('avatarMoved').length).toBe(stuck);
+
+    const c = await client(world, 'Nova');
+    await c.send({ t: 'join', room: 'feira' });
+    const entered = c.last('roomState');
+    expect(entered && entered.t === 'roomState' && entered.feiraCart).toMatchObject({ closed: false, game: 'pastel' });
+  });
+
+  it('rejects every Testes action without the admin password', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const a = await client(world, 'Jonny');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const coins = a.s.profile!.coins;
+    const minute = world.gameMinuteNow();
+    const day = a.s.profile!.recados?.day;
+    const actions: ClientMsg[] = [
+      { t: 'admin', action: 'testes' },
+      { t: 'admin', action: 'testBelt', belt: 'azul' },
+      { t: 'admin', action: 'testCoins', coins: 500 },
+      { t: 'admin', action: 'testProgress', xp: 20, goal: 30, verde: true },
+      { t: 'admin', action: 'testEscola', streak: 4, words: 3 },
+      { t: 'admin', action: 'testTeleport', room: 'escola' },
+      { t: 'admin', action: 'testClock', minute: 120 },
+      { t: 'admin', action: 'testClock', rollDay: true },
+      { t: 'admin', action: 'testCaps' },
+      { t: 'admin', action: 'testTutorial', mode: 'skip' },
+      { t: 'admin', action: 'testPadaria', menu: 6, stage: 2 },
+      { t: 'admin', action: 'testPerk', grant: true, pet: 'dog', bubble: 'sol' },
+      { t: 'admin', action: 'testPerk', revoke: true },
+      { t: 'admin', action: 'testReset', confirm: true },
+    ];
+    for (const msg of actions) {
+      await a.send(msg);
+      expect(a.last('admin')).toMatchObject({ phase: 'auth', ok: false });
+    }
+    expect(a.s.profile!.coins).toBe(coins);
+    expect(a.s.profile!.testUser).not.toBe(true);
+    expect(a.s.profile!.bjj?.wins ?? 0).toBe(0);
+    expect(a.s.instance?.def.id).toBe('praca');
+    expect(world.gameMinuteNow()).toBe(minute);
+    expect(a.s.profile!.recados?.day).toBe(day);
+    expect(log.mock.calls.some((c) => String(c[0]).includes('[admin-testes] rejected'))).toBe(true);
+    log.mockRestore();
+  });
+
+  it('sets a belt from wins, promotes on the fourth stripe, and unlocks founding at brown', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const a = await client(world, 'Jonny');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await a.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await a.send({ t: 'admin', action: 'testBelt', belt: 'branca', stripes: 3 });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 3, wins: 15 });
+    expect(a.last('admin')).toMatchObject({ phase: 'testes', state: { belt: 'branca', stripes: 3, wins: 15, canFound: false } });
+    await a.send({ t: 'admin', action: 'testBelt', stripes: 4 });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'azul', stripes: 0, wins: 20 });
+    await a.send({ t: 'admin', action: 'testBelt', belt: 'marrom' });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'marrom', stripes: 0, wins: 140 });
+    expect(a.s.profile!.testUser).toBe(true);
+    expect(a.last('avatarUpdated')?.avatar.gi).toBe(false);
+    expect(a.last('avatarUpdated')?.avatar.belt).toBeUndefined();
+    await a.send({ t: 'admin', action: 'testTeleport', room: 'academia' });
+    expect(a.s.instance?.def.id).toBe('academia');
+    await a.send({ t: 'academy', action: 'directory' });
+    expect(a.last('academy')).toMatchObject({ phase: 'directory', canFound: true });
+    await a.send({ t: 'admin', action: 'testBelt', wins: 139 });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'roxa', wins: 139 });
+    await a.send({ t: 'academy', action: 'directory' });
+    expect(a.last('academy')).toMatchObject({ phase: 'directory', canFound: false });
+    expect(log.mock.calls.some((c) => String(c[0]).startsWith('[admin-testes]'))).toBe(true);
+    log.mockRestore();
+  });
+
+  it('leaves admin-adjusted profiles off the public words and streak boards', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const admin = await client(world, 'Jonny');
+    const other = await client(world, 'Lia');
+    other.s.profile!.diary = DIARY_WORDS.slice(0, 2).map((w) => w.id);
+    const words = Math.min(8, DIARY_WORDS.length);
+    expect(words).toBeGreaterThan(2);
+    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await admin.send({ t: 'admin', action: 'testEscola', words, streak: 12, tz: 0 });
+    expect(admin.s.profile!.testUser).toBe(true);
+    expect(admin.s.profile!.diary).toHaveLength(words);
+    await other.send({ t: 'leaderboards' });
+    const board = other.last('leaderboards');
+    expect(board?.words.some((row) => row.name === 'Jonny')).toBe(false);
+    expect(board?.streak.some((row) => row.name === 'Jonny')).toBe(false);
+    expect(board?.words.some((row) => row.name === 'Lia' && row.score === 2)).toBe(true);
+  });
+
+  it('rolls one test profile’s day without moving another player’s caps or the public Feira board', async () => {
+    const games = memoryFeiraGames(now);
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca', feiraGames: games });
+    const admin = await client(world, 'Jonny');
+    const other = await client(world, 'Lia');
+    const minute = world.gameMinuteNow();
+    const eastern = todayEastern(clock);
+    games.state.day = eastern;
+    games.state.scores = { [other.s.profile!.id]: { name: 'Lia', best: 80, game: 'tapioca', at: clock } };
+    games.state.medals = {};
+    const utc = today();
+    const sp = todaySaoPaulo();
+    other.s.profile!.correria = { stars: 1, shifts: 1, best: 10, date: utc, paid: 2 };
+    other.s.profile!.feira = { date: utc, n: 3 };
+    other.s.profile!.daily.pedidoRvGranted = { carlos: sp };
+    other.s.profile!.bjj = normalizeBjj({ bondDay: utc, bondToday: 1 });
+    other.s.profile!.cartela = { stamps: 1, activityDay: { feira: eastern } };
+    const liaRecados = other.s.profile!.recados?.day;
+    const liaSkies = other.all('sky').length;
+    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await admin.send({ t: 'admin', action: 'testClock', rollDay: true });
+    expect(admin.s.profile!.testUser).toBe(true);
+    expect(admin.s.profile!.testDayOffset).toBe(1);
+    expect(admin.s.profile!.testClockOffsetMs).toBe(GAME_DAY_MS);
+    expect(admin.s.profile!.recados?.day).toBe(gameDay(clock + GAME_DAY_MS));
+    expect(admin.last('sky')?.serverNow).toBe(clock + GAME_DAY_MS);
+    expect(world.gameMinuteNow()).toBe(minute);
+    expect(other.s.profile!.testDayOffset).toBeUndefined();
+    expect(other.s.profile!.testClockOffsetMs).toBeUndefined();
+    expect(other.s.profile!.correria).toMatchObject({ date: utc, paid: 2 });
+    expect(other.s.profile!.feira).toEqual({ date: utc, n: 3 });
+    expect(other.s.profile!.daily.pedidoRvGranted).toEqual({ carlos: sp });
+    expect(other.s.profile!.bjj?.bondDay).toBe(utc);
+    expect(other.s.profile!.bjj?.bondToday).toBe(1);
+    expect(other.s.profile!.cartela?.activityDay.feira).toBe(eastern);
+    expect(other.s.profile!.recados?.day).toBe(liaRecados);
+    expect(other.all('sky').length).toBe(liaSkies);
+    expect(games.state.day).toBe(eastern);
+    expect(games.state.scores[other.s.profile!.id]?.best).toBe(80);
+    expect(games.state.medals).toEqual({});
+    expect(other.s.profile!.feiraMedals).toBeUndefined();
+    expect(admin.s.profile!.feiraMedals).toBeUndefined();
+  });
+});
+
+describe('design mode admin guard', () => {
+  afterEach(() => {
+    revertRoomProps('praca');
+  });
+
+  it('ignores layout saves until the socket has the admin password', async () => {
+    const { world } = makeWorld(8, { adminPassword: 'tb-admin-praca', githubToken: null });
+    const player = await client(world, 'Lia');
+    const before = ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x;
+    const objects = ROOMS.praca.props.map((p) => (p.id === 'banco_4' ? { ...p, x: before + 1 } : p));
+    await player.send({ t: 'admin', action: 'layoutSave', room: 'praca', objects });
+    expect(player.last('admin')).toMatchObject({ phase: 'auth', ok: false });
+    expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before);
+    expect(player.all('layout')).toHaveLength(0);
+  });
+
+  it('saves for everyone, survives a restart, and rejects an unknown type', async () => {
+    const disk: { state: unknown } = { state: null };
+    const io = {
+      load: () => disk.state,
+      save: (state: unknown) => {
+        disk.state = state;
+      },
+    };
+    const { world } = makeWorld(8, { adminPassword: 'tb-admin-praca', githubToken: null, layouts: new LayoutStore(io) });
+    const admin = await client(world, 'Admin');
+    const other = await client(world, 'Lia');
+    const before = ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x;
+    const moved = () => ROOMS.praca.props.map((p) => (p.id === 'banco_4' ? { ...p, x: before + 1 } : p));
+
+    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await admin.send({ t: 'admin', action: 'layoutSave', room: 'praca', objects: [{ id: 'x', kind: 'dragao', x: 1, y: 1, blocks: true }] });
+    expect(admin.last('error')).toMatchObject({ code: 'admin' });
+    expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before);
+
+    await admin.send({ t: 'admin', action: 'layoutSave', room: 'praca', objects: moved() });
+    expect(admin.last('admin')).toMatchObject({ phase: 'layout', room: 'praca', source: 'override' });
+    expect(other.last('layout')).toMatchObject({ room: 'praca' });
+    const live = other.last('layout');
+    expect(live && live.t === 'layout' && live.objects?.find((p) => p.id === 'banco_4')?.x).toBe(before + 1);
+
+    revertRoomProps('praca');
+    makeWorld(8, { githubToken: null, layouts: new LayoutStore(io) });
+    expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before + 1);
+
+    await admin.send({ t: 'admin', action: 'layoutRevert', room: 'praca' });
+    expect(admin.last('admin')).toMatchObject({ phase: 'layout', source: 'code' });
+    expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before);
+    expect(other.all('layout').at(-1)).toMatchObject({ room: 'praca', objects: null });
+  });
+
+  it('asks the client to download the layout when TB_GITHUB_TOKEN is unset', async () => {
+    let called = false;
+    const { world } = makeWorld(8, {
+      adminPassword: 'tb-admin-praca',
+      githubToken: null,
+      githubFetch: () => {
+        called = true;
+        return Promise.resolve(new Response('{}'));
+      },
+    });
+    const admin = await client(world, 'Admin');
+    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await admin.send({ t: 'admin', action: 'layoutPublish', room: 'praca', objects: ROOMS.praca.props });
+    expect(admin.last('admin')).toMatchObject({ phase: 'layoutPublished', fallback: true });
+    expect(called).toBe(false);
   });
 });

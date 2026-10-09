@@ -10,22 +10,30 @@ import {
   PARTNERS,
   REF_LINES,
   THANKS_LINE,
+  addCalendarDays,
   artOf,
   bjjLevel,
   botMoves,
   boutBond,
   boutRv,
-  chooseBot,
   completeDrill,
   drillPosition,
   endLine,
   fightMoves,
   grantDiaryWord,
-  gripBonus,
   isMatMove,
   matLegalMoves,
+  matMeter,
+  matOdds,
   movePercent,
+  moveSetsUp,
   mulberry32,
+  planAnswers,
+  planBot,
+  planLine,
+  botCommit,
+  gripNeed,
+  COMBOS,
   newMat,
   nextMatWord,
   normalizeBjj,
@@ -40,8 +48,10 @@ import {
   type BoutServerMsg,
   type BoutSnapshot,
   type ClientMsg,
+  type BoutGripEvent,
   type ExchangeEvent,
   type MatMoveId,
+  type MatPlan,
   type MatResult,
   type MatSide,
   type MatState,
@@ -74,6 +84,8 @@ export interface BoutSession {
   /** Moves the player chose themselves. A timed-out match pays nothing. */
   beats: number;
   drillMove: MatMoveId | null;
+  /** The partner's telegraphed next move, shown with your pick. It commits to it if it is still legal after your move. */
+  plan: MatPlan | null;
   /** Shown on the end card after the drill, already saved on the account. */
   card: { stripeUp: boolean; beltUp: boolean; bond: number; rv: number; reason: Exclude<BoutReason, 'quit'>; word: Bilingual | null } | null;
 }
@@ -93,6 +105,8 @@ export interface BoutDeps {
   err: (s: Session, code: string, pt: string, en: string) => void;
   avatarChanged: (s: Session) => void;
   onBoutComplete?: (s: Session, played: boolean) => void;
+  /** UTC day the bond cap uses. Defaults to the real UTC date. */
+  today?: () => string;
 }
 
 /** `v: 1` bout messages. The account (`profile.bjj`) holds the belt and the unlocked moves, the same way Correria holds stars. */
@@ -177,6 +191,7 @@ export class BoutEngine {
       intentRevealAt: 0,
       beats: 0,
       drillMove: null,
+      plan: null,
       card: null,
     };
     s.bout = b;
@@ -212,35 +227,49 @@ export class BoutEngine {
     b.seq = ++this.seq;
     b.offerAt = this.d.now();
     b.pickMs = this.d.testHints ? 8_000 : PICK_MS;
-    const bonus = gripBonus(b.mat.grips.you);
+    // the partner reads your setup now and shows what it will do; it commits after your move unless your move made it illegal
+    b.plan = planBot(b.mat, prog.belt, botMoves(prog.belt, prog.belt), matStyle(b.partner), allowed);
+    const answers = new Set(planAnswers(b.mat, b.plan, moves));
+    const combos = new Set(COMBOS.map((c) => c.move));
     s.send({
       t: 'bout',
       v: 1,
       phase: 'intent',
       seq: b.seq,
       st: snap(b.mat),
-      intents: moves.map((id) => ({
-        id,
-        pt: MOVE_LABEL[id].pt,
-        en: MOVE_LABEL[id].en,
-        risk: 1 as const,
-        ...(id === 'hold' ? {} : { percent: movePercent(id, prog.belt, bonus) }),
-        ...(() => {
-          const effect = matEffect(b.mat, 'you', id);
-          return effect ? { effect } : {};
-        })(),
-      })),
-      owned: allowed
-        .filter((id) => id !== 'hold')
-        .map((id) => ({
+      intents: moves.map((id) => {
+        const odds = matOdds(b.mat, 'you', id, prog.belt);
+        const effect = matEffect(b.mat, 'you', id);
+        const sets = moveSetsUp(b.mat, 'you', id);
+        return {
           id,
           pt: MOVE_LABEL[id].pt,
           en: MOVE_LABEL[id].en,
           risk: 1 as const,
-          percent: movePercent(id, prog.belt, bonus),
-        })),
+          ...(id === 'hold' ? {} : { percent: odds.percent }),
+          ...(odds.parts.length ? { odds: odds.parts } : {}),
+          ...(effect ? { effect } : {}),
+          ...(sets ? { sets } : {}),
+          ...(answers.has(id) ? { answers: true } : {}),
+          ...(combos.has(id) ? { combo: true } : {}),
+        };
+      }),
+      owned: allowed
+        .filter((id) => id !== 'hold')
+        .map((id) => {
+          const needs = gripNeed(b.mat, 'you', id);
+          return {
+            id,
+            pt: MOVE_LABEL[id].pt,
+            en: MOVE_LABEL[id].en,
+            risk: 1 as const,
+            percent: movePercent(id, prog.belt),
+            ...(needs ? { needs } : {}),
+          };
+        }),
       finish: false,
       pickMs: b.pickMs,
+      plan: { kind: b.plan.kind, move: b.plan.move, line: planLine(b.plan.kind, b.partner.name), answers: [...answers] },
     });
     const seq = b.seq;
     // The intent message can sit in the client queue through the cartoons. Hold waits until the pick is visible.
@@ -272,11 +301,14 @@ export class BoutEngine {
   private botTurn(s: Session, b: BoutSession) {
     const prog = normalizeBjj(s.profile!.bjj);
     const allowed = botMoves(prog.belt, prog.belt);
-    const id = chooseBot(b.mat, prog.belt, allowed, matStyle(b.partner));
-    this.play(s, b, 'them', id, false);
+    const yours = fightMoves({ belt: prog.belt, unlocked: prog.unlocked, opponentBelt: prog.belt });
+    // the telegraphed plan, unless your answer broke it
+    const pick = botCommit(b.mat, b.plan, prog.belt, allowed, matStyle(b.partner), yours);
+    b.plan = null;
+    this.play(s, b, 'them', pick.move, false, pick.replanned);
   }
 
-  private play(s: Session, b: BoutSession, actor: MatSide, id: MatMoveId, timeout: boolean) {
+  private play(s: Session, b: BoutSession, actor: MatSide, id: MatMoveId, timeout: boolean, replanned = false) {
     const prog = normalizeBjj(s.profile!.bjj);
     const belt = prog.belt;
     b.phase = 'resolve';
@@ -286,7 +318,7 @@ export class BoutEngine {
     b.mat = res.state;
     if (actor === 'you' && !b.mat.over) b.intentRevealAt = this.d.now() + MAT_CARTOON_MS + thinkMsFor(matStyle(b.partner)) + MAT_CARTOON_MS;
     const holdMs = this.pause(res.from !== res.to || res.submission ? 900 : 700);
-    s.send(resolveMsg(b, res, actor, timeout, holdMs, id));
+    s.send({ ...resolveMsg(b, res, actor, timeout, holdMs, id), ...(replanned ? { replanned: true } : {}) });
     if (b.mat.over) {
       this.d.schedule(() => this.finish(s, b), holdMs);
       return;
@@ -311,6 +343,7 @@ export class BoutEngine {
       intentRevealAt: 0,
       beats: 1,
       drillMove: move,
+      plan: null,
       card,
     };
     s.bout = b;
@@ -386,7 +419,7 @@ export class BoutEngine {
   private finish(s: Session, b: BoutSession) {
     if (this.of(s) !== b || !b.mat.over || !b.mat.winner) return;
     const winner = b.mat.winner === 'them' ? 'partner' : b.mat.winner === 'you' ? 'you' : 'draw';
-    const reason: Exclude<BoutReason, 'quit'> = b.mat.reason === 'submission' ? 'finalizacao' : winner === 'draw' ? 'empate' : 'pontos';
+    const reason: Exclude<BoutReason, 'quit'> = b.mat.reason === 'submission' ? 'finalizacao' : winner === 'draw' ? 'empate' : b.mat.reason === 'advantages' ? 'vantagens' : 'pontos';
     const played = b.beats >= 1;
     let prog = normalizeBjj(s.profile!.bjj);
     let stripeUp = false;
@@ -401,7 +434,7 @@ export class BoutEngine {
     }
     let bond = 0;
     if (played) {
-      const b2 = boutBond(winner, prog, today());
+      const b2 = boutBond(winner, prog, addCalendarDays(this.d.today?.() ?? today(), s.profile?.testDayOffset ?? 0));
       prog = b2.next;
       bond = b2.gain;
     }
@@ -491,9 +524,27 @@ function resolveMsg(b: BoutSession, res: MatResult, actor: MatSide, timeout: boo
     const signal = signalForPoints(res.points);
     events.push({ type: 'points', side: actor === 'you' ? 'you' : 'partner', pts: res.points, signal, line: res.line });
   }
+  const side = (x: MatSide): 'you' | 'partner' => (x === 'you' ? 'you' : 'partner');
+  for (const e of res.events) {
+    if (e.kind === 'blocked') events.push({ type: 'advantage', side: side(e.side), signal: 'vantagem', line: REF_LINES.vantagem });
+  }
   if (res.from !== res.to || res.fromAhead !== res.toAhead) {
     events.push({ type: 'transition', from: res.from, to: res.to, rungFrom: res.fromRung, rungTo: res.toRung, gain: res.toAhead });
   }
+  const grip: BoutGripEvent[] = res.events.map((e): BoutGripEvent => {
+    switch (e.kind) {
+      case 'grip':
+        return { kind: 'grip', side: side(e.side), grip: e.grip };
+      case 'strip':
+        return { kind: 'strip', side: side(e.side), grips: e.grips };
+      case 'slip':
+        return { kind: 'slip', side: side(e.side), grips: e.grips };
+      case 'brace':
+        return { kind: 'brace', side: side(e.side), brace: e.brace };
+      default:
+        return { kind: 'blocked', side: side(e.side) };
+    }
+  });
   return {
     t: 'bout',
     v: 1,
@@ -510,16 +561,25 @@ function resolveMsg(b: BoutSession, res: MatResult, actor: MatSide, timeout: boo
     delta: res.points,
     events,
     holdMs,
+    grip,
+    percent: res.percent,
+    meterFrom: res.meterFrom,
+    meterTo: res.meterTo,
   };
 }
 
 export function snap(st: MatState): BoutSnapshot {
   const art = artOf(st.position);
+  const grips = (g: MatState['grips']['you'], age: MatState['gripAge']['you'] | undefined) => ({ collar: g.collar, sleeve: g.sleeve, age: { collar: age?.collar ?? 0, sleeve: age?.sleeve ?? 0 } });
   return {
     rung: art.rung,
     momentum: 0,
     points: { you: st.points.you, partner: st.points.them },
-    adv: { you: 0, partner: 0 },
+    adv: { you: st.adv?.you ?? 0, partner: st.adv?.them ?? 0 },
+    meter: matMeter(st),
+    grips: { you: grips(st.grips.you, st.gripAge?.you), partner: grips(st.grips.them, st.gripAge?.them) },
+    brace: { you: st.brace?.you ?? null, partner: st.brace?.them ?? null },
+    tired: { you: !!st.tired?.you, partner: !!st.tired?.them },
     pegada: 0,
     pegadaB: 0,
     clockMs: Math.max(0, MAT_TURNS - st.turnsUsed) * 1000,

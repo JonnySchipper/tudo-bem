@@ -22,6 +22,7 @@ import {
   feiraPayout,
   feiraTop,
   isFeiraGameId,
+  addCalendarDays,
   judgeFeiraResult,
   medalTallies,
   medalsForDay,
@@ -146,18 +147,89 @@ export class FeiraGamesEngine {
     if (d.pin && isFeiraGameId(d.pin)) this.cart.setMode(d.pin, 'on');
   }
 
+  private calendarDay(): string {
+    return todayEastern(this.d.now());
+  }
+
+  private isTest(id: string): boolean {
+    return this.d.store.get(id)?.testUser === true;
+  }
+
+  /** Drop test profiles from the public scores, paid map, and medal tally so they cannot rank, wear the crown, or keep a medal. */
+  private scrubPublicBoard(): void {
+    const st = this.d.games.state;
+    let changed = false;
+    let profiles = false;
+    const ids = new Set([...Object.keys(st.scores), ...Object.keys(st.paid), ...Object.keys(st.medals)]);
+    for (const id of ids) {
+      if (!this.isTest(id)) continue;
+      if (st.scores[id]) delete st.scores[id];
+      if (st.paid[id] !== undefined) delete st.paid[id];
+      if (st.medals[id]) delete st.medals[id];
+      const p = this.d.store.get(id);
+      if (p?.feiraMedals?.length) {
+        p.feiraMedals = [];
+        profiles = true;
+      }
+      changed = true;
+    }
+    if (changed) this.d.games.persist();
+    if (profiles) this.d.store.save();
+  }
+
+  private publicMedals(medals: FeiraGamesState['medals']): FeiraGamesState['medals'] {
+    const out: FeiraGamesState['medals'] = {};
+    for (const [id, list] of Object.entries(medals)) {
+      if (this.isTest(id)) continue;
+      out[id] = list;
+    }
+    return out;
+  }
+
+  private paidDay(p: StoredProfile, publicDay: string): string {
+    return addCalendarDays(publicDay, p.testDayOffset ?? 0);
+  }
+
+  private testPaidCount(p: StoredProfile, publicDay: string): number {
+    const day = this.paidDay(p, publicDay);
+    return p.testFeiraPaid?.day === day ? p.testFeiraPaid.n : 0;
+  }
+
+  private bumpTestPaid(p: StoredProfile, publicDay: string): void {
+    const day = this.paidDay(p, publicDay);
+    const n = p.testFeiraPaid?.day === day ? p.testFeiraPaid.n : 0;
+    p.testFeiraPaid = { day, n: n + 1 };
+  }
+
+  /** Drop today's paid-run count for one player. Public scores stay. A test profile's counter is personal. */
+  clearPaid(playerId: string): void {
+    this.scrubPublicBoard();
+    const st = this.d.games.ensure(this.calendarDay());
+    if (st.paid[playerId] !== undefined) {
+      delete st.paid[playerId];
+      this.d.games.persist();
+    }
+    const p = this.d.store.get(playerId);
+    if (p?.testFeiraPaid) p.testFeiraPaid = { day: p.testFeiraPaid.day, n: 0 };
+  }
+
+  /** Close the ET day the board is on and open `day` (medals, then a fresh paid-run count). */
+  rollBoard(day: string): void {
+    this.d.games.roll(day);
+  }
+
   /** Today's playable game, or null when every cart game is off (or not implemented yet). */
-  featuredNow(day = todayEastern(this.d.now())): FeiraGameId | null {
+  featuredNow(day = this.calendarDay()): FeiraGameId | null {
     const id = featuredEnabled(day, enabledFeiraGameIds(this.cart.config(), day));
     return isFeiraGameId(id) ? id : null;
   }
 
-  cartSnapshot(day = todayEastern(this.d.now())): { closed: boolean; game: FeiraGameId | null } {
+  cartSnapshot(day = this.calendarDay()): { closed: boolean; game: FeiraGameId | null } {
     const game = this.featuredNow(day);
     return { closed: game === null, game };
   }
 
-  cartView(day = todayEastern(this.d.now())) {
+  cartView(day = this.calendarDay()) {
     return feiraCartAdminView(this.cart.config(), day);
   }
 
@@ -166,7 +238,7 @@ export class FeiraGamesEngine {
     return this.cart.setMode(id, mode, schedule);
   }
 
-  cartMsg(day = todayEastern(this.d.now())): Extract<ServerMsg, { t: 'feiraGame'; phase: 'cart' }> {
+  cartMsg(day = this.calendarDay()): Extract<ServerMsg, { t: 'feiraGame'; phase: 'cart' }> {
     const snap = this.cartSnapshot(day);
     return { t: 'feiraGame', phase: 'cart', closed: snap.closed, game: snap.game };
   }
@@ -176,9 +248,10 @@ export class FeiraGamesEngine {
     return s.feiraGame;
   }
 
-  /** Live crown holder id, or null. Finalizes the day first. */
+  /** Live crown holder id, or null. Test profiles are not on the board. Finalizes the day first. */
   crownId(): string | null {
-    return crownHolder(this.d.games.ensure().scores);
+    this.scrubPublicBoard();
+    return crownHolder(this.d.games.ensure(this.calendarDay()).scores);
   }
 
   /**
@@ -186,9 +259,13 @@ export class FeiraGamesEngine {
    * Copies new medals onto profiles and tells everyone the crown cleared.
    */
   tick(): { rolled: boolean; awards: { id: string; award: FeiraMedalAward }[] } {
-    const day = todayEastern(this.d.now());
-    if (this.d.games.state.day === day) return { rolled: false, awards: [] };
-    const awards = this.d.games.roll(day);
+    const day = this.calendarDay();
+    if (this.d.games.state.day === day) {
+      this.scrubPublicBoard();
+      return { rolled: false, awards: [] };
+    }
+    this.scrubPublicBoard();
+    const awards = this.d.games.roll(day).filter((a) => !this.isTest(a.id));
     this.applyMedals(awards);
     this.d.broadcastAll({ t: 'feiraGame', phase: 'crown', id: null });
     return { rolled: true, awards };
@@ -205,6 +282,8 @@ export class FeiraGamesEngine {
   private near(s: Session, propId: string): boolean {
     const here = this.d.tileOf(s);
     if (!here || here.room !== 'feira') return false;
+    // A game that is off, or outside its window, is not in the world: there is nothing to stand next to.
+    if (!this.featuredNow() && (propId === FEIRA_CART_PROP || propId === FEIRA_SIGN_PROP)) return false;
     const prop = s.instance?.def.props.find((p) => p.id === propId);
     if (!prop) return false;
     const w = prop.w ?? 1;
@@ -220,7 +299,7 @@ export class FeiraGamesEngine {
     if (s.mg) return this.d.err(s, 'busy', BUSY.pt, BUSY.en);
     if (s.feiraGame && !s.feiraGame.done) return this.d.err(s, 'busy', BUSY.pt, BUSY.en);
     if (!this.near(s, FEIRA_CART_PROP)) return this.d.err(s, 'far', NEAR.pt, NEAR.en);
-    const day = todayEastern(this.d.now());
+    const day = this.calendarDay();
     const game = this.featuredNow(day);
     if (!game || !feiraModule(game) || !isFeiraGameId(game)) return this.d.err(s, 'feira_closed', CLOSED.pt, CLOSED.en);
     const seed = (Math.floor((this.d.rng ?? Math.random)() * 0x7fffffff) ^ (this.d.now() & 0xffff)) >>> 0;
@@ -237,7 +316,7 @@ export class FeiraGamesEngine {
     const p = s.profile;
     const run = s.feiraGame;
     if (!p || !run || run.done) return this.d.err(s, 'no_run', 'Não há jogo aberto.', 'There is no open game.');
-    const day = todayEastern(this.d.now());
+    const day = this.calendarDay();
     if (!enabledFeiraGameIds(this.cart.config(), day).includes(run.game)) {
       run.done = true;
       s.feiraGame = undefined;
@@ -267,34 +346,43 @@ export class FeiraGamesEngine {
     rejected: boolean,
   ): void {
     const p = s.profile!;
-    const st = this.d.games.ensure(todayEastern(this.d.now()));
+    const day = this.calendarDay();
+    this.scrubPublicBoard();
+    const st = this.d.games.ensure(day);
     // a run started yesterday and finished after midnight still scores on the new day (the board it lands on)
     const score = judged.score;
     const wouldPay = rejected ? 0 : feiraPayout(score, judged.served);
-    const paidSoFar = st.paid[p.id] ?? 0;
+    const test = p.testUser === true;
+    const paidSoFar = test ? this.testPaidCount(p, day) : (st.paid[p.id] ?? 0);
     let coins = 0;
     let dailyBlocked = false;
     if (wouldPay > 0) {
       if (paidSoFar < FEIRA_DAILY_PAID_RUNS) {
         coins = wouldPay;
-        st.paid[p.id] = paidSoFar + 1;
+        if (test) this.bumpTestPaid(p, day);
+        else st.paid[p.id] = paidSoFar + 1;
       } else dailyBlocked = true;
     }
-    const prev = st.scores[p.id];
-    const at = this.d.now();
-    if (!prev || score > prev.best) {
-      st.scores[p.id] = { name: p.name, best: score, game: run.game, at };
-    } else if (prev.name !== p.name) {
-      prev.name = p.name;
+    let bestToday = score;
+    let place = 0;
+    let crown = false;
+    if (!test) {
+      const prev = st.scores[p.id];
+      const at = this.d.now();
+      if (!prev || score > prev.best) {
+        st.scores[p.id] = { name: p.name, best: score, game: run.game, at };
+      } else if (prev.name !== p.name) {
+        prev.name = p.name;
+      }
+      bestToday = st.scores[p.id]?.best ?? score;
+      place = placeOf(st.scores, p.id);
+      crown = crownHolder(st.scores) === p.id && score > 0;
     }
     this.d.games.persist();
-    const bestToday = st.scores[p.id]?.best ?? score;
-    const place = placeOf(st.scores, p.id);
-    const crown = crownHolder(st.scores) === p.id && score > 0;
     if (coins > 0) {
       this.d.reward(s, coins, { pt: `Carrinho da feira: ${FEIRA_GAME_LABEL[run.game].pt}`, en: `Market cart: ${FEIRA_GAME_LABEL[run.game].en}` });
     }
-    this.syncMedals(p);
+    if (!test) this.syncMedals(p);
     this.d.store.save();
     this.d.pushProfile(s);
     const line: Bilingual = rejected
@@ -327,13 +415,15 @@ export class FeiraGamesEngine {
     if (!this.near(s, FEIRA_SIGN_PROP) && !this.near(s, FEIRA_CART_PROP)) {
       return this.d.err(s, 'far', 'Chegue mais perto do carrinho ou da placa.', 'Walk closer to the cart or the sign.');
     }
+    this.scrubPublicBoard();
     const st = this.d.games.ensure();
+    const medals = this.publicMedals(st.medals);
     const names: Record<string, string> = {};
     for (const [id, row] of Object.entries(st.scores)) names[id] = row.name;
-    for (const id of Object.keys(st.medals)) {
+    for (const id of Object.keys(medals)) {
       if (!names[id]) names[id] = this.d.store.get(id)?.name ?? id;
     }
-    const day = todayEastern(this.d.now());
+    const day = this.calendarDay();
     const snap = this.cartSnapshot(day);
     s.send({
       t: 'feiraGame',
@@ -342,8 +432,8 @@ export class FeiraGamesEngine {
       game: snap.game,
       closed: snap.closed,
       top: feiraTop(st.scores, 3, s.profile?.id),
-      medals: medalTallies(st.medals, names, 10),
-      crownId: this.crownId(),
+      medals: medalTallies(medals, names, 10),
+      crownId: crownHolder(st.scores),
     });
   }
 

@@ -1,5 +1,5 @@
 import type { BoardRow, EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
-import { npcDefById, positionAlong, ROOMS } from '@tudobem/shared';
+import { feiraCartShown, feiraRoomFor, npcDefById, positionAlong, ROOMS } from '@tudobem/shared';
 import type { RecadoBoard } from './ui/recadoView';
 
 export interface Bubble {
@@ -44,6 +44,8 @@ class Game {
   leaderboards: { words: BoardRow[]; streak: BoardRow[]; at: number } | null = null;
   npcBubbles = new Map<string, Bubble>();
   pending: PendingAction | null = null;
+  /** The last Comer / Beber / Jogar fora this player pressed (performance.now()), so the scene can tell eating finger food from tossing it. */
+  carryIntent: { action: 'consume' | 'toss'; at: number } | null = null;
   editMode = false;
   placing: { itemId: string; rot: 0 | 1 } | null = null;
   selectedFurniture: string | null = null;
@@ -71,10 +73,33 @@ class Game {
    * the escola never turns it off (DECISIONS.md, "nameplate colour vs English help").
    */
   englishHelp = localStorage.getItem('tb_english') !== 'off';
+  /** Admin design mode: world props can be moved. Player walking and clicks pause. */
+  designMode = false;
+  /** Extra camera offset (world px) while designing, so a phone can pan props out from under the panel. */
+  designPan = { x: 0, y: 0 };
+  /** Bumped when a room's props change so the scene and walk grid rebuild. */
+  layoutEpoch = 0;
+  /** Last layout pushed by the server (the design editor listens). */
+  layoutNotice: { room: import('@tudobem/shared').RoomId; objects: import('@tudobem/shared').PropDef[] | null } | null = null;
   private listeners = new Map<string, Set<Listener>>();
+  /** Feira as shown for each cart state (hidden, or dressed for one game). Stable so the scene does not rebuild every frame. */
+  private feiraViews = new Map<string, RoomDef>();
+
+  /** Props changed: drop cached Feira cart views and rebuild the scene. */
+  bumpLayout(): void {
+    this.feiraViews.clear();
+    this.layoutEpoch++;
+  }
 
   get roomDef(): RoomDef | null {
-    return this.room ? ROOMS[this.room.room] : null;
+    if (!this.room) return null;
+    const base = ROOMS[this.room.room];
+    if (this.designMode) return base;
+    if (base.id !== 'feira') return base;
+    const key = feiraCartShown(this.feiraCart) ? this.feiraCart!.game! : '';
+    let view = this.feiraViews.get(key);
+    if (!view) this.feiraViews.set(key, (view = feiraRoomFor(base, this.feiraCart)));
+    return view;
   }
 
   /**

@@ -7,6 +7,7 @@
     "nanda": "pt-BR-FranciscaNeural",
     "julia": "pt-BR-FranciscaNeural",
     "prof": "pt-BR-FranciscaNeural",
+    "comissaria": "pt-BR-FranciscaNeural",
     "lucia": "pt-BR-FranciscaNeural",
     "tia_lu": "pt-BR-FranciscaNeural",
     "rosa": "pt-BR-FranciscaNeural",
@@ -265,6 +266,126 @@
       "voice": "tia_lu",
       "text": "A feira volta amanhã às 6h.",
       "file": "tia_lu-9ca912d7ec.mp3"
+    },
+    {
+      "id": "tia_lu-7ad4b5c3e0",
+      "voice": "tia_lu",
+      "text": "Ai, que bom descansar um pouquinho!",
+      "file": "tia_lu-7ad4b5c3e0.mp3"
+    },
+    {
+      "id": "tia_lu-ebfbc14287",
+      "voice": "tia_lu",
+      "text": "Acordei às quatro hoje. Tô cansada!",
+      "file": "tia_lu-ebfbc14287.mp3"
+    },
+    {
+      "id": "tia_lu-52adf97795",
+      "voice": "tia_lu",
+      "text": "Meus netos vêm jantar lá em casa hoje.",
+      "file": "tia_lu-52adf97795.mp3"
+    },
+    {
+      "id": "tia_lu-b701720745",
+      "voice": "tia_lu",
+      "text": "Amanhã cedo tô na feira!",
+      "file": "tia_lu-b701720745.mp3"
+    },
+    {
+      "id": "tia_lu-787efa4adc",
+      "voice": "tia_lu",
+      "text": "Agora não, a feira já fechou! Amanhã tem, das seis à uma da tarde.",
+      "file": "tia_lu-787efa4adc.mp3"
+    },
+    {
+      "id": "ze-c054a74bed",
+      "voice": "ze",
+      "text": "Opa! Hoje a feira foi boa.",
+      "file": "ze-c054a74bed.mp3"
+    },
+    {
+      "id": "ze-7a3508dbbc",
+      "voice": "ze",
+      "text": "Agora é hora de descansar as pernas.",
+      "file": "ze-7a3508dbbc.mp3"
+    },
+    {
+      "id": "ze-ef015d0f91",
+      "voice": "ze",
+      "text": "Mais tarde tem jogo de futebol na TV.",
+      "file": "ze-ef015d0f91.mp3"
+    },
+    {
+      "id": "ze-8327476257",
+      "voice": "ze",
+      "text": "Amanhã cedo tô na feira!",
+      "file": "ze-8327476257.mp3"
+    },
+    {
+      "id": "ze-4a5c1020e5",
+      "voice": "ze",
+      "text": "Hoje não dá mais. Amanhã tem feira, das seis à uma da tarde!",
+      "file": "ze-4a5c1020e5.mp3"
+    },
+    {
+      "id": "chico-fbc70ad6a3",
+      "voice": "chico",
+      "text": "Hoje vendi tudo! Que dia!",
+      "file": "chico-fbc70ad6a3.mp3"
+    },
+    {
+      "id": "chico-42b4b9fe60",
+      "voice": "chico",
+      "text": "Tô com cheiro de pastel até agora!",
+      "file": "chico-42b4b9fe60.mp3"
+    },
+    {
+      "id": "chico-f75c2733ae",
+      "voice": "chico",
+      "text": "Agora eu quero um café e uma soneca.",
+      "file": "chico-f75c2733ae.mp3"
+    },
+    {
+      "id": "chico-5ba05d8c63",
+      "voice": "chico",
+      "text": "Amanhã cedo tô na feira!",
+      "file": "chico-5ba05d8c63.mp3"
+    },
+    {
+      "id": "chico-a6ba146ff8",
+      "voice": "chico",
+      "text": "Pastel só amanhã! A feira abre às seis e vai até a uma.",
+      "file": "chico-a6ba146ff8.mp3"
+    },
+    {
+      "id": "rosa-3ae1efbf64",
+      "voice": "rosa",
+      "text": "Que bom te ver fora da feira!",
+      "file": "rosa-3ae1efbf64.mp3"
+    },
+    {
+      "id": "rosa-3110b10090",
+      "voice": "rosa",
+      "text": "Agora vou cuidar das minhas plantas.",
+      "file": "rosa-3110b10090.mp3"
+    },
+    {
+      "id": "rosa-6568c2926d",
+      "voice": "rosa",
+      "text": "Minha neta adora flores, igual a mim.",
+      "file": "rosa-6568c2926d.mp3"
+    },
+    {
+      "id": "rosa-22f6855055",
+      "voice": "rosa",
+      "text": "Amanhã cedo tô na feira!",
+      "file": "rosa-22f6855055.mp3"
+    },
+    {
+      "id": "rosa-37ed879ed1",
+      "voice": "rosa",
+      "text": "As flores ficam pra amanhã. A feira é das seis à uma da tarde!",
+      "file": "rosa-37ed879ed1.mp3"
     },
     {
       "id": "tia_lu-c3e37c7ed9",
@@ -3669,6 +3790,12 @@
       "file": "ui-05bfe8bd4e.mp3"
     },
     {
+      "id": "ui-2059ec9361",
+      "voice": "ui",
+      "text": "DESEMBARQUE. Saída para o aeroporto",
+      "file": "ui-2059ec9361.mp3"
+    },
+    {
       "id": "ui-97e4ea2659",
       "voice": "ui",
       "text": "Vaga livre para uma nova barraca",
@@ -4561,6 +4688,12 @@
       "voice": "ui",
       "text": "terminal",
       "file": "ui-46d551dae6.mp3"
+    },
+    {
+      "id": "ui-fbe323685f",
+      "voice": "ui",
+      "text": "bem-vindo",
+      "file": "ui-fbe323685f.mp3"
     },
     {
       "id": "ui-e4f88bf4b0",
@@ -7471,6 +7604,24 @@
       "voice": "lucia",
       "text": "Incrível! Sua placa agora é dourada.",
       "file": "lucia-732f5fe856.mp3"
+    },
+    {
+      "id": "comissaria-d293b32fd0",
+      "voice": "comissaria",
+      "text": "Aqui é o desembarque. Siga para o aeroporto pela porta de vidro.",
+      "file": "comissaria-d293b32fd0.mp3"
+    },
+    {
+      "id": "comissaria-d198393bde",
+      "voice": "comissaria",
+      "text": "Bem-vindo ao Brasil!",
+      "file": "comissaria-d198393bde.mp3"
+    },
+    {
+      "id": "comissaria-235be7666b",
+      "voice": "comissaria",
+      "text": "A porta do aeroporto é ali embaixo.",
+      "file": "comissaria-235be7666b.mp3"
     },
     {
       "id": "carlos-f0eea8e48e",

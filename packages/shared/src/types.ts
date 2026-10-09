@@ -54,7 +54,7 @@ export type Nameplate = 'verde' | 'amarelo' | 'azul' | 'roxo' | 'dourado';
 /** Screen-facing: S = toward camera. SE = moving +x, SW = +y, NE = -y, NW = -x. */
 export type Dir = 'SE' | 'SW' | 'NE' | 'NW';
 
-export type RoomId = 'praca' | 'rua' | 'rua_leste' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola' | 'andar' | 'aeroporto';
+export type RoomId = 'praca' | 'rua' | 'rua_leste' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola' | 'andar' | 'aeroporto' | 'desembarque';
 
 export type EmoteKind = 'oi' | 'dancar' | 'rir' | 'valeu' | 'desculpa';
 
@@ -94,6 +94,8 @@ export interface PublicAvatar {
   founderBadge?: boolean;
   /** Which subscriber pet is out. Absent or null when none is following. */
   pet?: 'dog' | 'cat' | null;
+  /** Name on that pet's collar tag. Present only while the pet is out and has a name. */
+  petName?: string | null;
   /** Chat bubble appearance. Classic for anyone without an active subscription. */
   bubbleStyle?: import('./subscription.js').BubbleStyle;
   /**
@@ -209,6 +211,11 @@ export interface PrivateProfile {
    * New profiles set this false and see the intro once.
    */
   arrivalIntroDone?: boolean;
+  /**
+   * The arrivals hall (`desembarque`, the guided tutorial before the airport) is done or skipped. Missing on saves from before the hall:
+   * those players are never sent there. New profiles set this false.
+   */
+  desembarqueDone?: boolean;
   /** Júlia's camera. Photographs tagged things into the language diary. */
   hasCamera?: boolean;
   /** Language-diary word ids earned once. */
@@ -234,10 +241,37 @@ export interface PrivateProfile {
   founderBanner?: boolean;
   /** Subscriber pet choice. Shown only while the subscription is active. */
   pet?: 'dog' | 'cat' | null;
+  /** Names the player gave the dog and the cat. Kept when the pet is put away or the subscription lapses. */
+  petNames?: { dog?: string; cat?: string };
   /** Subscriber chat-bubble appearance. Reverts to classic when the subscription ends. */
   bubbleStyle?: import('./subscription.js').BubbleStyle;
   /** Support subscription. Absent means never subscribed. */
   subscription?: import('./subscription.js').PlayerSubscription | null;
+  /**
+   * Set when an admin Testes action changes this profile. Public words, streak, and Feira boards skip it.
+   * Absent means a normal player.
+   */
+  testUser?: boolean;
+  /**
+   * Calendar days added only when this profile's daily cap keys are computed.
+   * Absent means 0. It does not move the shared clock or anyone else's day.
+   */
+  testDayOffset?: number;
+  /**
+   * Milliseconds added only to this profile's sky and errand clock.
+   * Absent means 0. The neighborhood clock (`clockOffsetMs`) stays put.
+   */
+  testClockOffsetMs?: number;
+  /**
+   * Feira cart paid runs for a test profile, keyed by their own calendar day.
+   * The public board's paid map is not used.
+   */
+  testFeiraPaid?: { day: string; n: number };
+  /**
+   * Admin test: the HUD plate and the overhead nameplate stay Verde.
+   * The earned escola tier is kept and comes back when this is off.
+   */
+  verdeMode?: boolean;
 }
 
 export interface Bilingual {

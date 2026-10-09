@@ -1,5 +1,6 @@
 import type { HotspotDef, NpcDef, PathPos, PlacedFurniture, PortalDef, PropDef, Tile } from '@tudobem/shared';
 import type { ClientAvatar } from '../state';
+import type { TapCue } from './pixel/tapMark';
 
 /** What a pointer can land on. Renderer-independent: every WorldView returns this same union. */
 export type Hit =
@@ -18,6 +19,15 @@ export interface Guide {
   y: number;
   lift: number;
   label: string;
+  /** English line under the label (a sign for learners). */
+  en?: string;
+  /**
+   * 'play': a game's start spot (a glowing ring on the floor tile, a gold sign over the bobbing arrow);
+   * 'door': a shop sign on a street door (no arrow, the plate sits just under the door).
+   */
+  kind?: 'play' | 'door';
+  /** First visit: a "Comece aqui! · Start here!" kicker and a stronger pulse. */
+  first?: boolean;
 }
 
 /**
@@ -37,4 +47,6 @@ export interface WorldView {
   setDialogueFocus?(f: { npc: Tile | null } | null): void;
   /** Height of the dialogue box in CSS px (the speakers are kept above it). */
   setDialogueBox?(px: number): void;
+  /** Tap feedback (render/pixel/tapMark.ts): the ring on the tile the avatar walks to, or the refused cross on a tile or at a client point. */
+  markTap?(kind: TapCue, at: { tile: Tile } | { px: number; py: number }): void;
 }

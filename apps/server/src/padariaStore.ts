@@ -1,5 +1,5 @@
 /**
- * Player-owned padarias. Same persistence pattern as academies (`padarias.json`).
+ * Player-owned padarias. Same persistence pattern as academies (SQLite `padarias`).
  */
 import { normalizePadaria, type PlayerPadaria } from '@tudobem/shared';
 
@@ -61,6 +61,15 @@ export class PadariaStore {
   add(row: PlayerPadaria) {
     this.index(row);
     this.save();
+  }
+
+  remove(id: string) {
+    const row = this.byId.get(id);
+    if (!row) return false;
+    this.byId.delete(id);
+    if (this.byName.get(row.nameKey) === id) this.byName.delete(row.nameKey);
+    this.save();
+    return true;
   }
 
   save() {

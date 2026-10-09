@@ -87,7 +87,7 @@ const atlasItems = { outdoor: [] };
 const sprites = manifest.sprites;
 
 function addFrame(atlas, name, img) {
-  atlasItems[atlas].push({ name, img });
+  (atlasItems[atlas] ??= []).push({ name, img });
 }
 
 function baseEntry(def, img, anchor) {
@@ -117,7 +117,7 @@ function addCast(def, img, anchor) {
 }
 
 /**
- * A `derive` generator returns "parts": { key?, img | frames[], fps?, anchor, meta? }. The first part (key = def.key) inherits the
+ * A `derive` generator returns "parts": { key?, img | frames[], seq?, fps?, anchor, meta? }. The first part (key = def.key) inherits the
  * import-map entry (footprint, shadow, cast, light...); extra parts (lit-window overlays, companions) carry their own `meta`.
  */
 async function emitParts(def, parts) {
@@ -126,10 +126,18 @@ async function emitParts(def, parts) {
     const m = { ...(key === def.key ? def : {}), ...(part.meta ?? {}), key };
     const frames = part.frames ?? [part.img];
     const first = frames[0];
+    // a part may live in its own atlas (`atlas`): the bjj match frames, loaded only when a match starts
+    if (part.atlas) {
+      addFrame(part.atlas, key, first);
+      sprites[key] = { ...baseEntry(m, first, part.anchor), atlas: part.atlas };
+      continue;
+    }
     await savePng(first, path.join(CUSTOM_PNG, key.replaceAll('/', '_') + '.png'));
     if (part.frames) {
       const names = frames.map((f, i) => { const n = `${key}/${i}`; addFrame('outdoor', n, f); return n; });
-      sprites[key] = { ...baseEntry(m, first, part.anchor), frame: names[0], anim: { frames: names, fps: part.fps ?? 6 } };
+      // `seq` (optional) plays the unique frames in a longer order (holds, rare twitches) without packing a frame twice
+      const order = part.seq ? part.seq.map((i) => names[i]) : names;
+      sprites[key] = { ...baseEntry(m, first, part.anchor), frame: names[0], anim: { frames: order, fps: part.fps ?? 6 } };
     } else {
       addFrame('outdoor', key, first);
       sprites[key] = baseEntry(m, first, part.anchor);
@@ -256,7 +264,7 @@ for (const [name, items] of Object.entries(atlasItems)) {
   json.meta.image = `${name}.png`;
   await savePng(atlas, path.join(OUT, `atlas/${name}.png`));
   fs.writeFileSync(path.join(OUT, `atlas/${name}.json`), JSON.stringify(json));
-  manifest.atlases[name] = { image: `atlas/${name}.png`, data: `atlas/${name}.json`, w: atlas.w, h: atlas.h, frames: items.length };
+  manifest.atlases[name] = { image: `atlas/${name}.png`, data: `atlas/${name}.json`, w: atlas.w, h: atlas.h, frames: items.length, ...(map.atlas[name]?.lazy ? { lazy: true } : {}) };
 }
 
 // ------------------------------------------------------------------ terrain tileset

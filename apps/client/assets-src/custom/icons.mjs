@@ -369,6 +369,102 @@ function caldoDeCana() {
   return img;
 }
 
+function pipocaLeite() {
+  // pipoca doce com leite condensado: the sweet cup with a glossy cream drizzle zig-zagged over the heap and one drip down the cup
+  const img = pipoca();
+  const MILK = '#fff7e6';
+  const MILK2 = '#eadcb8';
+  // only on the popcorn (not over the navy outline), with a shaded lower edge so the strands sit on the heap
+  const red = (x, y) => {
+    const i = (y * N + x) * 4;
+    return img.data[i + 3] > 0 && img.data[i] > 120 && img.data[i + 1] < 200;
+  };
+  const strands = [
+    [[3, 6], [4, 5], [5, 4], [6, 5], [7, 6], [8, 5], [9, 4], [10, 5], [11, 6], [12, 5]],
+    [[5, 3], [6, 2], [7, 2], [8, 3], [9, 2], [10, 3]],
+  ];
+  for (const s of strands) for (const [x, y] of s) if (red(x, y)) {
+    put(img, x, y, MILK);
+    if (red(x, y + 1)) put(img, x, y + 1, MILK2);
+  }
+  // the drip over the rim and down a white stripe
+  put(img, 8, 8, MILK); put(img, 8, 9, MILK2);
+  put(img, 6, 2, '#ffffff');
+  return img;
+}
+
+// ---------------------------------------------------------------- empties (what Comer / Beber leaves in the hand; Jogar fora drops them)
+const PAPER = ['#d9d0c4', '#e4ddd2', '#f4efe6', '#fffdf8'];
+function saquinhoVazio() {
+  // saquinho vazio: the white striped popcorn cup after the last kernel, its top squeezed shut and crumpled, leaning a little
+  const img = icon();
+  const lean = (y) => (15 - y) * 0.18;
+  const hw = (y) => (y < 8 ? 1.4 + (y - 3.5) * 0.85 : 4.4 - (y - 8) * 0.2);
+  const bag = (x, y) => y >= 3.5 && y < 15 && Math.abs(x - 8 - lean(y)) <= hw(y);
+  shape(img, bag, [8.6, 9.5, 4.6, 6], PAPER, { ol: NAVY, t: [0.82, 0.35, -0.2] });
+  // the stripes survive below the crumple, cream on white, darker on the shaded side
+  for (let y = 9; y < 15; y++) for (let x = 2; x < 15; x++) {
+    if (!bag(x + 0.5, y + 0.5) || !bag(x + 1.5, y + 0.5) || !bag(x - 0.5, y + 0.5)) continue;
+    if (Math.floor((x - 3 - lean(y)) / 2) % 2 === 0) put(img, x, y, x >= 10 ? '#d9d0c4' : '#ece6db');
+  }
+  // creases: two folds running down from the twist, and the squeezed points at the top
+  for (const [x, y] of [[8, 5], [8, 6], [7, 7], [9, 7], [7, 8], [10, 8], [6, 9], [11, 9]]) put(img, x, y, '#b7aa96');
+  for (const [x, y] of [[8, 4], [9, 5], [6, 7]]) put(img, x, y, '#ffffff');
+  put(img, 9, 2, NAVY); put(img, 10, 3, NAVY); put(img, 10, 2, '#f4efe6');
+  // one stray kernel stuck to the paper
+  put(img, 5, 12, '#ffe57b'); put(img, 6, 12, '#f8d239');
+  return img;
+}
+function cocoVazio() {
+  // coco vazio: the drained coconut, husk turning olive, the hole showing the dry inside, the straw bent over
+  const img = icon();
+  shape(img, ell(7.5, 10.4, 5.8, 4.7), [6.5, 9, 6, 5], ['#46522a', '#5f7236', '#7f9445', '#aebf6a'], { ol: NAVY, t: [0.82, 0.32, -0.15] });
+  // a brown husk patch where the machete cut the shell
+  for (const [x, y] of [[10, 12], [11, 11], [11, 12], [10, 13], [12, 10]]) put(img, x, y, '#8a6a3a');
+  // the opening: a husk rim, pale flesh, and the empty dark hollow
+  shape(img, ell(7.5, 6.8, 3.4, 1.5), [7.5, 6.8, 3.4, 1.5], ['#8a7a48', '#b8a670', '#d8cc98', '#efe6c2'], { ol: '#46522a' });
+  for (const [x, y] of [[6, 7], [7, 7], [8, 7], [7, 6]]) put(img, x, y, '#4a3a2c');
+  put(img, 9, 6, '#5a4a3a');
+  // the straw: up from the hole, then folded over to the left at the bend
+  for (const [x, y] of [[9, 5], [9, 4], [9, 3]]) { put(img, x - 1, y, NAVY); put(img, x, y, '#ff7a6a'); put(img, x + 1, y, '#d8322a'); put(img, x + 2, y, NAVY); }
+  for (const [x, y] of [[8, 2], [7, 2], [6, 3], [5, 3]]) { put(img, x, y - 1, NAVY); put(img, x, y, '#ff7a6a'); put(img, x, y + 1, '#d8322a'); }
+  put(img, 9, 2, '#ff7a6a'); put(img, 10, 2, NAVY); put(img, 9, 1, NAVY); put(img, 4, 3, NAVY); put(img, 5, 5, NAVY); put(img, 6, 5, NAVY);
+  // a glint on the shell
+  put(img, 4, 9, '#c8d890'); put(img, 5, 8, '#c8d890');
+  return img;
+}
+function copinhoVazio() {
+  // copinho vazio: the little white ribbed plastic coffee cup, a brown ring left at the bottom, squeezed in on one side
+  const img = icon();
+  const hw = (y) => 3.4 - (y - 6) * 0.16 - (y >= 9 && y < 12 ? 0.6 : 0);
+  const cup = (x, y) => y >= 6 && y < 14 && Math.abs(x - 8) <= hw(y);
+  shape(img, cup, [8, 10, 3.6, 4], [C.lav, C.lav3, C.lav4, C.white], { ol: NAVY, t: [0.85, 0.3, -0.15] });
+  // the open top: a rolled rim and the inside, a coffee stain at the bottom
+  shape(img, ell(8, 6.2, 3.6, 1.3), [8, 6.2, 3.6, 1.3], [C.lav3, C.lav4, C.white, C.white], { ol: NAVY });
+  put(img, 7, 6, '#c8a882'); put(img, 8, 6, '#a9764f'); put(img, 9, 6, '#c8a882');
+  // ribs and the dent
+  for (const x of [6, 8, 10]) for (let y = 8; y < 13; y++) if (cup(x + 0.5, y + 0.5)) put(img, x, y, y > 10 || x === 10 ? C.lav : C.lav3);
+  put(img, 11, 9, NAVY); put(img, 10, 10, C.lav); put(img, 11, 11, NAVY);
+  put(img, 5, 8, C.white); put(img, 5, 9, C.white);
+  return img;
+}
+function copoVazio() {
+  // copo vazio: a clear plastic cup with nothing left but a few drops, the rim ring and a crumple in its side
+  const img = icon();
+  const hw = (y) => 4.6 - (y - 3) * 0.16 - (y >= 8 && y < 11 ? 0.8 : 0);
+  const cup = (x, y) => y >= 3 && y < 15 && Math.abs(x - 7.5) <= hw(y);
+  shape(img, cup, [7.5, 9, 4.6, 6], GLASS, { ol: NAVY, t: [0.9, 0.4, -0.3] });
+  shape(img, ell(7.5, 3.4, 4.6, 1.2), [7.5, 3.4, 4.6, 1.2], [K.gl3, K.gl2, K.gl1, C.white], { ol: NAVY });
+  for (let x = 4; x <= 11; x++) put(img, x, 5, x % 2 ? K.gl1 : K.gl2);
+  // the crumple: a crease across the waist
+  for (const [x, y] of [[4, 9], [5, 9], [6, 10], [9, 9], [10, 9]]) put(img, x, y, K.gl3);
+  put(img, 4, 8, C.white); put(img, 5, 7, C.white);
+  // drops in the bottom
+  for (const [x, y] of [[6, 13], [8, 13], [9, 12]]) put(img, x, y, '#7fcdf0');
+  put(img, 7, 13, '#4995e3');
+  return img;
+}
+
 export const ICONS = {
   pao,
   pao_na_chapa: paoNaChapa,
@@ -392,7 +488,12 @@ export const ICONS = {
   caldo_de_cana: caldoDeCana,
   pipoca,
   pipoca_salgada: pipocaSalgada,
+  pipoca_leite: pipocaLeite,
   agua_de_coco: aguaDeCoco,
+  saquinho_vazio: saquinhoVazio,
+  coco_vazio: cocoVazio,
+  copinho_vazio: copinhoVazio,
+  copo_vazio: copoVazio,
 };
 
 export async function iconParts() {

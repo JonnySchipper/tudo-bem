@@ -71,6 +71,7 @@ export const DERIVE_V2 = {
   cocoCart: props2.cocoCart,
   feiraGameCart: props2.feiraGameCart,
   feiraGameSign: props2.feiraGameSign,
+  vilaBoard: props2.vilaBoard,
   bandeirinhas: props2.bandeirinhasPart,
   revisteiro: props2.revisteiroPart,
   parkedFusca: props2.parkedFusca,

@@ -1,0 +1,1077 @@
+{
+  "room": "aeroporto",
+  "objects": [
+    {
+      "id": "aviao",
+      "kind": "cenario",
+      "x": 0,
+      "y": 5,
+      "w": 12,
+      "h": 3,
+      "blocks": true,
+      "label": {
+        "pt": "Avião",
+        "en": "Airplane"
+      },
+      "art": "aero/aviao"
+    },
+    {
+      "id": "hall_ponte",
+      "kind": "cenario",
+      "x": 10,
+      "y": 8,
+      "w": 3,
+      "h": 2,
+      "blocks": true,
+      "art": "aero/ponte"
+    },
+    {
+      "id": "hall_torre",
+      "kind": "cenario",
+      "x": 26,
+      "y": 7,
+      "w": 2,
+      "h": 2,
+      "blocks": true,
+      "art": "aero/torre"
+    },
+    {
+      "id": "rebocador",
+      "kind": "cenario",
+      "x": 15,
+      "y": 7,
+      "w": 5,
+      "h": 1,
+      "blocks": true,
+      "art": "aero/rebocador"
+    },
+    {
+      "id": "cone_pista_1",
+      "kind": "cenario",
+      "x": 14,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "diary/cone"
+    },
+    {
+      "id": "cone_pista_2",
+      "kind": "cenario",
+      "x": 21,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "diary/cone"
+    },
+    {
+      "id": "luz_pista_n1",
+      "kind": "cenario",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_n5",
+      "kind": "cenario",
+      "x": 5,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_n9",
+      "kind": "cenario",
+      "x": 9,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_n13",
+      "kind": "cenario",
+      "x": 13,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_n17",
+      "kind": "cenario",
+      "x": 17,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_n21",
+      "kind": "cenario",
+      "x": 21,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_n25",
+      "kind": "cenario",
+      "x": 25,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_n29",
+      "kind": "cenario",
+      "x": 29,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_s3",
+      "kind": "cenario",
+      "x": 3,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_s7",
+      "kind": "cenario",
+      "x": 7,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_s23",
+      "kind": "cenario",
+      "x": 23,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "luz_pista_s27",
+      "kind": "cenario",
+      "x": 27,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/luz_pista"
+    },
+    {
+      "id": "vidro_n_0",
+      "kind": "cenario",
+      "x": 0,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_1",
+      "kind": "cenario",
+      "x": 1,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_2",
+      "kind": "cenario",
+      "x": 2,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_3",
+      "kind": "cenario",
+      "x": 3,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_4",
+      "kind": "cenario",
+      "x": 4,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_5",
+      "kind": "cenario",
+      "x": 5,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_6",
+      "kind": "cenario",
+      "x": 6,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_7",
+      "kind": "cenario",
+      "x": 7,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_8",
+      "kind": "cenario",
+      "x": 8,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_9",
+      "kind": "cenario",
+      "x": 9,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_13",
+      "kind": "cenario",
+      "x": 13,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_14",
+      "kind": "cenario",
+      "x": 14,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_15",
+      "kind": "cenario",
+      "x": 15,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_16",
+      "kind": "cenario",
+      "x": 16,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_17",
+      "kind": "cenario",
+      "x": 17,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_24",
+      "kind": "cenario",
+      "x": 24,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_25",
+      "kind": "cenario",
+      "x": 25,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_26",
+      "kind": "cenario",
+      "x": 26,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_27",
+      "kind": "cenario",
+      "x": 27,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_28",
+      "kind": "cenario",
+      "x": 28,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "vidro_n_29",
+      "kind": "cenario",
+      "x": 29,
+      "y": 10,
+      "blocks": true,
+      "art": "aero/vidraca"
+    },
+    {
+      "id": "portao",
+      "kind": "cenario",
+      "x": 10,
+      "y": 10,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Portão 3",
+        "en": "Gate 3"
+      },
+      "art": "aero/portao"
+    },
+    {
+      "id": "letreiro",
+      "kind": "cenario",
+      "x": 18,
+      "y": 10,
+      "w": 6,
+      "h": 1,
+      "blocks": true,
+      "art": "aero/vidraca_letreiro"
+    },
+    {
+      "id": "cadeiras_1",
+      "kind": "cenario",
+      "x": 1,
+      "y": 12,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "seat": "SW",
+      "art": "aero/cadeiras"
+    },
+    {
+      "id": "cadeiras_2",
+      "kind": "cenario",
+      "x": 5,
+      "y": 12,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "seat": "SW",
+      "art": "aero/cadeiras"
+    },
+    {
+      "id": "cadeiras_3",
+      "kind": "cenario",
+      "x": 1,
+      "y": 14,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "seat": "SW",
+      "art": "aero/cadeiras"
+    },
+    {
+      "id": "cadeiras_4",
+      "kind": "cenario",
+      "x": 5,
+      "y": 14,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "seat": "SW",
+      "art": "aero/cadeiras"
+    },
+    {
+      "id": "placa_terminal",
+      "kind": "cenario",
+      "x": 3,
+      "y": 11,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/placa_terminal"
+    },
+    {
+      "id": "balcao_portao",
+      "kind": "cenario",
+      "x": 13,
+      "y": 11,
+      "w": 2,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Balcão do portão",
+        "en": "Gate counter"
+      },
+      "art": "aero/balcao_portao"
+    },
+    {
+      "id": "painel_voos",
+      "kind": "cenario",
+      "x": 16,
+      "y": 11,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "art": "aero/painel"
+    },
+    {
+      "id": "informacoes",
+      "kind": "cenario",
+      "x": 21,
+      "y": 12,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Informações",
+        "en": "Information desk"
+      },
+      "art": "aero/informacoes"
+    },
+    {
+      "id": "cadeiras_5",
+      "kind": "cenario",
+      "x": 25,
+      "y": 14,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "seat": "SW",
+      "art": "aero/cadeiras"
+    },
+    {
+      "id": "vaso_a1",
+      "kind": "cenario",
+      "x": 0,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "props/vaso_topiaria_a"
+    },
+    {
+      "id": "vaso_a2",
+      "kind": "cenario",
+      "x": 25,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "props/vaso_topiaria_b"
+    },
+    {
+      "id": "vaso_a3",
+      "kind": "cenario",
+      "x": 29,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "props/vaso_topiaria_a"
+    },
+    {
+      "id": "cabine_1",
+      "kind": "cenario",
+      "x": 11,
+      "y": 15,
+      "w": 3,
+      "h": 2,
+      "blocks": true,
+      "label": {
+        "pt": "Controle de passaporte",
+        "en": "Passport control"
+      },
+      "art": "aero/cabine"
+    },
+    {
+      "id": "cabine_2",
+      "kind": "cenario",
+      "x": 16,
+      "y": 15,
+      "w": 3,
+      "h": 2,
+      "blocks": true,
+      "art": "aero/cabine_fechada"
+    },
+    {
+      "id": "fila_1",
+      "kind": "cenario",
+      "x": 8,
+      "y": 15,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "art": "aero/fila"
+    },
+    {
+      "id": "fila_2",
+      "kind": "cenario",
+      "x": 19,
+      "y": 15,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "art": "aero/fila"
+    },
+    {
+      "id": "faixa_boasvindas",
+      "kind": "cenario",
+      "x": 15,
+      "y": 20,
+      "w": 6,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/faixa"
+    },
+    {
+      "id": "placa_bagagem",
+      "kind": "cenario",
+      "x": 2,
+      "y": 17,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/placa_bagagem"
+    },
+    {
+      "id": "hall_esteira",
+      "kind": "cenario",
+      "x": 1,
+      "y": 18,
+      "w": 6,
+      "h": 2,
+      "blocks": true,
+      "art": "aero/esteira"
+    },
+    {
+      "id": "carrinho_bagagem",
+      "kind": "cenario",
+      "x": 7,
+      "y": 19,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "aero/carrinho"
+    },
+    {
+      "id": "carrinho_bagagem_2",
+      "kind": "cenario",
+      "x": 7,
+      "y": 21,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "aero/carrinho_vazio"
+    },
+    {
+      "id": "placa_alfandega",
+      "kind": "cenario",
+      "x": 23,
+      "y": 16,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/placa_alfandega"
+    },
+    {
+      "id": "raio_x",
+      "kind": "cenario",
+      "x": 23,
+      "y": 18,
+      "w": 4,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Raio-x da alfândega",
+        "en": "Customs x-ray"
+      },
+      "art": "aero/raiox"
+    },
+    {
+      "id": "canal_verde",
+      "kind": "cenario",
+      "x": 28,
+      "y": 18,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "aero/canal_verde"
+    },
+    {
+      "id": "vaso_a4",
+      "kind": "cenario",
+      "x": 29,
+      "y": 21,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "props/vaso_topiaria_b"
+    },
+    {
+      "id": "vaso_a5",
+      "kind": "cenario",
+      "x": 0,
+      "y": 22,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "props/vaso_topiaria_a"
+    },
+    {
+      "id": "lanchonete_aero",
+      "kind": "cenario",
+      "x": 9,
+      "y": 20,
+      "w": 4,
+      "h": 2,
+      "blocks": true,
+      "action": "street_snack",
+      "interact": {
+        "x": 11,
+        "y": 22
+      },
+      "label": {
+        "pt": "Lanchonete · pão de queijo",
+        "en": "Café · cheese bread"
+      },
+      "art": "aero/lanchonete"
+    },
+    {
+      "id": "cadeiras_6",
+      "kind": "cenario",
+      "x": 18,
+      "y": 21,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "seat": "SW",
+      "art": "aero/cadeiras"
+    },
+    {
+      "id": "cadeiras_7",
+      "kind": "cenario",
+      "x": 22,
+      "y": 21,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "seat": "SW",
+      "art": "aero/cadeiras"
+    },
+    {
+      "id": "placa_desembarque",
+      "kind": "cenario",
+      "x": 13,
+      "y": 22,
+      "w": 4,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/placa_desembarque"
+    },
+    {
+      "id": "vidro_s_0",
+      "kind": "cenario",
+      "x": 0,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_1",
+      "kind": "cenario",
+      "x": 1,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_2",
+      "kind": "cenario",
+      "x": 2,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_3",
+      "kind": "cenario",
+      "x": 3,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_4",
+      "kind": "cenario",
+      "x": 4,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_5",
+      "kind": "cenario",
+      "x": 5,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_6",
+      "kind": "cenario",
+      "x": 6,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_7",
+      "kind": "cenario",
+      "x": 7,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_8",
+      "kind": "cenario",
+      "x": 8,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_9",
+      "kind": "cenario",
+      "x": 9,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_10",
+      "kind": "cenario",
+      "x": 10,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_11",
+      "kind": "cenario",
+      "x": 11,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_12",
+      "kind": "cenario",
+      "x": 12,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_13",
+      "kind": "cenario",
+      "x": 13,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_16",
+      "kind": "cenario",
+      "x": 16,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_17",
+      "kind": "cenario",
+      "x": 17,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_18",
+      "kind": "cenario",
+      "x": 18,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_19",
+      "kind": "cenario",
+      "x": 19,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_20",
+      "kind": "cenario",
+      "x": 20,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_21",
+      "kind": "cenario",
+      "x": 21,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_22",
+      "kind": "cenario",
+      "x": 22,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_23",
+      "kind": "cenario",
+      "x": 23,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_24",
+      "kind": "cenario",
+      "x": 24,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_25",
+      "kind": "cenario",
+      "x": 25,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_26",
+      "kind": "cenario",
+      "x": 26,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_27",
+      "kind": "cenario",
+      "x": 27,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_28",
+      "kind": "cenario",
+      "x": 28,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "vidro_s_29",
+      "kind": "cenario",
+      "x": 29,
+      "y": 23,
+      "blocks": true,
+      "art": "aero/vidraca_baixa"
+    },
+    {
+      "id": "porta_auto",
+      "kind": "cenario",
+      "x": 14,
+      "y": 23,
+      "w": 2,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/porta_auto"
+    },
+    {
+      "id": "poste_aero_1",
+      "kind": "poste",
+      "x": 3,
+      "y": 24,
+      "blocks": true,
+      "art": "props/lamp_curve"
+    },
+    {
+      "id": "poste_aero_2",
+      "kind": "poste",
+      "x": 26,
+      "y": 24,
+      "blocks": true,
+      "art": "props/lamp_curve"
+    },
+    {
+      "id": "ponto_aero",
+      "kind": "ponto_onibus",
+      "x": 22,
+      "y": 24,
+      "w": 3,
+      "blocks": true,
+      "label": {
+        "pt": "Ponto de ônibus",
+        "en": "Bus stop"
+      }
+    },
+    {
+      "id": "onibus_aero",
+      "kind": "cenario",
+      "x": 15,
+      "y": 25,
+      "w": 7,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Ônibus 875 · Vila Ipê",
+        "en": "Bus 875 · to Vila Ipê"
+      },
+      "art": "vehicles/onibus_w"
+    },
+    {
+      "id": "taxi_aero",
+      "kind": "cenario",
+      "x": 5,
+      "y": 25,
+      "w": 5,
+      "h": 1,
+      "blocks": true,
+      "art": "vehicles/park_taxi_r"
+    },
+    {
+      "id": "palmeira_aero_1",
+      "kind": "arvore",
+      "x": 0,
+      "y": 24,
+      "w": 2,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "palmeira_aero_2",
+      "kind": "arvore",
+      "x": 28,
+      "y": 24,
+      "w": 2,
+      "blocks": true,
+      "art": "props/jeriva_b"
+    },
+    {
+      "id": "hall_mala",
+      "kind": "cenario",
+      "x": 1,
+      "y": 21,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/mala"
+    },
+    {
+      "id": "hall_etiqueta",
+      "kind": "cenario",
+      "x": 2,
+      "y": 21,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/etiqueta"
+    },
+    {
+      "id": "hall_mochila",
+      "kind": "cenario",
+      "x": 4,
+      "y": 21,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/mochila"
+    },
+    {
+      "id": "hall_fone",
+      "kind": "cenario",
+      "x": 4,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/fone"
+    },
+    {
+      "id": "hall_cinto",
+      "kind": "cenario",
+      "x": 8,
+      "y": 14,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/cinto"
+    },
+    {
+      "id": "hall_bilhete",
+      "kind": "cenario",
+      "x": 13,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/bilhete"
+    }
+  ]
+}

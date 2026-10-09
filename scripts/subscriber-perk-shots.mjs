@@ -7,6 +7,7 @@
  *
  * Enters as a guest, grants the test subscription through the admin Assinaturas path
  * (`admin` login + `grantSub`), adopts the parrot, then walks with each pet.
+ * The dog and the cat trail a few tiles behind. "senta" and "deita" are sent as normal chat.
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -82,46 +83,64 @@ async function freezeWalking(page) {
   const info = await page.evaluate(async () => {
     const tb = window.__tb;
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    // Settled trail: a couple of tiles behind, facing the way it is walking, not still turning around.
+    const trailGap = (owner, pet, facing) => {
+      if (facing === 'E') return { along: owner.x - pet.x, lateral: Math.abs(pet.y - owner.y) };
+      if (facing === 'W') return { along: pet.x - owner.x, lateral: Math.abs(pet.y - owner.y) };
+      if (facing === 'S') return { along: owner.y - pet.y, lateral: Math.abs(pet.x - owner.x) };
+      if (facing === 'N') return { along: pet.y - owner.y, lateral: Math.abs(pet.x - owner.x) };
+      return { along: 0, lateral: 99 };
+    };
     tb.renderer.scene.scene.resume();
     const here = tb.selfTile();
     if (!here?.tile) throw new Error('no self tile');
     const { x: hx, y: hy } = here.tile;
-    const selfId = tb.game.self?.pub?.id;
     const tries = [
-      [hx + 6, hy],
-      [hx - 6, hy],
-      [hx, hy + 5],
-      [hx, hy - 5],
-      [24, 12],
-      [16, 8],
+      [hx + 12, hy],
+      [hx - 12, hy],
+      [hx, hy + 10],
+      [hx, hy - 10],
     ];
     let moved = false;
     let dest = null;
+    let pose = null;
     for (const [x, y] of tries) {
       if (x === hx && y === hy) continue;
       tb.walkTo(x, y);
       dest = { x, y };
-      const until = performance.now() + 700;
+      const until = performance.now() + 5000;
       while (performance.now() < until) {
-        const f = tb.facings();
-        const me = selfId && f ? f[selfId] : null;
-        if (me?.moving) { moved = true; break; }
+        const scene = tb.renderer.scene;
+        const me = [...scene.avatars.values()].find((v) => v.pet);
+        const key = me?.petKey ?? '';
+        const gap = me?.pet ? trailGap({ x: me.wx, y: me.wy }, { x: me.pet.x, y: me.pet.y }, me.facing) : null;
+        const settled = me?.moving && me.pet && key.includes('walk') && me.petFollow?.pose === 'walk' && me.petFollow.facing === me.facing && gap && gap.along >= 30 && gap.along <= 58 && gap.lateral < 16;
+        if (settled) {
+          moved = true;
+          pose = {
+            petKey: key,
+            facing: me.facing,
+            petFacing: me.petFollow.facing,
+            gap: Math.round(gap.along),
+            owner: { x: me.wx, y: me.wy },
+            pet: { x: me.pet.x, y: me.pet.y },
+            flip: me.pet.flipX,
+            petFrame: me.pet.anims?.currentFrame?.index ?? null,
+          };
+          scene.scene.pause();
+          break;
+        }
         await sleep(40);
       }
       if (moved) break;
+      tb.renderer.scene.scene.resume();
     }
-    // A tile step is 260ms and the walk cycle is 8 fps, so hold a beat into the stride.
-    await sleep(220);
+    if (!moved || !pose) {
+      const scene = tb.renderer.scene;
+      const me = [...scene.avatars.values()].find((v) => v.pet);
+      return { moved, dest, from: { x: hx, y: hy }, petKey: me?.petKey ?? null, facing: me?.facing ?? null, owner: me ? { x: me.wx, y: me.wy } : null, pet: me?.pet ? { x: me.pet.x, y: me.pet.y } : null };
+    }
     const scene = tb.renderer.scene;
-    const views = [...scene.avatars.values()];
-    const me = views.find((v) => v.pet);
-    const pet = me?.pet;
-    const parrot = me?.parrot;
-    const key = me?.petKey ?? '';
-    if (!moved || !key.includes('walk')) {
-      return { moved, dest, from: { x: hx, y: hy }, petKey: key || null, facing: tb.facings() };
-    }
-    scene.scene.pause();
     const cam = scene.cameras.main;
     const hw = cam.width / 2;
     const hh = cam.height / 2;
@@ -134,18 +153,18 @@ async function freezeWalking(page) {
       moved,
       dest,
       from: { x: hx, y: hy },
-      tile: tb.selfTile(),
-      petFrame: pet?.anims?.currentFrame?.index ?? null,
-      petKey: key,
-      flip: pet ? pet.flipX : null,
-      parrot: !!parrot,
-      facing: selfId ? tb.facings()?.[selfId] : null,
-      petAt: pet ? toCss(pet.x, pet.y) : null,
+      ...pose,
+      parrot: !!petViewSafe(scene),
+      petAt: toCss(pose.pet.x, pose.pet.y),
+      ownerAt: toCss(pose.owner.x, pose.owner.y),
     };
+    function petViewSafe(scene) {
+      return [...scene.avatars.values()].some((v) => v.parrot);
+    }
   });
   log('walk', JSON.stringify(info));
-  if (!info.moved || !String(info.petKey ?? '').includes('walk')) {
-    throw new Error(`expected a walking pet, got ${JSON.stringify(info)}`);
+  if (!info.moved || !String(info.petKey ?? '').includes('walk') || !(info.gap >= 30) || info.petFacing !== info.facing) {
+    throw new Error(`expected a pet trailing behind, got ${JSON.stringify(info)}`);
   }
   return info;
 }
@@ -156,6 +175,41 @@ async function shotWalking(page, file) {
   await page.screenshot({ path: file });
   await page.evaluate(() => window.__tb.renderer.scene.scene.resume());
   return info;
+}
+
+/** Wait until the player and the pet have both stopped, so a sit or lie reads next to them. */
+async function settle(page) {
+  await page.evaluate(() => window.__tb.renderer.scene.scene.resume());
+  await page.waitForFunction(() => {
+    const t = window.__tb.selfTile();
+    const me = [...window.__tb.renderer.scene.avatars.values()].find((v) => v.pet);
+    return t && !t.moving && me && !me.moving && String(me.petKey).includes('idle');
+  }, null, { timeout: 10_000 });
+}
+
+/**
+ * Send a one-word pet command as ordinary chat. The line still goes out; the pet reacts on top.
+ * `pose` is the animation stem (`sit` or `lie`).
+ */
+async function shotCommand(page, text, pose, file, waitIdle) {
+  if (waitIdle) await settle(page);
+  else await page.evaluate(() => window.__tb.renderer.scene.scene.resume());
+  await page.evaluate((text) => window.__tb.net.send({ t: 'chat', text }), text);
+  await page.waitForFunction((pose) => {
+    const me = [...window.__tb.renderer.scene.avatars.values()].find((v) => v.pet);
+    return me && String(me.petKey).includes(pose);
+  }, pose, { timeout: 6_000 });
+  await sleep(220);
+  await page.evaluate(() => window.__tb.renderer.scene.scene.pause());
+  await sleep(40);
+  const info = await page.evaluate(() => {
+    const me = [...window.__tb.renderer.scene.avatars.values()].find((v) => v.pet);
+    return { petKey: me?.petKey ?? null, moving: me?.moving ?? null, ownerMoving: me?.pet ? undefined : null };
+  });
+  log(text, JSON.stringify(info));
+  if (!String(info.petKey ?? '').includes(pose)) throw new Error(`expected pet ${pose}, got ${JSON.stringify(info)}`);
+  await page.screenshot({ path: file });
+  await page.evaluate(() => window.__tb.renderer.scene.scene.resume());
 }
 
 async function shotBubble(page, style, file) {
@@ -178,25 +232,6 @@ async function shotBubble(page, style, file) {
   return box;
 }
 
-/** 640×800 window that keeps a point on screen, biased left so the shoulder parrot stays in frame. */
-function halfFrame(px, py, viewW = 1280, viewH = 800) {
-  const left = Math.max(0, Math.min(viewW - 640, Math.round(px - 280)));
-  const top = Math.max(0, Math.min(viewH - 800, Math.round((py ?? 400) - 400)));
-  return { left, top, width: 640, height: 800 };
-}
-
-async function joinHorizontal(leftFile, rightFile, out, leftAt, rightAt) {
-  const a = await sharp(leftFile).extract(halfFrame(leftAt?.x ?? 820, leftAt?.y)).toBuffer();
-  const b = await sharp(rightFile).extract(halfFrame(rightAt?.x ?? 980, rightAt?.y)).toBuffer();
-  await sharp({ create: { width: 1280, height: 800, channels: 4, background: '#1d1b26' } })
-    .composite([
-      { input: a, left: 0, top: 0 },
-      { input: b, left: 640, top: 0 },
-    ])
-    .png()
-    .toFile(out);
-}
-
 /** 640×400 window around a chat bubble, shifted down so the speaker stays in the cell. */
 function bubbleFrame(box, viewW = 1280, viewH = 800) {
   const cx = box.x + box.w / 2;
@@ -217,11 +252,20 @@ const raw = path.join(SHOTS, '_raw');
 fs.mkdirSync(raw, { recursive: true });
 
 await setPet(desk, 'dog');
-const dogWalk = await shotWalking(desk, path.join(raw, 'dog-1280.png'));
-await setPet(desk, 'cat');
-const catWalk = await shotWalking(desk, path.join(raw, 'cat-1280.png'));
-await joinHorizontal(path.join(raw, 'dog-1280.png'), path.join(raw, 'cat-1280.png'), path.join(SHOTS, 'walk-1280x800.png'), dogWalk.petAt, catWalk.petAt);
+await shotWalking(desk, path.join(SHOTS, 'walk-1280x800.png'));
 log('wrote walk-1280x800.png');
+await shotCommand(desk, 'senta', 'sit', path.join(SHOTS, 'dog-sit-1280x800.png'), true);
+log('wrote dog-sit-1280x800.png');
+await shotCommand(desk, 'deita', 'lie', path.join(SHOTS, 'dog-lie-1280x800.png'), false);
+log('wrote dog-lie-1280x800.png');
+
+await setPet(desk, 'cat');
+await shotWalking(desk, path.join(SHOTS, 'cat-walk-1280x800.png'));
+log('wrote cat-walk-1280x800.png');
+await shotCommand(desk, 'senta', 'sit', path.join(SHOTS, 'cat-sit-1280x800.png'), true);
+log('wrote cat-sit-1280x800.png');
+await shotCommand(desk, 'deita', 'lie', path.join(SHOTS, 'cat-lie-1280x800.png'), false);
+log('wrote cat-lie-1280x800.png');
 
 const bubbleFiles = [];
 for (const style of ['classic', 'sol', 'mar', 'mata', 'festa']) {

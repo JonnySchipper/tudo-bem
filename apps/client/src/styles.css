@@ -20,12 +20,27 @@
   --radius: 16px;
   --font-title: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
   --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* the desktop UI scale (issue #169): the HUD, the tracker / tutorial cards and the panels are drawn at this zoom (hud.css). Phones stay 1. */
   --ui-scale: 1;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --kb: 0px;
+}
+
+/* Desktop steps (never on a phone: the compact query is max-width 640px / max-height 520px). 1.25 / 1.5 keep the 16 px pixel icons on
+   (near) whole pixels; the 1.5 step needs 1800 px for the whole top bar at 1.5x. Scripts read the value back with uiScale() (ui/hudLayout.ts). */
+@media (min-width: 1200px) and (min-height: 760px) {
+  :root {
+    --ui-scale: 1.25;
+  }
+}
+
+@media (min-width: 1800px) and (min-height: 1000px) {
+  :root {
+    --ui-scale: 1.5;
+  }
 }
 
 * {
@@ -42,7 +57,7 @@ body {
   background: #2a2233;
   font-family: var(--font-body);
   color: var(--ink);
-  font-size: calc(15px * var(--ui-scale));
+  font-size: 15px;
   -webkit-text-size-adjust: 100%;
   touch-action: manipulation;
 }
@@ -887,6 +902,15 @@ button:disabled {
   font-size: 0.85em;
 }
 
+/* "?" replays the kitnet guide: looks like the ✕ next to it */
+.decor .decor-help {
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+  color: var(--ink-soft);
+  font-weight: 800;
+}
+
 .decor .tabs {
   display: flex;
   gap: 6px;
@@ -932,64 +956,6 @@ button:disabled {
   font-weight: 800;
   margin: 14px 0 6px;
   font-size: 1.1em;
-}
-
-.map-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-}
-
-.map-card {
-  border-radius: 16px;
-  padding: 14px;
-  color: white;
-  min-height: 110px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  cursor: pointer;
-  border: 0;
-  text-align: left;
-  font: inherit;
-}
-
-.map-card b {
-  font-family: var(--font-title);
-  font-size: 1.25em;
-  line-height: 1.1;
-}
-
-.map-card .en {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.map-card .en::before {
-  content: '';
-}
-
-.map-card.light {
-  color: #2a2233;
-  border: 2px solid #8B5E3C;
-}
-
-.map-card.light .en {
-  color: rgba(42, 34, 51, 0.75);
-}
-
-.map-card.locked {
-  background: #9c8f9f !important;
-  cursor: not-allowed;
-  opacity: 0.75;
-}
-
-.linecolor {
-  display: inline-block;
-  width: 36px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--amarelo);
-  margin-top: 6px;
 }
 
 .card-profile {
@@ -1698,7 +1664,6 @@ select {
     box-sizing: border-box;
   }
 
-  .map-card,
   .shelves button,
   .mods button,
   .item-card button {

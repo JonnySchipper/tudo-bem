@@ -1,6 +1,6 @@
 // BJJ pair poses (see bjj-rig.mjs). Fighter A (white gi, the player) is always the dominant / upright one on the ground; B (blue gi) is the partner.
 // Canvas 64 x 48, floor line y = 44, pair centred on x = 32. y is down.
-import { clonePose, lerpPair, shiftFighter } from './bjj-rig.mjs';
+import { clonePose, lerpPair, resolve, shiftFighter } from './bjj-rig.mjs';
 
 const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 export const F = (o) => ({ up: [0, -1], side: [1, 0], face: 'profile', spread: 0.7, hsp: 0.5, bendA: [1, 1], bendL: [-1, -1], z: {}, ...o });
@@ -11,6 +11,8 @@ export function mirror(P, cx = 32) {
   const mx = (p) => [2 * cx - p[0], p[1]];
   o.head = mx(o.head); o.chest = mx(o.chest); o.hip = mx(o.hip);
   o.hands = o.hands.map(mx); o.feet = o.feet.map(mx);
+  if (o.knees) o.knees = o.knees.map((p) => (p ? mx(p) : p));
+  if (o.elbows) o.elbows = o.elbows.map((p) => (p ? mx(p) : p));
   o.up = [-o.up[0], o.up[1]]; o.side = [-o.side[0], o.side[1]];
   o.bendA = o.bendA.map((b) => -b); o.bendL = o.bendL.map((b) => -b);
   return o;
@@ -140,5 +142,25 @@ POS.costas = () => {
 };
 
 export const POSITION_IDS = ['de_pe', 'guarda_fechada', 'meia_guarda', 'cem_quilos', 'joelho', 'montada', 'costas'];
-export const positionPose = (id) => POS[id]();
+
+/**
+ * The ground positions are authored leaning left (the bottom fighter's head near the frame's edge): each one is shifted so the pair's
+ * own width is centred on the anchor (x = 32), so the fight sits in the middle of the mat whichever way it faces.
+ */
+function centreDx(p) {
+  const xs = [];
+  for (const P of [p.A, p.B]) {
+    const r = resolve(P);
+    xs.push(r.head[0] - 5.5, r.head[0] + 5.5);
+    for (const q of [r.chest, r.hip, ...r.hands, ...r.feet, ...r.knees, ...r.elbows]) xs.push(q[0] - 2, q[0] + 2);
+  }
+  return Math.round(32 - (Math.min(...xs) + Math.max(...xs)) / 2);
+}
+
+/** How far a position's authored pose is shifted to sit centred (0 standing). */
+export const centreShift = (id) => (id === 'de_pe' ? 0 : centreDx(POS[id]()));
+export const shiftPair = (p, dx) => ({ ...p, A: shiftFighter(p.A, dx, 0), B: shiftFighter(p.B, dx, 0) });
+/** The pose as authored (not centred), for sets that edit it with absolute coordinates (the tap). */
+export const rawPose = (id) => POS[id]();
+export const positionPose = (id) => shiftPair(POS[id](), centreShift(id));
 export { lerpPair, shiftFighter };

@@ -78,6 +78,10 @@ let restEl: HTMLElement | null = null;
 export const isDialogueBoxOpen = (): boolean => root !== null;
 /** The key of the conversation currently in the box (`conversa`, `pedido`, `talk-nanda`...), or null. */
 export const dialogueBoxKey = (): string | null => (root ? spec?.key ?? null : null);
+/** The NPC in the box, or null. */
+export const dialogueBoxNpc = (): string | null => (root ? spec?.npcId ?? null : null);
+/** The Portuguese line in the box (null while closed or thinking). */
+export const dialogueBoxLine = (): string | null => (root && spec && !spec.thinking ? spec.line?.pt ?? null : null);
 
 const noType = () => new URLSearchParams(location.search).has('notype');
 const coarse = () => {

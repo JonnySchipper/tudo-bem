@@ -128,10 +128,11 @@ describe('arrival, camera, diary and the escola', () => {
       ['diário', 'conversation'],
     ]);
     expect(card[0]!.words.map((w) => w.progress)).toEqual([
-      '0/14 câmera · 0/6 leitura · 1/4 conversa',
-      '0/14 câmera · 0/6 leitura · 2/4 conversa',
-      '0/14 câmera · 0/6 leitura · 3/4 conversa',
-      '0/14 câmera · 0/6 leitura · 4/4 conversa',
+      // the fifth conversation word, bem-vindo, is the comissária's in the arrivals hall
+      '0/14 câmera · 0/6 leitura · 1/5 conversa',
+      '0/14 câmera · 0/6 leitura · 2/5 conversa',
+      '0/14 câmera · 0/6 leitura · 3/5 conversa',
+      '0/14 câmera · 0/6 leitura · 4/5 conversa',
     ]);
     await a.send({ t: 'arrival', action: 'finish' });
     expect(a.all('notice').filter((n) => n.pt.includes('câmera'))).toHaveLength(1);
@@ -202,8 +203,8 @@ describe('arrival, camera, diary and the escola', () => {
     const shot = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'photo');
     expect(shot && diaryOf(shot)).toMatchObject({ ok: true, pt: 'fonte', en: 'fountain', source: 'camera' });
     if (shot && shot.t === 'diary' && shot.phase === 'photo' && shot.ok) {
-      // the denominators come from the catalog: the praça has 98 camera words, 16 to read, 9 to hear
-      expect(shot.progress).toBe('1/98 câmera · 0/16 leitura · 0/9 conversa');
+      // the denominators come from the catalog: the praça has 98 camera words, 15 to read (wifi moved to padaria), 9 to hear
+      expect(shot.progress).toBe('1/98 câmera · 0/15 leitura · 0/9 conversa');
       expect(shot.progress).not.toMatch(/\/100\b/);
       expect(shot.areaPt).toBe('Praça');
     }

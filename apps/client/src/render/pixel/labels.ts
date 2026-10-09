@@ -11,7 +11,7 @@
  *    targets pin the arrow to the nearest edge of the free screen region and turn it toward the target (`guides.ts`).
  */
 import './pixel.css';
-import { BUBBLE_STYLES, FOUNDER_BADGE, tierRule, type BubbleStyle, type Nameplate } from '@tudobem/shared';
+import { BELT_COLORS, BUBBLE_STYLES, FOUNDER_BADGE, STRIPES_PER_BELT, tierRule, type Belt, type BubbleStyle, type Nameplate } from '@tudobem/shared';
 import { diffIds } from './reconcile';
 import { GUIDE_ROTATION, pinGuide, type GuideDir, type GuideInsets } from './guides';
 
@@ -32,12 +32,14 @@ export interface StackItem {
   plate: {
     text: string;
     /** `sign`: a shop name chalked on a board (a player-owned padaria), not a person. */
-    kind: 'npc' | 'player' | 'me' | 'sign';
+    kind: 'npc' | 'player' | 'me' | 'sign' | 'pet' | 'door' | 'doorNew';
+    /** A door tag's English, on a second small line under the Portuguese (`door`; `doorNew` glows: your first visit to the room). */
+    gloss?: string;
     /** false: keep the element but fade it out (a CPU far from you) */
     show?: boolean;
     /** Academy stamp glyph, members only. */
     mark?: string;
-    /** Beta founder “f” mark beside the nameplate. */
+    /** Beta founder mark (a pixel “f” tile) beside the nameplate. */
     founder?: boolean;
     /** Subscription founder badge. A separate mark; it does not change the plate tier. */
     subBadge?: boolean;
@@ -45,8 +47,14 @@ export interface StackItem {
     feiraCrown?: boolean;
     /** Players: the nameplate colour earned in the escola (verde is the plain plate; the others add their colour and shape). */
     tier?: Nameplate;
+    /** BJJ belt on the plate when the server sent one (gi, a test profile, or any rank past a fresh white belt). */
+    belt?: Belt;
+    /** Stripes for your own plate. Other players only see the belt colour. */
+    stripes?: number;
   } | null;
   bubbles: BubbleItem[];
+  /** Paint order among tags. A pet tag uses its screen y so a nearer pet's name sits in front. */
+  z?: number;
 }
 
 export interface GuideItem {
@@ -55,6 +63,14 @@ export interface GuideItem {
   x: number;
   y: number;
   label: string;
+  /** English line under the label */
+  en?: string;
+  /** 'play': a game's start spot (gold sign + a glowing ring on `floor`); 'door': a sign under a street door, no arrow */
+  kind?: 'play' | 'door';
+  /** first visit: "Comece aqui! · Start here!" over the sign */
+  first?: boolean;
+  /** CSS px of the target tile's centre on the floor, and a tile's size in CSS px (the ring of a 'play' guide) */
+  floor?: { x: number; y: number; tile: number };
 }
 
 /** The manifest fields the labels need (`manifest.images`), so this file does not depend on manifest.ts. */
@@ -207,6 +223,9 @@ interface GuideEl {
   root: HTMLElement;
   label: HTMLElement;
   arrow: HTMLElement;
+  /** the glowing ring on the floor of a 'play' guide */
+  spot: HTMLElement | null;
+  kind: string;
   text: string;
   labelW: number;
   labelH: number;
@@ -230,6 +249,25 @@ async function mirrorImage(url: string): Promise<string> {
   g.scale(-1, 1);
   g.drawImage(img, 0, 0);
   return c.toDataURL('image/png');
+}
+
+function beltBar(belt: Belt, stripes?: number): HTMLElement {
+  const bar = document.createElement('i');
+  bar.className = `wl-belt belt-${belt}`;
+  bar.setAttribute('aria-hidden', 'true');
+  const band = document.createElement('i');
+  band.className = 'bar';
+  band.style.background = BELT_COLORS[belt];
+  bar.append(band);
+  if (stripes !== undefined) {
+    const n = Math.min(STRIPES_PER_BELT, Math.max(0, stripes));
+    for (let i = 0; i < STRIPES_PER_BELT; i++) {
+      const pip = document.createElement('i');
+      pip.className = i < n ? 'pip on' : 'pip';
+      bar.append(pip);
+    }
+  }
+  return bar;
 }
 
 export class LabelLayer {
@@ -292,14 +330,16 @@ export class LabelLayer {
       const frames = a.frames ?? 4;
       const fw = a.frameW ?? Math.round(a.w / frames);
       const k = ARROW_SCALE;
-      const st = this.root.style;
-      st.setProperty('--wl-arrow', `url("${art.base + a.file}")`);
-      st.setProperty('--wl-arrow-w', px(fw * k));
-      st.setProperty('--wl-arrow-h', px(a.h * k));
-      st.setProperty('--wl-arrow-size', `${px(a.w * k)} ${px(a.h * k)}`);
-      st.setProperty('--wl-arrow-end', px(-a.w * k));
-      st.setProperty('--wl-arrow-steps', String(frames));
-      st.setProperty('--wl-arrow-ms', `${Math.round((frames / (a.fps ?? 6)) * 1000)}ms`);
+      // on the page root too: the kitnet guide points at HUD buttons with the same arrow
+      for (const st of [this.root.style, document.documentElement.style]) {
+        st.setProperty('--wl-arrow', `url("${art.base + a.file}")`);
+        st.setProperty('--wl-arrow-w', px(fw * k));
+        st.setProperty('--wl-arrow-h', px(a.h * k));
+        st.setProperty('--wl-arrow-size', `${px(a.w * k)} ${px(a.h * k)}`);
+        st.setProperty('--wl-arrow-end', px(-a.w * k));
+        st.setProperty('--wl-arrow-steps', String(frames));
+        st.setProperty('--wl-arrow-ms', `${Math.round((frames / (a.fps ?? 6)) * 1000)}ms`);
+      }
       this.root.classList.add('wl-art-arrow');
     }
   }
@@ -321,6 +361,8 @@ export class LabelLayer {
         this.root.appendChild(el.root);
       }
       const box = this.updateStack(el, s, view);
+      const z = typeof s.z === 'number' ? String(Math.round(s.z)) : '';
+      if (el.root.style.zIndex !== z) el.root.style.zIndex = z;
       if (box) boxes.push(box);
     }
     // nameplates and bubbles of neighbours must not cover each other: lift the farther one's label (pure, see `deoverlapStacks`)
@@ -432,7 +474,7 @@ export class LabelLayer {
 
     // nameplate: text and kind change rarely; measure only then
     const tier = s.plate && (s.plate.kind === 'player' || s.plate.kind === 'me') && s.plate.tier && s.plate.tier !== 'verde' ? s.plate.tier : null;
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}` : '';
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}|${s.plate.belt ?? ''}|${s.plate.stripes ?? ''}|${s.plate.gloss ?? ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
@@ -458,6 +500,20 @@ export class LabelLayer {
         } else {
           el.plate.append(document.createTextNode(s.plate.text));
         }
+        if (s.plate.belt) el.plate.append(beltBar(s.plate.belt, s.plate.stripes));
+        if (s.plate.gloss) {
+          const g = document.createElement('i');
+          g.className = 'wl-door-en';
+          g.textContent = s.plate.gloss;
+          el.plate.append(g);
+        }
+        if (s.plate.kind === 'pet') {
+          const paw = document.createElement('i');
+          paw.className = 'wl-paw';
+          paw.setAttribute('aria-hidden', 'true');
+          el.plate.prepend(paw);
+          el.root.dataset.petName = s.plate.text;
+        } else delete el.root.dataset.petName;
         if (s.plate.feiraCrown) {
           el.crown.style.display = '';
           el.crown.title = 'Fada da Feira';
@@ -467,14 +523,12 @@ export class LabelLayer {
         }
         if (s.plate.founder) {
           el.founder.style.display = '';
-          el.founder.textContent = 'f';
           el.founder.setAttribute('role', 'img');
           const founderTip = `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}`;
           el.founder.setAttribute('aria-label', founderTip);
           el.founder.setAttribute('title', founderTip);
         } else {
           el.founder.style.display = 'none';
-          el.founder.replaceChildren();
         }
         if (s.plate.subBadge) {
           el.subBadge.style.display = '';
@@ -572,7 +626,22 @@ export class LabelLayer {
     const arrow = document.createElement('div');
     arrow.className = 'wl-guide-arrow';
     root.append(label, arrow);
-    return { root, label, arrow, text: '', labelW: 0, labelH: 0, transform: '', dir: '' };
+    return { root, label, arrow, spot: null, kind: '', text: '', labelW: 0, labelH: 0, transform: '', dir: '' };
+  }
+
+  /** Label text: the plain line, or (a sign) the kicker, the Portuguese and its English. */
+  private fillGuideLabel(el: GuideEl, g: GuideItem): void {
+    if (!g.en && !g.first) {
+      el.label.textContent = g.label;
+      return;
+    }
+    const span = (cls: string, text: string) => {
+      const s = document.createElement('span');
+      s.className = cls;
+      s.textContent = text;
+      return s;
+    };
+    el.label.replaceChildren(...(g.first ? [span('wl-guide-kick', 'Comece aqui! · Start here!')] : []), span('wl-guide-pt', g.label), ...(g.en ? [span('wl-guide-en', g.en)] : []));
   }
 
   private updateGuides(items: readonly GuideItem[], view: { w: number; h: number }, insets: GuideInsets): void {
@@ -580,6 +649,7 @@ export class LabelLayer {
     const d = diffIds(this.guides.keys(), seen.keys());
     for (const k of d.remove) {
       this.guides.get(k)?.root.remove();
+      this.guides.get(k)?.spot?.remove();
       this.guides.delete(k);
     }
     const arrowW = this.cssPx('--wl-arrow-w', 32);
@@ -591,9 +661,19 @@ export class LabelLayer {
         this.guides.set(g.key, el);
         this.root.appendChild(el.root);
       }
-      if (el.text !== g.label) {
-        el.text = g.label;
-        el.label.textContent = g.label;
+      const kind = `${g.kind ?? ''}${g.first ? ' first' : ''}`;
+      if (el.kind !== kind) {
+        el.kind = kind;
+        el.root.classList.toggle('wl-guide-play', g.kind === 'play');
+        el.root.classList.toggle('wl-guide-door', g.kind === 'door');
+        el.root.classList.toggle('wl-guide-first', !!g.first);
+        el.text = '';
+      }
+      const text = `${g.label}\n${g.en ?? ''}\n${g.first ? 1 : 0}`;
+      if (el.text !== text) {
+        el.text = text;
+        el.label.style.minWidth = '';
+        this.fillGuideLabel(el, g);
         const w = el.label.offsetWidth;
         el.labelW = w % 2 ? w + 1 : w;
         el.labelH = el.label.offsetHeight;
@@ -602,6 +682,32 @@ export class LabelLayer {
       const pin = pinGuide(g, view, insets, 4);
       const ax = Math.round(pin.x);
       const ay = Math.round(pin.y);
+      // the start spot of a game: a ring glowing on its floor tile, under the arrow (only while the tile is on screen)
+      if (g.kind === 'play' && g.floor && !pin.off) {
+        if (!el.spot) {
+          el.spot = document.createElement('div');
+          el.spot.className = 'wl-spot';
+          this.root.insertBefore(el.spot, this.root.firstChild);
+        }
+        el.spot.style.display = '';
+        el.spot.style.setProperty('--wl-tile', px(Math.max(24, Math.round(g.floor.tile))));
+        el.spot.style.transform = `translate(${Math.round(g.floor.x)}px, ${Math.round(g.floor.y)}px)`;
+      } else if (el.spot) el.spot.style.display = 'none';
+      // a door sign stays on its door: no arrow, and nothing pinned to the screen edge
+      if (g.kind === 'door') {
+        el.root.style.display = pin.off ? 'none' : '';
+        el.arrow.style.display = 'none';
+        el.label.style.left = px(Math.round(Math.min(Math.max(-el.labelW / 2, 4 - ax), view.w - 4 - el.labelW - ax)));
+        el.label.style.top = px(4);
+        const tf = `translate(${ax}px, ${ay}px)`;
+        if (tf !== el.transform) {
+          el.transform = tf;
+          el.root.style.transform = tf;
+        }
+        continue;
+      }
+      el.root.style.display = '';
+      el.arrow.style.display = '';
       // the arrow box is placed so its tip (bottom-centre before rotation) is at the anchor; rotation turns it about the tip
       const rot = GUIDE_ROTATION[pin.dir];
       // the label sits on the far side of the arrow body from the tip

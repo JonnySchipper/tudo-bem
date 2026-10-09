@@ -57,7 +57,9 @@ async function enterPadaria(page) {
 const setStars = (page, stars) =>
   page.evaluate((n) => {
     const p = window.__tb.net.debugSession().profile;
-    p.correria = { stars: n, shifts: 0, best: 0 };
+    // the full counter (the menu ladder opens every item by 20 shifts) with every how-to card already shown
+    const taught = ['cafe', 'pao', 'agua', 'pao_de_queijo', 'cafe_com_leite', 'pao_na_chapa', 'espremedor', 'coxinha', 'pastel', 'bolo', 'guarana', 'misto_quente', 'where'];
+    p.correria = { stars: n, shifts: 20, best: 0, taught };
     // friends at the counter: the regulars come in with their own greeting
     p.bond = n > 0 ? { nanda: 40, julia: 40, prof: 30, ze: 30, chico: 30, rosa: 30, tia_lu: 30 } : {};
   }, stars);

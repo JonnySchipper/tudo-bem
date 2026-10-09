@@ -46,18 +46,28 @@ async function postFeedback(body: { text: string; category: FeedbackCategory | n
   return { ok: false, ...FEEDBACK_COPY.offline };
 }
 
-function thanks() {
+/** A small glyph per kind, drawn in CSS blocks (styles/panels.css) so the buttons read at a glance. */
+function kindGlyph(id: FeedbackCategory): HTMLElement {
+  return h('i', { class: `feedback-glyph glyph-${id}`, 'aria-hidden': 'true' });
+}
+
+function thanks(category: FeedbackCategory | null) {
+  const done = h('button', { class: 'primary feedback-send', id: 'feedback-thanks-close', type: 'button', onclick: () => close() }, 'Fechar', en('Close', true));
   const close = openModal(
     'feedback-thanks',
     h(
       'div',
-      { class: 'panel feedback-panel', role: 'dialog', 'aria-labelledby': 'feedback-thanks-title' },
+      { class: 'panel feedback-panel feedback-thanks', role: 'dialog', 'aria-labelledby': 'feedback-thanks-title' },
       h('button', { class: 'close ghost', type: 'button', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
-      h('h2', { id: 'feedback-thanks-title' }, FEEDBACK_COPY.thanks.pt),
-      en(FEEDBACK_COPY.thanks.en),
-      h('button', { class: 'primary feedback-send', id: 'feedback-thanks-close', type: 'button', onclick: () => close() }, 'Fechar', en('Close', true)),
+      // the note goes into the envelope and gets the kind as its seal
+      h('div', { class: 'feedback-letter', 'aria-hidden': 'true' }, h('i', { class: 'letter-note' }), h('i', { class: 'letter-env' }), h('i', { class: 'letter-flap' }), h('span', { class: 'letter-seal' }, kindGlyph(category ?? 'love'))),
+      h('h2', { id: 'feedback-thanks-title' }, FEEDBACK_COPY.thanksTitle.pt),
+      en(FEEDBACK_COPY.thanksTitle.en),
+      h('p', { class: 'feedback-lead' }, FEEDBACK_COPY.thanks.pt, en(FEEDBACK_COPY.thanks.en)),
+      done,
     ),
   );
+  queueMicrotask(() => done.focus());
 }
 
 /** Open the feedback form. Safe to call from the HUD button. */
@@ -99,10 +109,17 @@ export function openFeedback(): void {
           for (const other of cats) other.setAttribute('aria-pressed', other === btn && category === id ? 'true' : 'false');
         },
       },
+      kindGlyph(id),
       h('b', null, KIND[id].pt),
       h('i', null, KIND[id].en),
     );
     return btn;
+  });
+
+  const count = h('span', { class: 'feedback-count', id: 'feedback-count', 'aria-hidden': 'true' }, `0/${FEEDBACK_TEXT_MAX}`);
+  text.addEventListener('input', () => {
+    count.textContent = `${text.value.length}/${FEEDBACK_TEXT_MAX}`;
+    count.classList.toggle('near', text.value.length > FEEDBACK_TEXT_MAX - 50);
   });
 
   const send = h('button', { class: 'primary feedback-send', id: 'feedback-send', type: 'button' }, FEEDBACK_COPY.send.pt, en(FEEDBACK_COPY.send.en, true));
@@ -142,7 +159,7 @@ export function openFeedback(): void {
       showErr(result.pt, result.en);
       return;
     }
-    thanks();
+    thanks(prepared.value.category);
   };
   send.addEventListener('click', () => void submit());
   text.addEventListener('keydown', (e) => {
@@ -156,11 +173,11 @@ export function openFeedback(): void {
     'div',
     { class: 'panel feedback-panel', role: 'dialog', 'aria-labelledby': 'feedback-title' },
     h('button', { class: 'close ghost', type: 'button', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
-    h('h2', { id: 'feedback-title' }, FEEDBACK_COPY.title.pt),
+    h('h2', { id: 'feedback-title', class: 'feedback-title' }, h('i', { class: 'fala-bubble', 'aria-hidden': 'true' }), FEEDBACK_COPY.title.pt),
     en(FEEDBACK_COPY.title.en),
     h('p', { class: 'feedback-lead' }, FEEDBACK_COPY.lead.pt, en(FEEDBACK_COPY.lead.en)),
     h('label', { class: 'feedback-label', for: 'feedback-text' }, FEEDBACK_COPY.textLabel.pt, en(FEEDBACK_COPY.textLabel.en, true)),
-    text,
+    h('div', { class: 'feedback-note' }, text, count),
     h('p', { class: 'feedback-label', id: 'feedback-kind-label' }, FEEDBACK_COPY.kindLabel.pt, en(FEEDBACK_COPY.kindLabel.en, true)),
     h('div', { class: 'feedback-cats', role: 'group', 'aria-labelledby': 'feedback-kind-label' }, ...cats),
     known

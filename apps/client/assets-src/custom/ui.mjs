@@ -70,9 +70,11 @@ export function bubble() {
 /**
  * Subscriber trims. Same pixels as `bubble()` (same tail, same 9-slice). Only the outline and the
  * one-pixel rim inside it change colour; the cream paper, and so the chat text, stays put.
+ * The outline is the trim's dark ink all the way round (like the classic warm ink), so the bubble keeps a hard edge on
+ * a bright sunny street as well as at night; the pale `rimHi` is only a glint on the lit top-left of the inner rim.
  */
 const BUBBLE_TRIMS = {
-  sol: { ink: '#8a5a12', rim: '#e0a020', rimHi: '#ffe7a0' },
+  sol: { ink: '#6a420c', rim: '#e0a020', rimHi: '#ffe7a0' },
   mar: { ink: '#173a63', rim: '#2f6fb5', rimHi: '#b9dcff' },
   mata: { ink: '#1d4f32', rim: '#2e8f58', rimHi: '#b7e7c4' },
   festa: { ink: '#6a2f78', rim: '#c44b8a', rimHi: '#f3b6d8' },
@@ -93,10 +95,10 @@ function bubbleSkin(trim) {
     const i = (y * img.w + x) * 4;
     if (!img.data[i + 3]) continue;
     if (isInk(x, y)) {
-      const lit = x + y < img.w * 0.72;
-      marks.push([x, y, lit ? trim.rimHi : trim.ink]);
+      marks.push([x, y, trim.ink]);
     } else if (isInk(x - 1, y) || isInk(x + 1, y) || isInk(x, y - 1) || isInk(x, y + 1)) {
-      marks.push([x, y, trim.rim]);
+      const glint = (x <= 2 || y <= 2) && x + y < img.w * 0.72;
+      marks.push([x, y, glint ? trim.rimHi : trim.rim]);
     }
   }
   for (const [x, y, c] of marks) put(img, x, y, c);

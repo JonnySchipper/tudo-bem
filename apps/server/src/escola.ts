@@ -15,6 +15,7 @@ import {
   LUCIA_RIGHT,
   LUCIA_TIER_UP,
   ROOMS,
+  addCalendarDays,
   addXp,
   areaHunts,
   bumpStreak,
@@ -298,7 +299,7 @@ export class EscolaTracker {
     const p = s.profile;
     if (!p) return;
     const st = escolaOf(p);
-    const today = localDay(this.d.now(), st.tz);
+    const today = addCalendarDays(localDay(this.d.now(), st.tz), p.testDayOffset ?? 0);
     const m = st.mission;
     if (!m || m.done || m.day !== today || m.area !== word.area) return;
     m.done = true;
@@ -317,7 +318,7 @@ export class EscolaTracker {
     if (!l || !p) return;
     const st = escolaOf(p);
     const now = this.d.now();
-    const today = localDay(now, l.tz);
+    const today = addCalendarDays(localDay(now, l.tz), p.testDayOffset ?? 0);
     const strengthened: StrengthenedWord[] = [];
     let newlyMastered = 0;
     for (const [id, right] of l.results) {
@@ -346,7 +347,7 @@ export class EscolaTracker {
     const tier = earnedTier(st, p.diary);
     const tierUp = tierRank(tier) > tierRank(before) ? tier : null;
     st.tier = tier;
-    p.nameplate = tier;
+    p.nameplate = p.verdeMode ? 'verde' : tier;
     let mission = null;
     if (!partial) {
       if (st.mission?.day !== today) {

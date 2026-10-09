@@ -7,6 +7,7 @@ import {
   priceFor,
   priceLine,
   priceOptions,
+  addCalendarDays,
   resultLine,
   ROOMS,
   sumCoins,
@@ -121,7 +122,7 @@ export class FeiraCounter {
     const from: NpcId = v === 'banca' || v === 'rosa' ? ownerOf(id) : VENDORS[v].npc;
     this.d.ordered(s, from, [{ itemId: id, qty: n }]);
     let rv = 0;
-    const today = dayOf(this.d.now());
+    const today = addCalendarDays(dayOf(this.d.now()), p.testDayOffset ?? 0);
     const st = p.feira?.date === today ? p.feira : { date: today, n: 0 };
     if (st.n < FEIRA_RV_PER_DAY) {
       st.n += 1;

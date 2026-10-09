@@ -110,6 +110,7 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
     start: 'oi',
     nodes: {
       oi: {
+        // First meeting only. `juliaTalkStart` moves a return visit to `ajuda`, which is already voiced.
         line: { pt: '{saudacao}, {nome}! Eu sou a Júlia. Tudo bem?', en: '{greeting}, {nome}! I’m Júlia. How’s it going?' },
         chips: [
           { pt: '{saudacao}, Júlia! Tudo bem!', en: '{greeting}, Júlia! All good!', next: 'ajuda' },
@@ -133,6 +134,14 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
     },
   },
 };
+
+/**
+ * Where a talk with Júlia begins.
+ * The first meeting uses `oi` (“Eu sou a Júlia”). After that, start on `ajuda` so the line is one she already says.
+ */
+export function juliaTalkStart(alreadyMet: boolean): 'oi' | 'ajuda' {
+  return alreadyMet ? 'ajuda' : 'oi';
+}
 
 /** The opening line of an NPC's greeting with the name filled in (what the server counts as "seen" for the Caderno). */
 export function talkOpener(npc: NpcId, name = '', minute?: number): string | null {

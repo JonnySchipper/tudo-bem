@@ -5,6 +5,7 @@
  */
 import {
   BELT_LABELS,
+  GRIP_SLIP as MAT_GRIP_SLIP,
   MAT_TURNS,
   cpuLook,
   type BjjProgress,
@@ -15,6 +16,7 @@ import {
   type ClientMsg,
   INTENTS,
   isMatMove,
+  isSubmission,
   MOVE_LABEL,
   moveTaughtAt,
   nextStripe,
@@ -31,9 +33,29 @@ import { beltChip } from './beltChip';
 import { boutFeed } from '../render/pixel/boutFeed';
 import { CARTOON_MS, GAG_TRACKS, THINK_MS, cartoonFor } from '../render/pixel/gagCartoon';
 import { mountCharPreview } from '../render/pixel/charPreview';
-import { callOf, coachTip, cuesForEnd, cuesForFinishEnd, cuesForResolve, matGlossLocked, matRootClass, moveHint, oddsTone } from './boutLogic';
+import { BEATS, IMPACT } from '../render/pixel/bjjClips';
+import {
+  callOf,
+  coachTip,
+  cuesForEnd,
+  cuesForFinishEnd,
+  cuesForGrip,
+  cuesForResolve,
+  gripEventLine,
+  gripLife,
+  groundRead,
+  isBraceMove,
+  matGlossLocked,
+  matRootClass,
+  meterFrac,
+  moveHint,
+  oddsTone,
+} from './boutLogic';
 
 type Msg<P extends BoutServerMsg['phase']> = Extract<BoutServerMsg, { phase: P }>;
+
+/** When the stage juice of a move lands (the flash, the word pops, the grip snap): the clip's big frame (bjjClips.ts BEATS / IMPACT). */
+const GRIP_SNAP_AT = BEATS.normal[IMPACT];
 /** a client bout message without its `t` and `v` (distributed over the actions) */
 type BoutBody = Extract<ClientMsg, { t: 'bout' }> extends infer M ? (M extends unknown ? Omit<M, 't' | 'v'> : never) : never;
 
@@ -79,6 +101,10 @@ export class BoutUI {
   private lesson: { id: string; pt: string; en: string } | null = null;
   /** This partner's pause before their move (quick Felipe, careful Helena), from the intro message. */
   private thinkMs = THINK_MS;
+  /** The control meter's live elements (built once per match, so the bar slides instead of jumping). */
+  private ctl: { root: HTMLElement; bar: HTMLElement; fill: HTMLElement; mark: HTMLElement; you: HTMLElement; them: HTMLElement; pos: HTMLElement } | null = null;
+  /** Timers of the stage juice that lands mid-cartoon (the impact flash, the word pops). */
+  private juice: number[] = [];
 
   constructor(private readonly a: BoutActions) {
     this.top = h('div', { class: 'bout-top', id: 'bout-top', 'aria-live': 'off' });
@@ -163,6 +189,7 @@ export class BoutUI {
     if (this.closedFlag) return;
     this.closedFlag = true;
     window.clearTimeout(this.cartoonTimer);
+    this.clearJuice();
     this.cartoonUntil = 0;
     this.queue = [];
     boutFeed.holding = false;
@@ -328,7 +355,9 @@ export class BoutUI {
     for (const p of this.previews) p.stop();
     this.previews = [];
     const look = cpuLook(m.partner.name);
-    boutFeed.begin({ id: m.partner.id, name: m.partner.name, appearance: look.appearance }, this.bjj?.belt ?? 'branca', m.st);
+    // the partner is a student at your own belt (the bot fights with your belt's moves), so that is the belt on their blue gi
+    const belt = this.bjj?.belt ?? 'branca';
+    boutFeed.begin({ id: m.partner.id, name: m.partner.name, appearance: look.appearance, belt }, belt, m.st);
     boutFeed.push({ t: 'intro', ms: m.introMs });
     boutFeed.push({ t: 'crowd', cue: 'start' });
     this.sfx('claps');
@@ -373,29 +402,76 @@ export class BoutUI {
     const cards = offered.map((i, k) => {
       const id = i.id as MatMoveId;
       const track = GAG_TRACKS.find((t) => (t.moves as readonly string[]).includes(id));
-      const hint = moveHint(id, i.effect);
+      const base = moveHint(id, i.effect);
+      // the server's few words on what a setup move opens ("Queda +25% · abre Arrastar") beat the generic line
+      const hint = i.sets ? { ...base, pt: i.sets.pt, en: i.sets.en } : base;
       const label = MOVE_LABEL[id];
+      const brace = isBraceMove(id, i.sets);
+      // needs_br: true — Responde! (this move answers the telegraph), Combo (a grip follow-up)
+      const badge = i.answers
+        ? h('span', { class: 'mc-badge answer' }, h('span', { class: 'pt' }, 'Responde!'), en('Counters it'))
+        : i.combo
+          ? h('span', { class: 'mc-badge combo' }, h('span', { class: 'pt' }, 'Combo'))
+          : null;
+      const odds = i.odds?.length
+        ? h('span', { class: 'mc-odds' }, ...i.odds.map((o) => h('span', { class: `mc-odd ${o.delta > 0 ? 'up' : 'down'}`, title: o.en }, `${o.pt} ${o.delta > 0 ? '+' : '−'}${Math.abs(o.delta)}`)))
+        : null;
       return h(
         'button',
         {
-          class: `bout-intent gag-move move-card tone-${oddsTone(i.percent)}${i.effect?.submission ? ' is-finish' : ''}`,
+          class: `bout-intent gag-move move-card tone-${oddsTone(i.percent)}${i.effect?.submission ? ' is-finish' : ''}${i.answers ? ' is-answer' : ''}${i.combo ? ' is-combo' : ''}${brace ? ' is-brace' : ''}`,
           type: 'button',
           'data-intent': id,
           'data-gag': track?.id ?? '',
           'data-k': String(k + 1),
           'data-locked': '0',
           'data-percent': i.percent == null ? '' : String(i.percent),
-          'aria-label': `${label.pt}, ${i.percent ?? 100}%. ${hint.pt}`,
+          'data-answers': i.answers ? '1' : '0',
+          'aria-label': `${label.pt}, ${i.percent ?? 100}%. ${hint.pt}${i.answers ? '. Responde!' : ''}`,
           onclick: () => this.pickIntent(m.seq, id),
         },
-        h('span', { class: 'mc-top' }, h('span', { class: 'mc-track' }, track?.pt ?? '', track ? en(track.en) : null), h('span', { class: 'mc-key', 'aria-hidden': 'true' }, String(k + 1))),
+        h(
+          'span',
+          { class: 'mc-top' },
+          h('span', { class: 'mc-track' }, brace ? h('span', { class: 'gc-shield', 'aria-hidden': 'true' }) : null, track?.pt ?? '', track ? en(track.en) : null),
+          h('span', { class: 'mc-key', 'aria-hidden': 'true' }, String(k + 1)),
+        ),
         h('b', { class: 'pt mc-name' }, label.pt),
         en(label.en),
         i.percent != null ? h('span', { class: 'bout-pct mc-pct' }, `${i.percent}%`) : null,
+        badge,
         hint.pt ? h('span', { class: 'mc-hint' }, h('span', { class: 'pt' }, hint.pt), en(hint.en)) : null,
+        odds,
         hint.risk ? h('span', { class: 'mc-risk' }, h('span', { class: 'pt' }, hint.risk.pt), en(hint.risk.en)) : null,
       );
     });
+    // the partner's telegraph: what they will do next, and which of your cards answer it
+    const plan = m.plan
+      ? h(
+          'div',
+          { class: 'bout-plan', id: 'bout-plan', 'data-kind': m.plan.kind, 'data-move': m.plan.move, role: 'status' },
+          h('span', { class: 'plan-eye', 'aria-hidden': 'true' }, '!'),
+          h('span', { class: 'plan-line' }, h('span', { class: 'pt' }, m.plan.line.pt), en(m.plan.line.en)),
+          m.plan.answers.length
+            ? h(
+                'span',
+                { class: 'plan-answers' },
+                // needs_br: true — Responda com (answer with)
+                h('span', { class: 'pt' }, 'Responda com'),
+                ...m.plan.answers.filter(isMatMove).map((a) => h('b', { class: 'plan-chip', 'data-answer': a }, MOVE_LABEL[a].pt)),
+              )
+            : null,
+        )
+      : null;
+    // owned grip follow-ups not on offer yet: a quiet row that says which grip opens each ("Precisa da gola")
+    const waiting = (m.owned ?? []).filter((o) => o.needs && isMatMove(o.id));
+    const needs = waiting.length
+      ? h(
+          'div',
+          { class: 'bout-needs', id: 'bout-needs' },
+          ...waiting.map((o) => h('span', { class: 'need-chip', 'data-need': o.id }, h('b', null, MOVE_LABEL[o.id as MatMoveId].pt), h('span', { class: 'pt' }, o.needs!.pt), en(o.needs!.en))),
+        )
+      : null;
     const hold = m.intents.find((i) => i.id === 'hold');
     const holdHint = moveHint('hold', undefined);
     const holdBtn = hold
@@ -416,17 +492,54 @@ export class BoutUI {
           en('Go for the finish'),
         )
       : null;
+    const rail = h('div', { class: `move-cards n${cards.length + (holdBtn ? 1 : 0)}`, id: 'gag-moves' }, ...cards, holdBtn);
     this.body.replaceChildren(
       h(
         'div',
         { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish), 'data-seq': String(m.seq) },
-        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, 'Sua vez'), en('Your move'), this.quitBtn()),
+        h('div', { class: `bout-ask${plan ? ' has-plan' : ''}` }, h('span', { class: 'bout-ask-you' }, h('span', { class: 'pt' }, 'Sua vez'), en('Your move')), plan, this.quitBtn()),
         fin,
-        h('div', { class: `move-cards n${cards.length + (holdBtn ? 1 : 0)}`, id: 'gag-moves' }, ...cards, holdBtn),
+        h('div', { class: 'mc-carousel', id: 'gag-carousel' }, rail, this.cardNav(rail)),
+        needs,
         this.timerBar(),
       ),
     );
     this.measure();
+  }
+
+  /**
+   * On a phone the move cards are one swipeable row (a horizontal carousel), so every card is a swipe away and the panel stays short
+   * enough for the fighters: arrows either side and a dot per card, the dots of the cards on screen lit. Wider screens show every card.
+   */
+  private cardNav(rail: HTMLElement): HTMLElement {
+    const items = [...rail.children] as HTMLElement[];
+    const dots = items.map((_, i) => h('i', { class: 'mc-dot', 'data-i': String(i) }));
+    const step = (dir: number) => {
+      const w = items[0]?.getBoundingClientRect().width ?? 120;
+      rail.scrollBy({ left: dir * (w + 6), behavior: 'smooth' });
+    };
+    // needs_br: true — the swipe hint
+    const prev = h('button', { class: 'mc-arrow prev', type: 'button', 'aria-label': 'Golpes anteriores (Previous moves)', onclick: () => step(-1) }, '‹');
+    const next = h('button', { class: 'mc-arrow next', type: 'button', 'aria-label': 'Mais golpes (More moves)', onclick: () => step(1) }, '›');
+    const nav = h('div', { class: 'mc-nav', 'aria-hidden': 'false' }, prev, h('span', { class: 'mc-dots' }, ...dots), next);
+    let raf = 0;
+    const paint = () => {
+      raf = 0;
+      const r = rail.getBoundingClientRect();
+      items.forEach((el, i) => {
+        const b = el.getBoundingClientRect();
+        dots[i]!.classList.toggle('on', b.right > r.left + 8 && b.left < r.right - 8);
+      });
+      const overflow = rail.scrollWidth > rail.clientWidth + 4;
+      nav.classList.toggle('needed', overflow);
+      prev.toggleAttribute('disabled', rail.scrollLeft <= 2);
+      next.toggleAttribute('disabled', rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 2);
+    };
+    rail.addEventListener('scroll', () => {
+      if (!raf) raf = requestAnimationFrame(paint);
+    });
+    requestAnimationFrame(paint);
+    return nav;
   }
 
   private pickIntent(seq: number, intent: string): void {
@@ -434,7 +547,7 @@ export class BoutUI {
     this.locked = true;
     this.sfx('tick');
     this.send({ action: 'intent', seq, intent: intent as never });
-    this.body.querySelectorAll('button').forEach((b) => b.setAttribute('disabled', ''));
+    this.body.querySelectorAll('button:not(.mc-arrow)').forEach((b) => b.setAttribute('disabled', ''));
     this.body.querySelector(`[data-intent="${intent}"]`)?.classList.add('picked');
   }
 
@@ -631,29 +744,56 @@ export class BoutUI {
       aheadFrom: from?.ahead ?? null,
       aheadTo: m.st.ahead,
       ms: CARTOON_MS,
+      actor: m.actor === 'partner' ? 'partner' : 'you',
+      finale: landed && (matchOver || isSubmission(move)),
     });
     this.markCartoon(move, cartoon.read);
+    // every answer reads as ground gained or lost (the control meter, from your seat), whoever moved
+    const ground = groundRead(m.meterFrom ?? from?.meter, m.meterTo ?? m.st.meter);
+    const moments = (m.grip ?? []).filter((e) => e.kind !== 'blocked').map((e) => gripEventLine(e, this.partnerName));
+    // needs_br: true — Mudou de plano! (the partner dropped the move it showed you)
+    const replan = m.actor === 'partner' && m.replanned ? h('span', { class: 'bout-replan' }, h('span', { class: 'pt' }, 'Mudou de plano!'), en('Changed plans!')) : null;
     this.body.replaceChildren(
       h(
         'div',
         {
-          class: `bout-resolve ${landed ? 'right' : 'wrong'}`,
+          class: `bout-resolve ${landed ? 'right' : 'wrong'} actor-${m.actor === 'partner' ? 'partner' : 'you'}`,
           id: 'bout-resolve',
           'data-correct': String(landed),
           'data-sound': m.sound ?? 'none',
           'data-cartoon': move,
           'data-read': cartoon.read,
+          'data-ground': ground.dir,
         },
-        h('b', { class: 'bout-banner' }, tried.pt),
-        en(tried.en),
-        h('span', { class: 'bout-outcome' }, outcome.pt),
-        en(outcome.en),
-        h('span', { class: 'bout-who' }, who),
+        h('span', { class: 'bout-rhead' }, h('span', { class: 'bout-who' }, who), h('b', { class: 'bout-banner' }, tried.pt), en(tried.en)),
+        // the ground read sits right under the move, big, and lands on the clip's impact: it stays readable while the move plays
+        h(
+          'span',
+          { class: `bout-ground ${ground.dir}`, id: 'bout-ground', 'data-delta': String(ground.delta) },
+          h('span', { class: 'gr-arrow', 'aria-hidden': 'true' }, ground.dir === 'gain' ? '▲' : ground.dir === 'loss' ? '▼' : '='),
+          h('span', { class: 'pt' }, ground.pt),
+          en(ground.en),
+        ),
+        h('span', { class: 'bout-rfoot' }, h('span', { class: 'bout-outcome' }, outcome.pt), en(outcome.en), ...moments.map((l) => h('span', { class: 'bout-moment' }, h('span', { class: 'pt' }, l.pt), en(l.en))), replan),
       ),
     );
     for (const c of cuesForResolve(m)) {
       if (c.t === 'transition' || c.t === 'hit' || c.t === 'miss') continue;
       boutFeed.push(c);
+    }
+    // the flash, the word pops and the ground arrow land at the cartoon's impact, not when the move is announced
+    this.clearJuice();
+    const juice = cuesForGrip(m, this.partnerName);
+    // the grip snap: a fist closing on the gi (or ripping one off) is heard on the clip's snap frame
+    const snap = (m.grip ?? []).some((e) => e.kind === 'grip' || e.kind === 'strip');
+    if (juice.length || snap) {
+      this.juice.push(
+        window.setTimeout(() => {
+          if (this.closedFlag) return;
+          for (const c of juice) boutFeed.push(c);
+          if (snap) this.sfx('grip');
+        }, Math.round(CARTOON_MS * GRIP_SNAP_AT)),
+      );
     }
     this.playMatSound(m.sound);
     if (call) this.say(call.pt);
@@ -711,8 +851,14 @@ export class BoutUI {
     this.measure();
   }
 
+  private clearJuice(): void {
+    for (const t of this.juice) window.clearTimeout(t);
+    this.juice = [];
+  }
+
   private cancelCartoon(): void {
     window.clearTimeout(this.cartoonTimer);
+    this.clearJuice();
     this.cartoonUntil = 0;
     this.pendingPose = null;
     this.pendingSlap = false;
@@ -934,16 +1080,84 @@ export class BoutUI {
     this.top.dataset.shown = this.snap ? '1' : '0';
   }
 
+  /**
+   * The control meter (a tug of war: your colour from the left, theirs from the right), each fighter's grips and brace, and who is on top.
+   * The meter is built once per match and updated in place, so it slides from the old value to the new one.
+   */
   private renderMeters(): void {
     const s = this.snap;
     if (!s) {
       this.meters.replaceChildren();
+      this.ctl = null;
       return;
     }
-    // needs_br: true — ground is read from the picture; these lines only say who is on top
+    if (!this.ctl || !this.ctl.root.isConnected) {
+      const fill = h('i', { class: 'ctl-fill' });
+      const mark = h('b', { class: 'ctl-mark' });
+      const bar = h(
+        'div',
+        { class: 'ctl-bar', id: 'bout-meter', role: 'meter', 'aria-valuemin': '-100', 'aria-valuemax': '100', 'aria-label': 'Controle (Control)' },
+        h('div', { class: 'ctl-track' }, fill, mark),
+      );
+      const you = h('div', { class: 'ctl-side you', id: 'bout-grips-you' });
+      const them = h('div', { class: 'ctl-side partner', id: 'bout-grips-partner' });
+      const pos = h('div', { class: 'bout-pos', id: 'bout-pos' });
+      // needs_br: true — Controle
+      const label = h('span', { class: 'ctl-label' }, h('span', { class: 'pt' }, 'Controle'), en('Control'));
+      const root = h('div', { class: 'bout-ctl', id: 'bout-ctl' }, you, h('div', { class: 'ctl-mid' }, label, bar, pos), them);
+      this.meters.replaceChildren(root);
+      this.ctl = { root, bar, fill, mark, you, them, pos };
+    }
+    const c = this.ctl;
+    const meter = Math.round(s.meter ?? 0);
+    const frac = meterFrac(meter);
+    c.root.dataset.meter = String(meter);
+    c.root.dataset.lead = meter > 8 ? 'you' : meter < -8 ? 'partner' : 'even';
+    c.bar.setAttribute('aria-valuenow', String(meter));
+    c.fill.style.width = `${(frac * 100).toFixed(1)}%`;
+    c.mark.style.left = `${(frac * 100).toFixed(1)}%`;
+    c.you.replaceChildren(...this.gripChips(s, 'you'));
+    c.them.replaceChildren(...this.gripChips(s, 'partner'));
+    // needs_br: true — ground is read from the picture and the meter; this line only says who is on top
     const ground = s.position === 'de_pe' ? 'Em pé' : s.ahead === 'you' ? 'Você por cima' : 'Você por baixo';
     const groundEn = s.position === 'de_pe' ? 'Standing' : s.ahead === 'you' ? 'You are on top' : 'You are on the bottom';
-    this.meters.replaceChildren(h('div', { class: 'bout-pos', id: 'bout-pos', 'data-pos': s.position }, h('b', null, ground), en(groundEn)));
+    c.pos.dataset.pos = s.position;
+    c.pos.replaceChildren(h('b', null, ground), en(groundEn));
+  }
+
+  /**
+   * needs_br: true — one fighter's chips: Gola and Manga (lit while held, with pips for the turns left before the grip slips),
+   * the brace waiting for the other's move, and Cansado after a slip.
+   */
+  private gripChips(s: BoutSnapshot, side: 'you' | 'partner'): HTMLElement[] {
+    const g = s.grips?.[side];
+    const out: HTMLElement[] = [];
+    const both = !!g?.collar && !!g?.sleeve;
+    for (const grip of ['collar', 'sleeve'] as const) {
+      const on = !!g?.[grip];
+      const life = gripLife(g?.age[grip] ?? 0, MAT_GRIP_SLIP);
+      const label = grip === 'collar' ? { pt: 'Gola', en: 'Collar' } : { pt: 'Manga', en: 'Sleeve' };
+      out.push(
+        h(
+          'span',
+          {
+            class: `grip-chip g-${grip}${on ? ' on' : ''}${both ? ' both' : ''}${on && life.left <= 1 ? ' slipping' : ''}`,
+            'data-grip': grip,
+            'data-on': on ? '1' : '0',
+            title: on ? `${label.pt} · ${life.pt} (${life.en})` : `${label.pt} (${label.en})`,
+          },
+          h('span', { class: 'pt' }, label.pt),
+          on ? h('span', { class: 'gc-pips', 'aria-label': life.pt }, ...Array.from({ length: MAT_GRIP_SLIP }, (_, i) => h('i', { class: i < life.left ? 'on' : '' }))) : null,
+        ),
+      );
+    }
+    const brace = s.brace?.[side];
+    if (brace) {
+      const b = brace === 'postura' ? 'Postura' : brace === 'base' ? 'Base' : 'Recuperar';
+      out.push(h('span', { class: 'grip-chip brace on', 'data-brace': brace }, h('span', { class: 'gc-shield', 'aria-hidden': 'true' }), h('span', { class: 'pt' }, b)));
+    }
+    if (s.tired?.[side]) out.push(h('span', { class: 'grip-chip tired on', 'data-tired': '1' }, h('span', { class: 'pt' }, 'Cansado'), en('Tired')));
+    return out;
   }
 
   private timerBar(): HTMLElement {

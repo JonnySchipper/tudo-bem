@@ -2,7 +2,7 @@
  * Praça street snacks: bought at the carts, carried until the session ends (not saved on the profile).
  * Prices are virtual reais (RV). The beta stays free — nothing here takes real money.
  */
-export type StreetSnackId = 'pipoca_salgada' | 'pipoca_doce' | 'pipoca_doce_leite' | 'agua_de_coco' | 'pao_de_queijo' | 'cafezinho';
+export type StreetSnackId = 'pipoca_salgada' | 'pipoca_doce' | 'pipoca_doce_leite' | 'agua_de_coco' | 'pao_de_queijo' | 'cafezinho' | 'agua';
 
 /** Optional condensed milk on sweet popcorn only. */
 export const LEITE_CONDENSADO_RV = 3;
@@ -14,7 +14,7 @@ export interface StreetSnackDef {
   price: number;
   /** Prop id that sells this snack (the praça carts, the airport café). */
   propId: string;
-  /** Icon under `icons/` in the pixel manifest. Sweet popcorn reuses the red `pipoca` art. */
+  /** Icon under `icons/` in the pixel manifest: sweet popcorn is the red `pipoca` art, with the leite condensado drizzle on `pipoca_leite`. */
   icon: string;
   /** Set when this row is only an add-on of another snack, not a line on the first menu. */
   addonOf?: StreetSnackId;
@@ -38,13 +38,15 @@ export const STREET_SNACKS: StreetSnackDef[] = [
     en: 'Sweet popcorn with condensed milk',
     price: pipocaDoce.price + LEITE_CONDENSADO_RV,
     propId: 'pipoqueiro',
-    icon: 'pipoca',
+    icon: 'pipoca_leite',
     addonOf: 'pipoca_doce',
   },
   { id: 'agua_de_coco', pt: 'Água de coco', en: 'Coconut water', price: 7, propId: 'carrinho_coco', icon: 'agua_de_coco' },
   // the airport café (the arrival tutorial's first purchase: the starting coins cover it). needs_br: true
   { id: 'pao_de_queijo', pt: 'Pão de queijo', en: 'Cheese bread', price: 4, propId: 'lanchonete_aero', icon: 'pao_de_queijo' },
   { id: 'cafezinho', pt: 'Cafezinho', en: 'A little coffee', price: 3, propId: 'lanchonete_aero', icon: 'cafe' },
+  // the arrivals hall's water cooler: the tutorial's first thing to pick up and use, free (price 0 takes no RV). needs_br: true
+  { id: 'agua', pt: 'Copo d’água', en: 'A cup of water', price: 0, propId: 'desemb_bebedouro', icon: 'agua' },
 ];
 
 /** The old single popcorn id is the salty bag. */

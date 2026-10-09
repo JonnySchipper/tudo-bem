@@ -1,0 +1,36 @@
+name: Auto-open PR for Claude branches
+
+# claude-code-action pushes claude/** branches but only posts a "Create PR"
+# link. Open the PR automatically so finished work doesn't sit unseen.
+on:
+  push:
+    branches: ["claude/**"]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open PR if none exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          existing=$(gh pr list -R "$REPO" --head "$BRANCH" --state all --json number -q 'length')
+          if [ "$existing" != "0" ]; then echo "PR already exists"; exit 0; fi
+          ahead=$(gh api "repos/$REPO/compare/main...$BRANCH" -q .ahead_by)
+          if [ "$ahead" = "0" ]; then echo "Nothing ahead of main"; exit 0; fi
+          issue=$(echo "$BRANCH" | sed -n 's#^claude/issue-\([0-9]*\)-.*#\1#p')
+          if [ -n "$issue" ]; then
+            title=$(gh issue view "$issue" -R "$REPO" --json title -q .title | sed 's/^Opus[^:]*: //')
+            body="Closes #$issue. Opened automatically from \`$BRANCH\` after Claude pushed."
+          else
+            title="Claude: $BRANCH"
+            body="Opened automatically from \`$BRANCH\` after Claude pushed."
+          fi
+          gh pr create -R "$REPO" --base main --head "$BRANCH" --title "$title" --body "$body"

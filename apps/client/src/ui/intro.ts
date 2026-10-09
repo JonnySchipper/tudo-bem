@@ -30,15 +30,18 @@ function field(pt: string, control: HTMLElement) {
   return h('div', { class: 'intro-field' }, h('label', { for: control.id }, pt), control);
 }
 
-function wordmark(text: string) {
-  return h(
-    'h1',
-    { id: 'intro-title', class: 'intro-wordmark' },
-    h('span', { class: 'intro-sr' }, text),
-    ...[...text].map((ch, i) =>
-      h('span', { class: ch === ' ' ? 'intro-letter intro-letter-space' : 'intro-letter', style: `--i:${i}`, 'aria-hidden': 'true' }, ch === ' ' ? '\u00a0' : ch),
-    ),
-  );
+/** Official pixel logo. Stacked on the title/login hero; banner on the landing header. */
+function brandLogo(kind: 'stacked' | 'banner') {
+  const stacked = kind === 'stacked';
+  return h('img', {
+    class: `tb-logo tb-logo-${kind}`,
+    src: stacked ? '/brand/tb-logo-stacked.png' : '/brand/tb-logo-banner.png',
+    alt: 'Tudo Bem',
+    width: stacked ? '732' : '1073',
+    height: stacked ? '631' : '386',
+    decoding: 'async',
+    draggable: 'false',
+  });
 }
 
 /**
@@ -348,15 +351,14 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       finish({ mode: 'auth', email: result.session.email });
     });
 
-    const markWrap = h('div', { class: 'intro-mark-wrap', 'aria-hidden': 'true' }, h('div', { class: 'intro-mark-sun' }), h('div', { class: 'intro-mark' }));
-    const title = wordmark('Tudo Bem');
+    const title = h('h1', { id: 'intro-title', class: 'intro-wordmark' }, brandLogo('stacked'));
     const taglines = h(
       'div',
       { class: 'intro-taglines' },
       h('p', { class: 'intro-tagline' }, 'Chega na praça — café, vizinhos e português no dia a dia.'),
       h('p', { class: 'intro-tagline en', 'aria-hidden': 'true' }, 'A friendly São Paulo square to learn Portuguese.'),
     );
-    const hero = h('header', { class: 'intro-hero' }, markWrap, title, taglines);
+    const hero = h('header', { class: 'intro-hero' }, title, taglines);
     const panel = h(
       'section',
       { class: 'panel intro-panel tb-world-card', 'aria-labelledby': 'intro-panel-title' },
@@ -366,7 +368,10 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       h('div', { id: 'tb-idle-kick-slot', class: 'tb-idle-kick-slot', hidden: true, 'aria-hidden': 'true', 'data-tb-region': 'idle-kick-interstitial' }),
     );
 
-    root.append(heroScene.el, glow, atmosphere, veil, musicBtn, skipBtn, h('div', { class: 'intro-shell' }, hero, panel), enterLayer, artCredit());
+    const landingLogo = h('div', { class: 'intro-landing-logo' }, brandLogo('banner'));
+    // Hidden from assistive tech until Entrar: the landing banner is the name on this beat.
+    const shell = h('div', { class: 'intro-shell', 'aria-hidden': 'true' }, hero, panel);
+    root.append(heroScene.el, glow, atmosphere, veil, landingLogo, musicBtn, skipBtn, shell, enterLayer, artCredit());
 
     document.body.classList.add('intro-active');
     root.classList.add('intro-phase-enter');
@@ -385,8 +390,8 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       heroScene.frame({ cardTop: panel.getBoundingClientRect().top - rr.top, heroBottom: r.bottom - rr.top });
       const vh = rr.height;
       const wide = window.matchMedia(WIDE_QUERY).matches;
-      // Wide screens keep the wordmark in its column (the Praça is the centrepiece); phones centre it.
-      const s = wide ? 1.06 : 1.14;
+      // No fractional scale: a CSS transform would blur the pixel logo. Wide screens keep it in its column.
+      const s = 1;
       const cy = wide ? r.top - rr.top + r.height / 2 + vh * 0.04 : vh * 0.3;
       const dx = wide ? 0 : rr.width / 2 - (r.left - rr.left + r.width / 2);
       const dy = cy - (r.top - rr.top + r.height / 2);
@@ -410,7 +415,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       band: () => skyBand,
       waitForStart: enterReady,
       // The painted parts only — the header box spans the whole empty left column on desktop.
-      keepClear: () => [markWrap, title, taglines, root.classList.contains('intro-phase-auth') ? panel : null],
+      keepClear: () => [title, taglines, root.classList.contains('intro-phase-auth') ? panel : null],
     });
     teardowns.push(parrots.teardown);
 
@@ -443,6 +448,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       if (enterDone) return;
       enterDone = true;
       enterLayer.remove();
+      shell.removeAttribute('aria-hidden');
       root.classList.remove('intro-phase-enter');
       ambience.unlock();
       ambience.setScene('intro');

@@ -96,42 +96,55 @@
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='7' height='8' shape-rendering='crispEdges'><rect width='7' height='8' fill='%232a2233'/><rect x='1' y='1' width='5' height='6' fill='%23f2c230'/><rect x='2' y='2' width='3' height='1' fill='%23fff59a'/><rect x='3' y='3' width='1' height='1' fill='%23c45c26'/><rect x='2' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='4' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='3' y='5' width='1' height='1' fill='%232e6a3a'/></svg>") center / 14px 16px no-repeat;
 }
 
+/* Beta founder mark: a 7x8 pixel "f" tile drawn at 2x (whole CSS px, so it stays crisp at every camera zoom; the overlay never scales).
+   Same footprint as the subscription badge, so a plate with both stays one even row. */
 .wl-founder {
   flex-shrink: 0;
   pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 15px;
-  height: 15px;
+  display: inline-block;
+  width: 14px;
+  height: 16px;
   margin-top: -1px;
-  font-family: var(--font-title, 'Baloo 2', system-ui, sans-serif);
-  font-size: 12px;
-  font-weight: 800;
-  font-style: italic;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: #2a2233;
-  background: #f2c230;
-  border: 2px solid #2a2233;
-  box-shadow: inset 0 0 0 1px #ffe9a8;
-  clip-path: polygon(
-    0 2px,
-    2px 0,
-    calc(100% - 2px) 0,
-    100% 2px,
-    100% calc(100% - 2px),
-    calc(100% - 2px) 100%,
-    2px 100%,
-    0 calc(100% - 2px)
-  );
+  image-rendering: pixelated;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='7' height='8' shape-rendering='crispEdges'><rect x='1' width='5' height='8' fill='%232a2233'/><rect y='1' width='7' height='6' fill='%232a2233'/><rect x='1' y='1' width='5' height='6' fill='%23f2c230'/><rect x='1' y='1' width='2' height='1' fill='%23fff59a'/><rect x='1' y='6' width='5' height='1' fill='%23d39a1f'/><rect x='3' y='1' width='2' height='1' fill='%232a2233'/><rect x='2' y='2' width='1' height='5' fill='%232a2233'/><rect x='1' y='3' width='4' height='1' fill='%232a2233'/><rect x='1' y='6' width='3' height='1' fill='%232a2233'/></svg>") center / 14px 16px no-repeat;
 }
 
 .wl-stack .wl-plate {
   position: relative;
   left: auto;
   bottom: auto;
+}
+
+/* door tags (wayfinding): where a door or an edge goes, PT over a small EN line; a fresh room's tags glow */
+.wl-plate-door,
+.wl-plate-doorNew {
+  --edge: #573c2c;
+  --fill: #fbf1e3;
+  --ink: #3a2a20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  opacity: 0.92;
+}
+
+.wl-plate-doorNew {
+  --fill: #fff3c4;
+  animation: wl-door-new 1.2s steps(6, end) infinite;
+}
+
+@keyframes wl-door-new {
+  50% {
+    --fill: #f2c230;
+    filter: drop-shadow(0 0 6px rgba(242, 194, 48, 0.9));
+  }
+}
+
+.wl-door-en {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 9.5px;
+  opacity: 0.8;
 }
 
 .wl-plate-npc {
@@ -142,6 +155,31 @@
 .wl-plate-player {
   --edge: #1d3a31;
   --fill: #2f5d50;
+}
+
+.wl-belt {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.wl-belt .bar {
+  flex: 1;
+  height: 4px;
+  min-width: 14px;
+  border: 1px solid #1c1c28;
+  box-sizing: border-box;
+}
+
+.wl-belt .pip {
+  width: 3px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.wl-belt .pip.on {
+  background: #fff;
 }
 
 .wl-plate-me {
@@ -207,6 +245,28 @@
   flex-shrink: 0;
 }
 
+/* Collar tag: smaller than a player name, mustard like the pet's collar, with a paw. */
+.wl-plate-pet {
+  --edge: #6b4423;
+  --fill: #f2c56b;
+  --ink: #2a2233;
+  --step: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px 2px 4px;
+  font-size: 11px;
+  line-height: 1.05;
+}
+
+.wl-paw {
+  width: 9px;
+  height: 8px;
+  flex: 0 0 9px;
+  image-rendering: pixelated;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='8' shape-rendering='crispEdges'><rect width='9' height='8' fill='none'/><rect x='0' y='0' width='2' height='2' fill='%232a2233'/><rect x='3' y='0' width='2' height='2' fill='%232a2233'/><rect x='6' y='0' width='2' height='2' fill='%232a2233'/><rect x='1' y='3' width='7' height='3' fill='%232a2233'/><rect x='2' y='6' width='5' height='1' fill='%232a2233'/><rect x='3' y='7' width='3' height='1' fill='%232a2233'/></svg>") center / 9px 8px no-repeat;
+}
+
 .wl-plate-sign {
   --edge: #5b3b22;
   --fill: #2f4a3a;
@@ -230,6 +290,119 @@
   --edge: #2a2233;
   --fill: #f2c230;
   --ink: #2a2233;
+}
+
+/* a sign: the Portuguese, its English under it, and (first visit) a kicker over it */
+.wl-plate-guide .wl-guide-pt,
+.wl-plate-guide .wl-guide-en,
+.wl-plate-guide .wl-guide-kick {
+  display: block;
+  text-align: center;
+}
+
+.wl-plate-guide .wl-guide-en {
+  font-size: 0.82em;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.wl-plate-guide .wl-guide-kick {
+  margin-bottom: 1px;
+  font-size: 0.78em;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: #8a2a14;
+}
+
+/* a game's start spot: a bigger gold sign over the bobbing arrow */
+.wl-guide-play .wl-plate-guide {
+  padding: 4px 11px 5px;
+  font-size: 14px;
+}
+
+.wl-guide-first .wl-plate-guide {
+  animation: wl-sign-pulse 1.1s ease-in-out infinite;
+}
+
+/* the ring on the start tile: gold, glowing, breathing */
+.wl-spot {
+  width: 0;
+  height: 0;
+}
+
+.wl-spot::before,
+.wl-spot::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--wl-tile, 32px) * -0.6);
+  top: calc(var(--wl-tile, 32px) * -0.3);
+  width: calc(var(--wl-tile, 32px) * 1.2);
+  height: calc(var(--wl-tile, 32px) * 0.6);
+  border-radius: 50%;
+}
+
+.wl-spot::before {
+  background: radial-gradient(closest-side, rgba(255, 216, 74, 0.55), rgba(255, 216, 74, 0.18) 70%, transparent);
+  animation: wl-spot-glow 1.4s ease-in-out infinite;
+}
+
+.wl-spot::after {
+  border: 3px solid #ffd84a;
+  box-shadow:
+    0 0 10px 2px rgba(255, 216, 74, 0.8),
+    inset 0 0 8px rgba(255, 216, 74, 0.6);
+  animation: wl-spot-ring 1.4s ease-out infinite;
+}
+
+@keyframes wl-spot-glow {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes wl-spot-ring {
+  0% {
+    transform: scale(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0.15;
+  }
+}
+
+@keyframes wl-sign-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+/* a shop sign on a street door: wood, cream letters, no arrow */
+.wl-guide-door .wl-plate-guide {
+  --edge: #3b2314;
+  --fill: #8a5a32;
+  --ink: #fff3d6;
+  font-size: 12.5px;
+}
+
+.wl-guide-door .wl-plate-guide .wl-guide-en {
+  color: #ffe9a8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-guide-first .wl-plate-guide,
+  .wl-spot::before,
+  .wl-spot::after {
+    animation: none;
+  }
 }
 
 /* ---- speech bubbles: the ui/bubble 9-slice at 2x; the tail is bottom-left (mirrored copy: bottom-right) ---- */

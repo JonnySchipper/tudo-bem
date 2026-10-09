@@ -28,7 +28,7 @@ import { DAY_MIN, assertPageClock, offsetMinFor, requirePinnedClock } from './li
 import { assert, playShift, sleep, startShiftFromPedido, waitFor } from './lib/correria-play.mjs';
 import { goArea } from './lib/areas.mjs';
 import { finishArrival } from './lib/arrival.mjs';
-import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
+import { openBout, playBout, readBoutHud, startBout, waitBoutPhase } from './lib/bout-play.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
 const CHROME = findChrome();
@@ -609,6 +609,11 @@ async function main() {
   assert(stage && stage.mode !== 'off', `the bout stage is on the mat (${JSON.stringify(stage)})`);
   assert(await page.evaluate(() => window.__tb.bout.feed.active), 'the bout feed is active');
   await shot(page, '09b3_bout_intent');
+  // Tatame v2: the control meter, the grip chips and the partner's telegraph are on the pick screen
+  const hud = await readBoutHud(page);
+  assert(hud.meter !== null && Number.isFinite(hud.meter), `the control meter is up (${JSON.stringify(hud)})`);
+  assert((await page.$$('#bout-grips-you .grip-chip[data-grip]')).length === 2, 'your Gola and Manga chips are on the HUD');
+  assert(hud.plan && hud.plan.text.includes('Mateus'), `the partner telegraphs its next move (${JSON.stringify(hud.plan)})`);
   const result = await playBout(page, {
     pick: 'bold',
     onPhase: async (phase) => {
@@ -637,19 +642,21 @@ async function main() {
   await interact(page, { portal: 'praca_kitnet' });
   await waitFor(page, () => window.__tb.game.room?.room === 'kitnet', null, 15_000, 'kitnet');
   await sleep(500);
-  await page.click('#btn-decor');
-  await page.click('[data-furniture="cadeira_madeira"]');
+  // a first visit: the Decorar guide comes up and pulses the control it wants next (force: the bounce never reads as "stable")
+  assert(await page.evaluate(() => window.__tb.kitnetGuide().running), 'the Decorar guide greets a first kitnet visit');
+  await page.click('#btn-decor', { force: true });
+  await page.click('[data-furniture="cadeira_madeira"]', { force: true });
   await clickTileHit(page, 3, 4);
   await waitFor(page, () => window.__tb.game.furniture.length === 1, null, 5000, 'chair placed');
   // Buy + place a plant too
-  await page.click('#tab-loja');
-  await page.click('[data-buy-furniture="planta"]');
+  await page.click('#tab-loja', { force: true });
+  await page.click('[data-buy-furniture="planta"]', { force: true });
   await sleep(300);
-  await page.click('button:has-text("Meus móveis")');
-  await page.click('[data-furniture="planta"]');
+  await page.click('button:has-text("Meus móveis")', { force: true });
+  await page.click('[data-furniture="planta"]', { force: true });
   await clickTileHit(page, 5, 4);
   await waitFor(page, () => window.__tb.game.furniture.length === 2, null, 5000, 'plant placed');
-  await page.click('#decor-panel button.ghost');
+  await page.click('#decor-exit');
   await sleep(400);
   await walkTo(page, 3, 4, true);
   await waitIdleAt(page, 3, 4, 'sit on chair');

@@ -1,0 +1,465 @@
+{
+  "room": "padaria",
+  "objects": [
+    {
+      "id": "caixa",
+      "kind": "caixa",
+      "x": 0,
+      "y": 2,
+      "blocks": true,
+      "label": {
+        "pt": "Caixa",
+        "en": "Cash register"
+      }
+    },
+    {
+      "id": "balcao",
+      "kind": "balcao",
+      "x": 1,
+      "y": 2,
+      "w": 5,
+      "h": 1,
+      "blocks": true,
+      "action": "padaria_counter",
+      "interact": {
+        "x": 2,
+        "y": 3
+      },
+      "label": {
+        "pt": "Balcão",
+        "en": "Counter"
+      }
+    },
+    {
+      "id": "vitrine",
+      "kind": "vitrine",
+      "x": 6,
+      "y": 2,
+      "blocks": true
+    },
+    {
+      "id": "estufa",
+      "kind": "estufa",
+      "x": 7,
+      "y": 2,
+      "blocks": true,
+      "label": {
+        "pt": "Estufa de salgados",
+        "en": "Warm snack display"
+      }
+    },
+    {
+      "id": "trilho",
+      "kind": "trilho_pedidos",
+      "x": 8,
+      "y": 2,
+      "blocks": true,
+      "action": "minigame",
+      "interact": {
+        "x": 6,
+        "y": 4
+      },
+      "label": {
+        "pt": "Correria no Balcão",
+        "en": "Counter Rush"
+      }
+    },
+    {
+      "id": "vaso_canto",
+      "kind": "vaso",
+      "x": 9,
+      "y": 2,
+      "blocks": true
+    },
+    {
+      "id": "banqueta_1",
+      "kind": "banqueta",
+      "x": 1,
+      "y": 3,
+      "blocks": false,
+      "seat": "NE"
+    },
+    {
+      "id": "banqueta_2",
+      "kind": "banqueta",
+      "x": 5,
+      "y": 3,
+      "blocks": false,
+      "seat": "NE"
+    },
+    {
+      "id": "banqueta_3",
+      "kind": "banqueta",
+      "x": 6,
+      "y": 3,
+      "blocks": false,
+      "seat": "NE"
+    },
+    {
+      "id": "mesa_1",
+      "kind": "mesa",
+      "x": 3,
+      "y": 6,
+      "blocks": true
+    },
+    {
+      "id": "cadeira_1",
+      "kind": "cadeira_padaria",
+      "x": 2,
+      "y": 6,
+      "blocks": false,
+      "seat": "SE"
+    },
+    {
+      "id": "cadeira_2",
+      "kind": "cadeira_padaria",
+      "x": 3,
+      "y": 7,
+      "blocks": false,
+      "seat": "NE"
+    },
+    {
+      "id": "mesa_2",
+      "kind": "mesa",
+      "x": 7,
+      "y": 6,
+      "blocks": true
+    },
+    {
+      "id": "cadeira_3",
+      "kind": "cadeira_padaria",
+      "x": 6,
+      "y": 6,
+      "blocks": false,
+      "seat": "SE"
+    },
+    {
+      "id": "cadeira_4",
+      "kind": "cadeira_padaria",
+      "x": 7,
+      "y": 7,
+      "blocks": false,
+      "seat": "NE"
+    },
+    {
+      "id": "vaso",
+      "kind": "vaso",
+      "x": 9,
+      "y": 8,
+      "blocks": true
+    },
+    {
+      "id": "padaria_porta_fundar",
+      "kind": "vaso",
+      "x": 0,
+      "y": 5,
+      "blocks": false,
+      "action": "padaria_door",
+      "interact": {
+        "x": 1,
+        "y": 5
+      },
+      "label": {
+        "pt": "Cofre da porta",
+        "en": "Door fund"
+      }
+    },
+    {
+      "id": "d_forno",
+      "kind": "cenario",
+      "x": 8,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/forno",
+      "ox": -4
+    },
+    {
+      "id": "d_chapa",
+      "kind": "cenario",
+      "x": 9,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/chapa",
+      "ox": -4
+    },
+    {
+      "id": "d_geladeira",
+      "kind": "cenario",
+      "x": 0,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/geladeira",
+      "ox": -4
+    },
+    {
+      "id": "d_freezer",
+      "kind": "cenario",
+      "x": 1,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/freezer",
+      "ox": -4
+    },
+    {
+      "id": "d_prateleira",
+      "kind": "cenario",
+      "x": 4,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/prateleira",
+      "ox": -4
+    },
+    {
+      "id": "d_cafeteira",
+      "kind": "cenario",
+      "x": 5,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/cafeteira",
+      "ox": -4
+    },
+    {
+      "id": "d_liquidificador",
+      "kind": "cenario",
+      "x": 6,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/liquidificador",
+      "ox": -4
+    },
+    {
+      "id": "d_pao",
+      "kind": "cenario",
+      "x": 2,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/pao",
+      "ox": -4
+    },
+    {
+      "id": "d_torrada",
+      "kind": "cenario",
+      "x": 7,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/torrada",
+      "ox": -4
+    },
+    {
+      "id": "d_manteiga",
+      "kind": "cenario",
+      "x": 4,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/manteiga",
+      "ox": -4
+    },
+    {
+      "id": "d_requeijao",
+      "kind": "cenario",
+      "x": 5,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/requeijao",
+      "ox": -4
+    },
+    {
+      "id": "d_presunto",
+      "kind": "cenario",
+      "x": 6,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/presunto",
+      "ox": -4
+    },
+    {
+      "id": "d_ovo",
+      "kind": "cenario",
+      "x": 7,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/ovo",
+      "ox": -4
+    },
+    {
+      "id": "d_leite",
+      "kind": "cenario",
+      "x": 3,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/leite",
+      "ox": -4
+    },
+    {
+      "id": "d_faca",
+      "kind": "cenario",
+      "x": 8,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/faca",
+      "ox": -4
+    },
+    {
+      "id": "d_tabua",
+      "kind": "cenario",
+      "x": 9,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/tabua",
+      "ox": -4
+    },
+    {
+      "id": "d_avental",
+      "kind": "cenario",
+      "x": 0,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/avental",
+      "ox": -4
+    },
+    {
+      "id": "d_touca",
+      "kind": "cenario",
+      "x": 1,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/touca",
+      "ox": -4
+    },
+    {
+      "id": "d_jarra",
+      "kind": "cenario",
+      "x": 2,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/jarra",
+      "ox": -4
+    },
+    {
+      "id": "d_xicara",
+      "kind": "cenario",
+      "x": 3,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/xicara",
+      "ox": -4
+    },
+    {
+      "id": "d_pires",
+      "kind": "cenario",
+      "x": 3,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/pires",
+      "ox": 4
+    },
+    {
+      "id": "d_acucar",
+      "kind": "cenario",
+      "x": 7,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/acucar",
+      "ox": -4
+    },
+    {
+      "id": "d_colher",
+      "kind": "cenario",
+      "x": 7,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/colher",
+      "ox": 4
+    },
+    {
+      "id": "d_bandeja",
+      "kind": "cenario",
+      "x": 2,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/bandeja",
+      "ox": 4
+    },
+    {
+      "id": "d_comanda",
+      "kind": "cenario",
+      "x": 4,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/comanda",
+      "ox": -4
+    },
+    {
+      "id": "d_ficha",
+      "kind": "cenario",
+      "x": 2,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/ficha",
+      "ox": -4
+    },
+    {
+      "id": "d_sineta",
+      "kind": "cenario",
+      "x": 5,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/sineta",
+      "ox": -4
+    },
+    {
+      "id": "d_gaveta",
+      "kind": "cenario",
+      "x": 0,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/gaveta",
+      "ox": 4
+    },
+    {
+      "id": "d_maquininha",
+      "kind": "cenario",
+      "x": 0,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/maquininha",
+      "ox": -4
+    },
+    {
+      "id": "d_embalagem",
+      "kind": "cenario",
+      "x": 8,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/embalagem",
+      "ox": -4
+    },
+    {
+      "id": "d_sabonete",
+      "kind": "cenario",
+      "x": 9,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/sabonete",
+      "ox": -4
+    },
+    {
+      "id": "d_detergente",
+      "kind": "cenario",
+      "x": 9,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/detergente",
+      "ox": 4
+    },
+    {
+      "id": "d_esponja",
+      "kind": "cenario",
+      "x": 9,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/esponja",
+      "ox": -4
+    }
+  ]
+}

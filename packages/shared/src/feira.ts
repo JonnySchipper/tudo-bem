@@ -236,6 +236,80 @@ export const FEIRA_CLOSED_NOTE: Bilingual = { pt: 'A feira volta amanhã às 6h.
 /** The vendor NPC that stands at each stall (the banca corner has none). */
 export const VENDOR_OF_NPC: Partial<Record<NpcId, VendorId>> = { tia_lu: 'tia_lu', ze: 'ze', chico: 'chico', rosa: 'rosa' };
 
+// ---------------------------------------------------------------- off duty (issue #170)
+
+/** A vendor who stands at a stall (the banca corner has no one of its own). */
+export type StallVendorId = Exclude<VendorId, 'banca'>;
+export const STALL_VENDOR_IDS: readonly StallVendorId[] = ['tia_lu', 'ze', 'chico', 'rosa'];
+export const isStallVendor = (npc: unknown): npc is StallVendorId => typeof npc === 'string' && (STALL_VENDOR_IDS as readonly string[]).includes(npc);
+
+export interface OffDutyTalk {
+  /** Small talk away from the stall: the day, resting, tomorrow's feira, home. Never an offer, never "my stall here". */
+  lines: Bilingual[];
+  /** The answer to "Can I buy something?": tomorrow's hours (06:00-13:00, `FEIRA_OPEN_MIN` / `FEIRA_CLOSE_MIN`). */
+  buy: Bilingual;
+}
+
+// needs_br: true (every line)
+export const OFF_DUTY: Record<StallVendorId, OffDutyTalk> = {
+  tia_lu: {
+    lines: [
+      { pt: 'Ai, que bom descansar um pouquinho!', en: 'Oh, it’s so nice to rest a little!' },
+      { pt: 'Acordei às quatro hoje. Tô cansada!', en: 'I got up at four today. I’m tired!' },
+      { pt: 'Meus netos vêm jantar lá em casa hoje.', en: 'My grandkids are coming over for dinner tonight.' },
+      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the feira early tomorrow!' },
+    ],
+    buy: { pt: 'Agora não, a feira já fechou! Amanhã tem, das seis à uma da tarde.', en: 'Not now, the feira has closed! It’s on tomorrow, from six to one in the afternoon.' },
+  },
+  ze: {
+    lines: [
+      { pt: 'Opa! Hoje a feira foi boa.', en: 'Hey! The feira went well today.' },
+      { pt: 'Agora é hora de descansar as pernas.', en: 'Now it’s time to rest my legs.' },
+      { pt: 'Mais tarde tem jogo de futebol na TV.', en: 'There’s a football game on TV later.' },
+      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the feira early tomorrow!' },
+    ],
+    buy: { pt: 'Hoje não dá mais. Amanhã tem feira, das seis à uma da tarde!', en: 'Not today anymore. There’s a feira tomorrow, from six to one in the afternoon!' },
+  },
+  chico: {
+    lines: [
+      { pt: 'Hoje vendi tudo! Que dia!', en: 'I sold everything today! What a day!' },
+      { pt: 'Tô com cheiro de pastel até agora!', en: 'I still smell like pastel!' },
+      { pt: 'Agora eu quero um café e uma soneca.', en: 'Now I want a coffee and a nap.' },
+      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the feira early tomorrow!' },
+    ],
+    buy: { pt: 'Pastel só amanhã! A feira abre às seis e vai até a uma.', en: 'Pastel only tomorrow! The feira opens at six and goes until one.' },
+  },
+  rosa: {
+    lines: [
+      { pt: 'Que bom te ver fora da feira!', en: 'How nice to see you away from the feira!' },
+      { pt: 'Agora vou cuidar das minhas plantas.', en: 'Now I’m going to look after my plants.' },
+      { pt: 'Minha neta adora flores, igual a mim.', en: 'My granddaughter loves flowers, just like me.' },
+      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the feira early tomorrow!' },
+    ],
+    buy: { pt: 'As flores ficam pra amanhã. A feira é das seis à uma da tarde!', en: 'The flowers will have to wait for tomorrow. The feira is from six to one in the afternoon!' },
+  },
+};
+
+/** What the player asks an off-duty vendor, and how they say goodbye. */
+export const OFF_DUTY_ASK: Bilingual = { pt: 'Dá pra comprar alguma coisa?', en: 'Can I buy something?' };
+export const OFF_DUTY_BYE: Bilingual = { pt: 'Até amanhã!', en: 'See you tomorrow!' };
+
+export type VendorTalkMode = 'stall' | 'off_duty';
+
+/**
+ * How a feira vendor talks: at the stall (greeting, prices, the tray) only while working it during the feira's hours; anywhere else (a praça bench,
+ * walking home, a stall after 13:00) off duty. `room` / `activity` are where the vendor is and what they are doing (`ScheduleSlot`).
+ */
+export function vendorTalkMode(where: { room?: string | null; activity?: string | null }, minute: number): VendorTalkMode {
+  return where.room === 'feira' && where.activity === 'trabalhando' && feiraOpen(minute) ? 'stall' : 'off_duty';
+}
+
+/** The `n`th off-duty line of a vendor (wraps around), for the talk box and the idle bubbles. */
+export function offDutyLine(npc: StallVendorId, n: number): Bilingual {
+  const lines = OFF_DUTY[npc].lines;
+  return lines[((Math.floor(n) % lines.length) + lines.length) % lines.length]!;
+}
+
 /**
  * The NPC a purchase counts as `ordered` from (the recados' `pedir` steps name the stall's owner): whoever sells the item at the feira,
  * so a purchase at the Hortifrúti corner still finishes a recado for Tia Lu's bananas or Seu Zé's tomatoes (D12).

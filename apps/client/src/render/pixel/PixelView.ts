@@ -10,8 +10,10 @@ import type { Guide, Hit, WorldView } from '../view';
 import { sharedCharAssets } from './charAssets';
 import { WorldScene } from './WorldScene';
 import { LabelLayer } from './labels';
-import { T, bufferPixels, canvasToWorld, tileAtWorld, tileCenterToCanvas, worldToCanvas, type Insets } from './coords';
+import type { TapCue } from './tapMark';
+import { HUD_COMPACT_QUERY, T, bufferPixels, canvasToWorld, hudInsets, tileAtWorld, tileCenterToCanvas, worldToCanvas, type Insets } from './coords';
 import { game } from '../../state';
+import { uiScale } from '../../ui/hudLayout';
 
 export class PixelView implements WorldView {
   /** `scale` is CSS px per art px (HOWTO §5.4); e2e's clickTile multiplies by it. */
@@ -112,13 +114,19 @@ export class PixelView implements WorldView {
     }, 2000);
   }
 
-  /** HUD space to keep clear of the avatar (same numbers as the iso renderer). */
+  /** HUD space to keep clear of the avatar, following the HUD's own compact media query (coords.hudInsets). */
   private measure(): void {
-    const narrow = window.innerWidth < 700;
+    const compact = window.matchMedia(HUD_COMPACT_QUERY).matches;
     const cs = getComputedStyle(document.documentElement);
     const safeTop = parseFloat(cs.getPropertyValue('--safe-top')) || 0;
     const safeBot = parseFloat(cs.getPropertyValue('--safe-bottom')) || 0;
-    this.insetsCss = { top: (narrow ? 124 : 64) + safeTop, bottom: (narrow ? 168 : 110) + safeBot, left: 0, right: 0 };
+    if (compact) {
+      this.insetsCss = hudInsets(window.innerWidth, window.innerHeight, compact, safeTop, safeBot);
+    } else {
+      // the HUD is drawn at the desktop UI scale (hudLayout.uiScale), so the room it takes grows with it
+      const k = uiScale();
+      this.insetsCss = { top: 64 * k + safeTop, bottom: 110 * k + safeBot, left: 0, right: 0 };
+    }
   }
 
   resize(): void {
@@ -162,6 +170,10 @@ export class PixelView implements WorldView {
     return { px: r.left + p.px, py: r.top + p.py };
   }
 
+  clientToWorld(px: number, py: number): { wx: number; wy: number } | null {
+    return this.worldAt(px, py);
+  }
+
   private worldAt(px: number, py: number): { wx: number; wy: number } | null {
     if (!this.scene) return null;
     const r = this.rect();
@@ -186,6 +198,13 @@ export class PixelView implements WorldView {
     const w = this.worldAt(px, py);
     if (!room || !w) return null;
     return tileAtWorld(w.wx, w.wy, room.cols, room.rows);
+  }
+
+  markTap(kind: TapCue, at: { tile: Tile } | { px: number; py: number }): void {
+    if (!this.scene) return;
+    if ('tile' in at) return this.scene.markTap(kind, at);
+    const w = this.worldAt(at.px, at.py);
+    if (w) this.scene.markTap(kind, w);
   }
 
   setDialogueFocus(f: { npc: Tile | null } | null): void {
@@ -233,6 +252,11 @@ export class PixelView implements WorldView {
   /** For debugging and the shots script. */
   info() {
     return this.scene?.info() ?? null;
+  }
+
+  /** Frame names drawn in the current room (`window.__tb.drawnFrames`). */
+  drawnFrames(): string[] {
+    return this.scene?.drawnFrames() ?? [];
   }
 }
 

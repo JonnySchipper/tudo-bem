@@ -30,6 +30,7 @@ export class Leaderboards {
   constructor(
     private readonly store: ProfileStore,
     private readonly rng: () => number = Math.random,
+    private readonly today: () => string = todaySaoPaulo,
   ) {}
 
   markDirty() {
@@ -37,11 +38,11 @@ export class Leaderboards {
   }
 
   private rebuild(): LeaderboardSnapshot {
-    const today = todaySaoPaulo();
+    const today = this.today();
     const words: BoardEntry[] = [];
     const streak: BoardEntry[] = [];
     for (const p of this.store.all()) {
-      if (!p.name) continue;
+      if (!p.name || p.testUser) continue;
       const diary = normalizeDiary(p.diary);
       const escola = normalizeEscola(p.escola, diary);
       words.push({ id: p.id, name: p.name, score: diary.length });
@@ -87,7 +88,7 @@ export class Leaderboards {
   maybeMentionStreak(s: Session, baker: 'carlos' | 'graca'): { pt: string; en: string } | null {
     const p = s.profile;
     if (!p) return null;
-    const today = todaySaoPaulo();
+    const today = this.today();
     if (this.mentioned.get(p.id) === today) return null;
     if (this.rng() > 0.25) return null;
     const top = this.topStreak();
@@ -106,12 +107,13 @@ export class Leaderboards {
 
 /** Test helper: build entries from raw profiles. */
 export function entriesFromProfiles(
-  profiles: Pick<StoredProfile, 'id' | 'name' | 'diary' | 'escola'>[],
+  profiles: (Pick<StoredProfile, 'id' | 'name' | 'diary' | 'escola'> & { testUser?: boolean })[],
   today: string,
 ): { words: BoardEntry[]; streak: BoardEntry[] } {
   const words: BoardEntry[] = [];
   const streak: BoardEntry[] = [];
   for (const p of profiles) {
+    if (p.testUser) continue;
     const diary = normalizeDiary(p.diary);
     const escola = normalizeEscola(p.escola, diary);
     words.push({ id: p.id, name: p.name, score: diary.length });

@@ -14,7 +14,7 @@ export interface CarryDef {
   /** Phrase after "Jogou fora" / "Tossed". */
   tossPt: string;
   tossEn: string;
-  /** Existing `carry:<tex>` texture. Empties reuse a full item's icon (the client tints it grey). */
+  /** `carry:<tex>` texture, from the `icons/<tex>` art. Empties have their own drawn icon (crumpled bag, drained coconut, cups). */
   tex: string;
 }
 
@@ -42,13 +42,13 @@ const drink = (id: CarryId, leaves: EmptyCarryId, tossPt: string, tossEn: string
   tex: id,
 });
 
-const trash = (id: EmptyCarryId, tossPt: string, tossEn: string, tex: string): CarryDef => ({
+const trash = (id: EmptyCarryId, tossPt: string, tossEn: string): CarryDef => ({
   id,
   kind: 'trash',
   leaves: null,
   tossPt,
   tossEn,
-  tex,
+  tex: id,
 });
 
 export const CARRY: Record<CarryId, CarryDef> = {
@@ -64,10 +64,10 @@ export const CARRY: Record<CarryId, CarryDef> = {
   cafe_com_leite: drink('cafe_com_leite', 'copinho_vazio', 'o café com leite', 'the coffee with milk'),
   suco_de_laranja: drink('suco_de_laranja', 'copo_vazio', 'o suco de laranja', 'the orange juice'),
   agua: drink('agua', 'copo_vazio', 'a água', 'the water'),
-  coco_vazio: trash('coco_vazio', 'o coco vazio', 'the empty coconut', 'agua_de_coco'),
-  saquinho_vazio: trash('saquinho_vazio', 'o saquinho vazio', 'the empty popcorn bag', 'pipoca_salgada'),
-  copinho_vazio: trash('copinho_vazio', 'o copinho vazio', 'the empty little cup', 'cafezinho'),
-  copo_vazio: trash('copo_vazio', 'o copo vazio', 'the empty cup', 'agua'),
+  coco_vazio: trash('coco_vazio', 'o coco vazio', 'the empty coconut'),
+  saquinho_vazio: trash('saquinho_vazio', 'o saquinho vazio', 'the empty popcorn bag'),
+  copinho_vazio: trash('copinho_vazio', 'o copinho vazio', 'the empty little cup'),
+  copo_vazio: trash('copo_vazio', 'o copo vazio', 'the empty cup'),
 };
 
 export const CARRY_YUM = { pt: 'Que delícia!', en: 'Delicious!' } as const;

@@ -3,12 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { WS_MAX_PAYLOAD, type ClientMsg } from '@tudobem/shared';
+import { WS_MAX_PAYLOAD, conversaDateKey, type ClientMsg } from '@tudobem/shared';
 import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
-import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
+import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, layoutFileAdapter, padariaFileAdapter } from './fileStore.js';
+import { backupDatabase, closeDatabase, openDatabase } from './sqliteDb.js';
+import { LayoutStore } from './layoutStore.js';
 import { FeiraCartStore } from './feiraCart.js';
 import { FeiraGamesStore } from './feiraGames.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
@@ -29,7 +31,7 @@ import {
   type CookieSecure,
   type ScryptParams,
 } from './auth.js';
-import { feedbackLimiter, handleFeedbackApi } from './feedbackApi.js';
+import { handleFeedbackApi } from './feedbackApi.js';
 import { FeedbackStore } from './feedbackStore.js';
 import { readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
 import { handleBillingApi } from './billing/http.js';
@@ -65,6 +67,8 @@ export interface AppOptions {
   billing?: import('./billing/provider.js').BillingConfig;
   /** Test double for the Lemon Squeezy HTTP client. */
   billingFetch?: (input: string, init?: RequestInit) => Promise<Response>;
+  /** Hourly online backups under `dataDir/backups`, and one on shutdown when the last copy is older than an hour. */
+  sqliteBackups?: boolean;
 }
 
 /** Server chat safety: the Jev model behind the stub when a model folder is configured, else the stub alone. */
@@ -102,6 +106,8 @@ const MIME: Record<string, string> = {
 
 export function createApp(opts: AppOptions) {
   const { dataDir, clientDist } = opts;
+  // Open (and migrate) before any store constructor. A failed import must abort startup; ProfileStore would otherwise catch the error and later save an empty set.
+  openDatabase(dataDir);
   const store = new ProfileStore(fileAdapter(dataDir));
   const feiraGamesFile = feiraGamesFileAdapter(dataDir);
   const feiraGames = new FeiraGamesStore(() => feiraGamesFile.load(), (state) => feiraGamesFile.save(state), () => Date.now());
@@ -109,8 +115,8 @@ export function createApp(opts: AppOptions) {
   const feiraCart = new FeiraCartStore(() => feiraCartFile.load(), (state) => feiraCartFile.save(state));
   const academies = new AcademyStore(academyFileAdapter(dataDir));
   const padarias = new PadariaStore(padariaFileAdapter(dataDir));
+  const layouts = new LayoutStore(layoutFileAdapter(dataDir));
   const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
-  const feedbackLimit = feedbackLimiter();
   const feedbackAdmin = opts.feedbackAdmin ?? readAdminAuthConfig();
   const billing = opts.billing ?? readBillingConfig(process.env);
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
@@ -126,10 +132,11 @@ export function createApp(opts: AppOptions) {
       student: new InMemoryStudentModel(),
       moderation: new FileModerationQueue(path.join(dataDir, 'moderation.jsonl')),
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts },
   );
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
-  const limiters = defaultLimiters();
+  // Test servers (TB_TEST_CLOCK_CONTROL=1, never set on prod) lift the 10-signups-per-hour-per-IP cap: e2e:all signs up 10+ accounts from 127.0.0.1.
+  const limiters = defaultLimiters(Date.now, process.env.TB_TEST_CLOCK_CONTROL === '1' ? 200 : 10);
   const allowedOrigins = opts.allowedOrigins ?? [];
   const opsSmoke = opts.opsSmoke ?? readOpsSmokeConfig();
   const googleOAuth = opts.googleOAuth ?? readGoogleOAuthConfig();
@@ -199,7 +206,6 @@ export function createApp(opts: AppOptions) {
       return handleFeedbackApi(req, res, {
         store: feedback,
         accounts,
-        limiter: feedbackLimit,
         admin: feedbackAdmin,
         moderation: world.services.moderation,
         allowedOrigins,
@@ -217,6 +223,7 @@ export function createApp(opts: AppOptions) {
         onConversaLine: (playerId, who, pt) => world.conversaLine(playerId, who, pt),
         memory: conversaMemory,
         clockMinutes: () => world.gameMinuteNow(),
+        dateKey: () => conversaDateKey(),
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
       });
     }
@@ -306,24 +313,42 @@ export function createApp(opts: AppOptions) {
     world.sweepFeiraGames();
   }, opts.idleSweepMs ?? 15_000);
 
+  const runBackup = () => {
+    void backupDatabase(openDatabase(dataDir), dataDir).catch(() => console.error('[sqlite] backup failed'));
+  };
+  const backupKick = opts.sqliteBackups ? setTimeout(runBackup, 60_000) : null;
+  const backupTimer = opts.sqliteBackups ? setInterval(runBackup, 60 * 60 * 1000) : null;
+  backupKick?.unref();
+  backupTimer?.unref();
+
   return {
     server,
     wss,
     world,
     store,
     accounts,
-    close() {
+    async close() {
       clearInterval(heartbeat);
       clearInterval(idleSweep);
+      if (backupKick) clearTimeout(backupKick);
+      if (backupTimer) clearInterval(backupTimer);
       for (const ws of wss.clients) ws.terminate();
       wss.close();
-      store.flush();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
       feiraGames.persist();
       feiraCart.persist();
       academies.save();
       padarias.save();
       feedback.save();
-      return new Promise<void>((resolve) => server.close(() => resolve()));
+      store.shutdown();
+      if (opts.sqliteBackups) {
+        try {
+          await backupDatabase(openDatabase(dataDir), dataDir);
+        } catch {
+          console.error('[sqlite] shutdown backup failed');
+        }
+      }
+      closeDatabase(dataDir);
     },
   };
 }

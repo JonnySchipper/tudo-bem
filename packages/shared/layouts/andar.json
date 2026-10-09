@@ -1,0 +1,52 @@
+{
+  "room": "andar",
+  "objects": [
+    {
+      "id": "andar_tatame",
+      "kind": "tatame",
+      "x": 2,
+      "y": 1,
+      "w": 5,
+      "h": 3,
+      "blocks": false,
+      "action": "bjj_roll",
+      "interact": {
+        "x": 4,
+        "y": 4
+      },
+      "label": {
+        "pt": "Treinar no tatame",
+        "en": "Train on the mat"
+      }
+    },
+    {
+      "id": "andar_brasao",
+      "kind": "quadro_foto",
+      "x": 6,
+      "y": 0,
+      "blocks": true,
+      "action": "academy_board",
+      "interact": {
+        "x": 6,
+        "y": 1
+      },
+      "label": {
+        "pt": "Brasão da academia",
+        "en": "Academy crest"
+      }
+    },
+    {
+      "id": "andar_arquibancada",
+      "kind": "banco_espectador",
+      "x": 1,
+      "y": 0,
+      "w": 4,
+      "blocks": false,
+      "seat": "SW",
+      "label": {
+        "pt": "Arquibancada",
+        "en": "Bleachers"
+      }
+    }
+  ]
+}

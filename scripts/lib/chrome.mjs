@@ -7,8 +7,10 @@ export function findChrome() {
   return [
     '/usr/local/bin/google-chrome',
     '/usr/bin/google-chrome',
+    '/opt/google/chrome/chrome',
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
+    '/opt/google/chrome/chrome',
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     ...win,
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',

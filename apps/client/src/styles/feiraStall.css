@@ -1,0 +1,479 @@
+/*
+ * The Feira stall kit (ui/feiraStall.ts): one cart look for Tapioca, Pastel and Caldo de cana.
+ * Vila Ipê pixel art: navy #2a2233 outlines, hard 3px edges, light from the upper left, no gradients
+ * that blur (stripes only). Each game sets its awning colours; everything else is shared.
+ */
+
+.tp-root, .ps-root, .cd-root {
+  /* the feira paving under the cart: setts, not a flat tan */
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, #b5a48a 22px 24px),
+    repeating-linear-gradient(0deg, #cbb89a 0 14px, #b5a48a 14px 16px);
+}
+
+.fs-game-tapioca { --fs-a: #e63f38; --fs-b: #f2b22b; --fs-c: #64b63b; --fs-plaque: #c44536; --fs-ink: #fff59a; }
+.fs-game-pastel { --fs-a: #f2b22b; --fs-b: #e63f38; --fs-c: #f2b22b; --fs-plaque: #f2c230; --fs-ink: #8f3e15; }
+.fs-game-caldo { --fs-a: #3d9a4a; --fs-b: #f2c230; --fs-c: #3d9a4a; --fs-plaque: #2f7a45; --fs-ink: #fff59a; }
+
+/* ---------------------------------------------------------------- the cart roof */
+.fs-roof {
+  position: relative;
+  z-index: 2;
+  margin-top: 6px;
+  pointer-events: none;
+}
+
+.fs-beam {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 30px;
+  padding: 0 10px;
+  background: repeating-linear-gradient(90deg, #c78c59 0 30px, #a9764f 30px 32px, #daa463 32px 34px);
+  box-shadow: inset 0 3px 0 #f2bd7a, inset 0 -4px 0 #6b4c2c, 0 0 0 3px #2a2233;
+}
+
+.fs-plate,
+.fs-banner {
+  font-family: var(--font-pixel);
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  padding: 4px 8px 3px;
+}
+
+/* the FEIRA plate: the same mustard board as the Feira Livre banner in the world */
+.fs-plate {
+  font-size: 0.8rem;
+  color: #c44536;
+  background: #f2c230;
+  box-shadow: inset 0 2px 0 #fff59a, inset 0 -2px 0 #c48a14, 0 0 0 2px #2a2233;
+  letter-spacing: 1px;
+}
+
+/* the game's own banner, in its colours (the cart in the world carries the same plaque) */
+.fs-banner {
+  font-size: 1rem;
+  color: var(--fs-ink);
+  background: var(--fs-plaque);
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.35), inset 0 -2px 0 rgb(0 0 0 / 0.25), 0 0 0 2px #2a2233, 0 3px 0 #2a2233;
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.3);
+  letter-spacing: 1px;
+}
+
+/* striped awning with a scalloped valance (cream between the game's colours) */
+.fs-awning {
+  position: relative;
+  height: 22px;
+  margin-top: 3px;
+  background: repeating-linear-gradient(90deg,
+    var(--fs-a) 0 12px, #f8f8f8 12px 24px,
+    var(--fs-b) 24px 36px, #f8f8f8 36px 48px,
+    var(--fs-c) 48px 60px, #f8f8f8 60px 72px);
+  box-shadow: inset 0 3px 0 #2a2233, inset 0 6px 0 rgb(255 255 255 / 0.25);
+  -webkit-mask: radial-gradient(circle 6px at 6px 16px, #000 98%, transparent) 0 0 / 12px 100% repeat-x, linear-gradient(#000, #000) 0 0 / 100% 16px no-repeat;
+  mask: radial-gradient(circle 6px at 6px 16px, #000 98%, transparent) 0 0 / 12px 100% repeat-x, linear-gradient(#000, #000) 0 0 / 100% 16px no-repeat;
+}
+
+/* the old flat awnings are replaced by the roof */
+.tp-awning, .ps-awning, .cd-awning { display: none; }
+
+/* ---------------------------------------------------------------- freguesia meter (HUD) */
+.fs-crowd {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 1 180px;
+  min-width: 96px;
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.fs-crowd-label .en {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  margin-left: 4px;
+}
+
+.fs-crowd-bar {
+  position: relative;
+  display: block;
+  height: 12px;
+  background:
+    linear-gradient(#2a2233, #2a2233) 50% 0 / 2px 100% no-repeat,
+    linear-gradient(90deg, #f3c8c0 0 50%, #cfe9c2 50% 100%);
+  box-shadow: inset 0 0 0 2px #2a2233;
+}
+
+.fs-crowd-fill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 50%;
+  width: 0;
+  background: #2e8a55;
+  transition: left 0.25s steps(4, end), width 0.25s steps(4, end);
+}
+
+.fs-crowd.fs-down .fs-crowd-fill { background: #c44536; }
+
+/* a little head that walks along the bar */
+.fs-crowd-mark {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 8px;
+  height: 18px;
+  margin-left: -4px;
+  background:
+    linear-gradient(#f2bd7a, #f2bd7a) 2px 2px / 4px 4px no-repeat,
+    linear-gradient(#4995e3, #4995e3) 1px 8px / 6px 8px no-repeat;
+  box-shadow: inset 0 0 0 1px #2a2233;
+  transition: left 0.25s steps(4, end);
+}
+
+.fs-crowd.fs-bump-up .fs-crowd-bar { animation: fs-pulse-up 0.42s steps(3, end); }
+.fs-crowd.fs-bump-down .fs-crowd-bar { animation: fs-shake 0.42s steps(6, end); }
+
+@keyframes fs-pulse-up {
+  0% { box-shadow: inset 0 0 0 2px #2a2233, 0 0 0 0 #2e8a55; }
+  50% { box-shadow: inset 0 0 0 2px #2a2233, 0 0 0 3px #2e8a55; }
+  100% { box-shadow: inset 0 0 0 2px #2a2233, 0 0 0 0 #2e8a55; }
+}
+
+/* ---------------------------------------------------------------- order ticket on the customer card */
+.fs-ticket {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 5px;
+  background: #fffdf8;
+  box-shadow: 0 0 0 2px #2a2233, 2px 2px 0 2px #c6bdd5;
+}
+
+/* the bubble's tail points at the customer */
+.fs-ticket::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  background: #fffdf8;
+  box-shadow: -2px 0 0 #2a2233, 0 -2px 0 #2a2233, 0 2px 0 #2a2233;
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+}
+
+.fs-ticket-icon {
+  display: block;
+  width: 34px;
+  height: 26px;
+  image-rendering: pixelated;
+}
+
+.cd-customer .fs-ticket-icon { width: 26px; height: 26px; }
+
+/* a new customer steps up to the counter */
+.fs-arrive { animation: fs-arrive 0.36s steps(3, end); }
+
+@keyframes fs-arrive {
+  from { transform: translateY(-10px); opacity: 0.2; }
+  to { transform: none; opacity: 1; }
+}
+
+/* patience running out: the card outline goes red and the last pip blinks */
+.tp-customer.fs-hurry,
+.ps-customer.fs-hurry,
+.cd-customer.fs-hurry {
+  box-shadow: 0 0 0 3px #c44536;
+}
+
+.fs-hurry .tp-pips i.on,
+.fs-hurry .ps-pips i.on,
+.fs-hurry .cd-pips i.on {
+  background: #e63f38;
+  animation: fs-blink 0.6s steps(2, end) infinite;
+}
+
+@keyframes fs-blink {
+  50% { background: #fbf1e3; }
+}
+
+/* ---------------------------------------------------------------- sweet spot on a cook meter */
+.fs-meter {
+  position: relative;
+  height: 10px !important;
+  overflow: visible;
+}
+
+.fs-meter > i {
+  position: relative;
+  z-index: 1;
+}
+
+.fs-sweet {
+  position: absolute;
+  z-index: 2;
+  top: -3px;
+  bottom: -3px;
+  pointer-events: none;
+  background: rgb(100 182 59 / 0.28);
+  box-shadow: inset 0 0 0 2px #2e8a55;
+}
+
+.tp-pan.tp-ready .fs-sweet,
+.ps-slot.is-golden .fs-sweet {
+  background: rgb(242 194 48 / 0.45);
+  box-shadow: inset 0 0 0 2px #fff59a, 0 0 0 2px #2e8a55;
+}
+
+.tp-pan.tp-burning .tp-meter i { background: #c44536; }
+
+/* ---------------------------------------------------------------- floats, shake, glow, splash */
+.fs-float {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, -50%);
+  padding: 3px 8px;
+  font-family: var(--font-pixel);
+  font-size: 1.1rem;
+  white-space: nowrap;
+  pointer-events: none;
+  color: #2a2233;
+  background: #fbf1e3;
+  box-shadow: 0 0 0 2px #2a2233, 0 3px 0 2px #2a2233;
+  animation: fs-rise 1.05s steps(8, end) forwards;
+}
+
+.fs-float-perfect { background: #f2c230; }
+.fs-float-ok { background: #cfe9c2; }
+.fs-float-soft { background: #f6d48a; }
+.fs-float-miss { background: #c44536; color: #fbf1e3; font-size: 0.95rem; }
+
+@keyframes fs-rise {
+  0% { transform: translate(-50%, -30%) scale(0.8); opacity: 0; }
+  15% { transform: translate(-50%, -60%) scale(1.1); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(-50%, -190%); opacity: 0; }
+}
+
+.fs-shake { animation: fs-shake 0.42s steps(6, end); }
+
+@keyframes fs-shake {
+  0%, 100% { translate: 0 0; }
+  20% { translate: -5px 0; }
+  40% { translate: 5px 0; }
+  60% { translate: -4px 0; }
+  80% { translate: 3px 0; }
+}
+
+.fs-glow { animation: fs-glow 0.6s steps(3, end); }
+
+@keyframes fs-glow {
+  0%, 100% { filter: none; }
+  40% { filter: brightness(1.25) drop-shadow(0 0 0 #fff59a) drop-shadow(0 0 4px #f2c230); }
+}
+
+.cd-puddle.fs-splash { animation: fs-splash 0.7s steps(4, end); }
+
+@keyframes fs-splash {
+  0% { transform: scale(0.4, 2); }
+  40% { transform: scale(1.4, 0.7); }
+  100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-arrive, .fs-shake, .fs-glow, .fs-splash, .fs-float,
+  .fs-crowd.fs-bump-up .fs-crowd-bar, .fs-crowd.fs-bump-down .fs-crowd-bar,
+  .fs-hurry .tp-pips i.on, .fs-hurry .ps-pips i.on, .fs-hurry .cd-pips i.on { animation: none; }
+  .fs-crowd-fill, .fs-crowd-mark { transition: none; }
+}
+
+/* ---------------------------------------------------------------- counter props */
+.fs-props {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+  height: 30px;
+  margin: 0 10px -6px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.fs-prop {
+  display: block;
+  width: 48px;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  image-rendering: pixelated;
+}
+
+.fs-prop-peneira, .fs-prop-copos, .fs-prop-limões { aspect-ratio: 17 / 6; width: 51px; }
+.fs-prop-pratos, .fs-prop-vinagrete, .fs-prop-rolo { aspect-ratio: 16 / 7; }
+.fs-prop-cana { aspect-ratio: 13 / 9; width: 39px; }
+.fs-prop-molho { aspect-ratio: 14 / 8; width: 42px; }
+
+/* ---------------------------------------------------------------- the stall around the Tapioca chapa */
+.tp-chapa {
+  box-shadow: 0 0 0 3px #2a2233, 0 0 0 9px #a9764f, 0 0 0 12px #2a2233, 0 12px 0 #6b4c2c;
+  margin: 6px 9px 6px;
+}
+
+.tp-griddle {
+  background:
+    radial-gradient(circle at 50% 70%, rgb(255 133 117 / 0.18), transparent 60%),
+    repeating-linear-gradient(#4a4c63 0 1px, #565972 1px 3px);
+}
+
+.tp-pan {
+  background: #8b8bab;
+  box-shadow: inset 0 0 0 3px #2a2233, inset 3px 3px 0 3px #c6c8d4, 0 3px 0 #1a120c;
+}
+
+.tp-pan-label { color: #fbf1e3; text-shadow: 0 2px 0 #2a2233; }
+.tp-pan-label .en { color: #e7eef2; }
+.tp-pan.tp-ready { box-shadow: inset 0 0 0 3px #2e8a55, inset 3px 3px 0 3px #c6c8d4, 0 3px 0 #1a120c; }
+
+/* ---------------------------------------------------------------- the end card */
+.fs-end {
+  margin: auto;
+  width: min(460px, calc(100% - 24px));
+  padding: 0 0 16px;
+  background: #fbf1e3;
+  box-shadow: 0 0 0 3px #2a2233, 0 6px 0 3px #2a2233;
+  max-height: calc(100% - 24px);
+  overflow: auto;
+}
+
+.fs-end .fs-roof { margin-top: 0; }
+
+.fs-end-body {
+  position: relative;
+  padding: 12px 16px 0;
+}
+
+.fs-end h2 {
+  margin: 0;
+  font-family: var(--font-pixel);
+  color: #8f3e15;
+}
+
+/* the stamp: ground gained or lost, at an angle like an ink stamp on a receipt */
+.fs-stamp {
+  position: absolute;
+  right: 14px;
+  top: 6px;
+  margin: 0;
+  padding: 5px 10px;
+  font-family: var(--font-pixel);
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  transform: rotate(-6deg);
+  background: #fbf1e3;
+  box-shadow: inset 0 0 0 3px currentColor, 0 0 0 2px #fbf1e3;
+  animation: fs-stamp 0.4s steps(3, end);
+}
+
+.fs-stamp .en {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  text-transform: none;
+}
+
+.fs-stamp-lotada, .fs-stamp-ganhou { color: #2e8a55; }
+.fs-stamp-empate { color: #6c6e85; }
+.fs-stamp-perdeu { color: #c44536; }
+
+@keyframes fs-stamp {
+  from { transform: rotate(-6deg) scale(1.8); opacity: 0; }
+  to { transform: rotate(-6deg) scale(1); opacity: 1; }
+}
+
+.fs-end-score {
+  margin: 10px 0 0;
+  font-family: var(--font-pixel);
+  font-size: 2.4rem;
+  color: #8f3e15;
+}
+
+.fs-tally {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fs-tally li {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  background: #f3e2c4;
+  box-shadow: inset 0 0 0 2px #2a2233;
+}
+
+.fs-tally b {
+  font-family: var(--font-pixel);
+  font-size: 1.15rem;
+}
+
+.fs-tally .en { display: block; }
+.fs-tally-served b, .fs-tally-perfect b { color: #2e8a55; }
+.fs-tally-left b { color: #c44536; }
+
+.fs-crowd-end {
+  min-width: 0;
+  margin: 10px 0 4px;
+  font-size: 0.8rem;
+}
+
+.fs-crowd-end .fs-crowd-bar { height: 16px; }
+.fs-crowd-end .fs-crowd-mark { top: -3px; height: 22px; }
+
+.fs-end-line {
+  margin: 8px 0 2px;
+  font-weight: 700;
+}
+
+.fs-end-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fs-end-actions button {
+  flex: 1;
+  min-height: 48px;
+}
+
+.fs-end.fs-tier-perdeu .fs-roof { filter: saturate(0.55); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-stamp { animation: none; }
+}
+
+/* ---------------------------------------------------------------- phone */
+@media (max-width: 420px) {
+  .fs-beam { height: 26px; gap: 6px; }
+  .fs-plate { font-size: 0.65rem; padding: 3px 5px 2px; }
+  .fs-banner { font-size: 0.8rem; padding: 3px 6px 2px; }
+  .fs-awning { height: 18px; }
+  .fs-crowd { flex: 1 1 70px; min-width: 64px; }
+  .fs-crowd-label .en { display: none; }
+  .fs-props { height: 22px; gap: 6px; padding: 0 6px; }
+  .fs-prop { width: 34px; }
+  .fs-prop-peneira, .fs-prop-copos, .fs-prop-limões { width: 36px; }
+  .fs-ticket-icon { width: 26px; height: 20px; }
+  .cd-customer .fs-ticket-icon { width: 20px; height: 20px; }
+  .fs-stamp { position: static; display: inline-block; margin: 6px 0 0; }
+  .fs-tally li { font-size: 0.75rem; }
+}

@@ -683,10 +683,13 @@ export async function takeGrilled(page) {
   }
 }
 
-/** Open a shift from the counter rail in the padaria (the "Me vê um…" spot behind the counter). */
+/** Open a shift from the counter rail in the padaria (the "Me vê um…" spot behind the counter). The first-time practice order is marked done, so this is a real shift. */
 export async function startShiftFromPedido(page) {
   await page.keyboard.press('Escape');
-  await page.evaluate(() => window.__tb.interact({ prop: 'trilho' }));
+  await page.evaluate(() => {
+    localStorage.setItem('tb_cr_practice', '1');
+    window.__tb.interact({ prop: 'trilho' });
+  });
   await page.waitForSelector('#cr-order', { timeout: 12_000 });
   await waitFor(page, () => !!window.__tb.correria.feed.snap, null, 8000, 'the first shift state');
 }

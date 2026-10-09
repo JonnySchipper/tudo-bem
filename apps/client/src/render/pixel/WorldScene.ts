@@ -21,8 +21,8 @@ import {
   normalizeDiary,
   wordForSign,
   isCpuId,
+  normalizeBjj,
   key as tileKey,
-  parrotColorById,
   positionAlong,
   propTiles,
   type Dir,
@@ -34,14 +34,18 @@ import {
   type WallDecor,
   COUNTER_MENU,
   CRESTS,
+  PET_COPY,
   STREET_SNACKS,
+  CARRY,
   carryOf,
 } from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
 import { FACING, facingAlongPath, type Facing } from './facing';
+import { createPetFollow, petCommandFromLines, stepPet, type PetFollow } from './petFollow';
 import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './charsheet';
+import { danceSway, emotePlaysSheet } from './emoteMotion';
 import { CharSheets } from './charCache';
 import type { CharAssets } from './charAssets';
 import { composeLook } from './composeLook';
@@ -57,6 +61,7 @@ import { AoLayer } from './aoLayer';
 import { v5on } from './v5flags';
 import { WaterFx } from './water';
 import { presetFor } from './lightPresets';
+import { roofHall } from './roofLights';
 import { aoForOverhead, aoForSprite } from './ao';
 import { AmbientLife, ambientHandlesProp } from './ambient';
 import { ZoneFeed } from '../../audio/zonesFeed';
@@ -64,10 +69,14 @@ import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
 import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
-import { T, cssZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+import { doorTagsFor, doorsFresh, type DoorTag } from '../../ui/wayfinding';
+import { T, cssZoomFor, deviceZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+
+/** Door tags per room definition (they never change while the room is up). */
+const DOOR_TAGS = new WeakMap<object, DoorTag[]>();
 import { pickHit, type HitBox } from './hit';
-import { dialogueFraming, easeOut, stepBlend } from './dialogueCam';
-import { BoutStage } from './boutStage';
+import { boutZoomStep, dialogueFraming, easeOut, stepBlend } from './dialogueCam';
+import { BoutStage, type StageHost } from './boutStage';
 import { boutFeed } from './boutFeed';
 import { CounterStage } from './correriaStage';
 import { correriaFeed } from './correriaFeed';
@@ -75,7 +84,8 @@ import { FOCUS, NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propClickKind, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor, type WireRun } from './scenery';
-import { SURROUND_TILES, surroundFor, type Surround } from './surround';
+import { SURROUND_TILES, surroundFor, surroundReachFor, type Surround } from './surround';
+import { CROSS_PIXELS, TAP_COLORS, ringPixels, tapFrame, type TapCue } from './tapMark';
 import {
   FLOOR_PLACEHOLDER,
   CAMERA_LEAD_NORTH,
@@ -104,8 +114,9 @@ import {
   westStripRect,
 } from './roomLayout';
 import { ensureAnim, originOf } from './spriteUtil';
-import { recolorParrotPixels } from './parrotRecolor';
+import { PARROT_FRAME_COUNT, PARROT_H, PARROT_W, parrotPixels, parrotSpecies } from './parrotSpecies';
 import { GHOST_ALPHA, ghostFor, type GhostSpec } from './decorate';
+import { CARRY_BEAT_MS, arcPoint, beatPose, binInReach, carryMove, groundSpot } from './carryFx';
 
 export interface SceneHost {
   labels: LabelLayer;
@@ -131,14 +142,20 @@ interface AvatarView {
   parrot: Phaser.GameObjects.Sprite | null;
   /** Animation key the shoulder parrot is playing (`anim:chars/parrot` or a recolored `anim:parrot:<color>`). */
   parrotKey: string;
-  /** Subscriber dog or cat, following at the feet the way the parrot follows the shoulder. */
+  /** Subscriber dog or cat. It walks a breadcrumb trail behind the owner; it is not a click target. */
   pet: Phaser.GameObjects.Sprite | null;
+  petKind: string;
   petKey: string;
+  petFollow: PetFollow;
+  /** Chat timestamp already offered to the pet, so a line is heard once. */
+  petHeard: number;
   /** Street snack in hand (session carry). */
   carry: Phaser.GameObjects.Image | null;
   carryKey: string;
   /** When the held icon last changed, so the pop can run while scale is reapplied every frame. */
   carryPop: number;
+  /** Comer / Beber in progress: the full item at the mouth (`carryFx.beatPose`); the empty, if any, waits hidden in `carry`. */
+  carryBeat: { kind: 'eat' | 'drink'; t0: number; lastMs: number; img: Phaser.GameObjects.Image } | null;
   /** the pop-up icon over the head while an emote plays (fx/emote_<kind>), and the emote it shows */
   icon: Phaser.GameObjects.Sprite | null;
   iconKey: string;
@@ -195,6 +212,13 @@ interface Canopy {
 
 /** seconds the emote pop-up icon stays over the head */
 const EMOTE_ICON_S = 1.1;
+/**
+ * World px below the mat's middle the bout camera aims at: the middle of the fighters. The pair frame stands 18 below the mat centre and is
+ * 42 tall, but the figures only fill its lower ~30 px (heads start about 13 px down), so their middle is about 4 below the mat centre.
+ */
+const BOUT_PAIR_FOCUS = 4;
+/** The part of a 56 x 42 pair frame the fighters actually fill, standing or on the ground: what the bout camera sizes them by. */
+const BOUT_PAIR_BODY = { w: 56, h: 32 } as const;
 
 const hex = (h: string) => Phaser.Display.Color.HexStringToColor(h).color;
 const hash01 = (n: number) => {
@@ -242,12 +266,16 @@ export class WorldScene extends Phaser.Scene {
   /** the Treino no tatame bout on the academia mat (pair sprite, referee, crowd, fx) */
   private stage!: BoutStage;
   private boutBlend = 0;
+  /** The bout camera's extra device zoom right now (it walks toward its target one px at a time); 0 while the camera is off. */
+  private boutStep = 0;
+  private boutStepT = 0;
   /** the Correria no Balcão counter (board, queue, shelf taps) behind the padaria counter */
   private counter!: CounterStage;
   private counterBlend = 0;
   private counterWasOn = false;
   private roomId = '';
   private roomDef: RoomDef | null = null;
+  private layoutEpoch = -1;
   private roomObjs: Phaser.GameObjects.GameObject[] = [];
   /** Reading words in this room: a small twinkle over each one this player has not read yet (the signs have no sprite of their own). */
   private glints: { word: string; img: Phaser.GameObjects.Image; phase: number }[] = [];
@@ -259,6 +287,8 @@ export class WorldScene extends Phaser.Scene {
   private staticHits: HitBox[] = [];
   private placeholders: { key: string; rect: Rect }[] = [];
   private stall: StallView | null = null;
+  /** Lixeiras in this room (tile, sprite, the y of the open mouth): where a Jogar fora lands, and what bounces when it does. */
+  private bins: { x: number; y: number; sprite: Phaser.GameObjects.Sprite; mouthY: number }[] = [];
   private canopies: Canopy[] = [];
   /** Feira stalls (Phase 9): the open sprites and tarp, and the folded ones, shown by the game clock (06:00-13:00). */
   private feiraStalls: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null }[] = [];
@@ -266,9 +296,18 @@ export class WorldScene extends Phaser.Scene {
   private furniture = new Map<string, FurnitureView>();
   private grid: RoomGrid | null = null;
   private gridFurniture: PlacedFurniture[] | null = null;
+  /** The room the grid was built from, so a live cart toggle rebuilds collision with the sprites. */
+  private gridDef: RoomDef | null = null;
   private bounds: Rect = { x0: 0, y0: 0, x1: 1, y1: 1 };
   private snapCamera = true;
+  /** the camera centre as it follows, unsnapped (`cam.cx/cy` is this snapped to device px) */
+  private follow = { x: 0, y: 0 };
+  /** prop reach (tiles) the current open-air room's surround was built with (surroundReachFor) */
+  private surroundReach = 0;
   private hoverRect!: Phaser.GameObjects.Rectangle;
+  /** the tap-to-walk marker (tapMark.ts): the ring under the destination, or the refused cross */
+  private tapImg!: Phaser.GameObjects.Image;
+  private tap: { kind: TapCue; wx: number; wy: number; t0: number; tile: { x: number; y: number } | null } | null = null;
   private lastT = 0;
   /** the game day the room was built for (a new day brings a new couple of small diary objects) */
   private diaryDay = -1;
@@ -292,13 +331,14 @@ export class WorldScene extends Phaser.Scene {
   preload(): void {
     const m = this.m;
     const b = this.base;
-    for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
+    for (const [name, a] of Object.entries(m.atlases)) if (!a.lazy) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
     for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
-    // what you can carry: the praça snacks (sweet popcorn reuses the red icon) and the padaria counter menu
+    // what you can carry: the praça snacks, the padaria counter menu, and the empties they leave
     const carry = new Map<string, string>();
     for (const s of STREET_SNACKS) carry.set(s.id, s.icon);
     for (const id of COUNTER_MENU) carry.set(id, id);
+    for (const c of Object.values(CARRY)) if (c.kind === 'trash') carry.set(c.id, c.tex);
     for (const [id, icon] of carry) {
       const img = m.images?.[`icons/${icon}`];
       if (img?.file) this.load.image(`carry:${id}`, b + img.file);
@@ -328,6 +368,7 @@ export class WorldScene extends Phaser.Scene {
     });
     // the hover marker belongs to the scene, not to a room layer
     this.hoverRect = this.rig.world(this.add.rectangle(0, 0, T, T, 0xffffff, 0.22)).setOrigin(0, 0).setStrokeStyle(1, 0xffffff, 0.8).setDepth(49000).setVisible(false);
+    this.tapImg = this.rig.world(this.add.image(0, 0, '__WHITE')).setOrigin(0, 0).setVisible(false);
     this.fxLevel.lowfx = this.host.lowfx;
     this.fxLevel.reduced = reducedMotion();
     this.gov = new LowFxGovernor(this.probe, this.host.lowfx);
@@ -342,6 +383,14 @@ export class WorldScene extends Phaser.Scene {
       releaseSheet: (k) => this.sheets.release(k),
       playerAppearance: () => game.self?.pub.appearance ?? null,
       bia: () => this.biaView(),
+      loadAtlas: (name, done) => {
+        const a = this.m.atlases[name];
+        if (!a || this.textures.exists(name)) return done();
+        this.load.atlas(name, this.base + a.image, this.base + a.data);
+        this.load.once(`filecomplete-atlasjson-${name}`, () => done());
+        this.load.once('loaderror', () => done());
+        this.load.start();
+      },
       crowd: () => this.crowdSpots(),
       mat: () => this.matCenter(),
       placar: () => this.placarAnchor(),
@@ -499,6 +548,7 @@ export class WorldScene extends Phaser.Scene {
   // ------------------------------------------------------------------ room layer
   private destroyRoom(): void {
     this.stall = null;
+    this.bins = [];
     this.feiraStalls = [];
     for (const o of this.roomObjs) o.destroy();
     this.roomObjs = [];
@@ -529,7 +579,9 @@ export class WorldScene extends Phaser.Scene {
 
     // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest. An open-air map draws
     // the town around it too (surround.ts): the same layers, started `margin` tiles out, so the ground runs on past the map edge
-    const sur = surroundFor(def);
+    // its props reach as far past the map as this window can see (issue #154), so where they stop is never on screen
+    this.surroundReach = def.outdoor ? this.wantedReach(def) : 0;
+    const sur = surroundFor(def, this.surroundReach);
     const res = buildTerrainLayers(this, sur ? sur.floor : def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE, offset: sur ? -sur.margin : 0 });
     this.roomMap = res.map;
     this.groundLayers = res.layers.map((layer, i) => ({ ch: res.drawn[i], layer }));
@@ -652,6 +704,8 @@ export class WorldScene extends Phaser.Scene {
     }
     this.buildGlints(def);
     this.buildRunway(def);
+    // ---- the ceiling panels of a roofed open-air map (the airport terminal): the hall stays lit from dusk to dawn
+    this.rig.roof = roofHall(def);
 
     // (the neighbours are not part of the room: the server walks them along their schedules and sends them as avatars)
 
@@ -668,6 +722,7 @@ export class WorldScene extends Phaser.Scene {
     this.bounds = roomBounds(def, tallest);
     this.snapCamera = true;
     this.hoverRect.setVisible(false);
+    this.tap = null;
     const skipped = describeSkipped({ [def.id]: def });
     if (skipped.length) console.info('[pixel] west-wall decor skipped in Phase 2:', skipped.join('; '));
     if (this.artMissing.length !== missingBefore) console.info('[pixel] missing art (placeholders):', this.artMissing.join(', '));
@@ -774,6 +829,7 @@ export class WorldScene extends Phaser.Scene {
       const feiraEntry = !scenery && p.kind === 'feira' ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
       if (feiraEntry && mainShadow) feiraEntry.open.push(mainShadow as unknown as Phaser.GameObjects.GameObject);
       if (!scenery && p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
+      if (!scenery && p.kind === 'lixeira' && main) this.bins.push({ x: p.x, y: p.y, sprite: main, mouthY: Math.round(a.wy) - d.ay + 4 });
       if (!scenery && p.kind === 'trilho_pedidos' && main && d.anim) {
         // the ticket rail is still until Correria no Balcão opens (updateTrilho)
         main.anims.stop();
@@ -818,7 +874,7 @@ export class WorldScene extends Phaser.Scene {
             const bx = Math.round(a.wx);
             const by = Math.round(a.wy);
             const delay = lightDelay(bx, by);
-            for (const s of pr.lights) this.rig.lights.push({ x: bx + s.x, y: by + s.y, r: s.r, color: parseInt(s.color.slice(1), 16), squash: s.squash, kind: 'lamp', glow: s.glow ?? 0.4, delay });
+            for (const s of pr.lights) this.rig.lights.push({ x: bx + s.x, y: by + s.y, r: s.r, color: parseInt(s.color.slice(1), 16), squash: s.squash, kind: 'lamp', glow: s.glow ?? 0.4, delay, halo: s.halo });
           }
         }
       }
@@ -1017,24 +1073,36 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     const key = roomKey(room);
-    if (key !== this.roomId || this.roomDef !== def || clock.day() !== this.diaryDay) {
+    // a window grown past what the surround was built for (a resize, a rotated tablet) rebuilds it with a longer reach; shrinking keeps it
+    if (
+      key !== this.roomId ||
+      this.roomDef !== def ||
+      clock.day() !== this.diaryDay ||
+      game.layoutEpoch !== this.layoutEpoch ||
+      (def.outdoor && this.wantedReach(def) > this.surroundReach)
+    ) {
       this.roomId = key;
       this.roomDef = def;
+      this.layoutEpoch = game.layoutEpoch;
+      this.grid = null;
+      this.gridFurniture = null;
       this.buildRoom(def);
     }
-    if (this.gridFurniture !== game.furniture || !this.grid) {
+    if (this.gridFurniture !== game.furniture || this.gridDef !== def || !this.grid) {
       this.grid = buildGrid(def, game.furniture);
       this.gridFurniture = game.furniture;
+      this.gridDef = def;
     }
     this.applyZoom();
     const dyn: HitBox[] = [];
     this.syncFurniture(dyn);
-    this.syncAvatars(def, now, dyn);
+    this.syncAvatars(def, now, dyn, dt);
     this.syncGlints(now);
     this.syncBout(dt, now);
     this.syncCounter(dt, now);
     this.updateCanopies(dt);
     this.updateHover(def);
+    this.updateTap(now);
     this.updateTrilho();
     this.updateStall();
     this.updateFeira();
@@ -1087,7 +1155,8 @@ export class WorldScene extends Phaser.Scene {
     const t = performance.now();
     if (this.lastUpdateAt) this.probe.record(t - this.lastUpdateAt, t);
     this.lastUpdateAt = t;
-    if (this.gov.check(t)) this.degrade('p90');
+    // A review frame (`?shot=`) keeps the full effect set. A slow box would otherwise drop the clouds the shot is there to show.
+    if (!this.host.shot && this.gov.check(t)) this.degrade('p90');
     if (t - this.reducedCheckAt > 1000) {
       this.reducedCheckAt = t;
       this.fxLevel.reduced = reducedMotion();
@@ -1133,6 +1202,13 @@ export class WorldScene extends Phaser.Scene {
       fx: this.weatherFx.info(),
       shade: { casters: this.shadows.count, rims: this.shadows.rimCount, silhouettes: this.shadows.generated, pages: this.shadows.pageCount, fill: this.shadows.pageFill, aoShapes: this.ao.shapeCount },
     };
+  }
+
+  /** Prop reach (tiles) the surround of an open-air room needs at the current window size and zoom (surround.surroundReachFor). */
+  private wantedReach(def: RoomDef): number {
+    const dpr = this.scale.width / Math.max(1, window.innerWidth);
+    const zoom = deviceZoomFor(cssZoomFor(window.innerWidth, window.innerHeight), dpr) / dpr;
+    return surroundReachFor(def, { w: window.innerWidth, h: window.innerHeight }, zoom, this.host.insets());
   }
 
   /** Canvas size and DPR for this frame; the zoom itself is chosen per room in `updateCamera` (roomFraming). */
@@ -1188,20 +1264,38 @@ export class WorldScene extends Phaser.Scene {
   // ---- Treino no tatame: the camera eases one zoom step onto the mat, above the overlay and under the scoreboard (like the dialogue)
   private withBout(f: { zoom: number; cx: number; cy: number; fits: boolean }, ins: Insets, k: number, dt: number): typeof f {
     this.boutBlend = stepBlend(this.boutBlend, boutFeed.camera ? 1 : 0, dt, 0.4, this.fxLevel.reduced || !!this.host.shot);
-    if (this.boutBlend <= 0) return f;
+    if (this.boutBlend <= 0) {
+      this.boutStep = 0;
+      return f;
+    }
     const mat = this.matCenter();
     if (!mat) return f;
+    const unit = Math.max(1, Math.round(k));
+    // during a match the camera works around the tallest the overlay has been, so it holds still while the panel changes
+    const box = boutFeed.active ? boutFeed.fightBox(this.cam.h / k) : boutFeed.boxPx;
+    // the lobby is one step in; a match on the mat goes in until the fighters fill the free band, so they are big and the grips readable
+    const target = boutFeed.active ? boutZoomStep({ baseZoom: f.zoom, unit, view: { w: this.cam.w, h: this.cam.h }, topPx: (boutFeed.topPx + 6) * k, boxPx: (box + 6) * k, pair: BOUT_PAIR_BODY, fill: 0.7 }) : unit;
+    // and it walks there one whole device px at a time (crisp at every frame), not in one cut
+    if (this.boutStep <= 0 || this.fxLevel.reduced || this.host.shot) this.boutStep = target;
+    else if (this.boutStep !== target) {
+      this.boutStepT += dt;
+      if (this.boutStepT >= 0.06) {
+        this.boutStepT = 0;
+        this.boutStep += Math.sign(target - this.boutStep);
+      }
+    }
     const g = dialogueFraming({
       base: f,
       view: { w: this.cam.w, h: this.cam.h },
       bounds: this.bounds,
       // The mat sits a little lower in the free band (when the screen has spare height) so the north wall's sign is not cut by the top of the screen.
-      insets: { top: (boutFeed.topPx + this.boutWallReveal(boutFeed.topPx, boutFeed.boxPx + 6, k)) * k, bottom: 0, left: ins.left * k, right: ins.right * k },
-      boxPx: (boutFeed.boxPx + 6) * k,
-      self: { x: mat.x, y: mat.y },
+      insets: { top: (boutFeed.topPx + this.boutWallReveal(boutFeed.topPx, box + 6, k)) * k, bottom: 0, left: ins.left * k, right: ins.right * k },
+      boxPx: (box + 6) * k,
+      // the pair itself, not the mat's middle: the fighters stand a little below it
+      self: { x: mat.x, y: mat.y + (boutFeed.active ? BOUT_PAIR_FOCUS : 0) },
       npc: null,
       blend: easeOut(this.boutBlend),
-      step: Math.max(1, Math.round(k)),
+      step: this.boutStep,
     });
     return { ...f, ...g };
   }
@@ -1272,9 +1366,9 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Professora Bia's avatar view (the referee), if she is in the room. */
-  private biaView(): { sprite: Phaser.GameObjects.Sprite; wx: number; wy: number; depth: number } | null {
+  private biaView(): ReturnType<StageHost['bia']> {
     const v = this.avatars.get('npc-prof');
-    return v ? { sprite: v.sprite, wx: v.wx, wy: v.wy, depth: v.sprite.depth } : null;
+    return v ? { sprite: v.sprite, shadow: v.shadow, wx: v.wx, wy: v.wy, depth: v.sprite.depth } : null;
   }
 
   /** The spectators: every CPU in the room, with the world px of the top of its head (where the cheer pops up). */
@@ -1333,30 +1427,39 @@ export class WorldScene extends Phaser.Scene {
       this.snapCamera = true;
     }
     this.cssScale = f.zoom / this.cam.dpr;
+    const fol = this.follow;
     if (this.snapCamera) {
-      this.cam.cx = target.cx;
-      this.cam.cy = target.cy;
+      fol.x = target.cx;
+      fol.y = target.cy;
       this.snapCamera = false;
     } else {
       // exponential follow, about 0.12 per 60 fps frame (HOWTO §5.3), frame-rate independent
       const a = 1 - Math.pow(1 - 0.12, dt * 60);
-      this.cam.cx += (target.cx - this.cam.cx) * a;
-      this.cam.cy += (target.cy - this.cam.cy) * a;
+      fol.x += (target.cx - fol.x) * a;
+      fol.y += (target.cy - fol.y) * a;
     }
-    this.cam.cx = snapToDevice(this.cam.cx, this.cam.zoom);
-    this.cam.cy = snapToDevice(this.cam.cy, this.cam.zoom);
+    // only what is drawn is snapped. Feeding the snapped centre back into the follow made a dead zone (a step under half a device px
+    // rounded away every frame) and then a lurch once the gap grew past it (issue #154).
+    this.cam.cx = snapToDevice(fol.x, this.cam.zoom);
+    this.cam.cy = snapToDevice(fol.y, this.cam.zoom);
     const nudge = this.stage.cameraNudge();
     const cn = this.counter.cameraNudge();
-    this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x, this.cam.cy + nudge.y + cn.y);
+    // On a phone the design panel covers the bottom of the screen. Look a little south so the avatar sits in the open part.
+    // The offset is on the camera state too, so a tap lands on the prop the picture shows.
+    const designLift = game.designMode && window.innerWidth <= 720 ? (this.cam.h * 0.2) / Math.max(1, this.cam.zoom) : 0;
+    const pan = game.designMode ? game.designPan : { x: 0, y: 0 };
+    this.cam.ox = pan.x;
+    this.cam.oy = pan.y + designLift;
+    this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x + this.cam.ox, this.cam.cy + nudge.y + cn.y + this.cam.oy);
     if (this.counterBlend > 0) this.counter.invalidate();
   }
 
   // ---- avatars
-  private syncAvatars(def: RoomDef, now: number, dyn: HitBox[]): void {
+  private syncAvatars(def: RoomDef, now: number, dyn: HitBox[], dt: number): void {
     const items = new Map(game.avatars);
     syncViews(this.avatars, items, {
       create: (_id, a) => this.createAvatar(a),
-      update: (v, a) => this.updateAvatar(v, a, def, now, dyn),
+      update: (v, a) => this.updateAvatar(v, a, def, now, dyn, dt),
       destroy: (v) => this.destroyAvatar(v),
     });
   }
@@ -1381,10 +1484,14 @@ export class WorldScene extends Phaser.Scene {
       parrot: null,
       parrotKey: '',
       pet: null,
+      petKind: '',
       petKey: '',
+      petFollow: createPetFollow(),
+      petHeard: -1,
       carry: null,
       carryKey: '',
       carryPop: 0,
+      carryBeat: null,
       icon: null,
       iconKey: '',
       anim: '',
@@ -1405,13 +1512,14 @@ export class WorldScene extends Phaser.Scene {
     v.parrot?.destroy();
     v.pet?.destroy();
     v.carry?.destroy();
+    v.carryBeat?.img.destroy();
     v.icon?.destroy();
     v.sprite.destroy();
     v.shadow.destroy();
     this.sheets.release(v.sheet);
   }
 
-  private updateAvatar(v: AvatarView, a: ClientAvatar, def: RoomDef, now: number, dyn: HitBox[]): void {
+  private updateAvatar(v: AvatarView, a: ClientAvatar, def: RoomDef, now: number, dyn: HitBox[], dt: number): void {
     // appearance or hat changed (wardrobe, avatarUpdated): swap the sheet
     const uniform = academyUniformKey(a.pub);
     if (a.pub.appearance !== v.appearance || a.pub.hat !== v.hat || a.pub.belt !== v.belt || uniform !== v.uniform) {
@@ -1471,13 +1579,17 @@ export class WorldScene extends Phaser.Scene {
     v.moving = pos.moving;
 
     const f = feet(pos.x, pos.y);
-    // emotes play the sheet's real frames (oi, dancar, rir, valeu, desculpa); the 2 px bounce is only the fallback for a sheet without them
+    // rir and desculpa play their sheet rows. oi, valeu and dancar do not: those rows paint an extra arm.
+    // The pop-up icon still names the emote. Dançar leans side to side on the idle body. The 2 px bounce is only a fallback.
     let bounce = 0;
+    let sway = 0;
     let emote: string | null = null;
     if (a.emote && !pos.moving && !sitting) {
       const t = now / 1000 - a.emote.t0;
       const dur = emoteDuration(this.m.sheet, a.emote.kind) / 1000;
-      if (dur > 0) {
+      if (!emotePlaysSheet(a.emote.kind)) {
+        sway = danceSway(a.emote.kind, t, dur > 0 ? dur : 1.3, reducedMotion());
+      } else if (dur > 0) {
         if (t >= 0 && t < dur) emote = `${a.emote.kind}@${a.emote.t0}`;
       } else if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2);
     }
@@ -1490,13 +1602,17 @@ export class WorldScene extends Phaser.Scene {
       const dyT = pos.tile.y - talkTo.y;
       if (Math.abs(dxT) <= 1 && Math.abs(dyT) <= 2) aside = Math.round((dxT < 0 ? -1 : 1) * avatarPx(10) * easeOut(this.dlgBlend));
     }
-    const wx = Math.round(f.wx) + aside;
+    // a walker lands on device px, not whole art px: the camera glides on device px, so a 1 art px step (4 device px at zoom 4) every few
+    // frames made the walker shake against the street (issue #154). Standing still, the figure sits on the art grid like everything else.
+    const snap = (v: number) => (pos.moving ? snapToDevice(v, this.cam.zoom) : Math.round(v));
+    const wx = snap(f.wx) + aside;
     // feet stay on the tile. The scaled figure already puts the head above the padaria counter,
     // so the old 11 px counter lift (which planted the feet on the counter top) is gone.
-    const wy = Math.round(f.wy);
+    const wy = snap(f.wy);
     v.wx = wx;
     v.wy = wy;
-    v.sprite.setPosition(wx, wy - bounce).setScale(avatarDrawScale());
+    const bodyX = wx + sway;
+    v.sprite.setPosition(bodyX, wy - bounce).setScale(avatarDrawScale());
     // under the mat camera, neighbours who wander about step out of the picture; the seated crowd stays to watch
     if (isCpuId(a.pub.id)) {
       const away = boutFeed.camera && !sitting;
@@ -1529,10 +1645,10 @@ export class WorldScene extends Phaser.Scene {
         v.sprite.anims.timeScale = walking ? 1 : v.look.idle.speed * (0.9 + 0.2 * hash01(a.seed * 977 + 3));
       }
     }
-    this.updateParrot(v, a, facing, wx, wy, depth, now);
-    this.updatePet(v, a, facing, wx, wy, depth, now);
-    this.updateCarry(v, a, facing, wx, wy, depth);
-    this.updateEmoteIcon(v, a, wx, wy - bounce, sitting, now);
+    this.updateParrot(v, a, facing, bodyX, wy, depth, now);
+    this.updatePet(v, a, wx, wy, dt);
+    this.updateCarry(v, a, facing, bodyX, wy, depth);
+    this.updateEmoteIcon(v, a, bodyX, wy - bounce, sitting, now);
     const h = avatarPx(sitting ? 24 : 32);
     const half = avatarPx(9);
     const base = a.pub.npc ? npcDefById(a.pub.npc) : undefined;
@@ -1565,46 +1681,29 @@ export class WorldScene extends Phaser.Scene {
     v.icon.setPosition(wx + avatarPx(8), Math.round(wy - top - avatarPx(1) + rise * avatarPx(4))).setAlpha(Math.min(1, (EMOTE_ICON_S - t) / 0.25)).setVisible(true);
   }
 
-  /** Copy one atlas frame and remap the green body to `tint`. Returns false when the source frame is not ready. */
-  private paintParrotFrame(atlas: string, frameName: string, texKey: string, tint: number): boolean {
-    const tex = this.textures.get(atlas);
-    if (!tex || tex.key === '__MISSING') return false;
-    const f = tex.get(frameName);
-    const src = f?.source?.image as CanvasImageSource | undefined;
-    if (!f || !src || f.name === '__BASE') return false;
-    const canvas = this.textures.createCanvas(texKey, f.width, f.height);
-    if (!canvas) return false;
-    const ctx = canvas.getContext();
-    ctx.clearRect(0, 0, f.width, f.height);
-    ctx.drawImage(src, f.cutX, f.cutY, f.cutWidth, f.cutHeight, 0, 0, f.width, f.height);
-    const image = ctx.getImageData(0, 0, f.width, f.height);
-    recolorParrotPixels(image.data, tint);
-    ctx.putImageData(image, 0, 0);
-    canvas.refresh();
-    return true;
-  }
-
   /**
-   * Animation for the shoulder parrot. Verde plays the green sheet. Any other colour gets its own
-   * frames, because a multiply tint leaves the green body green.
+   * Animation for the shoulder parrot. Verde plays the poleiro sheet. Every other colour is its own authored bird
+   * (`parrotSpecies.ts`), painted once into canvas textures of the same size and anchor.
    */
   private parrotAnim(colorId: string | null | undefined): string {
     const d = this.m.sprites['chars/parrot'];
     const plain = d ? ensureAnim(this, 'chars/parrot', d) : '';
-    if (!d?.anim) return plain;
-    const def = parrotColorById(colorId);
-    const tint = def?.tint ?? 0xffffff;
-    if (!def || tint === 0xffffff) return plain;
-    const animKey = `anim:parrot:${def.id}`;
+    const species = parrotSpecies(colorId);
+    if (species === 'verde') return plain;
+    const animKey = `anim:parrot:${species}`;
     if (this.anims.exists(animKey)) return animKey;
     const frames: { key: string }[] = [];
-    for (let i = 0; i < d.anim.frames.length; i++) {
-      const name = d.anim.frames[i]!;
-      const texKey = `parrot:${def.id}:${i}`;
-      if (!this.textures.exists(texKey) && !this.paintParrotFrame(d.atlas, name, texKey, tint)) return plain;
+    for (let i = 0; i < PARROT_FRAME_COUNT; i++) {
+      const texKey = `parrot:${species}:${i}`;
+      if (!this.textures.exists(texKey)) {
+        const canvas = this.textures.createCanvas(texKey, PARROT_W, PARROT_H);
+        if (!canvas) return plain;
+        canvas.getContext().putImageData(new ImageData(parrotPixels(species, i), PARROT_W, PARROT_H), 0, 0);
+        canvas.refresh();
+      }
       frames.push({ key: texKey });
     }
-    this.anims.create({ key: animKey, frames, frameRate: d.anim.fps, repeat: -1 });
+    this.anims.create({ key: animKey, frames, frameRate: d?.anim?.fps ?? 3, repeat: -1 });
     return animKey;
   }
 
@@ -1639,12 +1738,13 @@ export class WorldScene extends Phaser.Scene {
 
   /**
    * Frame ranges baked into `chars/pet_*` (see pets.mjs). The manifest's `anims` wins when present.
-   * Side poses face east; west is the same strip flipped.
+   * Side poses face east; west is the same strip flipped. Lie-down is the same three facings as sit.
    */
   private petAnims(kind: 'dog' | 'cat'): Record<string, [number, number]> {
     const fromManifest = this.m.images?.[`chars/pet_${kind}`]?.anims;
-    if (fromManifest?.walkE && fromManifest.walkS && fromManifest.walkN && fromManifest.idleS && fromManifest.sitE && fromManifest.sitS && fromManifest.sitN) return fromManifest;
-    return { walkE: [0, 3], walkS: [4, 7], walkN: [8, 11], idleS: [12, 13], sitE: [14, 14], sitS: [15, 15], sitN: [16, 16] };
+    const need = ['walkE', 'walkS', 'walkN', 'idleS', 'sitE', 'sitS', 'sitN', 'lieE', 'lieS', 'lieN'] as const;
+    if (fromManifest && need.every((k) => fromManifest[k])) return fromManifest;
+    return { walkE: [0, 3], walkS: [4, 7], walkN: [8, 11], idleS: [12, 13], sitE: [14, 14], sitS: [15, 15], sitN: [16, 16], lieE: [17, 17], lieS: [18, 18], lieN: [19, 19] };
   }
 
   private createPetAnims(kind: 'dog' | 'cat'): void {
@@ -1658,112 +1758,239 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** Which strip to play, and whether to mirror it. West reuses the east poses. */
-  private petPose(facing: Facing, moving: boolean, sitting: boolean): { name: string; flip: boolean } {
-    if (moving) {
+  /** Which strip to play, and whether to mirror it. West reuses the east poses. Idle is the front blink. */
+  private petPose(facing: Facing, pose: PetFollow['pose']): { name: string; flip: boolean } {
+    const flip = facing === 'W';
+    if (pose === 'walk') {
       if (facing === 'N') return { name: 'walkN', flip: false };
       if (facing === 'S') return { name: 'walkS', flip: false };
-      return { name: 'walkE', flip: facing === 'W' };
+      return { name: 'walkE', flip };
     }
-    if (!sitting && facing === 'S') return { name: 'idleS', flip: false };
-    if (facing === 'N') return { name: 'sitN', flip: false };
-    if (facing === 'S') return { name: 'sitS', flip: false };
-    return { name: 'sitE', flip: facing === 'W' };
+    if (pose === 'idle') return { name: 'idleS', flip: false };
+    const stem = pose === 'lie' ? 'lie' : 'sit';
+    if (facing === 'N') return { name: `${stem}N`, flip: false };
+    if (facing === 'S') return { name: `${stem}S`, flip: false };
+    return { name: `${stem}E`, flip };
   }
 
   /**
-   * Subscriber dog or cat. Follows at the feet, opposite the shoulder parrot, facing the way the
-   * owner walks. The frames are critter-scale (the vira-lata and the parrot are 1 art px per world
-   * px), so they are not given the people's extra draw scale.
+   * Subscriber dog or cat. It walks the owner's breadcrumb trail a couple of tiles behind, at its
+   * own speed, and idles once it has caught up. "senta" / "deita" / "vem" are read from chat the
+   * owner already sent. The frames are critter-scale (1 art px per world px), so they are not given
+   * the people's extra draw scale.
+   *
+   * The sprite is not a hit target. Clicks are resolved from avatar and NPC boxes, and the pet is
+   * never added to that list, so it cannot take a click meant for the player or a neighbour.
    */
-  private updatePet(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number, _now: number): void {
+  private updatePet(v: AvatarView, a: ClientAvatar, wx: number, wy: number, dt: number): void {
     const kind = a.pub.pet === 'dog' || a.pub.pet === 'cat' ? a.pub.pet : null;
-    const pose = kind ? this.petPose(facing, v.moving, v.sitting) : null;
-    const anim = kind && pose ? `anim:pet:${kind}:${pose.name}` : '';
-    if (!kind || !pose || !this.anims.exists(anim)) {
+    const heard = petCommandFromLines(
+      a.bubbles,
+      v.petHeard,
+      kind ? [PET_COPY[kind].pt, PET_COPY[kind].en, ...(a.pub.petName ? [a.pub.petName] : [])] : [],
+    );
+    v.petHeard = heard.heardAt;
+    if (!kind) {
       if (v.pet) {
         v.pet.destroy();
         v.pet = null;
+        v.petKind = '';
         v.petKey = '';
       }
+      if (Number.isFinite(v.petFollow.x)) v.petFollow = createPetFollow();
       return;
     }
-    if (!v.pet) {
+    const follow = stepPet(v.petFollow, {
+      ownerX: wx,
+      ownerY: wy,
+      ownerMoving: v.moving,
+      place: this.roomId,
+      dt,
+      command: heard.command,
+    });
+    const pose = this.petPose(follow.facing, follow.pose);
+    const anim = `anim:pet:${kind}:${pose.name}`;
+    if (!this.anims.exists(anim)) {
+      v.pet?.setVisible(false);
+      return;
+    }
+    if (!v.pet || v.petKind !== kind) {
+      v.pet?.destroy();
       v.pet = this.rig.world(this.add.sprite(0, 0, `pet:${kind}`, 0)).setOrigin(0.5, 1);
+      v.pet.disableInteractive();
+      v.petKind = kind;
       v.petKey = '';
     }
     if (v.petKey !== anim) {
       v.petKey = anim;
       v.pet.play({ key: anim, startFrame: 0 });
     }
-    const flank = facing === 'W' ? 1 : -1;
-    const reach = Math.round(avatarPx(8) + 14);
-    v.pet.setVisible(true);
-    v.pet.setPosition(wx - flank * reach, wy);
+    v.pet.setVisible(v.sprite.visible);
+    v.pet.setPosition(Math.round(follow.x), Math.round(follow.y));
     v.pet.setFlipX(pose.flip);
-    v.pet.setDepth(facing === 'N' ? depth + 0.05 : depth - 0.05);
+    v.pet.setDepth(standingDepth(follow.y, `${a.pub.id}:pet`));
     v.pet.setScale(1);
   }
 
-  /** Snack, drink, or empty in the hand (session `carry`). Empties reuse a full item's icon, tinted grey. */
+  /**
+   * Snack, drink, or empty in the hand (session `carry`), and what a change of it looks like (`carryFx.ts`): Comer / Beber raise the item to
+   * the mouth for three bites or sips before the empty comes back down; Jogar fora throws it, into a lixeira in reach or onto the ground.
+   */
   private updateCarry(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number): void {
-    const info = carryOf(a.pub.carry);
-    if (!info) {
-      this.releaseCarry(v);
-      return;
+    const key = carryOf(a.pub.carry) ? a.pub.carry! : '';
+    if (key !== v.carryKey) this.carryChanged(v, a, key, facing, wx, wy, depth);
+    const side = facing === 'W' ? -1 : 1;
+    const hand = { x: wx + side * avatarPx(6), y: wy - avatarPx(7) };
+    const mouth = { x: wx + side * avatarPx(3), y: wy - avatarPx(13) };
+    const at = (k: number) => ({ x: hand.x + (mouth.x - hand.x) * k, y: hand.y + (mouth.y - hand.y) * k });
+    const base = 0.6 * avatarDrawScale();
+    // at the mouth of someone facing away, the item is behind the head
+    const front = facing === 'N' ? depth - 0.08 : depth + 0.08;
+    const beat = v.carryBeat;
+    if (beat) {
+      const ms = this.time.now - beat.t0;
+      const pose = beatPose(beat.kind, ms, beat.lastMs);
+      beat.lastMs = ms;
+      v.sprite.y += avatarPx(pose.nod);
+      if (!pose.finished) {
+        const p = at(pose.lift);
+        beat.img.setPosition(p.x, p.y).setScale(base * pose.scale).setAngle(side * pose.angle).setDepth(front);
+        if (pose.bite >= 0 && beat.kind === 'eat') this.carryCrumbs(mouth.x, mouth.y + 2, depth, 3);
+        v.carry?.setVisible(false);
+        return;
+      }
+      // the last bite or sip: the full item is gone, the empty (if any) comes back down to the hand
+      if (beat.img.active) beat.img.destroy();
+      if (ms < CARRY_BEAT_MS && v.carry) {
+        const p = at(pose.lift);
+        v.carry.setVisible(true).setPosition(p.x, p.y).setScale(base).setAngle(0).setDepth(front);
+        return;
+      }
+      v.carryBeat = null;
     }
-    const tex = `carry:${info.tex}`;
-    if (!this.textures.exists(tex)) return;
-    const fresh = !v.carry || v.carryKey !== a.pub.carry;
-    if (fresh) {
-      const prevKind = carryOf(v.carryKey)?.kind;
-      const cx = v.carry?.x ?? wx;
-      const cy = v.carry?.y ?? wy;
-      v.carry?.destroy();
-      v.carry = this.rig.world(this.add.image(0, 0, tex)).setOrigin(0.5, 1);
-      v.carryKey = a.pub.carry ?? '';
-      v.carryPop = this.time.now;
-      if (info.kind === 'trash') v.carry.setTint(0x8d8d8d).setAlpha(0.72);
-      if (prevKind === 'food') this.carryCrumbs(cx, cy, depth);
-    }
+    if (!v.carry) return;
     const age = this.time.now - v.carryPop;
     const bump = age >= 0 && age < 320 ? Math.sin((age / 320) * Math.PI) : 0;
-    const side = facing === 'W' ? -1 : 1;
-    v.carry!.setPosition(wx + side * avatarPx(6), wy - avatarPx(7) - bump * 5).setScale(0.6 * avatarDrawScale() * (1 + 0.28 * bump)).setDepth(depth + 0.08);
+    v.carry.setVisible(true).setPosition(hand.x, hand.y - bump * 5).setScale(base * (1 + 0.28 * bump)).setAngle(0).setDepth(depth + 0.08);
   }
 
-  /** Drop the held icon. Scale is reapplied every frame, so the toss itself is the tween. */
-  private releaseCarry(v: AvatarView): void {
-    const img = v.carry;
-    const prev = carryOf(v.carryKey);
-    if (!img) {
-      v.carryKey = '';
+  /** The held item changed on the wire: start the beat it reads as (`carryMove`) and put the new item, if any, in the hand. */
+  private carryChanged(v: AvatarView, a: ClientAvatar, key: string, facing: Facing, wx: number, wy: number, depth: number): void {
+    const prevKey = v.carryKey;
+    const old = v.carry;
+    v.carry = null;
+    v.carryKey = key;
+    if (v.carryBeat) {
+      if (v.carryBeat.img.active) v.carryBeat.img.destroy();
+      v.carryBeat = null;
+    }
+    // finger food leaves nothing either way: your own Comer / Jogar fora tells the two apart
+    const intent = a.pub.id === game.room?.selfId && game.carryIntent && performance.now() - game.carryIntent.at < 5000 ? game.carryIntent.action : null;
+    const move = old ? carryMove(prevKey, key, intent) : 'swap';
+    const beat = (move === 'eat' || move === 'drink') && !reducedMotion();
+    if (key) {
+      const tex = `carry:${carryOf(key)!.tex}`;
+      if (this.textures.exists(tex)) {
+        v.carry = this.rig.world(this.add.image(0, 0, tex)).setOrigin(0.5, 1).setVisible(!beat);
+        // the pop plays when it lands in the hand
+        v.carryPop = this.time.now + (beat ? CARRY_BEAT_MS : 0);
+      }
+    }
+    if (!old) return;
+    if (beat) {
+      v.carryBeat = { kind: move, t0: this.time.now, lastMs: -1, img: old };
       return;
     }
-    v.carry = null;
-    v.carryKey = '';
-    if (prev?.kind === 'food') this.carryCrumbs(img.x, img.y, img.depth);
+    if (move === 'toss') {
+      this.tossCarry(old, facing, wx, wy);
+      return;
+    }
+    if (move === 'eat' || carryOf(prevKey)?.kind === 'food') this.carryCrumbs(old.x, old.y, depth);
+    old.destroy();
+  }
+
+  /** Jogar fora: an arc into the lixeira in reach (the bin bounces as it lands), else onto the ground a step ahead, where it hops and fades. */
+  private tossCarry(img: Phaser.GameObjects.Image, facing: Facing, wx: number, wy: number): void {
+    const from = { x: img.x, y: img.y };
+    const i = binInReach({ x: Math.floor(wx / T), y: Math.floor((wy - 1) / T) }, this.bins);
+    const bin = i >= 0 ? this.bins[i]! : null;
+    const to = bin ? { x: bin.sprite.x, y: bin.mouthY + 3 } : groundSpot({ x: wx, y: wy }, facing, T * 1.2);
+    const h = bin ? 14 + Math.abs(to.x - from.x) * 0.15 : 9;
+    const scale = img.scaleX;
+    const spin = (to.x >= from.x ? 1 : -1) * (bin ? 300 : 400);
+    const lift = img.depth;
+    const p = { t: 0 };
+    img.setAngle(0);
     this.tweens.add({
+      targets: p,
+      t: 1,
+      duration: bin ? 440 : 380,
+      ease: 'Linear',
+      onUpdate: () => {
+        const q = arcPoint(from, to, h, p.t);
+        img.setPosition(q.x, q.y).setAngle(spin * p.t).setScale(scale * (1 - 0.2 * p.t));
+        // over the bin on the way up, into its mouth (behind the front of the can) on the way down
+        if (bin) img.setDepth(p.t > 0.72 ? bin.sprite.depth - 0.01 : Math.max(lift, bin.sprite.depth + 0.01));
+        else img.setDepth(Math.max(lift, standingDepth(q.y + 2, 'toss')));
+      },
+      onComplete: () => {
+        if (!img.active) return;
+        if (bin) {
+          img.destroy();
+          this.binBounce(bin.sprite, bin.mouthY);
+        } else this.landOnGround(img, scale * 0.8);
+      },
+    });
+  }
+
+  /** The lixeira takes it: a squash and stretch from its feet and a little puff out of the mouth. */
+  private binBounce(bin: Phaser.GameObjects.Sprite, mouthY: number): void {
+    this.carryCrumbs(bin.x, mouthY, bin.depth, 3, [0xf8f8f8, 0xd8d0e0], -8);
+    if (bin.getData('bounce')) return;
+    bin.setData('bounce', true);
+    const sx = bin.scaleX;
+    const sy = bin.scaleY;
+    this.tweens.chain({
+      targets: bin,
+      tweens: [
+        { scaleX: sx * 1.12, scaleY: sy * 0.84, duration: 70, ease: 'Quad.easeOut' },
+        { scaleX: sx * 0.94, scaleY: sy * 1.1, duration: 110, ease: 'Quad.easeOut' },
+        { scaleX: sx, scaleY: sy, duration: 220, ease: 'Bounce.easeOut' },
+      ],
+      onComplete: () => {
+        bin.setScale(sx, sy);
+        bin.setData('bounce', false);
+      },
+    });
+  }
+
+  /** A toss with no lixeira in reach: it lands, hops once in a puff of dust, lies there a moment and fades. */
+  private landOnGround(img: Phaser.GameObjects.Image, scale: number): void {
+    const y = img.y;
+    img.setDepth(standingDepth(y, 'toss'));
+    this.carryCrumbs(img.x, y, img.depth, 4, [0xd8d0c4, 0xb7aa96], 0);
+    this.tweens.chain({
       targets: img,
-      y: img.y - 12,
-      alpha: 0,
-      scale: Math.max(0.08, img.scaleX * 0.4),
-      duration: 240,
-      ease: 'Quad.easeOut',
+      tweens: [
+        { y: y - 4, angle: img.angle + 40, duration: 120, ease: 'Quad.easeOut' },
+        { y, angle: img.angle + 70, duration: 120, ease: 'Quad.easeIn' },
+        { alpha: 0, scale: scale * 0.6, duration: 480, delay: 420, ease: 'Quad.easeIn' },
+      ],
       onComplete: () => {
         if (img.active) img.destroy();
       },
     });
   }
 
-  private carryCrumbs(x: number, y: number, depth: number): void {
-    const colors = [0xe6c07b, 0xc48a4a, 0xf2e2c4];
-    for (let i = 0; i < 5; i++) {
+  /** A few 2 px bits flying out: crumbs off a bite (falling), dust from a landing (`fall` 0), a puff out of a bin (rising). */
+  private carryCrumbs(x: number, y: number, depth: number, n = 5, colors = [0xe6c07b, 0xc48a4a, 0xf2e2c4], fall = 12): void {
+    for (let i = 0; i < n; i++) {
       const c = this.rig.world(this.add.rectangle(x, y, 2, 2, colors[i % colors.length]!)).setDepth(depth + 0.2);
+      const spread = i - (n - 1) / 2;
       this.tweens.add({
         targets: c,
-        x: x + (i - 2) * 7,
-        y: y + 12 + (i % 3) * 3,
+        x: x + spread * 7,
+        y: y + fall + (i % 3) * (fall < 0 ? -2 : 3),
         alpha: 0,
         duration: 360 + i * 30,
         ease: 'Quad.easeOut',
@@ -1882,6 +2109,83 @@ export class WorldScene extends Phaser.Scene {
     this.hoverRect.setPosition(t.x * T, t.y * T).setFillStyle(ok ? 0xffffff : 0xe5572f, 0.25).setStrokeStyle(1, ok ? 0xffffff : 0xe5572f, 0.8);
   }
 
+  /**
+   * Show the tap marker (tapMark.ts) for a tap on `tile`, or at a world point off the walkable map (a refused tap on the town around it).
+   * The ring circles where the feet will stand. Both it and the refused cross draw over the world, so a prop in front never hides them.
+   */
+  markTap(kind: TapCue, at: { tile: { x: number; y: number } } | { wx: number; wy: number }): void {
+    const p = 'tile' in at ? { wx: (at.tile.x + 0.5) * T, wy: (at.tile.y + 1) * T - 4 } : at;
+    // a steer onto the same tile keeps the ring as it is (no restart every move of the finger)
+    if (kind === 'steer' && this.tap && 'tile' in at && this.tap.tile?.x === at.tile.x && this.tap.tile?.y === at.tile.y && this.tap.kind !== 'refused') return;
+    this.tap = { kind, wx: Math.round(p.wx), wy: Math.round(p.wy), t0: performance.now(), tile: 'tile' in at ? at.tile : null };
+  }
+
+  private updateTap(now: number): void {
+    const tap = this.tap;
+    const img = this.tapImg;
+    if (!tap || game.modalOpen) {
+      if (img.visible) img.setVisible(false);
+      if (tap && game.modalOpen) this.tap = null;
+      return;
+    }
+    const t = (now - tap.t0) / 1000;
+    const me = game.self ? this.avatars.get(game.self.pub.id) : undefined;
+    // done: standing on the tile, or standing anywhere a second after the tap (the server found no path, or the walk was cut short); a new tap
+    // replaces the marker anyway. The second covers the round trip before the walk starts.
+    const arrived = !!tap.tile && !!me && !me.moving && ((Math.abs(me.wx - tap.wx) < T && Math.abs(me.wy - tap.wy) < T) || t > 1);
+    const f = tapFrame(tap.kind, t, arrived, this.fxLevel.reduced);
+    if (!f) {
+      this.tap = null;
+      img.setVisible(false);
+      return;
+    }
+    const tex = this.tapTexture(tap.kind, f.radius);
+    // an Image, not live Graphics: images are rounded to the device px grid with the camera, Graphics blurred over two px at half-px scrolls.
+    // Over the world, like the hover square: on the ground the ring hid behind the bench or stall in front of the tile, just where it mattered
+    img
+      .setTexture(tex.key)
+      .setPosition(tap.wx + f.shake - tex.ox, tap.wy - tex.oy)
+      .setAlpha(f.alpha)
+      .setDepth(tap.kind === 'refused' ? 49001 : 48999)
+      .setVisible(true);
+  }
+
+  /** The baked marker art for a kind and ring radius: 1 art px per texel, with a dark edge so it reads on pale calçada and dark asphalt. */
+  private tapTexture(kind: TapCue, radius: number): { key: string; ox: number; oy: number } {
+    const refused = kind === 'refused';
+    const color = TAP_COLORS[kind];
+    const key = refused ? 'tap:cross' : `tap:ring:${color.toString(16)}:${radius}`;
+    const px = refused ? CROSS_PIXELS : ringPixels(radius);
+    let ox = 0;
+    let oy = 0;
+    for (const [x, y] of px) {
+      ox = Math.max(ox, -x + 1);
+      oy = Math.max(oy, -y + 1);
+    }
+    if (!this.textures.exists(key)) {
+      const g = this.make.graphics({}, false);
+      let w = 0;
+      let h = 0;
+      for (const [x, y] of px) {
+        w = Math.max(w, x + ox + 2);
+        h = Math.max(h, y + oy + 2);
+      }
+      if (refused) {
+        g.fillStyle(0x2a1a1a, 0.7);
+        for (const [x, y] of px) g.fillRect(x + ox - 1, y + oy - 1, 3, 3);
+      } else {
+        // a drop shadow one px down
+        g.fillStyle(0x1d1b26, 0.45);
+        for (const [x, y] of px) g.fillRect(x + ox, y + oy + 1, 1, 1);
+      }
+      g.fillStyle(color, 1);
+      for (const [x, y] of px) g.fillRect(x + ox, y + oy, 1, 1);
+      g.generateTexture(key, w, h);
+      g.destroy();
+    }
+    return { key, ox, oy };
+  }
+
   private updateGhost(g: GhostSpec | null): void {
     const sd = g ? this.m.sprites[furnitureArtKey(g.itemId, g.rot)] : undefined;
     if (!g || !sd) {
@@ -1948,14 +2252,6 @@ export class WorldScene extends Phaser.Scene {
       const p = at(this.stall.wx, this.stall.wy - 30);
       stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', kind: 'npc' }, bubbles: [] });
     }
-    // the game cart is closed until an admin turns a game on
-    if (def.id === 'feira' && game.feiraCart?.closed) {
-      const cart = def.props.find((q) => q.id === 'carrinho_jogos');
-      if (cart) {
-        const p = at((cart.x + (cart.w ?? 1) / 2) * T, cart.y * T - 22);
-        stacks.push({ key: 'feira-cart:closed', x: p.px, y: p.py, plate: { text: 'Fechado', kind: 'npc' }, bubbles: [] });
-      }
-    }
     // the feira's banner says it is closed outside 06:00-13:00
     if (this.feiraStalls.length && !feiraOpen(clock.minutes())) {
       const b = def.props.find((q) => q.id === 'feira_livre');
@@ -1978,6 +2274,7 @@ export class WorldScene extends Phaser.Scene {
           key: `npc:${a.pub.npc}`,
           x: p.px,
           y: p.py,
+          z: Math.round(p.py),
           // the mat camera keeps the pair and the scoreboard clear: neighbours' plates wait until the bout is over (their bubbles still talk)
           plate: boutFeed.camera ? null : { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
           // Bia is the referee while a bout is on: her idle chatter stays quiet
@@ -2003,6 +2300,7 @@ export class WorldScene extends Phaser.Scene {
         key: `av:${id}`,
         x: p.px,
         y: p.py,
+        z: Math.round(p.py),
         plate: {
           text: a.pub.name,
           kind: id === selfId ? 'me' : 'player',
@@ -2012,9 +2310,25 @@ export class WorldScene extends Phaser.Scene {
           ...(a.pub.founderBadge ? { subBadge: true } : {}),
           ...(a.pub.feiraCrown || game.feiraCrownId === id ? { feiraCrown: true } : {}),
           ...(!isCpuId(id) && a.pub.nameplate ? { tier: a.pub.nameplate } : {}),
+          ...(a.pub.belt ? { belt: a.pub.belt } : {}),
+          ...(id === selfId && a.pub.belt && game.profile ? { stripes: normalizeBjj(game.profile.bjj).stripes } : {}),
         },
         bubbles,
       });
+      // Collar tag: follows the pet sprite (already depth-sorted in the world) and hides with it.
+      const petName = a.pub.petName;
+      if (petName && v.pet?.visible) {
+        const lift = v.petFollow.pose === 'lie' ? 14 : 22;
+        const tag = at(v.pet.x, v.pet.y - lift);
+        stacks.push({
+          key: `pet:${id}`,
+          x: tag.px,
+          y: tag.py,
+          z: Math.round(tag.py),
+          plate: { text: petName, kind: 'pet' },
+          bubbles: [],
+        });
+      }
     }
     // a player-owned padaria: its name in chalk on the blackboard (Seu Carlos's board stays plain)
     const own = game.room?.padaria;
@@ -2030,11 +2344,23 @@ export class WorldScene extends Phaser.Scene {
       const p = at((board.x + 0.5) * T, -16);
       stacks.push({ key: `sign:academy:${team.id}`, x: p.px, y: p.py, plate: { text: `${CRESTS[team.crest].glyph} ${team.name}`, kind: 'sign' }, bubbles: [] });
     }
+    // wayfinding: a tag over every way out, destination in PT over EN (glowing on a first visit); not while a bout has the mat camera
+    if (!boutFeed.camera) {
+      let tags = DOOR_TAGS.get(def);
+      if (!tags) DOOR_TAGS.set(def, (tags = doorTagsFor(def)));
+      const kind = doorsFresh() ? 'doorNew' : 'door';
+      for (const t of tags) {
+        const w = tileToWorld(t.x, t.y);
+        const p = at(w.wx, w.wy - 22);
+        stacks.push({ key: `door:${t.key}`, x: p.px, y: p.py, z: Math.round(p.py), plate: { text: t.pt, gloss: t.en, kind }, bubbles: [] });
+      }
+    }
     const guides: GuideItem[] = this.host.guides().map((g, i) => {
       const w = tileToWorld(g.x, g.y);
       const lift = Math.min(48, Math.max(12, g.lift * 0.3));
       const p = at(w.wx, w.wy - lift);
-      return { key: `g${i}`, x: p.px, y: p.py, label: g.label };
+      const floor = at(w.wx, w.wy);
+      return { key: `g${i}`, x: p.px, y: p.py, label: g.label, en: g.en, kind: g.kind, first: g.first, floor: { x: floor.px, y: floor.py, tile: (T * k.zoom) / k.dpr } };
     });
     const view = { w: k.w / k.dpr, h: k.h / k.dpr };
     this.host.labels.update(stacks, guides, view, this.host.insets());
@@ -2056,6 +2382,17 @@ export class WorldScene extends Phaser.Scene {
 
   currentRoom(): RoomDef | null {
     return game.roomDef;
+  }
+
+  /** Frame names of the sprites built for this room (e2e: the game cart and its sign). */
+  drawnFrames(): string[] {
+    const out: string[] = [];
+    for (const o of this.roomObjs) {
+      const spr = o as { frame?: { name?: string }; visible?: boolean };
+      if (spr.visible === false) continue;
+      if (typeof spr.frame?.name === 'string') out.push(spr.frame.name);
+    }
+    return out;
   }
 
   info() {

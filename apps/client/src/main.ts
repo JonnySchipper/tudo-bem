@@ -8,12 +8,17 @@ import './styles/hud.css';
 import './styles/creator.css';
 import './styles/intro-pixel.css';
 import './styles/panels.css';
+import './styles/stalls.css';
 import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
 import './styles/escola.css';
 import './styles/feiraGames.css';
 import './styles/feiraCaldo.css';
+import './styles/townMap.css';
+import './styles/onboarding.css';
+import './styles/feiraStall.css';
+import './styles/onboarding.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -23,9 +28,11 @@ import {
   TUTORIAL_STEPS,
   buildGrid,
   cameraObjectIds,
+  findPath,
   diaryVisible,
   PHOTO_SPOTS,
   normalizeDiary,
+  normalizeBjj,
   wordForLine,
   furnitureById,
   greetingFor,
@@ -40,8 +47,10 @@ import {
   isWalkable,
   readSpot,
   subjectChoices,
-  FEIRA_CART_CLOSED,
   VENDORS,
+  OFF_DUTY,
+  isStallVendor,
+  vendorTalkMode,
   type EmoteKind,
   type HotspotDef,
   type NpcDef,
@@ -58,6 +67,8 @@ import { IdleTalk } from './idleTalk';
 import { LocalNet } from './localNet';
 import { initPixelArt } from './ui/pixelArt';
 import type { Guide, Hit, WorldView } from './render/view';
+import type { TapCue } from './render/pixel/tapMark';
+import { HOLD_MS, STEER_MS, TapGesture } from './tapGesture';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, holdCartelaChip, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
 import { CARTELA_BANNER_MS, cartelaBanner, openCartela } from './ui/cartela';
@@ -70,29 +81,38 @@ import {
   modalId,
   openFriends,
   openHatShop,
-  openMap,
   openProfileCard,
   showJulia,
   showParrotPerch,
   wireParrotShop,
   showScene,
 } from './ui/panels';
+import { openMap } from './ui/townMap';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
 import { openSupport } from './ui/support';
+import { bindPetName, maybeAskPetName, openPetName, showPetNameError } from './ui/petName';
 import { bindAdmin, onAdminMsg } from './ui/admin';
-import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
+import { applyServerLayout } from './ui/layoutSync';
+import { dialogueBoxKey, dialogueBoxNpc, isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
-import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
+import { profileMetJulia } from './ui/juliaMet';
+import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty } from './ui/feira';
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
-import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
+import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia, showAirportNext } from './ui/airportTutorial';
+import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
+import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
+import { firstRoom } from './ui/desembarqueLogic';
+import { thanksFor } from './ui/airportTutorialLogic';
+import { installHowToPlay } from './ui/howToPlay';
+import { doorTagsFor, showRoomIntro } from './ui/wayfinding';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
@@ -106,6 +126,8 @@ import { closeConversa, isConversaOpen, openConversa, setConversaLineSink } from
 import { openCounter } from './ui/padariaCounter';
 import { BoutUI } from './ui/bout';
 import { CorreriaUI } from './ui/correria';
+import { CorreriaPractice } from './ui/correriaPractice';
+import { PRACTICE_KEY, practiceNeeded } from './ui/correriaPracticeLogic';
 import { correriaFeed } from './render/pixel/correriaFeed';
 import { boutFeed } from './render/pixel/boutFeed';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
@@ -150,13 +172,38 @@ let started = false;
 
 /** Correria no Balcão: the overlay and the world's counter open when the first shift state arrives. */
 function newCorreriaUI() {
-  return new CorreriaUI({
+  const ui: CorreriaUI = new CorreriaUI({
     send: (m) => net.send(m),
     closed: () => {
-      correriaUi = null;
+      if (correriaUi === ui) correriaUi = null;
     },
-    again: startMinigame,
+    // Jogar de novo is always a real shift (the practice is only in front of the first one)
+    again: () => net.send({ t: 'mg', action: 'start' }),
+    practiceRound: () => {
+      // "?" → Treino in a real shift: the server ends this one (what was served is paid), then the practice order opens
+      if (ui.live) net.send({ t: 'mg', action: 'quit' });
+      ui.destroy();
+      startPractice();
+    },
   });
+  return ui;
+}
+
+/** The first-time tutorial: a practice order run in the client (ui/correriaPractice.ts). It opens once, before the first real shift. */
+function startPractice() {
+  closeDialogue();
+  correriaUi?.destroy();
+  const baker = game.liveNpcs(now()).some((n) => n.id === 'graca') ? 'graca' : 'carlos';
+  const p: CorreriaPractice = new CorreriaPractice(baker, {
+    start: () => {
+      localStorage.setItem(PRACTICE_KEY, '1');
+      net.send({ t: 'mg', action: 'start' });
+    },
+    closed: () => {
+      if (correriaUi === p.ui) correriaUi = null;
+    },
+  });
+  correriaUi = p.ui;
 }
 
 function failClearMinigame() {
@@ -167,6 +214,15 @@ function failClearMinigame() {
 // ---------------------------------------------------------------- helpers
 
 const now = () => performance.now();
+
+/** Keep your own nameplate in step with a profile push. A test profile also sees their own belt; other players still need a gi. */
+function syncSelfPlate(p: NonNullable<typeof game.profile>): void {
+  const me = game.avatars.get(p.id);
+  if (!me) return;
+  me.pub.nameplate = p.nameplate;
+  if (p.testUser) me.pub.belt = normalizeBjj(p.bjj).belt;
+  game.emit('avatars');
+}
 
 function toClientAvatar(pub: ClientAvatar['pub']): ClientAvatar {
   return { pub, from: { x: pub.x, y: pub.y }, path: [], start: now(), sitOnArrive: false, emote: null, bubbles: [], seed: Math.random() * 10 };
@@ -186,8 +242,25 @@ function walkTo(tile: Tile, pending: PendingAction | null, sit = false) {
     if (pending) runPending();
     return;
   }
+  // a second tap on where the avatar is already walking keeps the walk as it is: a new `move` would restart the path from the server's
+  // tile, a small pop backwards mid-stride (issue #154)
+  const end = game.self?.path.at(-1);
+  if (cur?.moving && end && end.x === tile.x && end.y === tile.y && sit === !!game.self?.sitOnArrive) return;
   net.send({ t: 'move', x: tile.x, y: tile.y, sit });
 }
+
+/** A floor tile the avatar can get to from where it is (the server would refuse the move otherwise). */
+function canWalkTo(tile: Tile): boolean {
+  const room = game.roomDef;
+  if (!room) return false;
+  const grid = buildGrid(room, game.furniture);
+  if (!isWalkable(grid, tile.x, tile.y)) return false;
+  const cur = selfTile();
+  return !cur || !!findPath(grid, cur.tile, tile);
+}
+
+/** Tap feedback on the ground (render/pixel/tapMark.ts). */
+const markTap = (kind: TapCue, at: { tile: Tile } | { px: number; py: number }) => renderer.markTap?.(kind, at);
 
 /** Prop whose interact tile the avatar is standing on (keyboard / proximity prompts). */
 function propOnInteractTile(): PropDef | undefined {
@@ -236,12 +309,42 @@ function openStall(propId?: string) {
   if (vendor !== 'banca') sendLine(`${VENDORS[vendor].npc}.${there ? 'greet' : 'closed'}`);
 }
 
+/** A feira vendor talks shop only at their open stall; anywhere else (Tia Lu's praça bench after 13:00) they are off duty (#170). */
+function vendorOffDuty(npc: NpcId): boolean {
+  if (!isStallVendor(npc)) return false;
+  return vendorTalkMode({ room: game.room?.room, activity: game.avatars.get(`npc-${npc}`)?.pub.activity }, clock.minutes()) === 'off_duty';
+}
+
+/** The arrivals hall's flight attendant, after her welcome (the first word): where you are and where the door is. needs_br: true */
+function openComissaria() {
+  const line = { pt: 'Aqui é o desembarque. Siga para o aeroporto pela porta de vidro.', en: 'This is arrivals. Go on to the airport through the glass door.' };
+  speak(line.pt, { speaker: 'comissaria' });
+  showDialogueBox({
+    key: 'talk-comissaria',
+    npcId: 'comissaria',
+    speaker: 'Comissária Lia',
+    role: 'Comissária de bordo',
+    expression: 'feliz',
+    line,
+    chips: [thanksFor(game.profile?.pronoun)],
+    onChip: () => {
+      closeDialogue();
+      npcSay('comissaria', { pt: 'Boa estadia!', en: 'Enjoy your stay!' });
+    },
+    onClose: closeDialogue,
+  });
+}
+
 function talkTo(npc: NpcDef['id']) {
   closeDialogue();
-  // the player chose to talk: an unheard idle line is this conversation's first line in the box (passing chatter stays a bubble and teaches nothing)
+  if (npc === 'comissaria') markDesembStep('falar');
+  // the player chose to talk: an unheard idle line is this conversation's first line in the box (passing chatter stays a bubble and teaches nothing).
+  // A vendor's idle lines are stall calls, so off duty they open with their own small talk instead.
   const speaker = game.liveNpcs(now()).find((n) => n.id === npc);
-  const idle = speaker ? talkIdleOpen(npc, speaker.idleLines, game.profile?.diary, clock.minutes()) : null;
-  const vendor = npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa';
+  const idle = speaker && !vendorOffDuty(npc) ? talkIdleOpen(npc, speaker.idleLines, game.profile?.diary, clock.minutes()) : null;
+  const vendor = isStallVendor(npc);
+  // read before `talk`: that message pays bond at once, and an idle line can sit on screen until the profile push lands
+  const juliaMet = npc === 'julia' && profileMetJulia();
   // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa,
   // the vendors through their stall panel (it sends `talk` itself)
   if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
@@ -250,14 +353,16 @@ function talkTo(npc: NpcDef['id']) {
     runPrelude(npc, {
       accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
       give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
-      proceed: () => talkFlow(npc),
+      proceed: () => talkFlow(npc, juliaMet),
     });
   if (!speaker || !idle) return proceed();
+  // the line over their head would say it twice: the box has it now
+  game.npcBubbles.delete(npc);
   let went = false;
+  // the next beat takes the same box in place (no close and reopen, the camera stays): one conversation, not two
   const go = () => {
     if (went) return;
     went = true;
-    closeDialogue();
     proceed();
   };
   speak(idle.line.pt, { speaker: npc });
@@ -275,11 +380,17 @@ function talkTo(npc: NpcDef['id']) {
   sendLine(idle.anchor);
 }
 
-function talkFlow(npc: NpcDef['id']) {
-  closeDialogue();
-  if (npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa') {
-    // a vendor resting on a bench (Tia Lu in the afternoon) is not serving: the closed note
-    if (game.avatars.get(`npc-${npc}`)?.pub.activity !== 'trabalhando') return openFeiraClosed(npc);
+/** On with the NPC's usual talk. The beat before it (the idle line, an errand) is replaced in place; a talk that opens no box of its own closes it. */
+function talkFlow(npc: NpcDef['id'], juliaMet = false) {
+  const before = dialogueBoxKey();
+  openTalk(npc, juliaMet);
+  if (before !== null && dialogueBoxKey() === before) closeDialogue();
+}
+
+function openTalk(npc: NpcDef['id'], juliaMet = false) {
+  if (isStallVendor(npc)) {
+    // a vendor away from the open stall (Tia Lu resting on a praça bench in the afternoon) is not serving: off-duty small talk
+    if (vendorOffDuty(npc)) return openFeiraOffDuty(npc);
     return openFeira(npc, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
   }
   if (npc === 'carlos' || npc === 'graca') {
@@ -312,6 +423,8 @@ function talkFlow(npc: NpcDef['id']) {
     openCelia(staffHooks);
   } else if (npc === 'agente') {
     openAgente(staffHooks);
+  } else if (npc === 'comissaria') {
+    openComissaria();
   } else {
     // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help)
     openNpcTalk(npc, {
@@ -319,6 +432,7 @@ function talkFlow(npc: NpcDef['id']) {
       onLine: (anchor) => sendLine(anchor),
       buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
       openMat: () => openBout(),
+      juliaAlreadyMet: npc === 'julia' ? juliaMet : undefined,
     });
   }
 }
@@ -326,6 +440,7 @@ function talkFlow(npc: NpcDef['id']) {
 /** Open the sign's card and tell the server (`read`: the words count as seen, a recado's `ler` step advances). */
 function readHotspot(hs: HotspotDef) {
   closeDialogue();
+  if (hs.room === 'desembarque') markDesembStep('placa');
   openHotspotCard(hs, { onSave: (cards) => openCaderno(cards[0]?.split('.')[1], cards) });
   net.send({ t: 'read', hotspotId: hs.id });
 }
@@ -339,6 +454,7 @@ function clickHotspot(hs: HotspotDef) {
   const grid = buildGrid(room, game.furniture);
   const spot = readSpot(hs, cur.tile, (x, y) => isWalkable(grid, x, y));
   if (!spot) return toast('info', 'Não consigo chegar perto disso.', 'I can’t get close to that.');
+  markTap('target', { tile: spot });
   walkTo(spot, { kind: 'hotspot', hotspotId: hs.id, tile: spot });
 }
 
@@ -514,6 +630,7 @@ function openShop() {
 
 function startMinigame() {
   closeDialogue();
+  if (practiceNeeded(localStorage.getItem(PRACTICE_KEY), !!game.profile?.tutorial.meveum)) return startPractice();
   net.send({ t: 'mg', action: 'start' });
 }
 
@@ -549,6 +666,22 @@ function updateGuides() {
   if (!p || !r || isDialogueBoxOpen() || boutUi?.open) return;
   const t = p.tutorial;
   const add = (g: Guide | null) => g && renderer.guides.push(g);
+  // the bakery game: a glowing start spot and a sign on the counter rail, "Comece aqui!" until the first shift
+  const playSpot = (en: string) => {
+    const g = guideAt('prop', 'trilho', 128, 'Jogar: Padaria');
+    const first = t.carlos && practiceNeeded(localStorage.getItem(PRACTICE_KEY), !!t.meveum);
+    return g ? { ...g, en, kind: 'play' as const, first } : null;
+  };
+  if (r.room === 'desembarque') {
+    // the arrivals hall's guided tutorial: one arrow, on whatever the current step needs (none on a HUD step: that button pulses)
+    const g = desembGuide();
+    if (g?.kind === 'tile') add({ x: g.x ?? 0, y: g.y ?? 0, lift: g.lift, label: g.label });
+    else if (g?.kind === 'hotspot') {
+      const hs = hotspotById(g.id);
+      if (hs) add({ x: hs.x + ((hs.w ?? 1) - 1) / 2, y: hs.y + (hs.h ?? 1) - 1, lift: g.lift, label: g.label });
+    } else if (g) add(guideAt(g.kind, g.id, g.lift, g.label));
+    return;
+  }
   if (r.room === 'aeroporto') {
     // the airport tutorial: one arrow, on whatever the current step needs
     const g = airportGuide();
@@ -558,6 +691,8 @@ function updateGuides() {
     } else if (g) add(guideAt(g.kind, g.id, g.lift, g.label));
     return;
   }
+  // the kitnet guide's floor steps: a free tile for the piece in hand, or the piece to rotate
+  if (r.room === 'kitnet') add(kitnetWorldGuide());
   if (r.room === 'rua') {
     if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →'));
     else if (!t.chapeu) add(guideAt('portal', 'rua_praca_1', 60, 'Chapéus: Praça ↓'));
@@ -565,6 +700,9 @@ function updateGuides() {
     if (t.meveum) add(guideAt('portal', 'rua_leste_1', 60, 'Academia: leste →'));
     // an owner's shop is behind the same door: their name over it, every visit
     if (t.carlos && p.padaria) add(guideAt('portal', 'praca_padaria', 110, `${p.padaria.name} ↑`));
+    // the Padaria's own sign on its door, every visit: the bakery game is inside
+    const door = guideAt('portal', 'praca_padaria', 0, '🥖 Padaria · Jogar no balcão');
+    if (door) add({ ...door, en: 'Bakery · Play the bakery game inside', kind: 'door' });
   } else if (r.room === 'rua_leste') {
     if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
     else if (!t.carlos) add(guideAt('portal', 'leste_rua_1', 60, '← Padaria: pela Rua'));
@@ -584,7 +722,7 @@ function updateGuides() {
   } else if (r.room === 'padaria' && r.padaria) {
     // a player-owned padaria: no baker on duty, the owner works the counter
     if (r.padaria.owner) {
-      add(guideAt('prop', 'trilho', 128, 'Seu balcão: Correria'));
+      add(playSpot('Play the bakery · your counter'));
       // on the vaso itself (its interact tile is where you stand, so an arrow there points at your own head)
       const vaso = game.roomDef?.props.find((q) => q.id === 'padaria_porta_fundar');
       if (vaso) add({ x: vaso.x, y: vaso.y, lift: 60, label: 'Melhorias' });
@@ -598,8 +736,8 @@ function updateGuides() {
     const baker = game.liveNpcs(now()).find((q) => q.id === 'carlos' || q.id === 'graca');
     if (baker?.id === 'graca') add(guideAt('npc', 'graca', 130, t.carlos ? 'Falar com Dona Graça' : 'Fale com a Dona Graça'));
     else add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
-    if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
-    else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
+    add(playSpot('Play the bakery'));
+    if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
   } else if (r.room === 'academia') {
     // one step at a time; the exit arrow only once the gi is bought (the kimono arrow and "← Rua" sat on top of each other by the lockers)
     if (!p.giOwned) add(guideAt('prop', 'vestiario', 160, '1 · Kimono aqui'));
@@ -690,18 +828,23 @@ net.on((m: ServerMsg) => {
     case 'admin':
       onAdminMsg(m);
       break;
+    case 'layout':
+      applyServerLayout(m.room, m.objects);
+      break;
     case 'welcome': {
       clock.syncServer(m.serverNow);
       if (m.weather !== undefined) clock.setWeather(m.weather);
       localStorage.setItem(TOKEN_KEY, m.token);
       game.profile = m.profile;
+      if (m.layouts) for (const row of m.layouts) applyServerLayout(row.room, row.objects);
       closeOnboarding();
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto';
-      // a new arrival lands at the airport (the tutorial); everybody else comes back where they were, or to the praça
-      joinRoom(m.profile.arrivalIntroDone === false ? 'aeroporto' : remembered ? last : 'praca');
+      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque';
+      // a new arrival starts in the arrivals hall (the guided tutorial), then the airport until Célia's hand-over; everybody else comes
+      // back where they were, or to the praça
+      joinRoom(firstRoom(m.profile) ?? (remembered ? last : 'praca'));
       syncGrants((id) => net.send({ t: 'grant', id }));
       game.emit('profile');
       break;
@@ -710,7 +853,9 @@ net.on((m: ServerMsg) => {
       if (m.code === 'far' || m.code === 'photo' || m.code === 'film' || m.code === 'camera') dropPendingPrint();
       if (m.code === 'feira_closed') closeFeiraGame();
       if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
-      else toast('error', m.pt, m.en);
+      else if (m.code === 'petName' && showPetNameError(m.pt, m.en)) {
+        /* the naming dialog shows the note */
+      } else toast('error', m.pt, m.en);
       onFeiraError();
       break;
     case 'feira':
@@ -725,17 +870,21 @@ net.on((m: ServerMsg) => {
       break;
     case 'profile':
       game.profile = m.profile;
+      syncSelfPlate(m.profile);
       if (!m.profile.hasCamera) game.cameraOn = false;
       syncCameraBanner();
       syncGrants((id) => net.send({ t: 'grant', id }));
       game.emit('profile');
       updateGuides();
+      maybeAskPetName();
       break;
     case 'roomState': {
       clock.syncServer(m.serverNow);
       const keepMg = !!correriaUi?.open && game.room?.room === m.room;
       // off the airport bus: the tutorial's last step is done, and the Vila says hello
       const offTheBus = game.room?.room === 'aeroporto' && m.room === 'rua_leste';
+      // out of the arrivals hall's doors: its last step, and the airport's "what next"
+      const outOfHall = game.room?.room === 'desembarque' && m.room === 'aeroporto';
       // a new room state (a join, a reconnect) ends any bout: the server dropped it too
       boutUi?.destroy();
       boutUi = null;
@@ -749,6 +898,10 @@ net.on((m: ServerMsg) => {
       game.room = m;
       if (m.feiraCart) game.feiraCart = m.feiraCart;
       game.avatars = new Map(m.avatars.map((a) => [a.id, toClientAvatar(a)]));
+      if (game.profile?.testUser) {
+        const me = game.avatars.get(game.profile.id);
+        if (me) me.pub.belt = normalizeBjj(game.profile.bjj).belt;
+      }
       game.furniture = m.furniture;
       game.pending = null;
       game.editMode = false;
@@ -760,11 +913,16 @@ net.on((m: ServerMsg) => {
       updateGuides();
       game.emit('room');
       game.emit('decor');
+      if (outOfHall) {
+        markDesembStep('porta');
+        net.send({ t: 'arrival', action: 'landed' });
+        if (game.profile?.arrivalIntroDone === false) setTimeout(showAirportNext, 700);
+      } else showRoomIntro(m.room, doorTagsFor(ROOMS[m.room]), game.profile?.id);
       if (offTheBus) {
         markAirportStep('onibus');
         setTimeout(() => toast('info', 'Bem-vindo à Vila Ipê! A Júlia te espera na praça: siga a Rua pra oeste.', 'Welcome to Vila Ipê! Júlia is waiting in the square: follow the street west.'), 900);
       }
-      if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira)
+      if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira && !kitnetGuideRunning())
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
       // your own padaria: what is where, the first time you stand in it
       if (m.padaria?.owner) setTimeout(welcomeOwner, 900);
@@ -790,6 +948,7 @@ net.on((m: ServerMsg) => {
       if (keepMg) correriaUi?.requestSync();
       syncAcademyFloor();
       syncPadariaFloor();
+      maybeAskPetName();
       break;
     }
     case 'academy':
@@ -841,6 +1000,7 @@ net.on((m: ServerMsg) => {
       a.sitOnArrive = m.sit;
       a.pub.sitting = false;
       game.emit('avatars');
+      if (m.id === game.profile?.id) markDesembStep('andar');
       break;
     }
     case 'avatarUpdated': {
@@ -848,6 +1008,7 @@ net.on((m: ServerMsg) => {
       if (!a) break;
       const moving = renderer.avatarPos(a, now()).moving;
       a.pub = m.avatar;
+      if (game.profile?.testUser && game.profile.id === m.avatar.id) a.pub.belt = normalizeBjj(game.profile.bjj).belt;
       if (!moving) {
         a.from = { x: m.avatar.x, y: m.avatar.y };
         a.path = [];
@@ -859,12 +1020,14 @@ net.on((m: ServerMsg) => {
     case 'emote': {
       const a = game.avatars.get(m.id);
       if (a) a.emote = { kind: m.kind, t0: now() / 1000 };
+      if (m.id === game.profile?.id) markDesembStep('chat');
       break;
     }
     case 'chat': {
       const a = game.avatars.get(m.id);
       // Live Ops lock: CPUs never chat — guard against server bugs/injection
       if (a && !a.pub.cpu) a.bubbles.push({ text: m.text, gloss: game.englishHelp ? m.gloss : null, at: now() });
+      if (m.id === game.profile?.id) markDesembStep('chat');
       break;
     }
     case 'notice':
@@ -924,6 +1087,8 @@ net.on((m: ServerMsg) => {
       }
       break;
     case 'mg':
+      // The practice order is local: the end of a shift left for it (Treino) must not land on its counter.
+      if (correriaUi?.open && correriaUi.practice) break;
       // A lost-shift reply to a resync that arrives with no counter open has nothing to show.
       if (!correriaUi?.open) {
         if (m.phase !== 'state') break;
@@ -977,7 +1142,7 @@ net.on((m: ServerMsg) => {
     case 'tutorial': {
       const s = TUTORIAL_STEPS.find((x) => x.id === m.step);
       // in the airport the checklist ticks these itself (in its own words: "Ande pelo terminal", not "pela praça")
-      const ticked = inAirport() && (m.step === 'andar' || m.step === 'sentar' || m.step === 'acenar');
+      const ticked = (inAirport() || inDesembarque()) && (m.step === 'andar' || m.step === 'sentar' || m.step === 'acenar');
       if (s && !ticked) toast('reward', `✓ ${s.pt}`, s.en);
       updateGuides();
       break;
@@ -1001,6 +1166,7 @@ function ambientBubblesFull(): boolean {
 
 function startGame() {
   started = true;
+  bindPetName((pet, name) => net.send({ t: 'perk', action: 'petName', pet, name }));
   window.dispatchEvent(new Event('tb:game-start'));
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && correriaUi?.live) correriaUi.requestSync();
@@ -1009,8 +1175,14 @@ function startGame() {
     chat: (text) => net.send({ t: 'chat', text }),
     emote: (kind: EmoteKind) => net.send({ t: 'emote', kind }),
     stand: () => net.send({ t: 'stand' }),
-    carry: (action) => net.send({ t: 'carry', action }),
-    openMap: () => openMap((room) => joinRoom(room)),
+    carry: (action) => {
+      game.carryIntent = { action, at: performance.now() };
+      net.send({ t: 'carry', action });
+    },
+    openMap: () => {
+      markDesembStep('mapa');
+      openMap((room) => joinRoom(room));
+    },
     openCredits,
     openSupport: () => {
       void openSupport({
@@ -1023,11 +1195,18 @@ function startGame() {
         },
         setPet: (pet) => net.send({ t: 'perk', action: 'pet', pet }),
         setBubble: (style) => net.send({ t: 'perk', action: 'bubble', style }),
+        renamePet: (pet) => openPetName(pet),
       });
     },
     openCaderno: () => {
-      markAirportStep('diario');
+      markDesembStep('diario');
       openCaderno();
+    },
+    replayTutorial: () => {
+      closeModal();
+      closeDialogue();
+      resetDesembTutorial();
+      joinRoom('desembarque');
     },
     toggleCamera: () => {
       if (!game.profile?.hasCamera) return;
@@ -1085,6 +1264,14 @@ function startGame() {
   });
   mountTracker(openJournal);
   mountAirportTutorial(updateGuides);
+  mountDesembTutorial({
+    onStep: updateGuides,
+    skip: () => {
+      net.send({ t: 'arrival', action: 'landed' });
+      joinRoom('aeroporto');
+    },
+  });
+  installHowToPlay();
   decor = buildDecorPanel({
     buy: (id) => net.send({ t: 'buy', kind: 'furniture', itemId: id }),
     rotate: (uid) => {
@@ -1102,18 +1289,24 @@ function startGame() {
       game.emit('decor');
       game.emit('hud');
     },
+    help: startKitnetGuide,
   });
+  mountKitnetGuide({ tab: () => decor?.tab() ?? 'meus', onStep: updateGuides });
   const idleTalk = new IdleTalk();
   setInterval(() => {
-    const npcs = game.liveNpcs(now());
+    // the one talking with you in the box does not chatter over their own head
+    const talking = dialogueBoxNpc();
+    const npcs = game.liveNpcs(now()).filter((n) => n.id !== talking);
     if (!npcs.length || document.hidden || ambientBubblesFull()) return;
     const n = npcs[Math.floor(Math.random() * npcs.length)];
-    npcSay(n.id, localizeGreeting(idleTalk.next(n.idleLines, clock.weather(), clock.minutes()), clock.minutes()));
+    // a vendor's own idle lines are stall calls: off duty they chat about their day instead
+    const own = isStallVendor(n.id) && vendorOffDuty(n.id) ? OFF_DUTY[n.id].lines : n.idleLines;
+    npcSay(n.id, localizeGreeting(idleTalk.next(own, clock.weather(), clock.minutes()), clock.minutes()));
   }, 11_000);
-  // the feira: a vendor calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
+  // the feira: a vendor at the open stall calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
   setInterval(() => {
     if (document.hidden || game.modalOpen || ambientBubblesFull()) return;
-    const vendors = game.liveNpcs(now()).filter((n) => n.id === 'tia_lu' || n.id === 'ze' || n.id === 'chico' || n.id === 'rosa');
+    const vendors = game.liveNpcs(now()).filter((n) => isStallVendor(n.id) && !vendorOffDuty(n.id));
     if (!vendors.length) return;
     const n = vendors[Math.floor(Math.random() * vendors.length)]!;
     const calls = VENDORS[n.id as 'tia_lu'].calls;
@@ -1135,7 +1328,6 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       if (hit.prop.action === 'padaria_door' && here) return here.owner ? ['Melhorias da padaria', 'Upgrades — size and sweets'] : [here.name, `${here.ownerName}’s bakery — about this shop`];
       if (hit.prop.action === 'padaria_counter' && here) return [`Balcão da ${here.name}`, 'House counter — buy here'];
       if (hit.prop.action === 'padaria_door' && own) return [`Sua padaria: ${own.name}`, `Your bakery: ${own.name} — click to go in`];
-      if (hit.prop.action === 'feira_cart' && game.feiraCart?.closed) return [FEIRA_CART_CLOSED.pt, FEIRA_CART_CLOSED.en];
       return hit.prop.label ? [hit.prop.label.pt, hit.prop.label.en] : null;
     }
     case 'hotspot': {
@@ -1169,6 +1361,7 @@ function handleClick(hit: Hit | null) {
 }
 
 function handleClickInner(hit: Hit | null) {
+  if (game.designMode) return;
   if (!hit || !game.room) return;
   if (game.placing) {
     const tile = hit.kind === 'tile' ? hit.tile : renderer.tileAt(lastPointer.x, lastPointer.y);
@@ -1195,7 +1388,7 @@ function handleClickInner(hit: Hit | null) {
     case 'avatar': {
       if (isCpuId(hit.id)) {
         const t = renderer.tileAt(lastPointer.x, lastPointer.y);
-        if (t) walkTo(t, null);
+        if (t) walkToFloor(t);
         break;
       }
       const a = game.avatars.get(hit.id);
@@ -1208,38 +1401,56 @@ function handleClickInner(hit: Hit | null) {
       break;
     }
     case 'npc':
+      markTap('target', { tile: hit.npc.interact });
       walkTo(hit.npc.interact, { kind: 'npc', npc: hit.npc.id, tile: hit.npc.interact });
       break;
     case 'prop': {
       const p: PropDef = hit.prop;
       if (game.cameraOn) break;
-      if (p.action && p.interact) walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });
-      else if (cameraObjectIds().has(p.id)) toast('info', 'Abra a câmera pra fotografar.', 'Open the camera to take a photo.');
+      if (p.action && p.interact) {
+        markTap('target', { tile: p.interact });
+        walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });
+      } else if (cameraObjectIds().has(p.id)) toast('info', 'Abra a câmera pra fotografar.', 'Open the camera to take a photo.');
+      else markTap('refused', { px: lastPointer.x, py: lastPointer.y }); // scenery: nothing to do there
       break;
     }
     case 'hotspot':
       clickHotspot(hit.hotspot);
       break;
-    case 'portal':
-      walkTo({ x: hit.portal.x, y: hit.portal.y }, { kind: 'portal', portalId: hit.portal.id, tile: { x: hit.portal.x, y: hit.portal.y } });
+    case 'portal': {
+      const tile = { x: hit.portal.x, y: hit.portal.y };
+      markTap('target', { tile });
+      walkTo(tile, { kind: 'portal', portalId: hit.portal.id, tile });
       break;
+    }
     case 'seat':
+      markTap('target', { tile: hit.tile });
       walkTo(hit.tile, null, true);
       break;
     case 'furniture':
       break;
     case 'tile':
-      walkTo(hit.tile, null);
+      walkToFloor(hit.tile);
       break;
   }
+}
+
+/** A tap on the floor: the white ring and the walk, or the refused cross where nobody can stand (or get to). */
+function walkToFloor(tile: Tile): void {
+  if (!canWalkTo(tile)) {
+    markTap('refused', { tile });
+    return;
+  }
+  markTap('walk', { tile });
+  walkTo(tile, null);
 }
 
 /** Target of the `window.__tb.interact` test hook: something in the current room, by id. */
 type InteractTarget = { npc: NpcId } | { prop: string } | { portal: string } | { hotspot: string };
 
-/** Resolve a target in `ROOMS[game.room.room]` and feed the matching Hit through `handleClick`. Returns false if not found. */
+/** Resolve a target in the room as it is drawn and feed the matching Hit through `handleClick`. Returns false if not found. */
 function interact(target: InteractTarget): boolean {
-  const room = game.room ? ROOMS[game.room.room] : null;
+  const room = game.roomDef;
   if (!room) return false;
   let hit: Hit | null = null;
   if ('npc' in target) {
@@ -1306,25 +1517,72 @@ function onWorldActivate(clientX: number, clientY: number) {
     takePhoto(clientX, clientY);
     return;
   }
-  handleClick(renderer.hitTest(clientX, clientY));
+  const hit = renderer.hitTest(clientX, clientY);
+  // off the walkable map (the town drawn around a street, the backdrop past a room): nothing to walk to
+  if (!hit && game.room && !game.placing && !game.editMode) markTap('refused', { px: clientX, py: clientY });
+  handleClick(hit);
 }
-// viewport.ts preventDefault()s touchmove, which cancels the synthetic click as soon as the finger
-// jitters. A touch release within this radius is still a tap; a mouse release on the canvas is a click.
-const TAP_SLOP_PX = 10;
-let worldDown: { id: number; x: number; y: number; touch: boolean } | null = null;
+
+// ---------------------------------------------------------------- tap, click and steer on the world canvas
+// viewport.ts preventDefault()s touchmove, which cancels the synthetic click as soon as the finger jitters, so taps are told apart here
+// (tapGesture.ts): a mouse release is a click, a finger lifted near where it went down is a tap, and a finger dragged or held on the floor steers.
+const gesture = new TapGesture();
+let holdTimer = 0;
+let steerTile: Tile | null = null;
+let steerAt = 0;
+let steerTrail = 0;
+
+/** Nothing on the canvas takes input right now (a sheet, the mat, the camera, decorating): no steering either. */
+const steerBlocked = () => !game.room || !!boutUi?.open || game.modalOpen || game.cameraOn || game.editMode || !!game.placing;
+
+/** The finger steers: walk toward the floor tile under it, at most every STEER_MS and only when the tile changes. `force` skips the wait. */
+function steerTo(clientX: number, clientY: number, force = false): void {
+  if (steerBlocked()) return;
+  const tile = renderer.tileAt(clientX, clientY);
+  if (!tile || (steerTile && steerTile.x === tile.x && steerTile.y === tile.y)) return;
+  window.clearTimeout(steerTrail);
+  if (!force && now() - steerAt < STEER_MS) {
+    // too soon after the last move: send this one when the wait is over, unless the finger has moved on or lifted by then
+    steerTrail = window.setTimeout(() => gesture.steering && steerTo(clientX, clientY, true), STEER_MS - (now() - steerAt));
+    return;
+  }
+  // a finger on a wall or a stall keeps the last good spot instead of flashing the refused cross under a moving finger
+  if (!canWalkTo(tile)) return;
+  steerTile = tile;
+  steerAt = now();
+  hoverLabel(0, 0, null);
+  markTap('steer', { tile });
+  walkTo(tile, null);
+}
+
 canvas.addEventListener('pointerdown', (e) => {
   if (e.button !== 0 || !e.isPrimary) return;
-  worldDown = { id: e.pointerId, x: e.clientX, y: e.clientY, touch: e.pointerType === 'touch' };
+  const touch = e.pointerType !== 'mouse';
+  gesture.start(e.pointerId, e.clientX, e.clientY, now(), touch);
+  steerTile = null;
+  window.clearTimeout(holdTimer);
+  if (!touch) return;
+  // held still on the floor: start walking there now and follow the finger (a hold on a person or a door is still a tap on release)
+  const { clientX: x, clientY: y } = e;
+  holdTimer = window.setTimeout(() => {
+    if (!gesture.holdDue(now()) || steerBlocked()) return;
+    if (renderer.hitTest(x, y)?.kind !== 'tile') return;
+    gesture.steer();
+    steerTo(x, y, true);
+  }, HOLD_MS);
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (gesture.move(e.pointerId, e.clientX, e.clientY) === 'steer') steerTo(e.clientX, e.clientY);
 });
 canvas.addEventListener('pointerup', (e) => {
-  const down = worldDown;
-  if (!down || e.pointerId !== down.id) return;
-  worldDown = null;
-  if (down.touch && Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP_PX) return;
-  onWorldActivate(e.clientX, e.clientY);
+  window.clearTimeout(holdTimer);
+  const r = gesture.end(e.pointerId, e.clientX, e.clientY);
+  if (r === 'tap') onWorldActivate(e.clientX, e.clientY);
+  else if (r === 'steer') steerTo(e.clientX, e.clientY, true);
 });
 canvas.addEventListener('pointercancel', (e) => {
-  if (worldDown?.id === e.pointerId) worldDown = null;
+  window.clearTimeout(holdTimer);
+  gesture.cancel(e.pointerId);
 });
 document.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement)?.tagName;
@@ -1337,6 +1595,7 @@ document.addEventListener('keydown', (e) => {
   }
   if ((e.key === 'r' || e.key === 'R') && game.placing) {
     game.placing.rot = game.placing.rot === 0 ? 1 : 0;
+    game.emit('decor');
   }
   if (e.key === 'Escape') {
     game.placing = null;
@@ -1362,7 +1621,7 @@ let lastKeyStep = 0;
 let firstKeyAt = 0;
 const KEY_CHORD_MS = 60;
 function keyWalk() {
-  if (!heldArrows.length || !game.room || game.editMode || game.placing) return;
+  if (!heldArrows.length || !game.room || game.editMode || game.placing || game.designMode) return;
   const cur = selfTile();
   const room = game.roomDef;
   // wait for the server's answer to the previous step before asking for the next one
@@ -1530,6 +1789,10 @@ window.__tb = {
     if (o.speed !== undefined) clock.setSpeed(o.speed);
   },
   tileToClient: (x: number, y: number) => renderer.tileToClient(x, y),
+  clientToWorld: (x: number, y: number) => ('clientToWorld' in renderer ? (renderer as { clientToWorld: (x: number, y: number) => { wx: number; wy: number } | null }).clientToWorld(x, y) : null),
+  propClientRect: (p: { x: number; y: number; w?: number; h?: number }) => ('propClientRect' in renderer ? (renderer as { propClientRect: (p: { x: number; y: number; w?: number; h?: number }) => { x: number; y: number; w: number; h: number } | null }).propClientRect(p) : null),
+  /** Frame names of the sprites in the current room (the Feira game cart and its sign, when they are up). */
+  drawnFrames: () => ('drawnFrames' in renderer ? (renderer as { drawnFrames: () => string[] }).drawnFrames() : []),
   selfTile: () => selfTile(),
   clickHit: (hit: Hit) => handleClick(hit),
   /** Renderer-independent walk: the same function the click handler uses. */
@@ -1540,6 +1803,8 @@ window.__tb = {
   get decor() {
     return decor;
   },
+  /** The kitnet first-visit guide: running or not, and its world arrow (the tile it suggests), for the shots and e2e. */
+  kitnetGuide: () => ({ running: kitnetGuideRunning(), world: kitnetWorldGuide() }),
   /** Treino no tatame: the live overlay and the feed the world scene reads (e2e and shots). */
   bout: {
     get ui() {

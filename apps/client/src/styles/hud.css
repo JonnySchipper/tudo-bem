@@ -174,17 +174,70 @@
 /* Fala — always on the strip, desktop and phone, one tap to the note form. */
 .hud-feedback {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  gap: 8px;
   flex: none;
-  min-width: 64px;
   height: 44px;
-  padding: 2px 10px 4px;
+  padding: 2px 10px 4px 9px;
   cursor: pointer;
   font: inherit;
   line-height: 1.05;
+}
+
+.hud-feedback-words {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* a speech bubble drawn in blocks: terracotta, three cream dots, a stepped tail */
+.fala-bubble {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 22px;
+  height: 15px;
+  margin-bottom: 4px;
+  background: var(--terracota);
+  box-shadow:
+    0 0 0 2px var(--hud-ink),
+    inset 0 2px 0 #e07a40;
+}
+
+.fala-bubble::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  width: 3px;
+  height: 3px;
+  background: #fff3e0;
+  box-shadow:
+    5px 0 0 #fff3e0,
+    10px 0 0 #fff3e0;
+}
+
+.fala-bubble::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: calc(100% + 2px);
+  width: 6px;
+  height: 6px;
+  background: var(--hud-ink);
+  clip-path: polygon(0 0, 100% 0, 100% 34%, 67% 34%, 67% 67%, 34% 67%, 34% 100%, 0 100%);
+}
+
+.hud-feedback:hover .fala-bubble,
+.hud-feedback:focus-visible .fala-bubble {
+  animation: fala-nudge 0.4s steps(2, end) 1;
+}
+
+@keyframes fala-nudge {
+  50% {
+    transform: translateY(-2px) rotate(-6deg);
+  }
 }
 
 .hud-feedback .pt {
@@ -223,6 +276,37 @@
   min-height: 44px;
   padding: 2px 12px;
 }
+
+.hud-belt {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.hud-belt .band {
+  width: 16px;
+  height: 7px;
+  border: 2px solid #1c1c28;
+  box-sizing: border-box;
+}
+
+.hud-belt .pip {
+  width: 4px;
+  height: 7px;
+  border: 1px solid #1c1c28;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.hud-belt .pip.on {
+  background: #1c1c28;
+}
+
+.hud-belt.belt-branca .band { background: #f4f1ea; }
+.hud-belt.belt-azul .band { background: #2f5fb0; }
+.hud-belt.belt-roxa .band { background: #6b3fa0; }
+.hud-belt.belt-marrom .band { background: #6b3a1f; }
+.hud-belt.belt-preta .band { background: #1c1c28; }
 
 .hud-verde {
   display: inline-flex;
@@ -876,6 +960,35 @@ body:has(.dbx) .bottombar {
     display: none;
   }
 
+  /* Fala on the phone strip: the bubble over a small label, as wide as the burger, so the left plate keeps its room */
+  .hud-feedback {
+    flex-direction: column;
+    gap: 0;
+    width: 48px;
+    padding: 4px 0 2px;
+  }
+
+  .hud-feedback .fala-bubble {
+    margin-bottom: 6px;
+  }
+
+  .hud-feedback .fala-bubble::after {
+    left: 15px;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 67% 100%, 67% 67%, 34% 67%, 34% 34%, 0 34%);
+  }
+
+  .hud-feedback .hud-gloss {
+    display: none;
+  }
+
+  .hud-feedback-words {
+    align-items: center;
+  }
+
+  .hud-feedback .pt {
+    font-size: 11px;
+  }
+
   button.hud-burger {
     display: grid;
     place-items: center;
@@ -1134,6 +1247,11 @@ body:has(.dbx) .bottombar {
   .parrot-whisper {
     bottom: 150px;
   }
+
+  /* the airport's tutorial card takes the tracker's corner and most of the width; the Cartela chip would sit on it (it is for the praça) */
+  body.in-aeroporto #cartela-pill {
+    display: none;
+  }
 }
 
 @media (max-height: 520px) {
@@ -1151,8 +1269,47 @@ body:has(.hud-actions.open) .toasts {
   visibility: hidden;
 }
 
+/* ---------------------------------------------------------------- desktop UI scale (issue #169)
+ * On a big screen everything that floats over the world is drawn at --ui-scale (styles.css: 1 on phones and small windows, 1.25, 1.5) with
+ * CSS zoom, so the pixel frames, icons and text grow together. Zoom multiplies every length inside the element, `top` and vw included, but not
+ * percentages; so a position measured in screen px (--hud-bottom, --toast-top from hudLayout.ts) or a vw cap is divided by the scale here.
+ * At 1 every rule below is a no-op, so the phone layout is untouched. */
+.topbar,
+.bottombar,
+.toast,
+.rtrack,
+.mission-banner,
+.parrot-whisper,
+.recado-done {
+  zoom: var(--ui-scale);
+}
+
+.rtrack {
+  top: calc(var(--hud-bottom, 62px) / var(--ui-scale) + 10px);
+  max-width: calc((100vw - 24px) / var(--ui-scale));
+}
+
+.mission-banner {
+  top: calc(var(--toast-top, 70px) / var(--ui-scale) + 4px);
+}
+
+/* the toast stack stays unzoomed (bout / correria move it in screen px); each toast is zoomed, so the column widens with the scale */
+@media (min-width: 900px) and (min-height: 521px) {
+  .toasts {
+    width: clamp(calc(260px * var(--ui-scale)), calc(50vw - 330px * var(--ui-scale)), calc(400px * var(--ui-scale)));
+  }
+}
+
+/* 1.25 on a 1200-1799 px window: the plate gives up the "Tudo Bem" word (the mark stays) so the place name keeps its room */
+@media (min-width: 1200px) and (max-width: 1799px) and (min-height: 760px) {
+  .brand .logo {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .toast {
-    animation: none;
+  .toast,
+  .fala-bubble {
+    animation: none !important;
   }
 }

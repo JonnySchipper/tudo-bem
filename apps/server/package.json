@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node22 --external:bufferutil --external:utf-8-validate --external:onnxruntime-node --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=dist/index.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node22 --external:bufferutil --external:utf-8-validate --external:onnxruntime-node --external:better-sqlite3 --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=dist/index.js",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@huggingface/tokenizers": "0.2.0",
+    "better-sqlite3": "^13.0.3",
     "jose": "^6.2.12",
     "onnxruntime-node": "1.30.0",
     "ws": "^8.21.3"

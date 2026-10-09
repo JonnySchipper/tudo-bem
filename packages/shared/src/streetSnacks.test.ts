@@ -11,7 +11,7 @@ describe('praça pipoca', () => {
     ]);
     expect(snackAddon('pipoca_salgada')).toBeUndefined();
     const leite = snackAddon('pipoca_doce');
-    expect(leite).toMatchObject({ id: 'pipoca_doce_leite', price: 10, icon: 'pipoca', addonOf: 'pipoca_doce' });
+    expect(leite).toMatchObject({ id: 'pipoca_doce_leite', price: 10, icon: 'pipoca_leite', addonOf: 'pipoca_doce' });
     expect(leite!.price).toBe(7 + LEITE_CONDENSADO_RV);
     expect(STREET_SNACKS.some((s) => s.addonOf === 'pipoca_salgada')).toBe(false);
     expect(snackById('pipoca')?.id).toBe('pipoca_salgada');

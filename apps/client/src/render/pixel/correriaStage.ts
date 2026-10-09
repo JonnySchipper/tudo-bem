@@ -16,6 +16,7 @@ import {
   CAFE_ITEMS,
   JUICE,
   MG_ITEMS,
+  POUR,
   SHELF_OF,
   SUCO_ITEMS,
   chapaFrame,
@@ -24,6 +25,7 @@ import {
   npcDefById,
   patienceStage,
   pourFrame,
+  pourZone,
   tipJarStage,
   whoAppearance,
   type CEvent,
@@ -113,6 +115,13 @@ type Img = Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
 const shelfKey = (id: string): string => (SUCO_ITEMS.includes(id) ? CRATE_KEY : itemKey(id));
 /** The next orange's size, said on the machine: pequena / média / grande. */
 const SIZE_WORD = { p: { pt: 'pequena', en: 'small' }, m: { pt: 'média', en: 'medium' }, g: { pt: 'grande', en: 'big' } } as const;
+/** The coffee machine's tap label through a pour. */
+const MACHINE_LABELS = {
+  idle: { pt: 'Cafeteira', en: 'Tap to pour' },
+  filling: { pt: 'Enchendo…', en: 'Filling… wait for green' },
+  agora: { pt: 'Agora!', en: 'Tap now!' },
+  over: { pt: 'Derramando!', en: 'Spilling!' },
+} as const;
 
 /** A sprite that can change its manifest key; a missing key is a magenta box of the contracted size. */
 class Piece {
@@ -239,6 +248,8 @@ export class CounterStage {
   private steamAt = 0;
   private lastTray: string[] = [];
   private lastTips = 0;
+  /** Items made at least once this shift: their NOVO badge goes away. */
+  private tried = new Set<string>();
   private pops: { el: HTMLElement; wx: number; wy: number; until: number }[] = [];
   private hotEl: HTMLElement | null = null;
   private popsEl: HTMLElement | null = null;
@@ -444,6 +455,7 @@ export class CounterStage {
     this.clearParticles();
     this.lastTray = [];
     this.lastTips = 0;
+    this.tried.clear();
     this.bellUntil = 0;
     this.pouring = false;
     this.spillUntil = 0;
@@ -526,22 +538,34 @@ export class CounterStage {
   /** Items are lit up when the player can use them: dimmed when they are not on this shift's menu. An empty menu (old snap) leaves the shelf open. */
   private drawPieces(snap: CorreriaSnap, age: number): void {
     const open = snap.menu?.length ? new Set(snap.menu) : null;
+    // what this shift added wears a NOVO badge until it is first made
+    const fresh = new Set((snap.ladder?.fresh ?? []).filter((id) => !this.tried.has(id)));
     for (const it of MG_ITEMS) {
       const lock = !!open && !open.has(it.id);
       const p = this.items.get(it.id)!;
       p.set(shelfKey(it.id), { alpha: lock ? 0.28 : 1, scale: ITEM_SCALE });
       const hot = this.hot.get(`item-${it.id}`);
-      if (hot) hot.el.disabled = lock;
+      if (hot) {
+        hot.el.disabled = lock;
+        hot.el.classList.toggle('cr-new', fresh.has(it.id));
+      }
     }
+    this.hot.get('juicer')?.el.classList.toggle('cr-new', SUCO_ITEMS.some((id) => fresh.has(id)));
     const machine = this.hot.get('machine');
     if (machine) {
       const live = !!snap.pour || this.pouring;
       machine.el.disabled = !!open && !open.has('cafe') && !open.has('cafe_com_leite');
-      const pt = machine.el.querySelector('.cr-lab');
-      const en = machine.el.querySelector('.cr-lab-en');
-      if (pt) pt.textContent = live ? 'Toque de novo' : 'Cafeteira';
-      if (en) en.textContent = live ? 'Tap again at the right time' : 'Tap to pour';
-      machine.el.setAttribute('aria-label', live ? 'Toque de novo (Tap again at the right time)' : 'Cafeteira (Tap to pour)');
+      // idle → filling ("espere…") → "Agora!" in the window → "Derramando!" past the brim
+      const zone = snap.pour ? pourZone((snap.pour.age + age) / snap.pourMs) : live ? 'filling' : 'idle';
+      const lab = MACHINE_LABELS[zone];
+      if (machine.el.dataset.zone !== zone) {
+        machine.el.dataset.zone = zone;
+        const pt = machine.el.querySelector('.cr-lab');
+        const en = machine.el.querySelector('.cr-lab-en');
+        if (pt) pt.textContent = lab.pt;
+        if (en) en.textContent = lab.en;
+        machine.el.setAttribute('aria-label', `${lab.pt} (${lab.en})`);
+      }
     }
     // the tray: the base plus a miniature per item (a full one past five)
     const tray = snap.tray;
@@ -1010,17 +1034,24 @@ export class CounterStage {
       const phase = chapaPhase(a);
       g.fillStyle(phase === 'burnt' ? 0xc0392b : 0xfff2c2, 1).fillRect(x + Math.round(w * u), y - 1, 1, 4);
     });
-    // coffee: a vertical fill bar beside the machine, the good zone marked
+    // coffee: a vertical fill bar beside the machine, scaled past the brim so an overpour shows. The green band is the server's window
+    // (POUR.goodMin..spillAt), the red notch the brim; in the window the bar blinks bright (steady under reduced motion).
     if (snap.pour) {
-      const fill = Math.min(1.15, (snap.pour.age + age) / snap.pourMs);
+      const fill = (snap.pour.age + age) / snap.pourMs;
+      const zone = pourZone(fill);
       const x = 117;
       const top = COFFEE_SPOT.y - 38;
       const hgt = 34;
+      const max = 1.3;
+      const yOf = (f: number) => top + hgt - Math.round((hgt * Math.min(max, Math.max(0, f))) / max);
       g.fillStyle(0x1b1210, 0.9).fillRect(x - 1, top - 1, 5, hgt + 2);
-      g.fillStyle(0x2e8a55, 0.9).fillRect(x, top + Math.round(hgt * (1 - 1.0)), 3, Math.round(hgt * 0.3));
-      const col = fill < 0.7 ? 0xf2c230 : fill <= 1.08 ? 0x66d27f : 0xc0392b;
-      const hh = Math.round(hgt * Math.min(1, fill));
-      g.fillStyle(col, 1).fillRect(x, top + hgt - hh, 3, hh);
+      g.fillStyle(0x2e8a55, 0.9).fillRect(x, yOf(POUR.spillAt), 3, yOf(POUR.goodMin) - yOf(POUR.spillAt));
+      const blink = zone === 'agora' && !this.h.reduced() && Math.floor(this.nowMs / 120) % 2 === 0;
+      const col = zone === 'filling' ? 0xf2c230 : zone === 'agora' ? (blink ? 0xc8ffd2 : 0x66d27f) : 0xc0392b;
+      const yy = yOf(fill);
+      g.fillStyle(col, 1).fillRect(x, yy, 3, top + hgt - yy);
+      g.fillStyle(0xd93232, 1).fillRect(x - 1, yOf(POUR.spillAt), 5, 1);
+      if (zone === 'agora') g.fillStyle(0xfff2c2, 1).fillRect(x - 3, yy, 2, 1);
     }
     this.drawJuiceMeter(g, snap, age);
   }
@@ -1054,6 +1085,7 @@ export class CounterStage {
     if (c.t === 'shake') return this.kick();
     if (c.t === 'cheer') return this.baker_say(c.pt, c.en);
     const e: CEvent = c.e;
+    if (e.k === 'grab' || e.k === 'chapa_ok' || e.k === 'pour_ok' || e.k === 'juice_ok') this.tried.add(e.item);
     switch (e.k) {
       case 'chapa_put':
         this.puff(CHAPA_SLOTS[e.slot]!.x, CHAPA_SLOTS[e.slot]!.y - 6, 1);

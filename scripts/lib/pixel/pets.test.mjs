@@ -48,21 +48,60 @@ describe('subscriber pets', async () => {
   const parts = await petStrips();
   const by = Object.fromEntries(parts.map((p) => [p.key, p]));
 
-  it('ships a dog and a cat strip with walk, front idle and sit', () => {
+  it('ships a dog and a cat strip with walk, front idle, sit and lie', () => {
+    const frames = Math.max(...Object.values(PET_ANIMS).flat()) + 1;
+    expect(frames).toBe(20);
+    expect(PET_ANIMS.lieE).toEqual([17, 17]);
+    expect(PET_ANIMS.lieS).toEqual([18, 18]);
+    expect(PET_ANIMS.lieN).toEqual([19, 19]);
     for (const key of ['chars/pet_dog', 'chars/pet_cat']) {
       const { img, meta } = by[key];
       expect(meta.anims).toEqual(PET_ANIMS);
+      expect(meta.frames).toBe(frames);
       expect(meta.frameW).toBe(PET_W);
       expect(img.h).toBe(PET_H);
-      expect(img.w).toBe(PET_W * 17);
+      expect(img.w).toBe(PET_W * frames);
       expect(img.h).toBeGreaterThan(16);
     }
   });
 
-  it('each frame is one animal with a solid navy outline (the head is not a floating piece)', () => {
+  it('a lie-down sits lower than a sit, and it is not a copy of the sit frame', () => {
+    const slice = (img, f) => {
+      const frame = { w: PET_W, h: PET_H, data: new Uint8Array(PET_W * PET_H * 4) };
+      for (let y = 0; y < PET_H; y++) {
+        const src = (y * img.w + f * PET_W) * 4;
+        frame.data.set(img.data.subarray(src, src + PET_W * 4), y * PET_W * 4);
+      }
+      return frame;
+    };
+    const centroidY = (frame) => {
+      let s = 0;
+      let n = 0;
+      for (let y = 0; y < frame.h; y++) for (let x = 0; x < frame.w; x++) {
+        if (frame.data[(y * frame.w + x) * 4 + 3] === 0) continue;
+        s += y;
+        n++;
+      }
+      return s / n;
+    };
     for (const key of ['chars/pet_dog', 'chars/pet_cat']) {
       const img = by[key].img;
-      for (let f = 0; f < 17; f++) {
+      for (const [lie, sit] of [[17, 14], [18, 15], [19, 16]]) {
+        const a = slice(img, lie);
+        const b = slice(img, sit);
+        let differ = 0;
+        for (let i = 0; i < a.data.length; i++) if (a.data[i] !== b.data[i]) differ++;
+        expect(differ, `${key} lie ${lie} vs sit ${sit}`).toBeGreaterThan(20);
+        expect(centroidY(a), `${key} lie ${lie} is lower`).toBeGreaterThan(centroidY(b));
+      }
+    }
+  });
+
+  it('each frame is one animal with a solid navy outline (the head is not a floating piece)', () => {
+    const frames = Math.max(...Object.values(PET_ANIMS).flat()) + 1;
+    for (const key of ['chars/pet_dog', 'chars/pet_cat']) {
+      const img = by[key].img;
+      for (let f = 0; f < frames; f++) {
         const frame = { w: PET_W, h: PET_H, data: new Uint8Array(PET_W * PET_H * 4) };
         for (let y = 0; y < PET_H; y++) {
           const src = (y * img.w + f * PET_W) * 4;
@@ -93,5 +132,24 @@ describe('subscriber bubble skins', async () => {
       }
       expect(differ).toBeGreaterThan(20);
     }
+  });
+
+  it('keeps a dark outline all the way round, so the edge reads on a sunny street and at night', () => {
+    const lum = (d, i) => (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+    // the classic outline is the warm ink (#573c2c); every skin pixel there must stay as dark
+    const ink = [0x57, 0x3c, 0x2c];
+    for (const skin of skins) {
+      for (let i = 0; i < classic.data.length; i += 4) {
+        if (!classic.data[i + 3] || classic.data[i] !== ink[0] || classic.data[i + 1] !== ink[1] || classic.data[i + 2] !== ink[2]) continue;
+        expect(lum(skin.img.data, i), skin.key).toBeLessThan(0.3);
+      }
+    }
+  });
+
+  it('never repaints the paper under the words', () => {
+    const cx = Math.floor(classic.w / 2);
+    const cy = 10;
+    const i = (cy * classic.w + cx) * 4;
+    for (const skin of skins) expect([...skin.img.data.slice(i, i + 4)]).toEqual([...classic.data.slice(i, i + 4)]);
   });
 });

@@ -4,6 +4,7 @@ import {
   JULIA_INTRO,
   JULIA_INTRO_FROM_GREETING,
   JULIA_TREE,
+  juliaHelpOpener,
   fillTalk,
   spokenNameless,
   ALL_HATS,
@@ -16,8 +17,6 @@ import {
   furnitureById,
   hatById,
   npcDefById,
-  npcPosesIn,
-  poseWalk,
   tierRule,
   FOUNDER_BADGE,
   type Bilingual,
@@ -29,14 +28,15 @@ import {
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
 import { TIER_HEX, tierChip } from './plate';
-import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
+import { mountCharPreview, setHatIcon, setParrotIcon } from '../render/pixel/charPreview';
+import { newlyOwned, shortBy, splitStall } from './stallLogic';
 import { furnitureIcon, expressionForScore } from './pixelArt';
 import { speak } from '../audio';
 import { closeDialogueBox, showDialogueBox, type BoxSpec } from './dialogue';
 import { icon } from '../art/ui';
-import { drawMinimap } from './minimap';
 import { beltChip } from './beltChip';
 import { clock } from '../gameClock';
+import { profileMetJulia, rememberJuliaMet } from './juliaMet';
 
 // ---------------------------------------------------------------- modal base
 
@@ -58,6 +58,8 @@ export interface DialogueOpts {
   onChoose: (i: number) => void;
   onClose: () => void;
   footer?: HTMLElement;
+  /** Between the line and the chips (a cart's menu board). */
+  extras?: HTMLElement;
   /** Box key (the typewriter restarts when it changes); default `talk-<npc>`. */
   key?: string;
   /** Free-typed reply (scored with accept-list rules). */
@@ -82,6 +84,7 @@ function boxSpecFor(o: DialogueOpts): BoxSpec {
     line: o.line,
     said: o.said?.pt ?? null,
     feedback: o.feedback ? h('span', { class: `feedback dbx-feedback s${score}` }, `${o.feedback.text.pt} · ${o.feedback.text.en}`) : null,
+    extras: o.extras,
     chips: o.chips,
     input: o.chips.length && o.onType ? { id: 'scene-type', placeholder: 'Responda em português…', send: 'Responder', onSend: (text) => o.onType?.(text) } : null,
     footer: o.footer,
@@ -145,7 +148,10 @@ export function showJulia(fromGreeting = false) {
       onClose: closeDialogue,
     });
   };
-  if (fromGreeting) root(JULIA_INTRO_FROM_GREETING);
+  const met = fromGreeting || profileMetJulia();
+  if (!met) rememberJuliaMet();
+  const opener = juliaHelpOpener(met);
+  if (opener === JULIA_INTRO_FROM_GREETING) root(opener);
   else root({ pt: fillTalk(JULIA_INTRO.pt, { name }), en: JULIA_INTRO.en }, spokenNameless(JULIA_INTRO.pt, { minute: clock.minutes() }));
 }
 
@@ -222,22 +228,129 @@ export function wireParrotShop(send: { buy: (id: string) => void; equip: (id: st
   netSendParrotColor = send.equip;
 }
 
+// ---------------------------------------------------------------- market stalls (the Puleiro, Nanda's hats)
+
+/** The RV wallet in a stall's header; it flashes when a buy takes coins out. */
+function stallWallet(): { el: HTMLElement; set: (coins: number) => void } {
+  const amount = h('b', { id: 'shop-coins' });
+  const el = h('span', { class: 'stall-wallet', title: 'Seus reais virtuais · Your virtual reais' }, h('span', { class: 'coin' }), amount);
+  let last: number | null = null;
+  return {
+    el,
+    set: (coins) => {
+      amount.textContent = `${coins} RV`;
+      if (last !== null && coins < last) {
+        el.classList.remove('spent');
+        void el.offsetWidth;
+        el.classList.add('spent');
+      }
+      last = coins;
+    },
+  };
+}
+
+interface StallCard {
+  data: Record<string, string>;
+  icon: HTMLElement;
+  pt: string;
+  en: string;
+  price: number;
+  coins: number;
+  owned: boolean;
+  /** worn / on the shoulder right now */
+  using: boolean;
+  usingLabel: string;
+  selected: boolean;
+  /** bought (or adopted) since the panel opened: the card plays its stamp once */
+  fresh: string | null;
+  button: HTMLElement;
+  onSelect: () => void;
+}
+
+/** One good on the stall: a hanging price tag (or a "yours" tag), its pixel icon, the name and the one action. */
+function stallCard(s: StallCard): HTMLElement {
+  const short = s.owned ? 0 : shortBy(s.coins, s.price);
+  const tag = s.owned
+    ? h('span', { class: `stall-tag ${s.using ? 'using' : 'mine'}` }, s.using ? s.usingLabel : '✓ Seu')
+    : h('span', { class: `price price-tag ${s.price === 0 ? 'free' : ''}` }, s.price === 0 ? 'Grátis' : [h('span', { class: 'coin' }), ` ${s.price}`]);
+  const cls = ['item-card', 'stall-card', s.owned ? 'owned' : 'sale', s.using ? 'using' : '', s.selected ? 'sel' : '', short ? 'cant' : '', s.fresh ? 'just-bought' : ''];
+  return h(
+    'div',
+    { class: cls.filter(Boolean).join(' '), onclick: s.onSelect, ...s.data },
+    tag,
+    h('div', { class: 'item-icon-box hat-icon-box' }, s.icon),
+    h('div', { class: 'name' }, s.pt),
+    en(s.en),
+    short ? h('span', { class: 'short' }, `Faltam ${short} RV`) : null,
+    s.button,
+    s.fresh ? h('span', { class: 'stall-stamp', 'aria-hidden': 'true' }, s.fresh) : null,
+  );
+}
+
+/** Goods bought since the panel opened keep their stamp for a moment, across the re-renders the profile update brings. */
+function freshMarks(ms = 1800): { mark: (id: string) => void; has: (id: string) => boolean } {
+  const until = new Map<string, number>();
+  return {
+    mark: (id) => void until.set(id, performance.now() + ms),
+    has: (id) => (until.get(id) ?? 0) > performance.now(),
+  };
+}
+
+/** A labelled shelf of the stall ("Seus" / "À venda"); nothing when it is empty. */
+function stallShelf(kind: 'owned' | 'sale', pt: string, enText: string, cards: HTMLElement[]): HTMLElement | null {
+  if (!cards.length) return null;
+  return h(
+    'section',
+    { class: `stall-shelf ${kind}`, 'data-shelf': kind },
+    h('div', { class: 'stall-shelf-title' }, h('b', null, pt), en(enText, true), h('span', { class: 'count' }, String(cards.length))),
+    h('div', { class: 'grid-items' }, ...cards),
+  );
+}
+
+/** The vitrine: the player on the pedestal, wearing what is selected. */
+function stallVitrine(canvas: HTMLCanvasElement, says: HTMLElement): HTMLElement {
+  return h('div', { class: 'stall-side' }, h('div', { class: 'preview' }, canvas), says);
+}
+
 export function openParrotShop(actions: { buy: (id: string) => void; equip: (id: string) => void; adoptFree: () => void }) {
   const p = game.profile!;
-  const grid = h('div', { class: 'grid-items parrot-grid' });
-  const canvas = h('canvas', { id: 'parrot-preview', style: 'width:96px;height:60px;image-rendering:pixelated' });
+  const goods = h('div', { class: 'stall-goods' });
+  // the composed player at 6x with the selected bird on the shoulder: try one on before buying it
+  const canvas = h('canvas', { id: 'parrot-preview', class: 'stall-canvas' });
+  const says = h('div', { class: 'nanda-says stall-says' });
+  const wallet = stallWallet();
   let sel = p.parrotColor ?? 'verde';
+  let seen: Set<string> | null = null;
+  const fresh = freshMarks();
   const preview = mountCharPreview(canvas, () => {
     const cur = game.profile ?? p;
-    return { appearance: cur.appearance, hat: cur.hat, parrot: cur.parrotOwned && cur.parrotEquipped, parrotColor: sel };
+    return { appearance: cur.appearance, hat: cur.hat, parrot: true, parrotColor: sel };
   });
 
   const render = () => {
     const prof = game.profile!;
-    clear(grid);
-    for (const c of PARROT_COLORS) {
-      const owned = ownedParrotColorIds(prof).includes(c.id);
-      const wearing = (prof.parrotColor ?? 'verde') === c.id && prof.parrotEquipped;
+    const ownedIds = ownedParrotColorIds(prof);
+    for (const id of newlyOwned(seen, ownedIds)) {
+      fresh.mark(id);
+      sel = id;
+      preview.wave();
+    }
+    seen = new Set(ownedIds);
+    wallet.set(prof.coins);
+    const onShoulder = prof.parrotEquipped ? (prof.parrotColor ?? 'verde') : null;
+    const selDef = PARROT_COLORS.find((c) => c.id === sel) ?? PARROT_COLORS[0];
+    // needs_br: true (the stall's notes)
+    const note: [string, string] = !ownedIds.includes(selDef.id)
+      ? [`${selDef.pt}: experimente no ombro.`, `${selDef.en}: try it on your shoulder.`]
+      : onShoulder === selDef.id
+        ? [`${selDef.pt}: no seu ombro agora.`, `${selDef.en}: on your shoulder now.`]
+        : [`${selDef.pt}: já é seu. Chame quando quiser.`, `${selDef.en}: already yours. Call it any time.`];
+    says.replaceChildren(note[0], en(note[1]));
+    const card = (c: (typeof PARROT_COLORS)[number]) => {
+      const owned = ownedIds.includes(c.id);
+      const wearing = onShoulder === c.id;
+      const icon = h('img', { alt: c.pt }) as HTMLImageElement;
+      setParrotIcon(icon, c.id, 4);
       const btn = owned
         ? h(
             'button',
@@ -249,17 +362,26 @@ export function openParrotShop(actions: { buy: (id: string) => void; equip: (id:
             { class: 'primary', disabled: prof.coins < c.price, onclick: (e: Event) => (e.stopPropagation(), c.price === 0 && !prof.parrotOwned ? actions.adoptFree() : actions.buy(c.id)) },
             c.price === 0 ? bi('Adotar grátis', 'Adopt free') : bi('Comprar', 'Buy'),
           );
-      grid.append(
-        h(
-          'div',
-          { class: `item-card ${sel === c.id ? 'sel' : ''}`, onclick: () => ((sel = c.id), render()), 'data-parrot': c.id },
-          h('div', { class: 'name' }, c.pt),
-          en(c.en),
-          h('span', { class: `price ${c.price === 0 ? 'free' : ''}` }, c.price === 0 ? 'Grátis' : `${c.price} RV`),
-          btn,
-        ),
-      );
-    }
+      return stallCard({
+        data: { 'data-parrot': c.id },
+        icon,
+        pt: c.pt,
+        en: c.en,
+        price: c.price,
+        coins: prof.coins,
+        owned,
+        using: wearing,
+        usingLabel: 'No ombro',
+        selected: sel === c.id,
+        fresh: fresh.has(c.id) ? (c.price === 0 ? 'Adotado!' : 'Comprado!') : null,
+        button: btn,
+        onSelect: () => ((sel = c.id), render()),
+      });
+    };
+    const split = splitStall(PARROT_COLORS, ownedIds);
+    goods.replaceChildren(
+      ...[stallShelf('owned', 'Seus pássaros', 'Yours', split.owned.map(card)), stallShelf('sale', 'À venda', 'For sale', split.sale.map(card))].filter((x): x is HTMLElement => !!x),
+    );
   };
   render();
   const off = game.on('profile', render);
@@ -267,24 +389,28 @@ export function openParrotShop(actions: { buy: (id: string) => void; equip: (id:
     'parrot-shop',
     h(
       'div',
-      { class: 'panel parrot-shop' },
+      { class: 'panel stall-panel parrot-shop' },
       closeBtn(() => close()),
-      h('h2', null, bi('Puleiro dos Pássaros', 'Bird perch')),
-      en('Pick a bird. It whispers study words — it does not translate.'),
-      canvas,
-      grid,
+      h('div', { class: 'stall-head' }, h('h2', null, 'Puleiro dos Pássaros'), wallet.el),
+      en('Bird perch · pick a bird. It whispers study words — it does not translate. Cosmetic only.'),
+      h('div', { class: 'shop' }, stallVitrine(canvas, says), goods),
     ),
-    { onClose: off },
+    {
+      onClose: () => {
+        preview.stop();
+        off();
+      },
+    },
   );
 }
 
 // ---------------------------------------------------------------- hat shop / wardrobe
 
 /** The S-facing hat layer at 4x, in a fixed box so the integer scale is never stretched. */
-function hatIconBox(id: string, alt: string): HTMLElement {
+function hatIcon(id: string, alt: string): HTMLElement {
   const img = h('img', { alt, 'data-hat-icon': id }) as HTMLImageElement;
   setHatIcon(img, id, 4);
-  return h('div', { class: 'hat-icon-box' }, img);
+  return img;
 }
 
 /** `closedNote`: Nanda is not at her stall (outside 08:00-20:00): the shop still opens from the closed stall (D12), with this note. */
@@ -292,16 +418,26 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
   const p = game.profile!;
   let sel = p.hat ?? (mode === 'shop' ? HATS[0].id : null);
   // the composed pixel character wearing the selected hat (6x, integer scale, both views)
-  const canvas = h('canvas', { id: 'hat-preview', style: 'width:168px;height:216px;image-rendering:pixelated' });
-  const nandaSays = h('div', { class: 'nanda-says' });
-  const grid = h('div', { class: 'grid-items' });
+  const canvas = h('canvas', { id: 'hat-preview', class: 'stall-canvas' });
+  const nandaSays = h('div', { class: 'nanda-says stall-says' });
+  const goods = h('div', { class: 'stall-goods' });
+  const wallet = stallWallet();
+  let seen: Set<string> | null = null;
+  const fresh = freshMarks();
   const preview = mountCharPreview(canvas, () => {
     const cur = game.profile ?? p;
-    return { appearance: cur.appearance, hat: sel, parrot: cur.parrotOwned && cur.parrotEquipped };
+    return { appearance: cur.appearance, hat: sel, parrot: cur.parrotOwned && cur.parrotEquipped, parrotColor: cur.parrotColor };
   });
 
   const render = () => {
     const prof = game.profile!;
+    for (const id of newlyOwned(seen, prof.hats)) {
+      fresh.mark(id);
+      sel = id;
+      preview.wave();
+    }
+    seen = new Set(prof.hats);
+    wallet.set(prof.coins);
     const hat = hatById(sel);
     if (mode === 'shop' && opts.closedNote) nandaSays.replaceChildren(opts.closedNote.pt, en(opts.closedNote.en));
     else
@@ -310,10 +446,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
         hat ? `“${hat.pt}? Fica bem em você!”` : '“Sem chapéu também fica ótimo!”',
         en(hat ? `${hat.en}? Looks good on you!` : 'No hat looks great too!'),
       );
-    const list = mode === 'shop' ? HATS : ALL_HATS.filter((x) => prof.hats.includes(x.id));
-    clear(grid);
-    if (!list.length) grid.append(h('div', null, 'Você ainda não tem chapéus.', en('No hats yet — visit Nanda’s stall in the Praça.')));
-    for (const hatDef of list) {
+    const card = (hatDef: (typeof ALL_HATS)[number]) => {
       const owned = prof.hats.includes(hatDef.id);
       const wearing = prof.hat === hatDef.id;
       const btn = owned
@@ -327,19 +460,30 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
             { class: 'primary', disabled: prof.coins < hatDef.price, onclick: (e: Event) => (e.stopPropagation(), actions.buy(hatDef.id)), 'data-hat-action': hatDef.id },
             hatDef.price === 0 ? bi('Pegar grátis', 'Get free') : bi('Comprar', 'Buy'),
           );
-      grid.append(
-        h(
-          'div',
-          { class: `item-card ${sel === hatDef.id ? 'sel' : ''}`, onclick: () => ((sel = hatDef.id), render()), 'data-hat': hatDef.id },
-          hatIconBox(hatDef.id, hatDef.pt),
-          h('div', { class: 'name' }, hatDef.pt),
-          en(hatDef.en),
-          owned
-            ? h('span', { class: 'price free' }, wearing ? 'Usando' : 'Seu')
-            : h('span', { class: `price ${hatDef.price === 0 ? 'free' : ''}` }, hatDef.price === 0 ? 'Grátis' : [h('span', { class: 'coin' }), ` ${hatDef.price}`]),
-          btn,
-        ),
+      return stallCard({
+        data: { 'data-hat': hatDef.id },
+        icon: hatIcon(hatDef.id, hatDef.pt),
+        pt: hatDef.pt,
+        en: hatDef.en,
+        price: hatDef.price,
+        coins: prof.coins,
+        owned,
+        using: wearing,
+        usingLabel: 'Usando',
+        selected: sel === hatDef.id,
+        fresh: fresh.has(hatDef.id) ? (hatDef.price === 0 ? 'É seu!' : 'Comprado!') : null,
+        button: btn,
+        onSelect: () => ((sel = hatDef.id), render()),
+      });
+    };
+    if (mode === 'shop') {
+      const split = splitStall(HATS, prof.hats);
+      goods.replaceChildren(
+        ...[stallShelf('owned', 'Seus chapéus', 'Yours', split.owned.map(card)), stallShelf('sale', 'À venda', 'For sale', split.sale.map(card))].filter((x): x is HTMLElement => !!x),
       );
+    } else {
+      const list = ALL_HATS.filter((x) => prof.hats.includes(x.id));
+      goods.replaceChildren(list.length ? h('div', { class: 'grid-items' }, ...list.map(card)) : h('div', { class: 'stall-empty' }, 'Você ainda não tem chapéus.', en('No hats yet — visit Nanda’s stall in the Praça.')));
     }
   };
   render();
@@ -351,11 +495,11 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
     'hats',
     h(
       'div',
-      { class: 'panel', style: 'width:min(860px, calc(100vw - 24px))' },
+      { class: `panel stall-panel ${mode === 'shop' ? 'hat-stall' : 'wardrobe'}` },
       closeBtn(() => close()),
-      h('h2', null, mode === 'shop' ? 'Chapéus da Nanda' : 'Meus chapéus'),
+      h('div', { class: 'stall-head' }, h('h2', null, mode === 'shop' ? 'Chapéus da Nanda' : 'Meus chapéus'), wallet.el),
       en(mode === 'shop' ? 'Nanda’s hat stall — try one on! Cosmetic only; some are free.' : 'Your hats — wear one anywhere.'),
-      h('div', { class: 'shop' }, h('div', null, h('div', { class: 'preview' }, canvas), nandaSays, h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'coin' }), h('b', { id: 'shop-coins' }, `${p.coins} RV`))), grid),
+      h('div', { class: 'shop' }, stallVitrine(canvas, nandaSays), goods),
     ),
     {
       onClose: () => {
@@ -363,86 +507,6 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
         off();
       },
     },
-  );
-  game.on('profile', () => {
-    const el = document.getElementById('shop-coins');
-    if (el && game.profile) el.textContent = `${game.profile.coins} RV`;
-  });
-}
-
-// ---------------------------------------------------------------- map
-
-/** The four open-air areas of Vila Ipê (the street is two), in walking order (split into areas), each with its minimap in the Mapa panel. */
-const AREAS: { id: RoomId; pt: string; en: string }[] = [
-  { id: 'rua', pt: 'Rua dos Ipês', en: 'Ipê Street' },
-  { id: 'rua_leste', pt: 'Rua dos Ipês (leste)', en: 'Ipê Street (east)' }, // needs_br: true
-  { id: 'praca', pt: 'Praça Central', en: 'Central Square' },
-  { id: 'feira', pt: 'Feira Livre', en: 'Street Market' },
-];
-const isArea = (r: RoomId | undefined | null): r is RoomId => AREAS.some((a) => a.id === r);
-
-/** The pixel minimap of one area with its doors, the neighbours and "você" (you only show in the area you are in). */
-function mapView(areaId: RoomId): HTMLElement {
-  const self = game.self;
-  const inArea = game.room?.room === areaId;
-  const here = inArea && self ? (self.path.at(-1) ?? self.from) : null;
-  // the neighbours where they are now: live avatars when you are in the area, otherwise the schedule at the game clock
-  const npcs = inArea
-    ? game.liveNpcs(performance.now())
-    : npcPosesIn(areaId, clock.now()).map((p) => ({ name: npcDefById(p.npc)?.name ?? p.npc, ...poseWalk(p, clock.now()).tile }));
-  const meColor = TIER_HEX[game.profile?.nameplate ?? 'verde'];
-  const canvas = drawMinimap(ROOMS[areaId], here, npcs, meColor);
-  canvas.setAttribute('aria-label', `Mapa: ${ROOMS[areaId].name}`);
-  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas e saídas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me', style: `background:${meColor}` }), ' você'));
-}
-
-export function openMap(go: (room: RoomId) => void) {
-  const card = (room: RoomId | null, pt: string, enText: string, colors: [string, string] | null, locked = false, light = false) =>
-    h(
-      'button',
-      { class: `map-card ${locked ? 'locked' : ''} ${light ? 'light' : ''}`, style: colors ? `--card:${colors[0]};--card2:${colors[1]}` : '', disabled: locked, onclick: () => room && (go(room), close()), 'data-room': room ?? '' },
-      h('div', null, h('b', null, pt), en(enText)),
-      h('div', null, h('span', { class: 'linecolor' }), locked ? h('span', { style: 'margin-left:8px;font-weight:800' }, 'Em breve') : null),
-    );
-  // the minimap shows one area at a time: tabs for the four areas, the one you are in first
-  let shown: RoomId = isArea(game.room?.room) ? game.room!.room! : 'praca';
-  const mapBox = h('div', { class: 'map-areas' });
-  const tabs = h('div', { class: 'map-tabs', role: 'tablist' });
-  const renderMap = () => {
-    tabs.replaceChildren(
-      ...AREAS.map((a) =>
-        h('button', { class: `map-tab ${a.id === shown ? 'on' : ''}`, role: 'tab', 'aria-selected': String(a.id === shown), 'data-area': a.id, onclick: () => ((shown = a.id), renderMap()) }, a.pt),
-      ),
-    );
-    mapBox.replaceChildren(mapView(shown));
-  };
-  renderMap();
-  const close = openModal(
-    'map',
-    h(
-      'div',
-      { class: 'panel' },
-      closeBtn(() => close()),
-      h('h2', null, 'São Paulo · Vila Ipê'),
-      en('Four areas side by side: walk off an edge to go next door. Fast travel is free between places you know.'),
-      tabs,
-      mapBox,
-      h(
-        'div',
-        { class: 'map-grid' },
-        card('rua', 'Rua dos Ipês', 'Ipê Street (west) — padaria, newsstand, apartments', ['#7a6a5a', '#d8cbb6']),
-        card('rua_leste', 'Rua dos Ipês (leste)', 'Ipê Street (east) — academy, school, bus stop', ['#7a6a5a', '#c9b99a']), // needs_br: true
-        card('praca', 'Praça Central', 'Central Square — fountain, hats, parrot, missions', ['#d9532b', '#f2c230']),
-        card('feira', 'Feira Livre', 'Street market — fruit, vegetables, pastel, flowers (6 am–1 pm)', ['#4f8a3c', '#e8a94f']),
-        card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Correria no Balcão”', ['#a8452c', '#e8a94f']),
-        card('academia', 'Academia do Bairro', 'Word-game roll — academy Portuguese (not real MA training)', ['#2f5f7a', '#8ab4c8']),
-        card('escola', 'Escola da Praça', 'Practice diary words — the door is on Rua dos Ipês', ['#2f6f4e', '#c9e2c2']),
-        card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', ['#f5e6d3', '#a8c5d4'], false, true),
-        card('aeroporto', 'Aeroporto', 'Airport — where you landed: the first-steps tutorial (bus 875)', ['#2e8a55', '#f8d239']),
-        card(null, 'Estação de Metrô', 'Subway (Phase 1)', null, true),
-        card(null, 'Praia', 'Beach day trip (Phase 2)', null, true),
-      ),
-    ),
   );
 }
 
@@ -518,7 +582,7 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
       closeBtn(() => close()),
       canvas,
       h('h2', null, a.name),
-      h('div', { class: 'row', style: 'justify-content:center' }, tierChip(a.nameplate ?? 'verde', { id: 'profile-plate' }), a.founder ? h('span', { class: 'wl-founder founder-chip', title: `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}` }, 'f') : null, h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
+      h('div', { class: 'row', style: 'justify-content:center' }, tierChip(a.nameplate ?? 'verde', { id: 'profile-plate' }), a.founder ? h('span', { class: 'wl-founder founder-chip', role: 'img', 'aria-label': `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}`, title: `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}` }) : null, h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
       a.belt ? h('div', { class: 'row', style: 'justify-content:center;margin-top:8px' }, beltChip(a.belt)) : null,
       en(`${tierRule(a.nameplate ?? 'verde').en} nameplate: earned in the Escola by words mastered. Plates come from learning, never from money.`),
       h(
@@ -535,8 +599,13 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
 
 // ---------------------------------------------------------------- kitnet decorator
 
-export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (uid: string) => void; pickup: (uid: string) => void; exit: () => void }) {
+export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (uid: string) => void; pickup: (uid: string) => void; exit: () => void; help: () => void }) {
   let tab: 'meus' | 'loja' = 'meus';
+  // a tab switch is a 'decor' event too (the kitnet guide follows it)
+  const setTab = (t: 'meus' | 'loja') => {
+    tab = t;
+    game.emit('decor');
+  };
   const el = h('div', { class: 'decor', id: 'decor-panel', style: 'display:none' });
   const render = () => {
     if (!game.editMode) {
@@ -549,19 +618,33 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
     const selF = game.furniture.find((f) => f.uid === game.selectedFurniture);
     const selDef = selF ? furnitureById(selF.itemId) : null;
     el.replaceChildren(
-      h('div', { class: 'row' }, h('h3', null, 'Decorar a kitnet'), h('span', { class: 'spacer' }), h('button', { class: 'ghost', onclick: actions.exit }, '✕')),
+      h(
+        'div',
+        { class: 'row' },
+        h('h3', null, 'Decorar a kitnet'),
+        h('span', { class: 'spacer' }),
+        h('button', { class: 'decor-help', id: 'decor-help', onclick: actions.help, title: 'Como decorar? (How to decorate: show the guide again)', 'aria-label': 'Como decorar? (How to decorate)' }, '?'),
+        h('button', { class: 'ghost', id: 'decor-exit', onclick: actions.exit, 'aria-label': 'Fechar (Close)' }, '✕'),
+      ),
       en('Decorate: pick an item, then click a floor tile. R rotates.'),
-      h('div', { class: 'tabs', style: 'margin-top:8px' }, h('button', { class: tab === 'meus' ? 'on' : '', onclick: () => ((tab = 'meus'), render()) }, bi('Meus móveis', 'My items')), h('button', { class: tab === 'loja' ? 'on' : '', onclick: () => ((tab = 'loja'), render()), id: 'tab-loja' }, bi('Atelier', 'Shop'))),
+      h('div', { class: 'tabs', style: 'margin-top:8px' }, h('button', { class: tab === 'meus' ? 'on' : '', onclick: () => setTab('meus'), id: 'tab-meus' }, bi('Meus móveis', 'My items')), h('button', { class: tab === 'loja' ? 'on' : '', onclick: () => setTab('loja'), id: 'tab-loja' }, bi('Atelier', 'Shop'))),
       selF && selDef
         ? h(
             'div',
             { class: 'hintbox', style: 'margin-top:8px' },
             h('b', null, selDef.pt),
             en(selDef.en),
-            h('div', { class: 'row', style: 'margin-top:6px' }, h('button', { onclick: () => actions.rotate(selF.uid) }, bi('Girar', 'Rotate')), h('button', { onclick: () => actions.pickup(selF.uid) }, bi('Guardar', 'Pick up'))),
+            h('div', { class: 'row', style: 'margin-top:6px' }, h('button', { onclick: () => actions.rotate(selF.uid), id: 'decor-rotate' }, bi('Girar', 'Rotate')), h('button', { onclick: () => actions.pickup(selF.uid) }, bi('Guardar', 'Pick up'))),
           )
         : game.placing
-          ? h('div', { class: 'hintbox', style: 'margin-top:8px' }, `Colocando: ${furnitureById(game.placing.itemId)?.pt}`, en('Click a free floor tile. Press R to rotate, Esc to cancel.'))
+          ? h(
+              'div',
+              { class: 'hintbox', style: 'margin-top:8px' },
+              `Colocando: ${furnitureById(game.placing.itemId)?.pt}`,
+              en('Click a free floor tile. Press R to rotate, Esc to cancel.'),
+              // the same turn as R, for a phone (no keyboard)
+              h('div', { class: 'row', style: 'margin-top:6px' }, h('button', { onclick: () => game.placing && ((game.placing.rot = game.placing.rot === 0 ? 1 : 0), game.emit('decor')), id: 'decor-rotate' }, bi('Girar', 'Rotate'))),
+            )
           : '',
       tab === 'meus'
         ? h(
@@ -577,7 +660,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
                   onclick: () => {
                     game.selectedFurniture = null;
                     game.placing = game.placing?.itemId === id ? null : { itemId: id, rot: 0 };
-                    render();
+                    game.emit('decor');
                   },
                   'data-furniture': id,
                 },
@@ -606,5 +689,5 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
   game.on('profile', render);
   game.on('decor', render);
   game.on('room', render);
-  return { render };
+  return { render, tab: () => tab };
 }

@@ -1,12 +1,10 @@
 import crypto from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AUTH_COPY, validateEmail, validatePassword, normalizeEmail, type AuthErrorCode, type AuthResponse } from '@tudobem/shared';
 import type { GoogleOAuthConfig, GoogleTokenPayload } from './googleAuth.js';
 import { verifyGoogleIdToken } from './googleAuth.js';
-import { atomicWriteFileSync } from './atomicWrite.js';
 import { ADMIN_WRONG_PASSWORD, adminPasswordMatches, type AdminAuthConfig } from './adminAuth.js';
+import { accountsFileAdapter } from './fileStore.js';
 import type { OpsSmokeConfig } from './opsSmoke.js';
 import type { AccountLink } from './world.js';
 
@@ -25,7 +23,7 @@ export interface Account {
 }
 
 interface StoredSession {
-  /** sha256 of the cookie value, so a leaked accounts.json can't be replayed as cookies. */
+  /** sha256 of the cookie value, so a leaked database can't be replayed as cookies. */
   hash: string;
   accountId: string;
   createdAt: number;
@@ -43,16 +41,7 @@ export interface AccountPersistence {
   save(data: AccountsData): void;
 }
 
-export function accountsFileAdapter(dataDir: string): AccountPersistence {
-  const file = path.join(dataDir, 'accounts.json');
-  return {
-    load: () => (fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, 'utf8')) as AccountsData) : null),
-    save: (data) => {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      atomicWriteFileSync(file, JSON.stringify(data), 0o600);
-    },
-  };
-}
+export { accountsFileAdapter };
 
 // ---------------------------------------------------------------- passwords
 
@@ -428,11 +417,11 @@ export interface AuthLimiters {
   signup: AttemptLimiter;
 }
 
-export function defaultLimiters(now: () => number = Date.now): AuthLimiters {
+export function defaultLimiters(now: () => number = Date.now, signupMax = 10): AuthLimiters {
   return {
     login: new AttemptLimiter(8, 15 * 60_000, now),
     ip: new AttemptLimiter(40, 15 * 60_000, now),
-    signup: new AttemptLimiter(10, 60 * 60_000, now),
+    signup: new AttemptLimiter(signupMax, 60 * 60_000, now),
   };
 }
 

@@ -11,7 +11,10 @@ import {
   todayEastern,
   currentStreak,
   localDay,
+  normalizeBjj,
   normalizeEscola,
+  BELT_LABELS,
+  STRIPES_PER_BELT,
   tierRule,
   todayXp,
   type PrivateProfile,
@@ -64,6 +67,8 @@ export interface HudActions {
   toggleMusic: () => void;
   /** English glosses under Portuguese chat: a player setting, separate from the nameplate colour. */
   toggleEnglish: () => void;
+  /** Back to the arrivals hall to play the guided tutorial again (settings). */
+  replayTutorial: () => void;
   /** Multiplayer only (solo has no account). */
   logout?: () => void;
 }
@@ -177,6 +182,7 @@ export function buildHud(actions: HudActions) {
   musicBtn.title = 'Música / Music';
   englishBtn.title = 'Inglês embaixo do português / English under the Portuguese (your choice; the nameplate colour never changes it)';
   const creditsBtn = btn('btn-credits', 'info', 'Créditos', 'Credits', actions.openCredits);
+  const tutorialBtn = btn('btn-tutorial', 'mark', 'Tutorial', 'Replay the tutorial', actions.replayTutorial);
   const supportBtn = btn('btn-support', 'coracao', 'Apoiar', 'Support', actions.openSupport);
   const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
   const gear = h('button', { class: 'hud-btn hud-gear', id: 'btn-menu', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'hud-menu', 'aria-label': 'Ajustes (Settings)' }, icon('gear', 32), h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, 'Ajustes'), h('i', { class: 'hud-gloss' }, 'Music, voice, credits')));
@@ -187,6 +193,7 @@ export function buildHud(actions: HudActions) {
     soundBtn,
     englishBtn,
     supportBtn,
+    tutorialBtn,
     creditsBtn,
     logoutBtn,
   );
@@ -221,8 +228,8 @@ export function buildHud(actions: HudActions) {
         openFeedback();
       },
     },
-    h('b', { class: 'pt' }, FEEDBACK_COPY.button.pt),
-    h('i', { class: 'hud-gloss' }, FEEDBACK_COPY.button.en),
+    h('i', { class: 'fala-bubble', 'aria-hidden': 'true' }),
+    h('span', { class: 'hud-feedback-words' }, h('b', { class: 'pt' }, FEEDBACK_COPY.button.pt), h('i', { class: 'hud-gloss' }, FEEDBACK_COPY.button.en)),
   );
   const burger = h('button', { class: 'hud-btn hud-burger hud-slab', id: 'btn-burger', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'hud-actions', 'aria-label': 'Menu (Menu)' }, icon('burger', 32));
   const scrim = h('div', { class: 'hud-scrim', 'aria-hidden': 'true' });
@@ -240,7 +247,7 @@ export function buildHud(actions: HudActions) {
     h(
       'div',
       { class: 'hud-right' },
-      h('div', { class: 'hud-stats hud-slab' }, plate, goalChip, h('span', { class: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
+      h('div', { class: 'hud-stats hud-slab' }, h('span', { class: 'hud-belt', id: 'hud-belt' }), plate, goalChip, h('span', { class: 'hud-rv', id: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
       feedbackBtn,
       burger,
       actionsNav,
@@ -401,6 +408,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       document.title = `Tudo Bem · ${r.instanceName}`;
     }
     if (p) {
+      paintHudBelt(p.bjj);
       coins.textContent = String(p.coins);
       coins.title = `${p.coins} RV`;
       const tier = p.nameplate ?? 'verde';
@@ -515,6 +523,18 @@ export function overlayMessage(text: string | null, onRetry?: () => void) {
       ),
     ),
   );
+}
+
+/** Belt chip on the HUD. Reads the private profile, so a white belt with no stripes still updates. */
+function paintHudBelt(bjj: PrivateProfile['bjj']): void {
+  const el = document.getElementById('hud-belt');
+  if (!el) return;
+  const b = normalizeBjj(bjj);
+  const label = BELT_LABELS[b.belt];
+  el.className = `hud-belt belt-${b.belt}`;
+  el.setAttribute('aria-label', `${label.pt}, ${b.stripes} ${b.stripes === 1 ? 'grau' : 'graus'}`);
+  const shown = Math.min(STRIPES_PER_BELT, b.stripes);
+  el.replaceChildren(h('i', { class: 'band' }), ...Array.from({ length: STRIPES_PER_BELT }, (_, i) => h('i', { class: i < shown ? 'pip on' : 'pip' })));
 }
 
 /**

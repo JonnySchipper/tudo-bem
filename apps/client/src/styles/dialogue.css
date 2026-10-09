@@ -13,8 +13,10 @@
   left: 50%;
   bottom: calc(10px + var(--safe-bottom) + var(--kb));
   transform: translateX(-50%);
-  width: min(880px, calc(100% - 20px - var(--safe-left) - var(--safe-right)));
-  max-height: calc(100dvh - 130px - var(--safe-top) - var(--safe-bottom));
+  /* on a big desktop (--ui-scale, styles.css) the box, its text and the room it leaves for the HUD grow with the scale; the pixel frame stays 1x */
+  width: min(calc(880px * var(--ui-scale)), calc(100% - 20px - var(--safe-left) - var(--safe-right)));
+  max-height: calc(100dvh - 130px * var(--ui-scale) - var(--safe-top) - var(--safe-bottom));
+  font-size: calc(15px * var(--ui-scale));
   z-index: 26;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -1162,5 +1164,227 @@ html.px-ui .dbx {
   .dbx .dbx-en,
   .dbx .en.plain {
     line-height: 1.15;
+  }
+}
+
+/* Desktop UI scale (issue #169): bigger reply chips (comfortable to click), and at the 1.5 step the 64 px portrait at 3x instead of 2x */
+@media (min-width: 1200px) and (min-height: 760px) {
+  .dbx {
+    column-gap: 18px;
+    row-gap: 8px;
+  }
+
+  .dbx-chips {
+    gap: 8px;
+  }
+
+  .dbx .dbx-chip {
+    min-height: 44px;
+    padding: 6px 12px;
+    gap: 10px;
+  }
+
+  .dbx-chip .num {
+    min-width: 1.4em;
+    height: 1.4em;
+  }
+
+  .dbx .dbx-listen,
+  .dbx .dbx-en-toggle,
+  .dbx .dbx-close {
+    min-height: 32px;
+    padding: 4px 12px;
+  }
+
+  .dbx-input input {
+    padding: 8px 12px;
+  }
+}
+
+@media (min-width: 1800px) and (min-height: 1000px) {
+  .dbx-portrait .px-portrait-img {
+    width: 192px !important;
+    height: 192px !important;
+  }
+
+  .dbx-portrait.px-parrot .px-strip {
+    zoom: 1.5;
+  }
+}
+
+/* ---- street snack carts (pipoqueiro, coconut cart): a menu board with the cart's awning; the tiles are the chips' choices */
+.dbx:has(.snack-cart) .dbx-chip:not(:last-child) {
+  display: none;
+}
+
+.snack-cart {
+  --awning-a: #c02a2a;
+  --awning-b: #fffdf6;
+  --board: #f8d239;
+  --board-ink: #8a1f22;
+  background: #fff3dc;
+  border: 2px solid var(--dbx-ink);
+  box-shadow: inset 0 -3px 0 rgba(87, 60, 44, 0.16);
+}
+
+.snack-cart-coco {
+  --awning-a: #367f82;
+  --awning-b: #f8f8f8;
+  --board: #2a3a52;
+  --board-ink: #fffdf6;
+}
+
+/* striped awning with a scalloped edge, like the cart's canopy */
+.snack-cart-awning {
+  height: 13px;
+  background:
+    radial-gradient(circle at 8px 0, var(--awning-a) 0 7px, transparent 7.5px) 0 6px / 32px 7px repeat-x,
+    radial-gradient(circle at 24px 0, var(--awning-b) 0 7px, transparent 7.5px) 0 6px / 32px 7px repeat-x,
+    linear-gradient(90deg, var(--awning-a) 50%, var(--awning-b) 50%) 0 0 / 32px 6px repeat-x;
+}
+
+.snack-cart-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 6px 6px;
+}
+
+.snack-pick {
+  position: relative;
+  flex: 1 1 150px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 6px;
+  background: #fffdf6;
+  text-align: left;
+}
+
+.snack-pick:hover,
+.snack-pick:focus-visible {
+  background: #ffe9c2;
+}
+
+.snack-pick .num {
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  background: var(--dbx-ink);
+  color: #fffaf2;
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 0.82em;
+}
+
+.snack-bag {
+  position: relative;
+  display: block;
+  line-height: 0;
+}
+
+.snack-bag .px-food {
+  display: block;
+}
+
+.snack-pick:hover .snack-bag .px-food {
+  transform: translateY(-2px);
+}
+
+/* the leite condensado: a cream drip falling onto the heap, over and over */
+.snack-drip {
+  position: absolute;
+  left: 24px;
+  top: -10px;
+  width: 4px;
+  height: 12px;
+  background: #fff7e6;
+  border: 2px solid #3a3a50;
+  border-top: 0;
+  border-radius: 0 0 3px 3px;
+  transform-origin: 50% 0;
+  animation: snack-drip 2.4s steps(6) infinite;
+}
+
+@keyframes snack-drip {
+  0% {
+    transform: scaleY(0.2);
+    opacity: 1;
+  }
+  55% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1) translateY(8px);
+    opacity: 0;
+  }
+}
+
+.snack-name .pt {
+  display: block;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.snack-name .en {
+  display: block;
+  font-size: 0.8em;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.15;
+}
+
+/* the price tag: the cart's own board colours */
+.snack-price {
+  padding: 2px 6px;
+  background: var(--board);
+  color: var(--board-ink);
+  border: 2px solid #3a3a50;
+  font-weight: 800;
+  font-size: 0.85em;
+  white-space: nowrap;
+  min-width: max-content;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snack-drip {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .snack-cart-row {
+    gap: 4px;
+    padding: 3px 4px 4px;
+  }
+  /* bag on the left, the name over the price tag on the right */
+  .snack-pick {
+    flex-basis: 140px;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 6px;
+    row-gap: 2px;
+    padding: 3px 6px 3px 4px;
+  }
+  .snack-pick .num {
+    display: none;
+  }
+  .snack-bag {
+    grid-row: span 2;
+  }
+  .snack-price {
+    justify-self: start;
+    padding: 0 5px;
+  }
+  .snack-bag .px-food {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .snack-drip {
+    left: 16px;
+    top: -8px;
   }
 }

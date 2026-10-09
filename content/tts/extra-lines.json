@@ -2,6 +2,18 @@
   "_readme": "Spoken lines that are not found by walking the game data (collectSpokenLines): correria and bout feedback, conta stamps, anything captured in play. Add {speaker,text}; then run pnpm tts. In a dev build, window.ttsMissing() prints the lines that fell back to the system voice in this session, ready to paste here.",
   "lines": [
     {
+      "speaker": "comissaria",
+      "text": "Aqui é o desembarque. Siga para o aeroporto pela porta de vidro."
+    },
+    {
+      "speaker": "comissaria",
+      "text": "Bem-vindo ao Brasil!"
+    },
+    {
+      "speaker": "comissaria",
+      "text": "A porta do aeroporto é ali embaixo."
+    },
+    {
       "speaker": "carlos",
       "text": "Bom dia! Tudo bem?"
     },

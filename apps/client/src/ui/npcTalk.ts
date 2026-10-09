@@ -2,7 +2,7 @@
  * The short authored greeting with Nanda and Júlia (Phase 7 step 4): three lines, two reply chips each, in the dialogue box. Client-side only
  * (no rewards); opening it tells the server (`talk`) so the recado engine's `talked` event fires. Nanda's box also has "Ver chapéus".
  */
-import { FILM, NPC_TALK, fillTalk, spokenNameless, type NpcId } from '@tudobem/shared';
+import { FILM, NPC_TALK, fillTalk, juliaTalkStart, spokenNameless, type NpcId } from '@tudobem/shared';
 import { clock } from '../gameClock';
 import { heartsWith } from './recadoView';
 import { game } from '../state';
@@ -10,6 +10,7 @@ import { h, bi } from './dom';
 import { speak } from '../audio';
 import { showDialogueBox, type BoxChip } from './dialogue';
 import { showJulia, closeDialogue } from './panels';
+import { rememberJuliaMet } from './juliaMet';
 import { expressionForScore } from './pixelArt';
 
 export interface TalkHooks {
@@ -21,6 +22,11 @@ export interface TalkHooks {
   onLine?: (anchor: string) => void;
   /** Buy a pack of film from Júlia. */
   buyFilm?: () => void;
+  /**
+   * Captured before the `talk` message, which pays bond immediately.
+   * True once this profile has already heard “Eu sou a Júlia”.
+   */
+  juliaAlreadyMet?: boolean;
   /** Professora Bia's "Quero, sim!": open the mat queue. */
   openMat?: () => void;
 }
@@ -41,6 +47,8 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
   // the NPC uses your name from 2 hearts, and greets by the hour (`{saudacao}`)
   const ctx = { name: p?.name ?? '', pronoun: p?.pronoun, minute: clock.minutes(), hearts: heartsWith(p?.bond, npcId) };
   if (hooks.talked) hooks.talked(npcId);
+  const metJulia = npcId === 'julia' && hooks.juliaAlreadyMet === true;
+  if (npcId === 'julia' && !metJulia) rememberJuliaMet();
   let answered = 0;
   const render = (nodeId: string) => {
     const node = talk.nodes[nodeId];
@@ -87,5 +95,5 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
       onClose: closeDialogue,
     });
   };
-  render(talk.start);
+  render(npcId === 'julia' ? juliaTalkStart(metJulia) : talk.start);
 }

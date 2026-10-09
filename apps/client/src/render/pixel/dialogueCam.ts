@@ -51,3 +51,15 @@ export function stepBlend(blend: number, target: 0 | 1, dt: number, seconds = 0.
 
 /** Ease-out of a linear 0..1 progress (what the scene actually draws with). */
 export const easeOut = (t: number): number => 1 - (1 - Math.min(1, Math.max(0, t))) ** 2;
+
+/**
+ * Extra device zoom while a bout is on the mat: the fighters (a `pair` frame, art px) fill about `fill` of the free band between the
+ * scoreboard and the overlay, never wider than `fill` of the screen, and never less than the lobby's one step in (`unit`).
+ * Whole device px, so the pixels stay crisp.
+ */
+export function boutZoomStep(a: { baseZoom: number; unit: number; view: { w: number; h: number }; topPx: number; boxPx: number; pair: { w: number; h: number }; fill?: number }): number {
+  const fill = a.fill ?? 0.62;
+  const freeH = Math.max(0, a.view.h - a.topPx - a.boxPx);
+  const want = Math.floor(Math.min((freeH * fill) / a.pair.h, (a.view.w * fill * 1.3) / a.pair.w));
+  return Math.max(a.unit, want - a.baseZoom);
+}

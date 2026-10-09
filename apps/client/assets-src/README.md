@@ -50,6 +50,7 @@ plaque text + find the window glass), `custom` (a generator from `custom/`).
 | Kombi, fusca, moto (motoboy) | **authored** (art2 redraw): white-over-turquoise kombi with split windscreen and V nose, round beetle, motoboy with delivery box (`custom/vehicles-auth.mjs`) | none |
 | Vira-lata caramelo | **authored** (art2 redraw, 24x17): big head, perky ears, curled tail; idle / walk / curled sleep (`custom/dog.mjs`) | none |
 | Feira livre stalls (frutas, verduras, pastel + caldo de cana, flores), closed variants, crates, price tags | **authored** (`custom/feira.mjs`): 3x2 stalls with the striped tarp as an overhead part, folded-tarp roll when closed | none |
+| Placar da Vila (`props/placar_vila`, 52x56, anchor (26, 54)): the Praça leaderboard board, wooden notice board under a terracotta roof with bunting, a PLACAR plaque and two pinned sheets (words / streak) with medal rows | **authored** (`custom/v2props.mjs` `vilaBoard`, entry in `import-map.d/v2.json`) | none |
 | The airport (the arrival tutorial): airliner, jet bridge, control tower, baggage tug, curtain-wall glass (half transparent) with the gate and the AEROPORTO letters, seats, departures board, information desk, passport booths, the animated baggage carousel, x-ray, café, wayfinding signs, the diary's small objects; the granilite floor (`z`) | **authored** (`custom/aeroporto.mjs`, `custom/floors.mjs`, entry in `import-map.d/aeroporto.json`) | none (the packs have no airport) |
 | NPC portraits (12 x 4 expressions, 64x64) | **derived** from each NPC's own composed sprite (`custom/portraits.mjs` via `custom/lookkit.mjs`): the head-and-shoulders crop of the south idle frame, Scale3x (no new colours), 1 px outline, eyes / brows / mouth redrawn per expression in the sprite's colours; shared frame and room backgrounds in `custom/portraitbg.mjs`. See DECISIONS "A portrait is a close-up of the sprite" | the Character Generator layers (via the char sheets) |
 | Item icons (15, 16x16) | **authored** (`custom/icons.mjs`) | none (the packs only have a few tiny food pieces) |
@@ -169,7 +170,7 @@ atlas. `import-map.json` has an `images` list (`{ "fn": "portraits" | "icons" | 
 | Key | Size | meta |
 |---|---|---|
 | `portraits/<npc>_<expr>` (`carlos`, `nanda`, `julia`, `graca`, `tia_lu` x `neutro`, `feliz`, `surpreso`, `pensativo`) | 64x64 (bust in a 2 px framed card) | none |
-| `icons/<itemId>` (the 12 padaria shelf ids + `jornal`, `flores`, `banana`) | 16x16 | none |
+| `icons/<itemId>` (the 12 padaria shelf ids + `jornal`, `flores`, `banana`, the feira and street snacks, `pipoca_leite`, and the empties `saquinho_vazio`, `coco_vazio`, `copinho_vazio`, `copo_vazio`) | 16x16 | none |
 | `ui/panel`, `ui/bubble`, `ui/button`, `ui/button_hover`, `ui/button_pressed` | 20x20, 30x27, 16x16 | `slice: { top, right, bottom, left }`, `css: "t r b l"`, `demo` |
 | `ui/guide_arrow_strip` | 64x20 (4 frames of 16x20) | `frames: 4, frameW: 16, fps: 6` |
 
@@ -199,7 +200,11 @@ Contact sheets: `node scripts/pixel-contact.mjs --set floors|walls|padaria|kitne
 
 ## Academia roll art (`bjj/*`, `props/placar`)
 
-Authored with a small puppet renderer (`custom/bjj-rig.mjs`: head disc, torso capsule, two-bone arms and legs, navy sticker outlines, light from the upper left, chibi proportions like the 16x32 characters), poses in `bjj-poses.mjs`, loops / transitions / extras in `bjj-anim.mjs`, Bia in `bjj-ref.mjs`, glue in `bjj.mjs` (`import-map.d/bjj.json`, derive fn `bjjSet`). Preview tools: `node scripts/bjj-preview.mjs <out> <scale> pos:<id>,struggle:<id>,trans:<a>><b>,finish,win,bump,face,ref` and `node scripts/bjj-sheet.mjs` (the contact sheet, `docs/lifesim/shots/academia-art/sheet.png`).
+Authored with a small puppet renderer (`custom/bjj-rig.mjs`: head disc, torso capsule, two-bone arms and legs, navy sticker outlines, light from the upper left, chibi proportions like the 16x32 characters), poses in `bjj-poses.mjs`, loops / transitions / extras in `bjj-anim.mjs`, the move clips and the standing grip loops in `bjj-moves.mjs`, Bia in `bjj-ref.mjs`, glue in `bjj.mjs` (`import-map.d/bjj.json`, derive fn `bjjSet`). Preview tools: `node scripts/bjj-preview.mjs <out> <scale> pos:<id>,struggle:<id>,trans:<a>><b>,finish,win,bump,face,ref` and `node scripts/bjj-sheet.mjs` (the contact sheet, `docs/lifesim/shots/academia-art/sheet.png`).
+
+The gi is drawn as a gi (#166): a thick collar running down as crossed lapels (the chest in the V above), the jacket's skirt and opening under the belt, loose sleeves with a dark cuff, pants with a cuff at the ankle, the belt knot and tails. Each head also carries optional hair pieces in their own key colours (`src/render/pixel/bjjKeys.ts`: a curly / long volume with its outline and seam, a bun, a beard over the lower face); the runtime swap (`bjjSwap.ts`) shows the pieces a fighter wears and clears the rest, so curly Mateus, Helena's bun and Rafael's beard come from the same frames. The partner's gi colour is swapped too (`PARTNER_GI` in `bjjArt.ts`).
+
+**Move clips** (`bjj/mv_<move>__<from>_<h|m>_<0..7>`, contract in `src/render/pixel/bjjClips.ts`): every move the rules allow from each position, landed and missed, 8 frames (wind-up, action, the big frame 4: the grip snap or the body in the air, the landing 5, settle). The mover is art slot A; bodies in the air are turned joint by joint (`rotateFighter`), never as a tilted bitmap. A clip starts exactly on its `from` idle frame and a landed one ends exactly on its `to` idle frame (a test checks the silhouettes), mirrored when the fighter taken down falls away from the mover. Clip frames are drawn on an 80x56 canvas and trimmed, each with its own anchor (the pair anchor). The standing loops with grips held are `bjj/stand_<you><partner>_<0..3>` (n / c / s / b). These 560 frames live in their own atlas (`bjj`, `lazy`), loaded by the bout stage when a match starts.
 
 | Key | Frames | Notes |
 |---|---|---|
@@ -208,12 +213,12 @@ Authored with a small puppet renderer (`custom/bjj-rig.mjs`: head disc, torso ca
 | `bjj/finish_tap_<0..3>` | 4, loop | rear choke, B's free hand taps in the air (frames 0 and 2 are the contact, with yellow rays) |
 | `bjj/win_raise_<0..2>` | 3 | two fighters standing front-on (A at left raises the arm toward the middle, B at right bows); the referee is separate, hold A's raised hand at about (27, 12) of the frame |
 | `bjj/fistbump_<0..3>`, `bjj/face_off_<0..1>` | 4 / 2 | standing facing each other |
-| `bjj/ref_<combate, pontos2, pontos3, pontos4, vantagem, parar, vitoria>` | 1 each | Professora Bia, 16x32, anchor (8, 32), skin / hair on the key ramps, white gi, black belt |
-| `props/placar` | 1 | 48x44 scoreboard on a stand, anchor (24, 42). Blank DOM digit cells (x, y, w, h): clock `[14,3,20,7]`, player pontos `[27,13,8,8]` / vantagens `[37,13,8,8]`, partner pontos `[27,23,8,8]` / vantagens `[37,23,8,8]` (`PLACAR_CELLS` in `bjj.mjs`) |
+| `bjj/ref_<combate, pontos2, pontos3, pontos4, vantagem, parar, vitoria, espera>` | 1 each | Professora Bia, 16x32, anchor (8, 32), skin / hair on the key ramps, white gi, black belt. `espera` (hands on the belt) is her stance at the referee's spot beside the mat between calls |
+| `props/placar` | 1 | 30x34 scoreboard on short legs, anchor (15, 33), narrow enough to stand between the mat's east edge and the wall. Blank DOM digit cells (x, y, w, h): clock `[5,3,20,7]`, player pontos `[11,13,7,7]` / vantagens `[21,13,7,7]`, partner pontos `[11,22,7,7]` / vantagens `[21,22,7,7]` (`PLACAR_CELLS` in `bjj.mjs`) |
 | `props/bandeira_br`, `props/bandeira_sp` | 1 | corner flags 16x32, anchor (4, 31) |
 | `walls/poster_respeito` | 1 | the RESPEITO / TREINO / AMIZADE wall poster (replaces `poster_oss`) |
 
-**Colors.** Every pair frame uses only: key ramps (A `skin` / `hair`, B `skin2` / `hair2`, A's belt `belt`), the gi ramps (white for A, blue for B), B's fixed black belt, the navy outline and a few FX yellows (`GI_PALETTE` in `bjj-rig.mjs`). New key ramps in `palette.ts` (so `manifest.keyRamps` has them): `skin2` `#a03a00 #c05000 #e06800 #ff8020`, `hair2` `#5a00a0 #7000c0 #8800e0 #a020ff`, `belt` (3 ranks) `#406040 #608060 #80a080`. Swap them with `swapKeys` / `tableFor({ skin, hair, skin2, hair2, belt })`; use a white or blue base color for `belt`. Test: `scripts/lib/pixel/bjj.test.mjs`.
+**Colors.** Every pair frame uses only: key ramps (A `skin` / `hair`, B `skin2` / `hair2`, A's belt `belt`), the gi ramps (white for A, blue for B), B's fixed black belt, the navy outline and a few FX yellows (`GI_PALETTE` in `bjj-rig.mjs`). New key ramps in `palette.ts` (so `manifest.keyRamps` has them): `skin2` `#a03a00 #c05000 #e06800 #ff8020`, `hair2` `#5a00a0 #7000c0 #8800e0 #a020ff`, `belt` (3 ranks) `#406040 #608060 #80a080`, plus the optional hair piece keys of `bjjKeys.ts`. Swap a frame with `pairSwap` + `applySwap` (`bjjArt.ts` / `bjjSwap.ts`: cleared pieces turn transparent). Test: `scripts/lib/pixel/bjj.test.mjs`.
 
 ## Correria no Balcão art (`balcao/*`, `fx/steam_*`)
 
