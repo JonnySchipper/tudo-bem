@@ -16473,8 +16473,33 @@
    "w": 16,
    "h": 16
   },
+  "icons/pipoca_leite": {
+   "file": "icons/pipoca_leite.png",
+   "w": 16,
+   "h": 16
+  },
   "icons/agua_de_coco": {
    "file": "icons/agua_de_coco.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/saquinho_vazio": {
+   "file": "icons/saquinho_vazio.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/coco_vazio": {
+   "file": "icons/coco_vazio.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/copinho_vazio": {
+   "file": "icons/copinho_vazio.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/copo_vazio": {
+   "file": "icons/copo_vazio.png",
    "w": 16,
    "h": 16
   },

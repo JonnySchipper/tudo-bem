@@ -170,7 +170,7 @@ atlas. `import-map.json` has an `images` list (`{ "fn": "portraits" | "icons" | 
 | Key | Size | meta |
 |---|---|---|
 | `portraits/<npc>_<expr>` (`carlos`, `nanda`, `julia`, `graca`, `tia_lu` x `neutro`, `feliz`, `surpreso`, `pensativo`) | 64x64 (bust in a 2 px framed card) | none |
-| `icons/<itemId>` (the 12 padaria shelf ids + `jornal`, `flores`, `banana`) | 16x16 | none |
+| `icons/<itemId>` (the 12 padaria shelf ids + `jornal`, `flores`, `banana`, the feira and street snacks, `pipoca_leite`, and the empties `saquinho_vazio`, `coco_vazio`, `copinho_vazio`, `copo_vazio`) | 16x16 | none |
 | `ui/panel`, `ui/bubble`, `ui/button`, `ui/button_hover`, `ui/button_pressed` | 20x20, 30x27, 16x16 | `slice: { top, right, bottom, left }`, `css: "t r b l"`, `demo` |
 | `ui/guide_arrow_strip` | 64x20 (4 frames of 16x20) | `frames: 4, frameW: 16, fps: 6` |
 

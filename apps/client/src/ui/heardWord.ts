@@ -6,6 +6,7 @@
  */
 import { h, ui } from './dom';
 import { celebrateWord } from './diaryPanel';
+import { dialogueBoxLine } from './dialogue';
 import type { WordMoment } from './diaryWordQueue';
 import { findWordIndex, lineForms } from './heardWordMatch';
 import type { WordSource } from './wordFlight';
@@ -14,6 +15,8 @@ import type { WordSource } from './wordFlight';
 const LINE_ROOTS = ['.dbx .line-bubble .pt'];
 /** How long before giving up and showing the plain card. */
 const FIND_MS = 3500;
+/** The box may still be opening when the word arrives (the local world answers at once). */
+const GRACE_MS = 250;
 const MARK_MS = 900;
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -72,6 +75,12 @@ function locate(forms: readonly string[]): { root: Element; spot: WordSource } |
   return null;
 }
 
+/** The box still says a line with the word in it (typed out or not yet). Once it moves on (Continuar, a stall, the counter), that line is gone. */
+function lineHasWord(forms: readonly string[]): boolean {
+  const line = dialogueBoxLine();
+  return !!line && forms.some((f) => findWordIndex(line, f) >= 0);
+}
+
 /** The marker sweeps under the word in the line (following it while the box settles), then the word flies into the card. */
 function highlight(root: Element, first: WordSource, forms: readonly string[], m: WordMoment) {
   const mark = h('i', { class: 'heard-mark', 'aria-hidden': 'true' });
@@ -86,12 +95,18 @@ function highlight(root: Element, first: WordSource, forms: readonly string[], m
   place(spot.rect);
   const t0 = performance.now();
   const follow = (now: number) => {
+    // a re-render of the same line (a coin tapped at a stall) rebuilds the box: pick the line up again
+    if (!root.isConnected) {
+      const found = locate(forms);
+      if (found) root = found.root;
+    }
     const again = root.isConnected ? locateIn(root, forms) : null;
     if (again) {
       spot = again;
       place(spot.rect);
     }
-    if (now - t0 < MARK_MS) {
+    // the player moved on: the word leaves from where it was now, not after the full sweep
+    if (now - t0 < MARK_MS && lineHasWord(forms)) {
       requestAnimationFrame(follow);
       return;
     }
@@ -112,7 +127,9 @@ export function flyHeardWord(m: WordMoment) {
   const look = () => {
     const found = locate(forms);
     if (found) return highlight(found.root, found.spot, forms, m);
-    if (performance.now() - t0 > FIND_MS) return celebrateWord(m);
+    const waited = performance.now() - t0;
+    // the line left the box before the word was on screen (or the box closed): the plain card now, not after the full wait
+    if (waited > FIND_MS || (waited > GRACE_MS && !lineHasWord(forms))) return celebrateWord(m);
     window.setTimeout(look, 100);
   };
   look();

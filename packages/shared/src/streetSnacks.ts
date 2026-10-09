@@ -14,7 +14,7 @@ export interface StreetSnackDef {
   price: number;
   /** Prop id that sells this snack (the praça carts, the airport café). */
   propId: string;
-  /** Icon under `icons/` in the pixel manifest. Sweet popcorn reuses the red `pipoca` art. */
+  /** Icon under `icons/` in the pixel manifest: sweet popcorn is the red `pipoca` art, with the leite condensado drizzle on `pipoca_leite`. */
   icon: string;
   /** Set when this row is only an add-on of another snack, not a line on the first menu. */
   addonOf?: StreetSnackId;
@@ -38,7 +38,7 @@ export const STREET_SNACKS: StreetSnackDef[] = [
     en: 'Sweet popcorn with condensed milk',
     price: pipocaDoce.price + LEITE_CONDENSADO_RV,
     propId: 'pipoqueiro',
-    icon: 'pipoca',
+    icon: 'pipoca_leite',
     addonOf: 'pipoca_doce',
   },
   { id: 'agua_de_coco', pt: 'Água de coco', en: 'Coconut water', price: 7, propId: 'carrinho_coco', icon: 'agua_de_coco' },

@@ -383,11 +383,6 @@ html {
     animation: none;
   }
 }
-.parrot-shop canvas {
-  display: block;
-  margin: 8px auto;
-}
-
 /* ---------- hidden admin (credits easter egg) ---------- */
 .backdrop > .panel button.credits-door {
   display: block;
@@ -808,19 +803,131 @@ html {
   overflow-y: auto;
 }
 
+.support-panel p {
+  margin: 0;
+}
+
+/* "Learning is always free" leads, before the price: a green card with the heart. */
 .support-free {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 2px 2px 12px;
+  padding: 8px 10px;
+  background: #e6f2e4;
+  color: var(--verde-dark, #1f6640);
   font-weight: 800;
-  color: var(--terracota-dark, #8a3d1c);
+  font-size: 1.05rem;
+  box-shadow:
+    0 -2px 0 0 #8fbf98,
+    0 2px 0 0 #8fbf98,
+    -2px 0 0 0 #8fbf98,
+    2px 0 0 0 #8fbf98,
+    inset 0 -3px 0 0 #cfe5cc;
+}
+
+.support-free .ico {
+  flex: 0 0 auto;
+}
+
+.support-free .en {
+  color: #3d6b4a;
+  font-size: 0.8em;
 }
 
 .support-price {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 2px 2px 14px;
+  padding: 8px 10px;
+  background: #fffdf8;
+  box-shadow:
+    0 -2px 0 0 #cdb792,
+    0 2px 0 0 #cdb792,
+    -2px 0 0 0 #cdb792,
+    2px 0 0 0 #cdb792,
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8);
+}
+
+.support-price b {
   font-family: var(--font-pixel);
-  font-size: 1.2rem;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--terracota-dark, #8f3e15);
+}
+
+/* Not open yet: a mustard stamp, so "em breve" reads as a state and not as a broken button. */
+.support-soon {
+  flex: 0 0 auto;
+  padding: 3px 8px 4px;
+  background: var(--amarelo, #f2c230);
+  color: #4a3410;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  box-shadow:
+    0 -2px 0 0 #9a6d08,
+    0 2px 0 0 #9a6d08,
+    -2px 0 0 0 #9a6d08,
+    2px 0 0 0 #9a6d08;
+  transform: rotate(-3deg);
+}
+
+.support-panel h3 {
+  margin: 4px 0 0;
+  color: var(--terracota-dark, #8f3e15);
 }
 
 .support-perks {
-  margin: 8px 0;
-  padding-left: 1.1rem;
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.support-perks li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 700;
+}
+
+/* 8x8 pixel icons drawn at 2x, one per perk (the badge is the real nameplate badge). */
+.support-ico {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  image-rendering: pixelated;
+  background: center / 16px 16px no-repeat;
+}
+
+.support-ico-badge {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='7' height='8' shape-rendering='crispEdges'><rect width='7' height='8' fill='%232a2233'/><rect x='1' y='1' width='5' height='6' fill='%23f2c230'/><rect x='2' y='2' width='3' height='1' fill='%23fff59a'/><rect x='3' y='3' width='1' height='1' fill='%23c45c26'/><rect x='2' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='4' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='3' y='5' width='1' height='1' fill='%232e6a3a'/></svg>");
+  background-size: 14px 16px;
+}
+
+.support-ico-banner {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'><rect width='8' height='1' fill='%23573c2c'/><rect x='1' y='1' width='6' height='5' fill='%23c45c26'/><rect x='1' y='3' width='6' height='1' fill='%23f2c230'/><rect x='1' y='6' width='2' height='1' fill='%23c45c26'/><rect x='5' y='6' width='2' height='1' fill='%23c45c26'/><rect x='1' y='7' width='1' height='1' fill='%23c45c26'/><rect x='6' y='7' width='1' height='1' fill='%23c45c26'/></svg>");
+}
+
+.support-ico-praia {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'><rect x='3' y='0' width='2' height='1' fill='%23e3a20f'/><rect x='2' y='1' width='4' height='2' fill='%23f2c230'/><rect x='3' y='3' width='2' height='1' fill='%23e3a20f'/><rect y='5' width='8' height='3' fill='%232b5ba8'/><rect x='1' y='5' width='2' height='1' fill='%23bfe3f2'/><rect x='5' y='5' width='2' height='1' fill='%23bfe3f2'/></svg>");
+}
+
+.support-ico-pet {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='8' shape-rendering='crispEdges'><rect x='0' y='0' width='2' height='2' fill='%23573c2c'/><rect x='3' y='0' width='2' height='2' fill='%23573c2c'/><rect x='6' y='0' width='2' height='2' fill='%23573c2c'/><rect x='1' y='3' width='7' height='3' fill='%23573c2c'/><rect x='2' y='6' width='5' height='1' fill='%23573c2c'/><rect x='3' y='7' width='3' height='1' fill='%23573c2c'/></svg>");
+  background-size: 18px 16px;
+  flex-basis: 18px;
+  width: 18px;
+}
+
+.support-ico-bubble {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'><rect x='1' width='6' height='6' fill='%232a2233'/><rect y='1' width='8' height='4' fill='%232a2233'/><rect x='1' y='1' width='6' height='4' fill='%23fffaf2'/><rect x='2' y='2' width='4' height='1' fill='%23c45c26'/><rect x='2' y='3' width='2' height='1' fill='%232e8a55'/><rect x='1' y='6' width='2' height='1' fill='%232a2233'/><rect x='1' y='7' width='1' height='1' fill='%232a2233'/></svg>");
 }
 
 .support-age,
@@ -828,11 +935,66 @@ html {
   font-size: 0.92rem;
 }
 
+/* The age line is a plain note, not small print. */
+.support-age {
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  border-left: 4px solid var(--mustard, #d4a017);
+  background: #fbf3dc;
+}
+
 .support-confirm {
   display: flex;
   gap: 8px;
   align-items: flex-start;
   margin: 10px 0;
+}
+
+.support-confirm input {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--terracota, #c45c26);
+}
+
+#btn-subscribe {
+  width: 100%;
+  min-height: 48px;
+  font-size: 1.1rem;
+}
+
+.support-note {
+  margin: 6px 0 4px;
+  text-align: center;
+}
+
+.support-manage {
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+.support-choices {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 2px dashed #cdb792;
+}
+
+.support-locked {
+  margin-top: 12px !important;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 640px) {
+  .support-panel {
+    /* phones: the top HUD is two short rows, so the panel can use a bit more height */
+    max-height: calc(100dvh - 150px);
+  }
+
+  .support-free {
+    font-size: 1rem;
+  }
 }
 
 .pet-called {

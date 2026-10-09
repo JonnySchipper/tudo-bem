@@ -1,7 +1,7 @@
 // Kitnet: cama (LimeZu bed), cozinha (kitchenette, authored) and every piece of the furniture catalog in both rotations
 // (`furniture/<id>_0` faces SE = east, `_1` faces SW = south). Pack pieces are cropped from the theme sorters; the Brazilian ones
 // (rede, filtro de barro, rádio antigo, monstera, quadro de ipê) and the fan / cat animations are authored in the pack style.
-import { put, fillRect, shape, mix, h2, ell, box, or, sub, NAVY, line, alphaAt } from './paint.mjs';
+import { put, fillRect, shape, mix, h2, ell, box, or, sub, NAVY, line, setPx } from './paint.mjs';
 import { blank, crop, flipH, trim, paste } from '../../../../scripts/lib/pixel/img.mjs';
 import { recolorRamp } from './kit.mjs';
 
@@ -171,29 +171,49 @@ function filtro(rot) {
   return { img, anchor: [8, 29] };
 }
 
-/** Wall banner: a rod and a mustard cloth with an ipê. Walkable, so it hangs without blocking the floor. */
+/**
+ * Wall banner: a mustard cloth with an ipê medallion, hung by tabs from a rod with finials, under a small brass picture lamp.
+ * The lamp lights the top of the cloth and a soft pool on the wall; the cloth casts a 1 px shadow down-right onto the wall,
+ * so it reads as hanging in front of it, not pasted on. Walkable, so it hangs without blocking the floor.
+ */
 function bannerFundadores() {
+  const Y = RAMP.yellow;
   const img = blank(16, 28);
-  fillRect(img, 1, 1, 14, 2, WOOD.base);
-  fillRect(img, 1, 1, 14, 1, WOOD.hi);
-  put(img, 0, 2, NAVY);
-  put(img, 15, 2, NAVY);
-  put(img, 3, 3, WOOD.lo);
-  put(img, 12, 3, WOOD.lo);
-  fillRect(img, 2, 4, 12, 16, NAVY);
-  fillRect(img, 3, 5, 10, 14, '#f2c230');
-  fillRect(img, 3, 5, 10, 2, '#ffe57b');
-  put(img, 7, 10, '#c45c26');
-  put(img, 6, 9, '#fff59a');
-  put(img, 8, 9, '#fff59a');
-  put(img, 7, 9, '#fff59a');
-  put(img, 6, 11, '#f8d239');
-  put(img, 8, 11, '#f8d239');
-  put(img, 7, 11, '#f2b22b');
-  put(img, 5, 10, '#ffe57b');
-  put(img, 9, 10, '#ffe57b');
-  fillRect(img, 3, 17, 10, 2, '#c45c26');
-  for (let x = 3; x < 13; x += 2) put(img, x, 19, '#c45c26');
+  // picture lamp: brass hood on a short arm, its open mouth lit
+  fillRect(img, 6, 0, 4, 1, NAVY);
+  fillRect(img, 5, 1, 6, 1, Y[0]); fillRect(img, 6, 1, 3, 1, Y[2]);
+  fillRect(img, 5, 2, 6, 1, '#fff3b0');
+  // rod with round finials
+  fillRect(img, 1, 3, 14, 1, WOOD.hi); fillRect(img, 1, 4, 14, 1, WOOD.base);
+  for (const x of [0, 15]) { put(img, x, 3, WOOD.lo); put(img, x, 4, WOOD.d); }
+  // tabs looped over the rod
+  for (const x of [3, 7, 11]) fillRect(img, x, 5, 2, 1, Y[1]);
+  // cloth: lit from the lamp above (pale top, centre brightest), light edge on the left, shade on the right and at the hem
+  fillRect(img, 2, 6, 12, 14, NAVY);
+  fillRect(img, 3, 7, 10, 12, Y[2]);
+  fillRect(img, 3, 7, 10, 1, Y[3]); fillRect(img, 5, 8, 6, 1, Y[3]); put(img, 7, 7, '#fff59a'); put(img, 8, 7, '#fff59a');
+  fillRect(img, 3, 8, 1, 9, Y[3]);
+  fillRect(img, 12, 8, 1, 11, Y[1]);
+  fillRect(img, 3, 18, 9, 1, Y[1]);
+  // ipê medallion: a terracota disc with a yellow flower
+  fillRect(img, 6, 9, 4, 1, '#c45c26'); fillRect(img, 5, 10, 6, 4, '#c45c26'); fillRect(img, 6, 14, 4, 1, '#c45c26');
+  put(img, 5, 10, '#a94a24'); put(img, 10, 13, '#a94a24');
+  fillRect(img, 7, 10, 2, 1, '#ffe57b'); fillRect(img, 6, 11, 1, 2, '#ffe57b'); fillRect(img, 9, 11, 1, 2, '#f8d239'); fillRect(img, 7, 13, 2, 1, '#f8d239');
+  fillRect(img, 7, 11, 2, 2, '#f2b22b'); put(img, 7, 11, '#fff59a');
+  // embroidered band
+  fillRect(img, 3, 16, 10, 1, '#c45c26');
+  for (let x = 4; x < 12; x += 2) put(img, x, 17, '#c45c26');
+  // swallowtail hem
+  put(img, 2, 19, NAVY); fillRect(img, 3, 19, 4, 1, Y[1]); fillRect(img, 7, 19, 2, 1, NAVY); fillRect(img, 9, 19, 4, 1, Y[1]); put(img, 13, 19, NAVY);
+  put(img, 2, 20, NAVY); fillRect(img, 3, 20, 3, 1, Y[0]); put(img, 6, 20, NAVY); put(img, 9, 20, NAVY); fillRect(img, 10, 20, 3, 1, Y[0]); put(img, 13, 20, NAVY);
+  fillRect(img, 2, 21, 4, 1, NAVY); fillRect(img, 10, 21, 4, 1, NAVY);
+  const solid = (x, y) => x >= 0 && y >= 0 && x < img.w && y < img.h && img.data[(y * img.w + x) * 4 + 3] === 255;
+  // shadow on the wall, one pixel down-right of the cloth and the rod
+  const shadow = [];
+  for (let y = 3; y < 22; y++) for (let x = 0; x < img.w; x++) if (solid(x, y) && !solid(x + 1, y + 1)) shadow.push([x + 1, y + 1]);
+  for (const [x, y] of shadow) if (x < img.w && !solid(x, y)) setPx(img, x, y, [40, 24, 30, 80]);
+  // the lamp's warm pool on the wall beside the hood
+  for (const [x, y, a] of [[4, 2, 70], [11, 2, 70], [3, 2, 40], [12, 2, 40], [4, 1, 35], [11, 1, 35]]) if (!solid(x, y)) setPx(img, x, y, [255, 233, 168, a]);
   return { img, anchor: [8, 26] };
 }
 

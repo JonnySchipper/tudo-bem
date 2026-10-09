@@ -90,6 +90,17 @@ describe('pet trail', () => {
     expect(d).toBeLessThan(32);
   });
 
+  it('rests clear of the owner’s legs (the 24px pet frame does not cover the owner’s feet)', () => {
+    for (const [x1, y1] of [[140, 20], [0, 140], [-140, 20], [0, -100]] as const) {
+      const pet = march(createPetFollow(), 0, 20, x1, y1, 2.2);
+      for (let i = 0; i < 120; i++) go(pet, { ownerX: x1, ownerY: y1, ownerMoving: false });
+      // the owner's body is ~12px wide at the feet; the pet is 24px wide and drawn from its feet up
+      expect(Math.abs(pet.x - x1) >= 18 || Math.abs(pet.y - y1) >= 16).toBe(true);
+    }
+    const snapped = go(createPetFollow(), { ownerX: 100, ownerY: 80 });
+    expect(Math.abs(snapped.x - 100)).toBeGreaterThanOrEqual(16);
+  });
+
   it('snaps beside the owner across a teleport-sized gap', () => {
     const pet = march(createPetFollow(), 0, 0, 40, 0, 0.8);
     go(pet, { ownerX: 40 + SNAP_GAP_PX + 40, ownerY: 10, ownerMoving: false });
@@ -203,8 +214,9 @@ describe('pet voice commands', () => {
   it('runs to the owner on vem', () => {
     const walk = go(createPetFollow(), { ownerX: 0, ownerY: 0 });
     const run = go(createPetFollow(), { ownerX: 0, ownerY: 0 });
-    const ownerX = 80;
-    for (let i = 0; i < 30; i++) {
+    // far enough (and short enough) that neither pet has reached its resting slot yet
+    const ownerX = 100;
+    for (let i = 0; i < 20; i++) {
       go(walk, { ownerX, ownerY: 0, ownerMoving: false });
       go(run, { ownerX, ownerY: 0, ownerMoving: false, command: i === 0 ? 'come' : null });
     }

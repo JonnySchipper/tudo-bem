@@ -14,6 +14,7 @@ import {
   type BubbleStyle,
   type PetId,
 } from '@tudobem/shared';
+import { icon } from '../art/ui';
 import { fetchPublicConfig } from '../auth/config';
 import { game } from '../state';
 import { bi, h, en } from './dom';
@@ -39,16 +40,28 @@ export async function openSupport(actions: SupportActions): Promise<void> {
       h('button', { class: 'close ghost', onclick: () => closeModal(), 'aria-label': 'Fechar' }, '✕'),
       h('h2', null, 'Apoiar o Tudo Bem'),
       en('Support Tudo Bem'),
-      h('p', { class: 'support-free', id: 'support-free' }, 'Aprender é sempre grátis.', en('Learning is always free.', true)),
-      h('p', { class: 'support-price', id: 'support-price' }, SUBSCRIPTION_PRICE.pt, en(SUBSCRIPTION_PRICE.en, true)),
+      h(
+        'div',
+        { class: 'support-free', id: 'support-free' },
+        icon('coracao', 32),
+        h('p', null, 'Aprender é sempre grátis.', en('Learning is always free. Every lesson, word and nameplate.', true)),
+      ),
+      h(
+        'div',
+        { class: `support-price${ready ? '' : ' soon'}`, id: 'support-price' },
+        h('p', null, h('b', null, SUBSCRIPTION_PRICE.pt), en(`${SUBSCRIPTION_PRICE.en}. Optional, for anyone who wants to help.`, true)),
+        ready ? null : h('span', { class: 'support-soon', id: 'support-soon' }, 'em breve'),
+      ),
+      h('h3', { class: 'support-head' }, 'O que você ganha'),
+      en('What you get. Looks only: nothing here helps you learn faster or win.', true),
       h(
         'ul',
         { class: 'support-perks' },
-        h('li', null, 'Selo de fundador', en('Founder badge — stays, even if you cancel', true)),
-        h('li', null, 'Banner dos fundadores na kitnet', en('Founders banner for your kitnet — stays too', true)),
-        h('li', null, 'Prévia da Praia', en(`Beach preview — ${isPreviewUnlocked(p ?? {}, 'praia') ? 'unlocked' : 'with an active subscription'}`, true)),
-        h('li', null, 'Cachorro e gato que te seguem', en('A dog and a cat that follow you', true)),
-        h('li', null, 'Balões de conversa coloridos', en('Chat bubble colours. The words never change.', true)),
+        perk('badge', 'Selo de fundador', 'Founder badge. Stays, even if you cancel.'),
+        perk('banner', 'Banner dos fundadores na kitnet', 'Founders banner for your kitnet. Stays too.'),
+        perk('praia', 'Prévia da Praia', `Beach preview, ${isPreviewUnlocked(p ?? {}, 'praia') ? 'unlocked' : 'while the subscription is active'}.`),
+        perk('pet', 'Cachorro e gato que te seguem', 'A dog and a cat that follow you.'),
+        perk('bubble', 'Balões de conversa coloridos', 'Chat bubble colours. The words never change.'),
       ),
       h(
         'p',
@@ -90,7 +103,7 @@ export async function openSupport(actions: SupportActions): Promise<void> {
         },
         ready ? 'Assinar' : 'em breve',
       ),
-      !ready ? en('Checkout is not open yet.', true) : en('Subscribe — $10/month. Learning stays free.', true),
+      h('p', { class: 'support-note' }, en(ready ? 'Subscribe for $10/month. Learning stays free.' : 'Checkout is not open yet. Everything in the game stays free in the meantime.', true)),
       portal
         ? h(
             'p',
@@ -157,6 +170,11 @@ export async function openSupport(actions: SupportActions): Promise<void> {
   paint();
   const off = game.on('profile', paint);
   openModal('support', root, { onClose: () => off() });
+}
+
+/** One perk row: a small pixel icon, the Portuguese name, the English gloss. */
+function perk(kind: 'badge' | 'banner' | 'praia' | 'pet' | 'bubble', pt: string, enText: string): HTMLElement {
+  return h('li', null, h('i', { class: `support-ico support-ico-${kind}`, 'aria-hidden': 'true' }), h('span', null, pt, en(enText, true)));
 }
 
 function choice(group: string, id: string | null, current: string | null, label: string, onclick: () => void): HTMLElement {

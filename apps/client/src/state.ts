@@ -44,6 +44,8 @@ class Game {
   leaderboards: { words: BoardRow[]; streak: BoardRow[]; at: number } | null = null;
   npcBubbles = new Map<string, Bubble>();
   pending: PendingAction | null = null;
+  /** The last Comer / Beber / Jogar fora this player pressed (performance.now()), so the scene can tell eating finger food from tossing it. */
+  carryIntent: { action: 'consume' | 'toss'; at: number } | null = null;
   editMode = false;
   placing: { itemId: string; rot: 0 | 1 } | null = null;
   selectedFurniture: string | null = null;
