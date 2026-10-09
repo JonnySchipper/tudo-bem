@@ -30,6 +30,8 @@ export interface BillingConfig {
   storeId?: string;
   variantId?: string;
   webhookSecret?: string;
+  /** `TB_BILLING_ENABLED=1`: the owner's explicit switch. Secrets alone never turn checkout on (the beta is free). */
+  enabled?: boolean;
 }
 
 export function readBillingConfig(env: Record<string, string | undefined>): BillingConfig {
@@ -38,12 +40,13 @@ export function readBillingConfig(env: Record<string, string | undefined>): Bill
     storeId: env.LS_STORE_ID?.trim() || undefined,
     variantId: env.LS_VARIANT_ID?.trim() || undefined,
     webhookSecret: env.LS_WEBHOOK_SECRET?.trim() || undefined,
+    enabled: env.TB_BILLING_ENABLED?.trim() === '1',
   };
 }
 
-/** Checkout and the webhook both stay dark until every secret is set. */
+/** Checkout, the webhook and the Apoiar button all stay dark until `TB_BILLING_ENABLED=1` and every secret is set. */
 export function billingConfigured(cfg: BillingConfig): boolean {
-  return !!(cfg.apiKey && cfg.storeId && cfg.variantId && cfg.webhookSecret);
+  return !!(cfg.enabled && cfg.apiKey && cfg.storeId && cfg.variantId && cfg.webhookSecret);
 }
 
 export function headerValue(headers: Readonly<Record<string, string | string[] | undefined>>, name: string): string {

@@ -30,6 +30,8 @@ import { COMPACT_QUERY, placeHud } from './hudLayout';
 import { FEEDBACK_COPY, carryAction } from '@tudobem/shared';
 import { openFeedback } from './feedback';
 import { tierIcon, tierName } from './plate';
+import { showSupportButton } from './supportGate';
+import { fetchPublicConfig } from '../auth/config';
 
 /** The HUD's escola reminder: today's XP against the goal (until it is met) and the streak flame. Null before the diary has a word. */
 export function escolaGoalChip(p: PrivateProfile): { xp: number; goal: number; streak: number; met: boolean; title: string } | null {
@@ -184,6 +186,13 @@ export function buildHud(actions: HudActions) {
   const creditsBtn = btn('btn-credits', 'info', 'Créditos', 'Credits', actions.openCredits);
   const tutorialBtn = btn('btn-tutorial', 'mark', 'Tutorial', 'Replay the tutorial', actions.replayTutorial);
   const supportBtn = btn('btn-support', 'coracao', 'Apoiar', 'Support', actions.openSupport);
+  // hidden until /api/config says checkout is switched on (or the player already has perks): no price ads in the free beta
+  let billingReady = false;
+  supportBtn.style.display = 'none';
+  void fetchPublicConfig().then((c) => {
+    billingReady = c.billingReady;
+    refresh();
+  });
   const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
   const gear = h('button', { class: 'hud-btn hud-gear', id: 'btn-menu', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'hud-menu', 'aria-label': 'Ajustes (Settings)' }, icon('gear', 32), h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, 'Ajustes'), h('i', { class: 'hud-gloss' }, 'Music, voice, credits')));
   const menu = h(
@@ -456,6 +465,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       parrotToggle.style.display = p.parrotOwned ? '' : 'none';
       parrotToggle.replaceChildren(bi(p.parrotEquipped ? 'Guardar papagaio' : 'Chamar papagaio', p.parrotEquipped ? 'Hide parrot' : 'Show parrot'));
       cameraBtn.style.display = p.hasCamera ? '' : 'none';
+      supportBtn.style.display = showSupportButton(billingReady, p.subscription, Date.now()) ? '' : 'none';
       cameraBtn.classList.toggle('on', game.cameraOn && !!p.hasCamera);
     }
     decorBtn.style.display = game.isOwnKitnet ? '' : 'none';
