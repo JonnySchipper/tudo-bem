@@ -331,12 +331,14 @@ function writeTutorial(host: AdminTestHost, p: StoredProfile, mode: 'reset' | 's
     p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, true])) as Record<TutorialStep, boolean>;
     p.tutorialRewarded = true;
     p.arrivalIntroDone = true;
+    p.desembarqueDone = true;
     p.recados = { day: host.gameDayOf(p), offered: [], active: [], done: RECADOS.map((r) => r.id), talked: [], graded: [] };
     return { ok: true, pt: 'Tutorial e recados de hoje pulados.', en: 'Tutorial and today’s errands skipped.', detail: 'skip' };
   }
   p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
   p.tutorialRewarded = false;
   p.arrivalIntroDone = false;
+  p.desembarqueDone = false;
   p.recados = freshRecadoState();
   return { ok: true, pt: 'Tutorial e recados zerados.', en: 'Tutorial and errands reset.', detail: 'reset' };
 }

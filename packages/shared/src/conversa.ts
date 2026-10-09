@@ -152,6 +152,7 @@ export const CONVERSA_CAST: Record<NpcId, ConversaCastEntry> = {
   // The airport staff (the arrival tutorial): scripted lines in the client, no Conversa.
   celia: { npc: 'celia', name: 'Célia', room: 'praca', enabled: false, subjects: [] },
   agente: { npc: 'agente', name: 'Agente Paulo', room: 'praca', enabled: false, subjects: [] },
+  comissaria: { npc: 'comissaria', name: 'Comissária Lia', room: 'praca', enabled: false, subjects: [] },
   // Professora Bia (academia): a recado target, no Conversa yet.
   prof: {
     npc: 'prof',

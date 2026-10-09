@@ -12,6 +12,7 @@ import { h, en } from './dom';
 import { ambience } from '../ambience';
 import { WordQueue, cardMs, momentsOfShot, type QueuedWord, type WordMoment } from './diaryWordQueue';
 import { flyWord } from './wordFlight';
+import { miniBook, revealJournal, wantsReveal } from './journalReveal';
 
 export const FRAME_W = 220;
 export const FRAME_H = 148;
@@ -156,6 +157,15 @@ const FROM_FRESH_MS = 2500;
  * A word read in a line of dialogue (`from`) lifts off that line and flies into the card's empty slot, and the card then goes into the Diário.
  */
 function celebrate(m: QueuedWord<HTMLElement>) {
+  // the first word of a fresh diary opens the journal itself (the arrivals hall's comissária, for a new player)
+  if (wantsReveal()) {
+    revealJournal(m, () => {
+      if (m.print?.isConnected) flyInto(m.print);
+      window.clearTimeout(pumping);
+      pumping = window.setTimeout(pump, 300);
+    });
+    return;
+  }
   document.getElementById('photo-celebrate')?.remove();
   const from = m.from && performance.now() - m.from.at < FROM_FRESH_MS && !reduceMotion() ? m.from : null;
   let timer = 0;
@@ -183,6 +193,7 @@ function celebrate(m: QueuedWord<HTMLElement>) {
   const inner = h(
     'div',
     { class: 'celebrate-card' },
+    miniBook(),
     h('p', { class: 'celebrate-kicker' }, 'Nova palavra!', m.total > 1 ? h('span', { class: 'celebrate-count' }, `${m.index}/${m.total}`) : null),
     word,
     en(m.en),

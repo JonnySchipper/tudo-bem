@@ -115,6 +115,38 @@
   bottom: auto;
 }
 
+/* door tags (wayfinding): where a door or an edge goes, PT over a small EN line; a fresh room's tags glow */
+.wl-plate-door,
+.wl-plate-doorNew {
+  --edge: #573c2c;
+  --fill: #fbf1e3;
+  --ink: #3a2a20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  opacity: 0.92;
+}
+
+.wl-plate-doorNew {
+  --fill: #fff3c4;
+  animation: wl-door-new 1.2s steps(6, end) infinite;
+}
+
+@keyframes wl-door-new {
+  50% {
+    --fill: #f2c230;
+    filter: drop-shadow(0 0 6px rgba(242, 194, 48, 0.9));
+  }
+}
+
+.wl-door-en {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 9.5px;
+  opacity: 0.8;
+}
+
 .wl-plate-npc {
   --edge: #7a3a16;
   --fill: #c45c26;

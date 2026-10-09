@@ -7,6 +7,7 @@
     "nanda": { "voice": "pt-BR-FranciscaNeural", "rate": "+6%", "pitch": "+4Hz", "about": "Nanda, the hat shop: young and bright" },
     "julia": { "voice": "pt-BR-FranciscaNeural", "rate": "+2%", "pitch": "+1Hz", "about": "Júlia, guia da praça: clear and friendly" },
     "prof": { "voice": "pt-BR-FranciscaNeural", "rate": "+4%", "pitch": "-4Hz", "about": "Professora Bia: calm and firm" },
+    "comissaria": { "voice": "pt-BR-FranciscaNeural", "rate": "-2%", "pitch": "+6Hz", "about": "Comissária Lia, the arrivals hall: gentle and welcoming" },
     "lucia": { "voice": "pt-BR-FranciscaNeural", "rate": "-4%", "pitch": "-2Hz", "about": "Lúcia" },
     "tia_lu": { "voice": "pt-BR-FranciscaNeural", "rate": "-4%", "pitch": "-5Hz", "about": "Tia Lu, feira: warm and a little loud" },
     "rosa": { "voice": "pt-BR-FranciscaNeural", "rate": "-8%", "pitch": "+5Hz", "about": "Dona Rosa, flores: soft" },

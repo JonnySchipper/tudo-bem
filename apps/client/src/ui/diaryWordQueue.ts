@@ -3,7 +3,13 @@
  * land while a card is still up): every word goes into this queue in the order it was earned, and a card is taken only when none is
  * showing and no game is on. Nothing is dropped and nothing is replaced. Pure: the panel draws what this hands out.
  */
+import { normalizeDiary } from '@tudobem/shared';
 import type { WordSource } from './wordFlight';
+
+/** The journal reveal (ui/journalReveal.ts) instead of the card: only for the first word of a fresh diary, and only once. */
+export function shouldReveal(diary: readonly string[] | undefined, seen: boolean): boolean {
+  return !seen && normalizeDiary(diary).length <= 1;
+}
 
 export interface WordMoment {
   pt: string;
