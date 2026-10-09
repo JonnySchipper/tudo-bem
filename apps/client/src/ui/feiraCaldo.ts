@@ -28,6 +28,9 @@ import {
 import { h, en } from './dom';
 import { npcPortrait, portraitKey, type Expression } from './pixelArt';
 import { imageUrl } from '../render/pixel/manifest';
+import { StallKit, counterProps, replay, stallEndCard, stallRoof, ticket, type StallEnd } from './feiraStall';
+
+const POINTS: Record<FeiraQuality, number> = { perfect: 48, ok: 32, soft: 16, miss: 0 };
 
 export interface CaldoHooks {
   finish: (outcomes: FeiraOrderOutcome[]) => void;
@@ -226,6 +229,25 @@ function fruitArt(flavor: CaldoFlavor): SVGSVGElement {
   return svg;
 }
 
+/** Ticket icon for the ice: cubes for "com gelo", a struck-out cube for "puro". */
+function iceIcon(ice: boolean): SVGSVGElement {
+  const svg = svgEl('svg', { viewBox: '0 0 16 16', class: 'cd-ice-icon', 'shape-rendering': 'crispEdges' });
+  const g = svgEl('g');
+  const cells: [number, number, string][] = [];
+  for (const [ox, oy] of ice ? [[2, 6], [8, 3], [7, 9]] : [[5, 5]]) {
+    for (let y = 0; y < 6; y++) {
+      for (let x = 0; x < 6; x++) {
+        const edge = x === 0 || y === 0 || x === 5 || y === 5;
+        cells.push([ox + x, oy + y, edge ? NAVY : x < 3 && y < 3 ? '#ffffff' : '#b7e8ea']);
+      }
+    }
+  }
+  if (!ice) for (let i = 0; i < 14; i++) cells.push([1 + i, 14 - i, '#e63f38'], [2 + i, 14 - i, '#e63f38']);
+  px(g, cells);
+  svg.append(g);
+  return svg;
+}
+
 function emptyCup(): CupState {
   return { juice: 0, flavor: null, ice: false, spilled: false, at: 'rack' };
 }
@@ -267,6 +289,9 @@ export class CaldoView {
   private customerNodes = new Map<number, CustomerNode>();
   private ghost: HTMLElement;
   private dragKind: 'cane' | 'cup' | 'lever' | null = null;
+  private kit = new StallKit('caldo');
+  /** Which cups were full last frame, so "cheio" pops once when a cup fills. */
+  private wasFull = [false, false];
 
   constructor(
     private readonly seed: number,
@@ -360,9 +385,10 @@ export class CaldoView {
         h('span', { class: 'cd-title' }, 'Caldo de cana'),
         this.timerEl,
         this.scoreEl,
+        this.kit.meter,
         h('button', { type: 'button', class: 'ghost cd-quit', id: 'caldo-quit', onclick: () => this.abandon() }, 'Sair'),
       ),
-      h('div', { class: 'cd-awning', 'aria-hidden': 'true' }, h('span', null, 'Caldo de cana')),
+      stallRoof('caldo'),
       this.queueEl,
       h('div', { class: 'cd-stage' },
         h('div', { class: 'cd-work' },
@@ -372,10 +398,12 @@ export class CaldoView {
         ),
         pumps,
       ),
+      counterProps('caldo'),
       h('div', { class: 'cd-floor', 'aria-hidden': 'true' }),
       this.popEl,
       this.ghost,
     );
+    this.kit.mount(this.root);
     this.bindDrag(caneBtn, 'cane');
     this.bindDrag(this.leverEl, 'lever');
     document.body.classList.add('cd-on');
@@ -392,42 +420,18 @@ export class CaldoView {
     this.root.remove();
   }
 
-  showEnd(end: {
-    score: number;
-    coins: number;
-    dailyBlocked: boolean;
-    served: number;
-    perfect: number;
-    left: number;
-    bestToday: number;
-    place: number;
-    crown: boolean;
-    linePt: string;
-    lineEn: string;
-  }) {
+  showEnd(end: StallEnd) {
     this.over = true;
     cancelAnimationFrame(this.raf);
-    const crown = end.crown
-      ? h('p', { class: 'cd-crown-line', id: 'caldo-crown' }, 'Fada da Feira', en('You lead today’s board.'))
-      : null;
-    this.root.replaceChildren(
-      h('div', { class: 'cd-end', id: 'caldo-end' },
-        h('h2', null, 'Caldo de cana'),
-        h('p', { class: 'cd-score', id: 'caldo-score' }, String(end.score), en('points')),
-        h('p', { class: 'cd-line' }, end.linePt, en(end.lineEn)),
-        h('p', { class: 'cd-meta', id: 'caldo-meta' },
-          `${end.coins} RV`,
-          en(end.dailyBlocked ? 'Board only — today’s paid runs are used.' : end.coins ? 'virtual reais' : 'no RV this round'),
-        ),
-        h('p', { class: 'cd-meta' }, `Melhor hoje: ${end.bestToday}`, en(`Best today: ${end.bestToday}`)),
-        h('p', { class: 'cd-meta', id: 'caldo-place' }, end.place ? `${end.place}º no placar` : 'Fora do placar', en(end.place ? `Place ${end.place} today` : 'Not on the board')),
-        crown,
-        h('div', { class: 'cd-end-actions' },
-          h('button', { type: 'button', class: 'primary', id: 'caldo-again', onclick: () => this.hooks.again() }, 'Jogar de novo', en('Play again')),
-          h('button', { type: 'button', class: 'ghost', id: 'caldo-close', onclick: () => this.hooks.quit() }, 'Fechar', en('Close')),
-        ),
-      ),
-    );
+    this.root.replaceChildren(stallEndCard({
+      game: 'caldo',
+      prefix: 'caldo',
+      cls: 'cd',
+      title: 'Caldo de cana',
+      end,
+      again: () => this.hooks.again(),
+      quit: () => this.hooks.quit(),
+    }));
   }
 
   private elapsed() {
@@ -452,6 +456,7 @@ export class CaldoView {
       if (now - c.shownAt >= c.order.patienceMs) {
         c.gone = true;
         this.outcomes.push({ i: c.index, quality: 'miss', atMs: Math.round(this.elapsed()) });
+        this.kit.lose(this.customerNodes.get(c.index)?.root);
       }
     }
     this.paint(now);
@@ -509,7 +514,11 @@ export class CaldoView {
     this.cups.forEach((cup, i) => {
       const btn = this.cupButtons[i]!;
       btn.classList.toggle('at-spout', cup.at === 'spout');
-      btn.classList.toggle('cd-full', cup.juice >= FULL);
+      const full = cup.juice >= FULL;
+      btn.classList.toggle('cd-full', full);
+      // the cup-full cue: one pop when it fills, so you pull it before the press runs dry onto the floor
+      if (full && !this.wasFull[i]) replay(btn, 'fs-glow', 600);
+      this.wasFull[i] = full;
       btn.classList.toggle('cd-selected', this.selected === i);
       btn.classList.toggle('cd-iced', cup.ice);
       const flavor = cup.flavor ?? '';
@@ -552,14 +561,20 @@ export class CaldoView {
         node.expr = expr;
         node.img.src = imageUrl(portraitKey(c.order.who, expr));
       }
+      node.root.classList.toggle('fs-hurry', frac < 0.28);
     }
   }
 
   private makeCustomer(c: LiveCustomer): CustomerNode {
     const pips = [0, 1, 2, 3].map(() => h('i', { class: 'on' }));
     const face = npcPortrait(c.order.who, 'neutro', 'cd-portrait');
-    const root = h('div', { class: 'cd-customer', 'data-order': String(c.index) },
+    const fruit = fruitArt(c.order.flavor);
+    fruit.setAttribute('class', 'fs-ticket-icon');
+    const ice = iceIcon(c.order.ice === 'gelo');
+    ice.setAttribute('class', 'fs-ticket-icon');
+    const root = h('div', { class: 'cd-customer fs-arrive', 'data-order': String(c.index) },
       face,
+      ticket(fruit, ice),
       h('div', { class: 'cd-order' },
         h('b', null, c.order.name),
         h('div', { class: 'cd-pips', 'aria-label': '4 of 4' }, ...pips),
@@ -679,6 +694,7 @@ export class CaldoView {
       this.level = 0;
       this.puddle = 3;
       this.flash('miss', CALDO_OVERFLOW);
+      this.splash();
     } else {
       this.level += CALDO_PRESS.crankJuice;
     }
@@ -703,6 +719,13 @@ export class CaldoView {
     this.puddle = Math.min(3, this.puddle + 1.2);
     this.level = Math.max(0, this.level - 18);
     this.flash('soft', CALDO_SPILL);
+    this.splash();
+  }
+
+  /** Spill or overflow: the press shakes and juice splashes on the floor. */
+  private splash() {
+    this.kit.shake(this.pressEl);
+    replay(this.root.querySelector('#caldo-puddle'), 'fs-splash', 700);
   }
 
   private targetCup(): CupState | null {
@@ -744,7 +767,10 @@ export class CaldoView {
     cup.spilled = false;
     cup.at = 'rack';
     if (quality !== 'miss') this.served += 1;
-    this.scoreGuess += quality === 'perfect' ? 48 : quality === 'ok' ? 32 : quality === 'soft' ? 16 : 0;
+    this.scoreGuess += POINTS[quality];
+    const at = this.customerNodes.get(c.index)?.root;
+    if (quality === 'miss') this.kit.lose(at);
+    else this.kit.gain(at, POINTS[quality], quality);
     const line = !flavorOk
       ? CALDO_WRONG_FLAVOR
       : !iceOk
