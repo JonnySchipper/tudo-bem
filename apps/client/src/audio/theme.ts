@@ -10,7 +10,9 @@
  *   praça      sparse phrases of the tune over the street, by time of day and weather (see `phraseNotes`)
  *   feira      "Baião da Feira", the theme's cousin: a new tune in A mixolydian (sanfona, pife, zabumba, triângulo) that opens
  *              with the hook squeezed into one baião bar and whose bridge is the theme's own first eight chords
- *   stingers   recado done, a heart, RV, the daily mission, a Caderno group, a win, a loss, the padaria door
+ *   voo        "Céu de Madrugada", the flight in (the new-account cutscene): a slow toada at 76, flute over felt-piano ripples and
+ *              strings, the hook once at the top, then a new tune over the theme's A changes and its bridge (Gm6 and all)
+ *   stingers   recado done, a heart, RV, the daily mission, a Caderno group, a win, a loss, the padaria door, the plane touching down
  *
  * No Web Audio in here: `audio/synth.ts` makes the sounds, `audio/sequencer.ts` schedules them, and the tests read this file.
  */
@@ -271,7 +273,7 @@ export function shiftDiatonic(midi: number, n: number): number {
 
 // ---------------------------------------------------------------- arrangements
 
-export type ArrangementKind = 'intro' | 'radio' | 'padaria' | 'padariaNight' | 'kitnet' | 'academia' | 'bout' | 'feira';
+export type ArrangementKind = 'intro' | 'radio' | 'padaria' | 'padariaNight' | 'kitnet' | 'academia' | 'bout' | 'feira' | 'voo';
 
 export interface Arrangement {
   bpm: number;
@@ -293,6 +295,7 @@ export const ARRANGEMENTS: Record<ArrangementKind, Arrangement> = {
   bout: { bpm: 118, transpose: 0, melShift: 0, loopBars: 8 },
   // A mixolydian has exactly D major's notes, so the feira needs no transpose: it is the same seven notes with a new home
   feira: { bpm: 116, transpose: 0, melShift: 0, loopBars: FORM_BARS },
+  voo: { bpm: 76, transpose: 0, melShift: 0, loopBars: 16 },
 };
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;
@@ -427,6 +430,7 @@ export function scoreBar(kind: ArrangementKind, index: number, boost = 0): Score
   }
 
   if (kind === 'feira') return feiraBar(bar, boost);
+  if (kind === 'voo') return vooBar(bar, boost);
 
   // academia and bout: the first four chords of the tune as a loop, a batucada under them
   const loopChord = SECTION_A[bar % 4 === 3 ? 3 : bar % 4]!;
@@ -677,6 +681,122 @@ function feiraBar(bar: number, boost: number): ScoreNote[] {
   return out;
 }
 
+// ---------------------------------------------------------------- the flight in
+
+/*
+ * "Céu de Madrugada" (the new-account cutscene: the night cabin over the Atlantic, until the seatbelt sign). Brief: keeps the hook
+ * (its pitches and rhythm, once, on the flute at the top), the D major note set, and the theme's harmony: the A changes for the first
+ * eight bars, the bridge (with the borrowed Gm6, the flutter of nerves) for the second eight. Changes the tempo (76, a held breath),
+ * the groove (no drums: a toada, felt-piano eighths rippling like a music box half asleep), the band (flute, felt piano, strings, bells
+ * for the stars) and the tune after the quote: the hook sequenced a step down, then a bridge line that climbs where the theme's leans.
+ * Heard only in the cutscene, under Lia's voice, so it stays sparse. With `boost` (the dawn, the descent) the vibes double the tune.
+ */
+const VOO_CHORDS: Chord[] = [...SECTION_A, ...SECTION_B];
+
+export const VOO_MELODY: Phrase[] = [
+  // the hook, as the theme says it
+  [
+    [6, 76, 4],
+    [10, 78, 6],
+  ],
+  [
+    [0, 73, 8],
+    [10, 74, 4],
+    [14, 76, 2],
+  ],
+  // then its own answer: up to the G and down through the E
+  [
+    [0, 79, 4],
+    [4, 78, 2],
+    [6, 76, 4],
+    [10, 71, 6],
+  ],
+  [
+    [2, 73, 4],
+    [6, 69, 10],
+  ],
+  // the hook a step down, like a second try at a new word
+  [
+    [6, 74, 4],
+    [10, 76, 6],
+  ],
+  [
+    [0, 71, 8],
+    [10, 73, 4],
+    [14, 74, 2],
+  ],
+  [
+    [0, 78, 4],
+    [4, 81, 4],
+    [8, 79, 8],
+  ],
+  [
+    [0, 76, 6],
+    [8, 73, 8],
+  ],
+  // the bridge: it climbs to the top of the range, then the Gm6's B♭ (nerves), and home through A13
+  [
+    [0, 83, 8],
+    [8, 81, 4],
+    [12, 78, 4],
+  ],
+  [
+    [0, 76, 12],
+    [12, 73, 4],
+  ],
+  [
+    [0, 74, 4],
+    [4, 78, 4],
+    [8, 81, 8],
+  ],
+  [
+    [0, 79, 6],
+    [6, 78, 2],
+    [8, 76, 8],
+  ],
+  [
+    [0, 78, 4],
+    [4, 79, 4],
+    [8, 83, 8],
+  ],
+  [
+    [0, 82, 8],
+    [8, 79, 8],
+  ],
+  [
+    [0, 78, 6],
+    [6, 76, 4],
+    [10, 73, 6],
+  ],
+  [
+    [0, 74, 4],
+    [4, 73, 4],
+    [8, 69, 8],
+  ],
+];
+
+/** Felt-piano ripples: chord tones in eighths, up and back, an octave over the pad. */
+const VOO_RIPPLE = [0, 1, 2, 3, 2, 3, 1, 2];
+
+function vooBar(bar: number, boost: number): ScoreNote[] {
+  const out: ScoreNote[] = [];
+  const chord = VOO_CHORDS[bar]!;
+  const bridge = bar >= 8;
+  pad(chord, out, bridge ? 0.85 : 0.7);
+  out.push({ voice: 'bass', step: 0, midi: chord.root, dur: 12, vel: 0.75 });
+  if (bridge) out.push({ voice: 'bass', step: 12, midi: chord.fifth, dur: 4, vel: 0.5 });
+  VOO_RIPPLE.forEach((tone, i) => out.push({ voice: 'arp', step: i * 2, midi: chord.voicing[tone]! + 12, dur: 3, vel: 0.42 + (i % 4 === 0 ? 0.12 : 0) }));
+  for (const [step, midi, dur] of VOO_MELODY[bar]!) out.push({ voice: 'mel', step, midi, dur, vel: 0.9 });
+  if (bridge || boost > 0)
+    for (const [step, midi, dur] of VOO_MELODY[bar]!) {
+      const low = D_MAJOR.includes(midi % 12) ? shiftDiatonic(midi, -2) : midi - 3;
+      out.push({ voice: 'harm', step, midi: low, dur, vel: boost > 0 ? 0.5 : 0.35 });
+    }
+  // stars: a bell at the end of every other bar, the chord's top note two octaves up
+  if (bar % 2 === 1) out.push({ voice: 'bell', step: 12, midi: chord.voicing[3]! + 24, dur: 4, vel: 0.35 });
+  return out;
+}
+
 // ---------------------------------------------------------------- phrases for the street
 
 export type PhraseId = 'hook' | 'a' | 'close' | 'answer' | 'high' | 'bridge' | 'bridge2' | 'tag';
@@ -756,7 +876,7 @@ export function phraseNotes(id: PhraseId, mood: Mood): { notes: TimedNote[]; bar
 
 // ---------------------------------------------------------------- stingers
 
-export type StingKind = 'recado' | 'heart' | 'coin' | 'mission' | 'caderno' | 'win' | 'lose' | 'door' | 'diario';
+export type StingKind = 'recado' | 'heart' | 'coin' | 'mission' | 'caderno' | 'win' | 'lose' | 'door' | 'diario' | 'pouso';
 
 export interface Sting {
   bpm: number;
@@ -864,6 +984,27 @@ export function stingNotes(kind: StingKind): Sting {
           n('pandeiro', 26, 0, 1, 0.8),
           n('pandeiro', 27, 0, 1, 0.8),
           n('pandeiro', 28, 0, 1, 1),
+        ],
+      };
+    case 'pouso':
+      // The wheels touch down in Brazil (the cutscene's title card). Brief: the whole hook, sung by the flute and the vibes in octaves,
+      // over the theme's Dmaj9 → Bm9 and a last Dmaj9 with bells on top; keeps the pitches and the pickup-into-a-long-note rhythm,
+      // changes the tempo (a broad 96) and adds a strummed guitar and a surdo on the landing. Arrival, not victory: bright, open, warm.
+      return {
+        bpm: 96,
+        notes: [
+          ...MOTIF.map((m) => n('mel', m.at - 6, m.midi, m.dur + 1, 1)),
+          ...MOTIF.map((m) => n('harm', m.at - 6, m.midi - 12, m.dur, 0.6)),
+          ...chordHit(DMAJ9, 0, 'pad', 10, 0.7),
+          ...chordHit(SECTION_A[1]!, 10, 'pad', 12, 0.7),
+          ...chordHit(DMAJ9, 22, 'comp', 6, 0.9),
+          ...chordHit(DMAJ9, 22, 'pad', 12, 0.8),
+          n('bass', 0, 38, 10, 0.9),
+          n('bass', 10, 35, 12, 0.85),
+          n('bass', 22, 38, 12, 1),
+          n('surdo', 22, 0, 1, 0.9),
+          n('bell', 24, 86, 6, 0.7),
+          n('bell', 26, 90, 8, 0.6),
         ],
       };
     case 'lose':

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ARRANGEMENTS, BORROWED_PC, D_MAJOR, FEIRA_CHORDS, FEIRA_MELODY, FORM_BARS, FORM_CHORDS, FORM_MELODY, MOODS, MOTIF, MOTIF_DEGREES, PERCUSSION, degreeOf, moodAt, padariaIsNight, phraseNotes, scoreBar, shiftDiatonic, stingNotes, type ArrangementKind, type StingKind } from './theme';
+import { ARRANGEMENTS, BORROWED_PC, D_MAJOR, FEIRA_CHORDS, VOO_MELODY, FEIRA_MELODY, FORM_BARS, FORM_CHORDS, FORM_MELODY, MOODS, MOTIF, MOTIF_DEGREES, PERCUSSION, degreeOf, moodAt, padariaIsNight, phraseNotes, scoreBar, shiftDiatonic, stingNotes, type ArrangementKind, type StingKind } from './theme';
 import { MOOD_PHRASES, choosePhrase } from './conductor';
 import { stepSeconds } from './sequencer';
 
 const KINDS = Object.keys(ARRANGEMENTS) as ArrangementKind[];
-const STINGS: StingKind[] = ['recado', 'heart', 'coin', 'mission', 'caderno', 'win', 'lose', 'door'];
+const STINGS: StingKind[] = ['recado', 'heart', 'coin', 'mission', 'caderno', 'win', 'lose', 'door', 'pouso'];
 const inKey = (pc: number, shift: number, borrowed = false) => D_MAJOR.includes((((pc - shift) % 12) + 12) % 12) || (borrowed && (((pc - shift) % 12) + 12) % 12 === BORROWED_PC);
 
 describe('the theme', () => {
@@ -81,6 +81,7 @@ describe('the theme', () => {
     expect(hasHook(contour('academia', [0, 1], ['harm']))).toBe(true);
     expect(hasHook(contour('padariaNight', [0, 1], ['harm']))).toBe(true);
     expect(hasHook(contour('feira', [0], ['sanfona']))).toBe(true);
+    expect(hasHook(contour('voo', [0, 1], ['mel']))).toBe(true);
   });
 
   it('the feira is a cousin of the theme, not a copy: same notes and bridge, new home, new groove, new tune', () => {
@@ -101,6 +102,20 @@ describe('the theme', () => {
     for (const b of [0, 9, 18, 27]) for (const v of ['zabumba', 'triangle', 'bass', 'accordion'] as const) expect(voices(b).has(v)).toBe(true);
     expect(voices(3).has('pife')).toBe(false);
     expect(voices(11).has('pife')).toBe(true);
+  });
+
+  it('the flight in is a slow cousin: the hook once, then its own tune over the theme\'s A changes and bridge', () => {
+    expect(VOO_MELODY).toHaveLength(16);
+    expect(ARRANGEMENTS.voo.bpm).toBeLessThan(90);
+    expect(VOO_MELODY.slice(0, 2)).toEqual(FORM_MELODY.slice(0, 2));
+    const theme = new Set(FORM_MELODY.map((p) => JSON.stringify(p)));
+    for (const p of VOO_MELODY.slice(2)) expect(theme.has(JSON.stringify(p))).toBe(false);
+    VOO_MELODY.forEach((p, bar) => {
+      for (const [step, midi, dur] of p) expect([step + dur <= 16, midi <= 83, inKey(midi, 0, bar === 13)]).toEqual([true, true, true]);
+    });
+    // no drums: a toada, not a groove; the flute's bed ends on the A13 that leads home
+    for (let b = 0; b < 16; b++) expect(scoreBar('voo', b).some((n) => PERCUSSION.has(n.voice))).toBe(false);
+    expect(scoreBar('voo', 15).find((n) => n.voice === 'bass' && n.step === 0)?.midi).toBe(33);
   });
 
   it('the kitnet music box plays once and then rests', () => {
@@ -155,6 +170,7 @@ describe('stingers', () => {
     }
     const win = stingNotes('win').notes.filter((n) => n.voice === 'stab').map((n) => n.midi);
     expect(win.slice(0, 5)).toEqual([76, 78, 73, 74, 76]);
+    expect(stingNotes('pouso').notes.filter((n) => n.voice === 'mel').map((n) => n.midi)).toEqual([76, 78, 73, 74, 76]);
     expect(stingNotes('mission').notes.filter((n) => n.voice === 'mel' || n.voice === 'lead').map((n) => n.midi)).toEqual([76, 78, 73, 74, 76]);
   });
 });

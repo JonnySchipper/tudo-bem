@@ -14,9 +14,9 @@ export type BedKind = ArrangementKind | 'praca';
  * stingers land a little above the bed they interrupt and never on top of it.
  */
 export const TARGET_LUFS = {
-  bed: { intro: -22.5, radio: -27, padaria: -28.5, padariaNight: -30, kitnet: -30.5, academia: -29.5, bout: -25.5, feira: -29 } satisfies Record<ArrangementKind, number>,
+  bed: { intro: -22.5, radio: -27, padaria: -28.5, padariaNight: -30, kitnet: -30.5, academia: -29.5, bout: -25.5, feira: -29, voo: -26 } satisfies Record<ArrangementKind, number>,
   phrase: { morning: -31, day: -31, golden: -30.5, night: -32, rain: -32 } satisfies Record<Mood, number>,
-  sting: { recado: -25, heart: -28, coin: -31, mission: -23.5, caderno: -28, win: -23.5, lose: -27, door: -31, diario: -26 } satisfies Record<StingKind, number>,
+  sting: { recado: -25, heart: -28, coin: -31, mission: -23.5, caderno: -28, win: -23.5, lose: -27, door: -31, diario: -26, pouso: -24 } satisfies Record<StingKind, number>,
 };
 
 interface Calibration {

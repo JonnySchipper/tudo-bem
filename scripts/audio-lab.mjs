@@ -50,8 +50,8 @@ function wav(file, r) {
   fs.writeFileSync(file, Buffer.concat([h, data]));
 }
 
-const BEDS = ['intro', 'radio', 'padaria', 'padariaNight', 'kitnet', 'academia', 'bout', 'feira'];
-const STINGS = ['recado', 'heart', 'coin', 'mission', 'caderno', 'win', 'lose', 'door', 'diario'];
+const BEDS = ['intro', 'radio', 'padaria', 'padariaNight', 'kitnet', 'academia', 'bout', 'feira', 'voo'];
+const STINGS = ['recado', 'heart', 'coin', 'mission', 'caderno', 'win', 'lose', 'door', 'diario', 'pouso'];
 
 const MOOD_PHRASES = (await server.ssrLoadModule('/src/audio/conductor.ts')).MOOD_PHRASES;
 const bedJob = (kind) => ({ what: 'arr', kind, boost: kind === 'intro' ? 1 : 0 });
@@ -91,9 +91,10 @@ if (mode === 'calibrate') {
     ['academia', { what: 'arr', kind: 'academia', gain: levels.bed('academia') }],
     ['bout', { what: 'arr', kind: 'bout', gain: levels.bed('bout') }],
     ['feira', { what: 'arr', kind: 'feira', gain: levels.bed('feira') }],
+    ['voo', { what: 'arr', kind: 'voo', gain: levels.bed('voo') }],
     ['praca-golden', { what: 'phrase', kind: 'bridge', mood: 'golden', gain: levels.phrase('golden') }],
     ['praca-night', { what: 'phrase', kind: 'close', mood: 'night', gain: levels.phrase('night') }],
-    ...['recado', 'mission', 'win', 'lose', 'diario'].map((k) => [`sting-${k}`, { what: 'sting', kind: k, gain: levels.sting(k) }]),
+    ...['recado', 'mission', 'win', 'lose', 'diario', 'pouso'].map((k) => [`sting-${k}`, { what: 'sting', kind: k, gain: levels.sting(k) }]),
   ];
   const only = process.argv[4];
   for (const [name, job] of out.filter(([n]) => !only || n === only)) {

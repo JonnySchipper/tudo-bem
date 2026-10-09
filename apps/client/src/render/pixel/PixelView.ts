@@ -37,6 +37,16 @@ export class PixelView implements WorldView {
   }
 
   private started = false;
+  private held = false;
+
+  /** Stop (or restart) drawing the world while something opaque covers the whole screen (the flight-in cutscene): it costs a frame for nothing. */
+  hold(on: boolean): void {
+    this.held = on;
+    const loop = this.phaser?.loop;
+    if (!loop) return;
+    if (on) loop.sleep();
+    else loop.wake();
+  }
 
   /** Boots Phaser. main.ts calls this once the intro has closed: starting WebGL under the title screen's blur crashed some GPUs (#48). */
   start(): void {
@@ -85,6 +95,7 @@ export class PixelView implements WorldView {
       scene: [scene],
     });
     this.scene = scene;
+    if (this.held) this.phaser.events.once(Phaser.Core.Events.READY, () => this.held && this.phaser?.loop.sleep());
     this.watchContext();
   }
 

@@ -9,6 +9,7 @@
     "prof": "pt-BR-FranciscaNeural",
     "comissaria": "pt-BR-FranciscaNeural",
     "celia": "pt-BR-FranciscaNeural",
+    "comandante": "pt-BR-AntonioNeural",
     "agente": "pt-BR-AntonioNeural",
     "lucia": "pt-BR-FranciscaNeural",
     "tia_lu": "pt-BR-FranciscaNeural",
@@ -11854,6 +11855,114 @@
       "voice": "agente",
       "text": "Bem-vindo ao Brasil! Pode passar. Boa estadia!",
       "file": "agente-31574eeb27.mp3"
+    },
+    {
+      "id": "comissaria-68c309d8c6",
+      "voice": "comissaria",
+      "text": "Oi! Tudo bem?",
+      "file": "comissaria-68c309d8c6.mp3"
+    },
+    {
+      "id": "comissaria-94aa37e242",
+      "voice": "comissaria",
+      "text": "Muito bem! Você já fala português!",
+      "file": "comissaria-94aa37e242.mp3"
+    },
+    {
+      "id": "comissaria-c9ee649a75",
+      "voice": "comissaria",
+      "text": "Tudo bem, tudo bem!",
+      "file": "comissaria-c9ee649a75.mp3"
+    },
+    {
+      "id": "comissaria-3d890d234e",
+      "voice": "comissaria",
+      "text": "É a sua primeira vez no Brasil?",
+      "file": "comissaria-3d890d234e.mp3"
+    },
+    {
+      "id": "comissaria-43ff98f5cd",
+      "voice": "comissaria",
+      "text": "Que legal! Você vai amar.",
+      "file": "comissaria-43ff98f5cd.mp3"
+    },
+    {
+      "id": "comissaria-ba4849c1a7",
+      "voice": "comissaria",
+      "text": "E o que te traz ao Brasil?",
+      "file": "comissaria-ba4849c1a7.mp3"
+    },
+    {
+      "id": "comissaria-7ddec7efc8",
+      "voice": "comissaria",
+      "text": "Uma amiga te esperando? Que sorte!",
+      "file": "comissaria-7ddec7efc8.mp3"
+    },
+    {
+      "id": "comissaria-f5d1095ccf",
+      "voice": "comissaria",
+      "text": "Que ótimo! O português é uma língua linda.",
+      "file": "comissaria-f5d1095ccf.mp3"
+    },
+    {
+      "id": "comissaria-fc91045aa6",
+      "voice": "comissaria",
+      "text": "Boa escolha! Pão de queijo é tudo!",
+      "file": "comissaria-fc91045aa6.mp3"
+    },
+    {
+      "id": "comissaria-61691cac59",
+      "voice": "comissaria",
+      "text": "Vila Ipê! Eu conheço. É um bairro lindo.",
+      "file": "comissaria-61691cac59.mp3"
+    },
+    {
+      "id": "comissaria-6b9da1393b",
+      "voice": "comissaria",
+      "text": "Você fala português?",
+      "file": "comissaria-6b9da1393b.mp3"
+    },
+    {
+      "id": "comissaria-f3ff30a4d2",
+      "voice": "comissaria",
+      "text": "Não tem problema! Você vai aprender rapidinho.",
+      "file": "comissaria-f3ff30a4d2.mp3"
+    },
+    {
+      "id": "comissaria-06a4e02847",
+      "voice": "comissaria",
+      "text": "Lá, todo mundo ajuda. É só ouvir, falar e tentar.",
+      "file": "comissaria-06a4e02847.mp3"
+    },
+    {
+      "id": "comissaria-7320235688",
+      "voice": "comissaria",
+      "text": "Olha! O sol está nascendo.",
+      "file": "comissaria-7320235688.mp3"
+    },
+    {
+      "id": "comandante-c1ab70f942",
+      "voice": "comandante",
+      "text": "Senhoras e senhores, aqui fala o comandante.",
+      "file": "comandante-c1ab70f942.mp3"
+    },
+    {
+      "id": "comandante-190a467c93",
+      "voice": "comandante",
+      "text": "Iniciamos a descida. Apertem os cintos, por favor.",
+      "file": "comandante-190a467c93.mp3"
+    },
+    {
+      "id": "comissaria-9d6b92f7d8",
+      "voice": "comissaria",
+      "text": "Aperte o cinto, por favor!",
+      "file": "comissaria-9d6b92f7d8.mp3"
+    },
+    {
+      "id": "comissaria-407de93fcb",
+      "voice": "comissaria",
+      "text": "Perfeito! A gente se vê lá embaixo.",
+      "file": "comissaria-407de93fcb.mp3"
     },
     {
       "id": "nanda-6c6d85bb9e",

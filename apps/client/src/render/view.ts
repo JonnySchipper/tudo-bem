@@ -49,4 +49,6 @@ export interface WorldView {
   setDialogueBox?(px: number): void;
   /** Tap feedback (render/pixel/tapMark.ts): the ring on the tile the avatar walks to, or the refused cross on a tile or at a client point. */
   markTap?(kind: TapCue, at: { tile: Tile } | { px: number; py: number }): void;
+  /** Stop drawing while a full-screen scene covers the world (the flight-in cutscene), and start again. */
+  hold?(on: boolean): void;
 }
