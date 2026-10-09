@@ -323,7 +323,7 @@ function openComissaria() {
     key: 'talk-comissaria',
     npcId: 'comissaria',
     speaker: 'Comissária Lia',
-    role: 'Comissária de bordo',
+    role: 'Comissária de bordo (Flight attendant)',
     expression: 'feliz',
     line,
     chips: [thanksFor(game.profile?.pronoun)],

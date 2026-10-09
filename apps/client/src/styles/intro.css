@@ -1313,3 +1313,27 @@ body.view-pixel #world {
 .backdrop[data-modal='intro-admin'] {
   z-index: 40;
 }
+
+/* Compact English glosses inside tabs, buttons, the panel title and the music pill. */
+.intro-tab .en,
+.intro-submit .en,
+.intro-music-label .en,
+#intro-panel-title .en,
+.intro-legal .en {
+  font-size: 0.62em;
+  font-weight: 600;
+  line-height: 1.1;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.intro-tab .en,
+.intro-submit .en,
+.intro-music-label .en {
+  display: block;
+}
+
+.intro-legal .en {
+  display: block;
+  font-size: 0.9em;
+}

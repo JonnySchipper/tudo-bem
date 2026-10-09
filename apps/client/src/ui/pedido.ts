@@ -109,14 +109,14 @@ function boxSpec(s: PedidoState): BoxSpec {
     key: 'pedido',
     npcId: 'carlos',
     speaker: 'Seu Carlos',
-    role: 'Padeiro · Pedido rápido',
+    role: 'Padeiro · Pedido rápido (Baker · Quick order)',
     expression: expr,
     line: { pt: s.view.line.pt, en: s.view.line.en },
     said: !ended && s.said ? s.said.pt : null,
     feedback: !ended && s.lastScore !== undefined ? buildScoreIndicator(s.lastScore) : null,
     extras,
     chips: ended ? [] : s.view.chips.map((c) => ({ pt: c.pt, en: c.en })),
-    input: ended ? null : { id: 'pedido-input', placeholder: 'Responda em português… (Answer in Portuguese)', send: 'Enviar', onSend: (_t, el) => handleSend(el) },
+    input: ended ? null : { id: 'pedido-input', placeholder: 'Responda em português… (Answer in Portuguese)', send: 'Enviar (Send)', onSend: (_t, el) => handleSend(el) },
     footer: ended
       ? h(
           'div',

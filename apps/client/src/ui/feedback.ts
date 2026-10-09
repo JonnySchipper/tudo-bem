@@ -58,7 +58,7 @@ function thanks(category: FeedbackCategory | null) {
     h(
       'div',
       { class: 'panel feedback-panel feedback-thanks', role: 'dialog', 'aria-labelledby': 'feedback-thanks-title' },
-      h('button', { class: 'close ghost', type: 'button', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', type: 'button', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       // the note goes into the envelope and gets the kind as its seal
       h('div', { class: 'feedback-letter', 'aria-hidden': 'true' }, h('i', { class: 'letter-note' }), h('i', { class: 'letter-env' }), h('i', { class: 'letter-flap' }), h('span', { class: 'letter-seal' }, kindGlyph(category ?? 'love'))),
       h('h2', { id: 'feedback-thanks-title' }, FEEDBACK_COPY.thanksTitle.pt),
@@ -172,7 +172,7 @@ export function openFeedback(): void {
   const panel = h(
     'div',
     { class: 'panel feedback-panel', role: 'dialog', 'aria-labelledby': 'feedback-title' },
-    h('button', { class: 'close ghost', type: 'button', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+    h('button', { class: 'close ghost', type: 'button', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
     h('h2', { id: 'feedback-title', class: 'feedback-title' }, h('i', { class: 'fala-bubble', 'aria-hidden': 'true' }), FEEDBACK_COPY.title.pt),
     en(FEEDBACK_COPY.title.en),
     h('p', { class: 'feedback-lead' }, FEEDBACK_COPY.lead.pt, en(FEEDBACK_COPY.lead.en)),

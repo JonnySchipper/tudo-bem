@@ -43,7 +43,7 @@ import { profileMetJulia, rememberJuliaMet } from './juliaMet';
 export { closeModal, modalId, openModal } from './modal.js';
 import { closeModal, modalId, openModal } from './modal.js';
 
-const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar' }, '✕');
+const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar (Close)' }, '✕');
 
 // ---------------------------------------------------------------- NPC dialogue
 
@@ -138,7 +138,7 @@ export function showJulia(fromGreeting = false) {
     showDialogue({
       npc: julia,
       speaker: 'Júlia',
-      role: 'Guia da praça',
+      role: 'Guia da praça · Plaza guide',
       line,
       key: 'talk-julia',
       chips: JULIA_TREE.map((j) => j.q),
@@ -177,7 +177,7 @@ export function openKiosk(take: () => void) {
           h('b', null, verb),
           h('span', { class: 'detail' }, ` ${rest.join(' ')}`),
           en(s.en, true),
-          done ? h('span', { class: 'tick', 'aria-label': 'feito' }, '✓') : null,
+          done ? h('span', { class: 'tick', 'aria-label': 'feito (done)' }, '✓') : null,
         ),
       );
     });

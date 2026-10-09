@@ -7,7 +7,7 @@
  */
 import { JUICE, MG_ITEMS, MG_MODS, juiceVerdict, nextPadariaUpgrade, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MenuLadderView, type MgServerMsg } from '@tudobem/shared';
 import { game } from '../state';
-import { h } from './dom';
+import { h, bi } from './dom';
 import { speak, stopSpeaking } from '../audio';
 import { ambience } from '../ambience';
 import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
@@ -71,7 +71,7 @@ export class CorreriaUI {
     this.serveBtn = h('button', { type: 'button', class: 'cr-serve', id: 'cr-serve', onclick: () => this.act({ a: 'serve' }) }, h('span', { class: 'pt' }, 'Entregar 🔔'), h('span', { class: 'en' }, 'Serve')) as HTMLButtonElement;
     this.clearBtn = h('button', { type: 'button', class: 'cr-clear', id: 'cr-clear', onclick: () => this.act({ a: 'clear' }) }, h('span', { class: 'pt' }, 'Limpar'), h('span', { class: 'en' }, 'Empty')) as HTMLButtonElement;
     this.enBtn = h('button', { type: 'button', class: 'cr-en', id: 'cr-en', 'aria-pressed': String(this.showEn), onclick: () => this.toggleEn() }, 'EN') as HTMLButtonElement;
-    this.quitBtn = h('button', { type: 'button', class: 'cr-quit', id: 'cr-quit', 'aria-label': 'Sair', onclick: () => this.quit() }, '✕') as HTMLButtonElement;
+    this.quitBtn = h('button', { type: 'button', class: 'cr-quit', id: 'cr-quit', 'aria-label': 'Sair (Leave)', onclick: () => this.quit() }, '✕') as HTMLButtonElement;
     this.helpBtn = h('button', { type: 'button', class: 'cr-help', id: 'cr-help', 'aria-label': 'Como jogar (How to play)', title: 'Como jogar · How to play', onclick: () => this.help() }, '?') as HTMLButtonElement;
     for (const m of MG_MODS.filter((x) => x.group === 'coffee'))
       this.modsEl.append(h('button', { type: 'button', class: 'cr-mod', 'data-mod': m.id, 'aria-pressed': 'false', onclick: () => this.act({ a: 'mod', id: m.id }) }, h('span', { class: 'pt' }, m.pt), h('span', { class: 'en' }, m.en)));
@@ -79,7 +79,7 @@ export class CorreriaUI {
     this.top = h('div', { class: 'cr-top', id: 'cr-top', 'aria-live': 'off' });
     this.panel = h(
       'div',
-      { class: 'cr-panel', id: 'cr-panel', role: 'region', 'aria-label': 'Correria no Balcão' },
+      { class: 'cr-panel', id: 'cr-panel', role: 'region', 'aria-label': 'Correria no Balcão (Counter Rush)' },
       this.mirror,
       this.say,
       this.askEl,
@@ -319,7 +319,7 @@ export class CorreriaUI {
       { class: 'cr-ladder' },
       h(
         'ol',
-        { 'aria-label': 'Cardápio' },
+        { 'aria-label': 'Cardápio (Menu)' },
         ...chips.map((c) =>
           h(
             'li',
@@ -515,11 +515,11 @@ export class CorreriaUI {
     this.top.replaceChildren(
       this.a.practice
         ? h('div', { class: 'cr-wavechip' }, h('span', { class: 'pt' }, 'Treino'), h('span', { class: 'sub' }, 'Practice · 1 cliente'))
-        : h('div', { class: 'cr-wavechip' }, h('span', { class: 'pt' }, m.wave), h('span', { class: 'sub' }, `${m.left} clientes`)),
-      h('div', { class: 'cr-stat pts', title: 'Pontos' }, h('span', { class: 'k' }, 'Pontos'), h('b', { id: 'cr-points' }, String(m.points))),
-      h('div', { class: `cr-stat combo${m.combo >= 2 ? ' hot' : ''}`, title: 'Combo' }, h('span', { class: 'k' }, 'Combo'), h('b', { id: 'cr-combo' }, `x${m.combo}`)),
-      h('div', { class: 'cr-stat tips', title: 'Gorjeta' }, h('span', { class: 'k' }, 'Gorjeta'), h('b', { id: 'cr-tips' }, m.tips)),
-      h('div', { class: 'cr-lvl', title: 'Nível' }, m.level),
+        : h('div', { class: 'cr-wavechip' }, h('span', { class: 'pt' }, m.wave), h('span', { class: 'sub' }, `${m.left} clientes`, h('span', { class: 'en' }, `${m.left} customers`))),
+      h('div', { class: 'cr-stat pts', title: 'Pontos · Points' }, h('span', { class: 'k' }, 'Pontos', h('span', { class: 'en' }, 'Points')), h('b', { id: 'cr-points' }, String(m.points))),
+      h('div', { class: `cr-stat combo${m.combo >= 2 ? ' hot' : ''}`, title: 'Combo · Combo' }, h('span', { class: 'k' }, 'Combo', h('span', { class: 'en' }, 'Streak')), h('b', { id: 'cr-combo' }, `x${m.combo}`)),
+      h('div', { class: 'cr-stat tips', title: 'Gorjeta · Tips' }, h('span', { class: 'k' }, 'Gorjeta', h('span', { class: 'en' }, 'Tips')), h('b', { id: 'cr-tips' }, m.tips)),
+      h('div', { class: 'cr-lvl', title: 'Nível · Level' }, m.level),
       this.helpBtn,
       this.enBtn,
       this.quitBtn,
@@ -586,7 +586,7 @@ export class CorreriaUI {
               }
             });
             window.setTimeout(() => input.focus(), 0);
-            return h('div', { class: 'cr-ask-type' }, input, h('button', { type: 'button', class: 'cr-opt go', onclick: go }, 'Responder'), h('span', { class: 'en' }, 'Numbers or words, accents optional'));
+            return h('div', { class: 'cr-ask-type' }, input, h('button', { type: 'button', class: 'cr-opt go', onclick: go }, bi('Responder', 'Answer')), h('span', { class: 'en' }, 'Numbers or words, accents optional'));
           })();
     this.askEl.replaceChildren(h('div', { class: 'cr-ask-head' }, h('span', { class: 'pt' }, `${card.title.pt} 🧾`), h('span', { class: 'en' }, card.title.en), this.askSecs), items, body);
   }
@@ -646,7 +646,7 @@ export class CorreriaUI {
     this.root.querySelector('#mg-end')?.remove();
     const card = h(
       'div',
-      { class: 'cr-end', id: 'mg-end', 'data-lost': lost ? '1' : '0', role: 'dialog', 'aria-label': 'Fim do turno' },
+      { class: 'cr-end', id: 'mg-end', 'data-lost': lost ? '1' : '0', role: 'dialog', 'aria-label': 'Fim do turno (End of shift)' },
       h('h3', null, h('span', { class: 'pt' }, 'Fim do turno'), h('span', { class: 'en' }, 'End of shift')),
       lost
         ? null

@@ -34,7 +34,7 @@ import {
   type PastelOrder,
   type PastelPart,
 } from '@tudobem/shared';
-import { h, en } from './dom';
+import { h, en, bi } from './dom';
 import { pixelSvg } from './pixelSvg';
 import { npcPortrait, portraitKey, type Expression } from './pixelArt';
 import { imageUrl } from '../render/pixel/manifest';
@@ -431,7 +431,7 @@ export class PastelView {
         this.timerEl,
         this.scoreEl,
         this.kit.meter,
-        h('button', { type: 'button', class: 'ghost ps-quit', id: 'pastel-quit', onclick: () => this.abandon() }, 'Sair'),
+        h('button', { type: 'button', class: 'ghost ps-quit', id: 'pastel-quit', onclick: () => this.abandon() }, bi('Sair', 'Leave')),
       ),
       stallRoof('pastel'),
       this.queueEl,

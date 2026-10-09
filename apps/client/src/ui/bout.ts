@@ -110,7 +110,7 @@ export class BoutUI {
     this.top = h('div', { class: 'bout-top', id: 'bout-top', 'aria-live': 'off' });
     this.meters = h('div', { class: 'bout-meters', id: 'bout-meters' });
     this.body = h('div', { class: 'bout-body', id: 'bout-body' });
-    this.panel = h('div', { class: 'bout-panel', id: 'bout', role: 'region', 'aria-label': 'Treino no tatame' }, this.meters, this.body);
+    this.panel = h('div', { class: 'bout-panel', id: 'bout', role: 'region', 'aria-label': 'Treino no tatame (Mat practice)' }, this.meters, this.body);
     this.root = h('div', { class: matRootClass(game.profile?.nameplate), id: 'bout-root' }, this.top, this.panel);
     document.body.classList.add('bout-on');
     (document.getElementById('ui') ?? document.body).append(this.root);

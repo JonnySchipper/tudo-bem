@@ -204,7 +204,7 @@ export function buildHud(actions: HudActions) {
   cameraBtn.style.display = 'none';
   const actionsNav = h(
     'nav',
-    { class: 'hud-actions hud-slab', id: 'hud-actions', 'aria-label': 'Menu do jogo' },
+    { class: 'hud-actions hud-slab', id: 'hud-actions', 'aria-label': 'Menu do jogo (Game menu)' },
     drawerPlate,
     decorBtn,
     btn('btn-map', 'map', 'Mapa', 'Map', actions.openMap),
@@ -293,7 +293,7 @@ export function buildHud(actions: HudActions) {
   window.matchMedia(COMPACT_QUERY).addEventListener('change', closeMenus);
 
   // ---- bottom bar
-  const input = h('input', { type: 'text', maxLength: MAX_CHAT_LEN, placeholder: 'Diga oi! (Say hi — Portuguese or English)', 'aria-label': 'Chat', id: 'chat-input' });
+  const input = h('input', { type: 'text', maxLength: MAX_CHAT_LEN, placeholder: 'Diga oi! (Say hi — Portuguese or English)', 'aria-label': 'Conversa (Chat)', id: 'chat-input' });
 const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.placeholder = phMq.matches ? 'Diga oi! (Say hi)' : 'Diga oi! (Say hi — Portuguese or English)');  setPh();  phMq.addEventListener('change', setPh);
   const hint = h('span', { class: 'hint' }, 'Enter ↵');
   const send = () => {
@@ -383,7 +383,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
     b.replaceChildren(
       icon(ico, 32),
       h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, pt), h('i', { class: 'hud-gloss' }, on ? enOn : enOff)),
-      h('span', { class: 'hud-state' }, on ? 'sim' : 'não'),
+      h('span', { class: 'hud-state' }, on ? 'sim' : 'não', en(on ? ' yes' : ' no')),
     );
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   };
