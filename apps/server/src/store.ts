@@ -113,6 +113,16 @@ export class ProfileStore {
     this.save();
   }
 
+  /** Forget a profile (account deletion) and write at once, so no later debounced save can bring it back. */
+  remove(id: string): boolean {
+    const p = this.byId.get(id);
+    if (!p) return false;
+    this.byId.delete(id);
+    if (this.byToken.get(p.token) === id) this.byToken.delete(p.token);
+    this.flush();
+    return true;
+  }
+
   /** Debounced write. After `shutdown`, further saves are ignored. */
   save() {
     if (this.closed || !this.adapter || this.timer) return;

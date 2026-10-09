@@ -168,7 +168,7 @@ import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
-import { ADMIN_MONEY_MAX, ADMIN_WRONG_PASSWORD, adminPasswordMatches, readAdminAuthConfig } from './adminAuth.js';
+import { ADMIN_MONEY_MAX, ADMIN_TOO_MANY, ADMIN_WRONG_PASSWORD, AdminLoginGuard, readAdminAuthConfig } from './adminAuth.js';
 import { DevBillingProvider } from './billing/devProvider.js';
 import { publishLayoutPullRequest } from './designGithub.js';
 import { LayoutStore } from './layoutStore.js';
@@ -216,6 +216,8 @@ export interface WorldOptions {
    * pass `null` to disable admin on this world.
    */
   adminPassword?: string | null;
+  /** Wrong-password throttle for the admin login. app.ts shares one with the HTTP admin checks; omitted = this world's own. */
+  adminGuard?: AdminLoginGuard;
   /** Player academies. Omit for an in-memory store (tests, and any caller that does not persist). */
   academies?: AcademyStore;
   /** Player-owned padarias (Fundar). Omit for in-memory only. */
@@ -267,6 +269,8 @@ export interface Session {
   close: (reason: CloseReason) => void;
   /** Signed-in account (from the session cookie on the WebSocket upgrade). */
   accountId?: string;
+  /** Client IP of the WebSocket upgrade (admin login throttle). Unset in solo mode and tests. */
+  ip?: string;
   lastActiveAt: number;
   idleWarned: boolean;
   profile?: StoredProfile;
@@ -333,6 +337,7 @@ export class World {
   private weatherPin: Weather | null = null;
   /** Server-side admin password, or null when the panel is off. */
   private readonly adminPassword: string | null;
+  private readonly adminGuard: AdminLoginGuard;
   /** The neighbours: schedules, positions, walks (pure function of the game clock). */
   private readonly npcs: NpcDirector;
   private npcTicking = false;
@@ -383,6 +388,7 @@ export class World {
       const cfg = readAdminAuthConfig();
       this.adminPassword = cfg.ready && cfg.password ? cfg.password : null;
     }
+    this.adminGuard = opts.adminGuard ?? new AdminLoginGuard();
     this.npcs = new NpcDirector(() => this.clockNow());
     this.accounts = opts.accounts;
     this.academies = opts.academies ?? new AcademyStore(null);
@@ -530,8 +536,8 @@ export class World {
 
   // ---------- connection lifecycle ----------
 
-  connect(id: string, send: (m: ServerMsg) => void, close: (reason: CloseReason) => void, auth: { accountId?: string } = {}): Session {
-    const s: Session = { id, send, close, accountId: auth.accountId, lastActiveAt: this.now(), idleWarned: false, chatTimes: [], lastHintAt: 0, carry: null };
+  connect(id: string, send: (m: ServerMsg) => void, close: (reason: CloseReason) => void, auth: { accountId?: string; ip?: string } = {}): Session {
+    const s: Session = { id, send, close, accountId: auth.accountId, ip: auth.ip, lastActiveAt: this.now(), idleWarned: false, chatTimes: [], lastHintAt: 0, carry: null };
     this.sessions.set(id, s);
     return s;
   }
@@ -580,6 +586,16 @@ export class World {
   /** Close every live socket of an account (used on logout). */
   dropAccount(accountId: string) {
     for (const s of [...this.sessions.values()]) if (s.accountId === accountId) this.kick(s, 'logout');
+  }
+
+  /** Account deletion (accountDelete.ts): close its sockets and rebuild the boards that may show its character. */
+  forgetAccount(accountId: string, profileId?: string) {
+    this.dropAccount(accountId);
+    if (profileId) {
+      this.incomingFriendReqs.delete(profileId);
+      for (const set of this.incomingFriendReqs.values()) set.delete(profileId);
+    }
+    this.leaderboards.markDirty();
   }
 
   private kick(s: Session, reason: CloseReason, last?: ServerMsg) {
@@ -1353,14 +1369,14 @@ export class World {
           en: 'Admin is off on this server.',
         });
       }
-      if (!adminPasswordMatches(msg.password, this.adminPassword)) {
+      const keys = AdminLoginGuard.keys({ ip: s.ip, accountId: s.accountId, socket: s.id });
+      const verdict = this.adminGuard.attempt(keys, typeof msg.password === 'string' ? msg.password : '', this.adminPassword, 'ws login');
+      if (verdict !== 'ok') {
         s.admin = false;
-        return s.send({
-          t: 'admin',
-          phase: 'auth',
-          ok: false,
-          ...ADMIN_WRONG_PASSWORD,
-        });
+        s.send({ t: 'admin', phase: 'auth', ok: false, ...(verdict === 'wrong' ? ADMIN_WRONG_PASSWORD : ADMIN_TOO_MANY) });
+        // Repeated failures: drop the socket so guessing needs a reconnect (and the IP / account keys still hold).
+        if (this.adminGuard.blocked(keys)) this.kick(s, 'admin', { t: 'kicked', reason: 'admin', ...ADMIN_TOO_MANY });
+        return;
       }
       s.admin = true;
       s.send({ t: 'admin', phase: 'auth', ok: true });
