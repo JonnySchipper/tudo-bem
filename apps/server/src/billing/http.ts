@@ -103,7 +103,7 @@ export async function handleBillingApi(req: IncomingMessage, res: ServerResponse
       now: deps.now?.() ?? Date.now(),
     });
     if (applied) {
-      deps.store.save();
+      deps.store.save(profile.id);
       deps.sync(userId);
     }
     send(res, 200, { ok: true, duplicate: !applied, eventId: event.eventId });

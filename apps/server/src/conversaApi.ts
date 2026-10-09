@@ -425,6 +425,7 @@ async function handleEnd(req: ConversaEndRequest, res: ServerResponse, deps: Con
       conversaClears: updateDaily.conversaClears,
       conversaRvGranted: grantRv ? updateDaily.conversaRvGranted : profile.daily.conversaRvGranted,
     };
+    deps.store.save(profile.id);
     deps.store.flush();
     coins = profile.coins;
     deps.onProfileChanged?.(req.playerId);

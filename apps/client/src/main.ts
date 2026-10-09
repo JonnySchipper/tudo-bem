@@ -806,6 +806,7 @@ net.onStatus = (s) => {
     return;
   }
   reconnectBanner(null);
+  if (s === 'restarting') return overlayMessage('O servidor está reiniciando… · Server restarting…', () => net.retry());
   overlayMessage('Reconectando… · Reconnecting…', () => net.retry());
 };
 

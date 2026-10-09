@@ -91,6 +91,10 @@ function chatSafety(dir: string | undefined): ChatSafetyService & { status?: Jev
 
 /** WebSocket close codes the client understands (see apps/client/src/net.ts). */
 export const CLOSE_CODES: Record<CloseReason, number> = { replaced: 4000, idle: 4001, logout: 4002, admin: 4003 };
+/** Server restart (RFC 6455 1012). Sent to every socket on shutdown; the client shows "restarting" and reconnects. */
+export const CLOSE_RESTART = 1012;
+/** How long shutdown waits for sockets and HTTP keep-alives before cutting them. */
+export const SHUTDOWN_GRACE_MS = 2_000;
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -321,34 +325,79 @@ export function createApp(opts: AppOptions) {
   backupKick?.unref();
   backupTimer?.unref();
 
+  let closing: Promise<void> | null = null;
+  /** Write every store. `final` ends the profile store (later saves are ignored). Returns the names that failed. */
+  const persistAll = (final: boolean): string[] => {
+    const failed: string[] = [];
+    const steps: [string, () => void][] = [
+      ['profiles', () => (final ? store.shutdown() : store.flush())],
+      ['feiraGames', () => feiraGames.persist()],
+      ['feiraCart', () => feiraCart.persist()],
+      ['academies', () => academies.save()],
+      ['padarias', () => padarias.save()],
+      ['feedback', () => feedback.save()],
+    ];
+    for (const [name, step] of steps) {
+      try {
+        step();
+      } catch (e) {
+        failed.push(name);
+        console.error(`[shutdown] ${name} write failed`, e);
+      }
+    }
+    return failed;
+  };
+
   return {
     server,
     wss,
     world,
     store,
     accounts,
-    async close() {
-      clearInterval(heartbeat);
-      clearInterval(idleSweep);
-      if (backupKick) clearTimeout(backupKick);
-      if (backupTimer) clearInterval(backupTimer);
-      for (const ws of wss.clients) ws.terminate();
-      wss.close();
-      await new Promise<void>((resolve) => server.close(() => resolve()));
-      feiraGames.persist();
-      feiraCart.persist();
-      academies.save();
-      padarias.save();
-      feedback.save();
-      store.shutdown();
-      if (opts.sqliteBackups) {
-        try {
-          await backupDatabase(openDatabase(dataDir), dataDir);
-        } catch {
-          console.error('[sqlite] shutdown backup failed');
+    /**
+     * Graceful stop. Order: write every store first (a SIGKILL after the grace period loses nothing), close
+     * sockets with 1012 (clients show "restarting" and reconnect), stop HTTP and cut lingering connections after
+     * SHUTDOWN_GRACE_MS, write again (disconnects stamped lastSeen), back up last. A second call (second signal)
+     * gets the same promise. Rejects when the final write fails, so the process can exit non-zero.
+     */
+    close() {
+      closing ??= (async () => {
+        clearInterval(heartbeat);
+        clearInterval(idleSweep);
+        if (backupKick) clearTimeout(backupKick);
+        if (backupTimer) clearInterval(backupTimer);
+        persistAll(false);
+        for (const ws of wss.clients) {
+          try {
+            ws.close(CLOSE_RESTART, 'restart');
+          } catch {
+            ws.terminate();
+          }
         }
-      }
-      closeDatabase(dataDir);
+        wss.close();
+        await new Promise<void>((resolve) => {
+          const force = setTimeout(() => {
+            for (const ws of wss.clients) ws.terminate();
+            server.closeAllConnections();
+          }, SHUTDOWN_GRACE_MS);
+          force.unref?.();
+          server.close(() => {
+            clearTimeout(force);
+            resolve();
+          });
+        });
+        const failed = persistAll(true);
+        if (opts.sqliteBackups && !failed.length) {
+          try {
+            await backupDatabase(openDatabase(dataDir), dataDir);
+          } catch {
+            console.error('[sqlite] shutdown backup failed');
+          }
+        }
+        closeDatabase(dataDir);
+        if (failed.length) throw new Error(`[shutdown] could not write: ${failed.join(', ')}`);
+      })();
+      return closing;
     },
   };
 }
