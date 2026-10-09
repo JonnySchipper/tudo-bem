@@ -7,12 +7,14 @@ import path from 'node:path';
 import { crop, loadPng, clone, paste } from '../../../../scripts/lib/pixel/img.mjs';
 import { toCanonicalSheet, mergeLayers, keyLayer } from '../../../../scripts/lib/pixel/chars.mjs';
 import { rowFacing } from '../../../../scripts/lib/pixel/chars.mjs';
-import { alphaAt, anchorOf, anchors, emptySheet, eyeWhites, fx, fy, frames, hexAt, keyAuto, keyOutfit, keyRanks, openFringe, putHex, puffHair, regata, bermuda, saia, stampSet, warpLayer, warpPlan } from '../../../../scripts/lib/pixel/charedit.mjs';
+import { OUTLINES, alphaAt, anchorOf, anchors, emptySheet, fx, fy, frames, hexAt, keyAuto, keyOutfit, keyRanks, openFringe, putHex, puffHair, regata, bermuda, saia, stampSet, warpLayer, warpPlan } from '../../../../scripts/lib/pixel/charedit.mjs';
 import { KEY_RAMPS } from '../../../client/src/render/pixel/palette.ts';
 import { HAT_ART } from './hats.mjs';
 import { buildGarbs } from './garb.mjs';
-import { APRON_ART, EXTRA_ART, FACE_ALPHA, FACE_ART, GESTURE_FRAMES, HAIR_ADDON, POSE_ART } from './charart.mjs';
+import { APRON_ART, BLINK_ART, EXTRA_ART, EYE_ART, FACE_ALPHA, FACE_ART, GESTURE_FRAMES, HAIR_ADDON, POSE_ART } from './charart.mjs';
 import { buildRegulars } from './regulars.mjs';
+import { buildGi, buildGiPatch } from './gi.mjs';
+import { detailTop } from './topdetail.mjs';
 
 const SRC_H = 32 * 10;
 /** hair styles whose pack fringe reaches the eyes on the front frames: pulled up and aside (wave 2) */
@@ -27,8 +29,10 @@ export const BODY_TYPES = ['esguio', 'medio', 'forte'];
 /** creator hair style -> LimeZu hairstyle number (or a derived style, see buildHairs) */
 export const HAIR_BASE = { curto: '12', raspado: '20', undercut: '26', cacheado: '25', black: '25', ondulado: '07', longo: '15', coque: '16', trancas: '16' };
 
-/** face style -> LimeZu eyes number (the pack's eyes differ by iris color only) */
+/** face style -> LimeZu eyes number (the pack's eyes differ by iris color only; since wave 3 the eyes are authored, see charart.mjs EYE_ART) */
 export const EYES_BASE = { suave: '01', marcante: '04', doce: '02', maduro: '05' };
+/** the idle frame (of 6) on which the eyes are closed */
+export const BLINK_FRAME = 4;
 
 export async function buildChars({ base }) {
   const cache = new Map();
@@ -43,8 +47,8 @@ export async function buildChars({ base }) {
 
   // ---- body (skin ramp), the eyes stay a separate layer
   const bodyRaw = await canon('Bodies', 'Body_01');
-  const bodyKeyed = keyLayer(bodyRaw, { skin: ['#aa5e56', '#b57972', '#bf8b78', '#c49d85'] });
   const an = anchors(bodyRaw);
+  const bodyKeyed = cheekContour(keyLayer(bodyRaw, { skin: ['#aa5e56', '#b57972', '#bf8b78', '#c49d85'] }), an);
   layers.body_medio = bodyKeyed;
 
   // ---- warps for the other two body types (body-attached layers only; head layers are shared)
@@ -56,13 +60,20 @@ export async function buildChars({ base }) {
   };
   regBody('body_medio', bodyKeyed);
 
-  // ---- eyes
-  for (const [face, n] of Object.entries(EYES_BASE)) layers[`eyes_${face}`] = eyeWhites(await canon('Eyes', `Eyes_${n}`));
+  // ---- eyes (wave 3: authored per face style; the pack's Eyes_NN differ by iris colour only and are one pixel wide). One idle frame in
+  // six (front and side rows) blinks.
+  const blinks = (r, c) => r <= 2 && c === BLINK_FRAME;
+  for (const face of Object.keys(EYES_BASE)) {
+    const art = EYE_ART[face];
+    const img = stampSet(emptySheet(), { S: art.S, E: art.E }, an, 'head', { only: (r, c) => !blinks(r, c) });
+    layers[`eyes_${face}`] = stampSet(img, { S: BLINK_ART.S, E: BLINK_ART.E }, an, 'head', { only: blinks });
+  }
 
   // ---- outfits: 5 top styles x 3 bottom styles
   for (const top of TOPS) {
     const raw = await canon('Outfits', `Outfit_${TOP_BASE[top]}_01`);
     let { img } = keyOutfit(raw, an);
+    img = detailTop(img, bodyRaw, top, an);
     if (top === 'regata') img = regata(img, an);
     for (const bottom of BOTTOMS) {
       const edit = { calca: (i) => i, bermuda: (i) => bermuda(i, an), saia: (i) => saia(i, an) }[bottom];
@@ -79,11 +90,11 @@ export async function buildChars({ base }) {
     if (FRINGE_OPEN.has(style)) img = openFringe(img, an, style === 'cacheado' || style === 'black' ? { notch: 2 } : {});
     const add = HAIR_ADDON[style];
     if (add) img = stampSet(clone(img), { S: add.S, N: add.N ?? add.S, E: add.E ?? add.S, W: add.W }, an, 'head');
-    layers[`hair_${style}`] = img;
+    layers[`hair_${style}`] = hairShine(img, an);
   }
 
   // ---- face styles (brows, blush, lines) and extras
-  for (const [face, art] of Object.entries(FACE_ART)) layers[`face_${face}`] = art ? stampSet(emptySheet(), { S: art.S, E: art.E }, an, 'head', { alphaOf: FACE_ALPHA }) : emptySheet();
+  for (const [face, art] of Object.entries(FACE_ART)) layers[`face_${face}`] = stampSet(emptySheet(), { S: art.S, E: art.E }, an, 'head', { alphaOf: FACE_ALPHA });
   layers.extra_oculos = await acc0('Accessory_15_Glasses_01');
   layers.extra_bigode = keyRanks(await acc0('Accessory_12_Mustache_01'), 'hair', { '#6f5449': 1, '#8a6552': 2 });
   layers.extra_barba = keyRanks(await acc0('Accessory_13_Beard_01'), 'hair', { '#6f5449': 1, '#8a6552': 2 });
@@ -101,9 +112,11 @@ export async function buildChars({ base }) {
   layers.acc_phone = await canon('Smartphones', 'Smartphone_1');
   regBody('npc_apron', stampSet(emptySheet(), APRON_ART, an, 'body', { rows: new Set([0, 1, 2, 3, 4, 5, 6, 7]) }));
 
-  // ---- BJJ gi (Professora Bia): drawn over the camisa + calça outfit (white, recolored by the look), so it only adds what makes a kimono
-  // read: crossed lapels under the chin and a black belt with its knot across the waist. Everything follows the outfit's silhouette.
-  regBody('npc_gi', buildGi(layers.outfit_camisa_calca, an));
+  // ---- BJJ gi: drawn over the camisa + calça outfit (recolored by the look), so it only adds what makes a kimono read: the collar,
+  // the crossed lapels with the chest in the V, one thin belt row with its knot and tails, the jacket skirt (gi.mjs). The academy
+  // stamp is its own layer so a vestiário gi stays plain. Both follow the outfit's silhouette on every frame, sitting included.
+  regBody('npc_gi', buildGi(layers.outfit_camisa_calca, bodyRaw, an));
+  regBody('gi_patch', buildGiPatch(layers.outfit_camisa_calca, bodyRaw, an));
 
   // ---- hats: derived from pack accessories (recolored to the hat / accent ramps) or authored (hats.mjs)
   const acc = acc0;
@@ -134,45 +147,50 @@ export async function buildChars({ base }) {
 }
 
 /**
- * The gi pieces for every non-sitting frame, from the alpha of `outfit` (the camisa + calça layer). Torso rows are bottom-7 .. bottom-4
- * (the same rows the body warp uses): two lapel diagonals that cross under the collar on the front frames, and the belt on the last two
- * torso rows (dark top row, black lower row) inside the silhouette, with a knot and two short tails on the front.
+ * A specular on the hair (wave 3): two half-transparent white pixels on the crown, left of centre, two rows under the hair's top edge on
+ * every frame, plus one under them. Blended at runtime over whatever hair colour the look picks, so a black bob and a blonde one both
+ * catch the light from the upper left without a fifth ramp colour.
  */
-function buildGi(outfit, an) {
-  const out = emptySheet();
-  const LAP = '#d8d0e0', BELT_HI = '#3a3a50', BELT = '#1f1f2e';
+function hairShine(img, an) {
+  const out = clone(img);
+  const WHITE = '#fff6e6';
   for (const { r, c } of frames()) {
-    if (r >= 8 && r <= 11) continue; // sitting frames have another geometry
     const a = anchorOf(an, r, c);
     if (!a) continue;
-    const facing = rowFacing(r);
-    const row = (y) => {
-      let x0 = 99, x1 = -1;
-      for (let x = 0; x < 16; x++) if (alphaAt(outfit, fx(c, x), fy(r, a.bottom + y))) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
-      return x1 < 0 ? null : [x0, x1];
-    };
-    const put = (x, y, hex) => {
-      if (x < 0 || x > 15 || !alphaAt(outfit, fx(c, x), fy(r, a.bottom + y))) return;
-      putHex(out, fx(c, x), fy(r, a.bottom + y), hex);
-    };
-    const top = row(-7);
-    if (facing === 'S' && top) {
-      const cx = Math.round((top[0] + top[1]) / 2);
-      put(cx - 2, -7, LAP); put(cx + 1, -7, LAP);
-      put(cx - 1, -6, LAP); put(cx, -6, LAP);
-    }
-    for (const [y, hex] of [[-5, BELT_HI], [-4, BELT]]) {
-      const ext = row(y);
-      if (!ext) continue;
-      const inset = facing === 'E' || facing === 'W' ? 0 : 2;
-      for (let x = ext[0] + inset; x <= ext[1] - inset; x++) put(x, y, hex);
-    }
-    if (facing === 'S') {
-      const ext = row(-4);
-      if (ext) {
-        const cx = Math.round((ext[0] + ext[1]) / 2);
-        put(cx, -5, BELT); put(cx - 1, -3, BELT); put(cx + 1, -3, BELT);
-      }
+    let top = -1;
+    for (let y = 0; y < 32 && top < 0; y++) for (let x = 0; x < 16; x++) if (alphaAt(img, fx(c, x), fy(r, y)) === 255 && !OUTLINES.has(hexAt(img, fx(c, x), fy(r, y)))) { top = y; break; }
+    if (top < 0) continue;
+    const y = top + 1;
+    let x0 = 99, x1 = -1;
+    for (let x = 0; x < 16; x++) if (alphaAt(img, fx(c, x), fy(r, y)) === 255 && !OUTLINES.has(hexAt(img, fx(c, x), fy(r, y)))) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
+    if (x1 - x0 < 4) continue;
+    const sx = x0 + Math.max(1, Math.round((x1 - x0) * 0.3));
+    const fill = (x, yy) => alphaAt(img, fx(c, x), fy(r, yy)) === 255 && !OUTLINES.has(hexAt(img, fx(c, x), fy(r, yy)));
+    if (fill(sx, y)) putHex(out, fx(c, sx), fy(r, y), WHITE, 56);
+    if (fill(sx + 1, y)) putHex(out, fx(c, sx + 1), fy(r, y), WHITE, 56);
+    if (fill(sx, y + 1)) putHex(out, fx(c, sx), fy(r, y + 1), WHITE, 36);
+  }
+  return out;
+}
+
+/**
+ * A contour on the face (wave 3): on the front-facing frames, the outermost skin pixel of the four rows from the brow line to the jaw
+ * (head top + 8 .. + 11) takes the skin's shade rank, so the cheeks turn away from the light and the face reads as a volume, not a disc.
+ * The pack already shades the jaw row and the chin; this joins them to the temples.
+ */
+function cheekContour(body, an) {
+  const out = clone(body);
+  const base = KEY_RAMPS.skin[2], shade = KEY_RAMPS.skin[1];
+  for (const { r, c } of frames()) {
+    if (rowFacing(r) !== 'S') continue;
+    const a = anchorOf(an, r, c);
+    if (!a) continue;
+    for (let y = a.top + 8; y <= a.top + 11; y++) {
+      const xs = [];
+      for (let x = 0; x < 16; x++) if (alphaAt(body, fx(c, x), fy(r, y)) && hexAt(body, fx(c, x), fy(r, y)) === base) xs.push(x);
+      if (xs.length < 6) continue;
+      putHex(out, fx(c, xs[0]), fy(r, y), shade);
+      putHex(out, fx(c, xs[xs.length - 1]), fy(r, y), shade);
     }
   }
   return out;

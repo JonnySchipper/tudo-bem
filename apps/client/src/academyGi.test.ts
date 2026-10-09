@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_APPEARANCE, ROOMS, elevatorLayout } from '@tudobem/shared';
 import { roomBounds } from './render/pixel/roomLayout';
 import { fitsAt, roomZoom } from './render/pixel/coords';
-import { GI_BELT_MAP, lookForAvatar } from './render/pixel/looks';
+import { GI_BELT_BASE, lookForAvatar } from './render/pixel/looks';
 
 const phone = { w: 390 * 2, h: 844 * 2 };
 const phoneIns = { top: 124 * 2, bottom: 168 * 2, left: 0, right: 0 };
@@ -21,9 +21,12 @@ describe('academy gi on the avatar', () => {
     const guest = lookForAvatar({ appearance: DEFAULT_APPEARANCE, hat: null, gi: true, belt: 'branca' });
     const street = lookForAvatar({ appearance: DEFAULT_APPEARANCE, hat: null });
     const giOf = (look: typeof member) => look.layers.find((l) => l.key.startsWith('npc_gi'));
-    expect(giOf(member)?.map).toEqual(GI_BELT_MAP.marrom);
+    expect(giOf(member)?.ramps?.belt).toBe(GI_BELT_BASE.marrom);
+    // the member's stamp is on the jacket, the guest's vestiário gi is plain
+    expect(member.layers.some((l) => l.key.startsWith('gi_patch'))).toBe(true);
+    expect(guest.layers.some((l) => l.key.startsWith('gi_patch'))).toBe(false);
     expect(member.layers.some((l) => l.key.includes('camisa') || l.key.includes('outfit') || l.ramps?.top)).toBe(true);
-    expect(giOf(guest)?.map).toEqual(GI_BELT_MAP.branca);
+    expect(giOf(guest)?.ramps?.belt).toBe(GI_BELT_BASE.branca);
     expect(giOf(street)).toBeUndefined();
     const memberTop = member.layers.find((l) => l.ramps?.top)?.ramps?.top;
     const guestTop = guest.layers.find((l) => l.ramps?.top)?.ramps?.top;

@@ -31,11 +31,11 @@ describe('character layer build (import)', () => {
     }
   });
 
-  it('outfits are fully key-colored (top / bottom / shoes) for all 15 combinations at all 3 body types', () => {
+  it('outfits are fully key-colored (top / bottom / shoes; the blouse neckline shows skin) for all 15 combinations at all 3 body types', () => {
     for (const t of TOPS) for (const b of BOTTOMS) for (const sfx of ['', '__esguio', '__forte']) {
       const img = out.layers[`outfit_${t}_${b}${sfx}`];
       expect(img, `${t}/${b}${sfx}`).toBeTruthy();
-      expect(strays(img, keys('top', 'bottom', 'shoes')), `${t}/${b}${sfx}`).toEqual([]);
+      expect(strays(img, keys('top', 'bottom', 'shoes', ...(t === 'blusa' ? ['skin'] : []))), `${t}/${b}${sfx}`).toEqual([]);
     }
   });
 
@@ -45,11 +45,11 @@ describe('character layer build (import)', () => {
     expect(sig.size).toBe(15);
   });
 
-  it('every hair style is hair-keyed, and the 9 styles are all different', () => {
+  it('every hair style is hair-keyed (plus the translucent glint), and the 9 styles are all different', () => {
     const sig = new Set();
     for (const style of Object.keys(HAIR_BASE)) {
       const img = out.layers[`hair_${style}`];
-      expect(strays(img, keys('hair')), style).toEqual([]);
+      expect(strays(img, [...keys('hair'), '#000000', '#fff6e6']), style).toEqual([]);
       sig.add(Buffer.from(img.data).toString('base64'));
     }
     expect(sig.size).toBe(Object.keys(HAIR_BASE).length);

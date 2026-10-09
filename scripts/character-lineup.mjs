@@ -6,7 +6,8 @@
  *   pnpm pixel && node scripts/character-lineup.mjs [out.png] [scale]
  *
  * Sections: 8 skin tones x 4 hair styles, all 9 hair styles, all 12 hats (S and E), the 5 NPCs, the 5 emotes (+ the phone pose) as frame
- * strips, the 3 body types, the 15 top x bottom combinations, faces, extras and idle poses.
+ * strips, the 3 body types, the academia gi (belts, sitting, walking, academy colours), the 15 top x bottom combinations, faces, extras
+ * and idle poses.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -146,6 +147,17 @@ section('Body types (S, E, N; esguio / medio / forte)', BODY_TYPES.flatMap((body
   { label: `${body} camisa/calca`, frames: faces(lookForAppearance(A({ body }))) },
   { label: `${body} camiseta/bermuda`, frames: faces(lookForAppearance(A({ body, top: 'camiseta', bottom: 'bermuda', topColor: 3, bottomColor: 2 }))) },
 ]));
+// 6b. the academia gi: every belt on the white gi, the academy colours with their stamp, sitting and walking
+{
+  const gi = (o, opts, frames) => fr(lookForAppearance(A({ top: 'camisa', bottom: 'calca', topColor: 4, bottomColor: 4, ...o }), { gi: true, ...opts }), frames);
+  const groups = ['branca', 'azul', 'roxa', 'marrom', 'preta'].map((belt, i) => ({ label: `faixa ${belt}`, frames: gi({ skin: 1 + i, hair: ['curto', 'cacheado', 'coque', 'raspado', 'longo'][i], hairColor: i }, { belt }, [[0, 0], [2, 0], [3, 0]]) }));
+  groups.push({ label: 'sentado (S, E, N)', frames: gi({ skin: 3 }, { belt: 'azul' }, [[8, 0], [10, 0], [11, 0]]) });
+  groups.push({ label: 'andando', frames: gi({ skin: 2 }, { belt: 'roxa' }, [[4, 1], [4, 4], [6, 2]]) });
+  for (const [color, cloth, stamp, belt] of [['azul', 2, 'estrela', 'marrom'], ['preto', 5, 'ipe', 'preta'], ['vermelho', 6, 'onda', 'azul'], ['verde', 0, 'folha', 'roxa']]) {
+    groups.push({ label: `academia ${color} / ${stamp}`, frames: gi({ topColor: cloth, bottomColor: cloth, skin: cloth % 8 }, { belt, stamp }, [[0, 0], [2, 0], [3, 0]]) });
+  }
+  section('Academia gi: belts, sitting, walking, academy colours with the stamp (S, E, N)', groups, { gap: 12 });
+}
 // 7. 15 combos
 {
   const groups = [];

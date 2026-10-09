@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { portraitParts, EXPRESSIONS, NPCS, scale3x } from '../../../apps/client/assets-src/custom/portraits.mjs';
+import { portraitParts, EXPRESSIONS, NPCS } from '../../../apps/client/assets-src/custom/portraits.mjs';
 import { charLayers, npcSheet, sheetFrame } from '../../../apps/client/assets-src/custom/lookkit.mjs';
 
 const diff = (a, b) => {
@@ -64,17 +64,7 @@ describe('art2 portraits', async () => {
     }
   });
 
-  it('Scale3x copies source pixels only (no blended colours) at exactly 3x', () => {
-    const src = { w: 3, h: 3, data: new Uint8Array(36) };
-    const pal = [[58, 58, 80, 255], [240, 236, 246, 255], [0, 0, 0, 0]];
-    [0, 1, 2, 1, 0, 1, 2, 1, 0].forEach((c, i) => src.data.set(pal[c], i * 4));
-    const { img } = scale3x(src);
-    expect([img.w, img.h]).toEqual([9, 9]);
-    const allowed = new Set(pal.map((p) => p.join(',')));
-    for (let i = 0; i < img.data.length; i += 4) expect(allowed.has([...img.data.slice(i, i + 4)].join(','))).toBe(true);
-  });
-
-  it('a portrait is a close-up of the sprite: the head of the world sprite is drawn in the same colours', async () => {
+  it('a portrait is the sprite: the head of the world sprite is drawn in the same colours', async () => {
     const layers = await charLayers();
     for (const npc of NPCS) {
       const f = sheetFrame(await npcSheet(npc, layers), 0, 0);
@@ -87,8 +77,8 @@ describe('art2 portraits', async () => {
       const portrait = new Set();
       for (let i = 0; i < img.data.length; i += 4) portrait.add(`${img.data[i]},${img.data[i + 1]},${img.data[i + 2]}`);
       const shared = [...spriteHead].filter((c) => portrait.has(c)).length;
-      // hat, hair, skin and outline colours carry over; only the face marks (eyes, brows) are redrawn
-      expect(shared / spriteHead.size, npc).toBeGreaterThan(0.6);
+      // every opaque colour of the sprite's head is in the portrait (translucent pixels blend with the room)
+      expect(shared / spriteHead.size, npc).toBeGreaterThan(0.9);
     }
   });
 

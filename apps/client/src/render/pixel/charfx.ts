@@ -3,6 +3,9 @@
  *
  *  - `highlightEdges`: a subtle light on the top and left edge just inside a layer's outline (hair crown, shoulders), so volumes read
  *    with the light from the top left (HOWTO 4.2 rule 3). Run on a recolored layer, before it is composited.
+ *  - `shadeEdges`: its counterpart, a cooler shade just inside the bottom and right edge of the silhouette (the far side of the hair,
+ *    the right sleeve and leg, the underside of the fringe), so every part has its lit side and its shaded side (the art brief's "two
+ *    value bands" on cloth) without a second authored colour.
  *  - `outlineSheet`: one consistent 1 px outline on the OUTER silhouette of the composed sheet, in a dark shade of the part it surrounds
  *    (selective outline, never pure black). The pack's own outline pixels that sit on the silhouette are re-tinted, and any silhouette
  *    pixel that has no outline (an authored gesture, a hat edge, a puffed-up afro) gets one, so every character is closed the same way and
@@ -128,6 +131,41 @@ export function highlightEdges(data: Uint8ClampedArray | Uint8Array, g: Geometry
       data[i] = lift(data[i], w * strength, 255);
       data[i + 1] = lift(data[i + 1], w * strength, 244);
       data[i + 2] = lift(data[i + 2], w * strength, 214);
+    }
+  }
+}
+
+/** Mix toward a cool black. */
+const sink = (v: number, w: number, dark: number): number => Math.max(0, Math.round(v - (v - dark) * w));
+
+/**
+ * Bottom-right shade on one recolored layer (in place): the pixels just inside the outer outline on the bottom edge and on the right
+ * edge, darkened and cooled. The same notion of "outer" as {@link highlightEdges}; a pixel the light reaches first is left lit.
+ */
+export function shadeEdges(data: Uint8ClampedArray | Uint8Array, g: Geometry, strength = 1): void {
+  for (const cell of cells(data.length, g)) {
+    const at = (x: number, y: number) => ((cell.y0 + y) * cell.stride + cell.x0 + x) * 4;
+    const solid = (x: number, y: number) => alphaOf(data, cell, x, y) >= 128;
+    const isOutline = (x: number, y: number) => solid(x, y) && OUTLINE_PACKED.has(packAt(data, at(x, y)));
+    const hits: [number, number, number][] = [];
+    for (let y = 0; y < cell.h; y++) {
+      for (let x = 0; x < cell.w; x++) {
+        if (!solid(x, y) || isOutline(x, y)) continue;
+        const outer = (dx: number, dy: number) => isOutline(x + dx, y + dy) && !solid(x + dx * 2, y + dy * 2);
+        const top = outer(0, -1) || !solid(x, y - 1);
+        const left = outer(-1, 0) || !solid(x - 1, y);
+        const bottom = outer(0, 1) || !solid(x, y + 1);
+        const right = outer(1, 0) || !solid(x + 1, y);
+        // the light wins on the top edge; the underside is in shade even on the lit left side (the sole of a shoe, the hem of a fringe)
+        if (bottom && !top) hits.push([x, y, 0.2]);
+        else if (right && !top && !left) hits.push([x, y, 0.14]);
+      }
+    }
+    for (const [x, y, w] of hits) {
+      const i = at(x, y);
+      data[i] = sink(data[i], w * strength, 20);
+      data[i + 1] = sink(data[i + 1], w * strength, 22);
+      data[i + 2] = sink(data[i + 2], w * strength, 48);
     }
   }
 }
