@@ -35,6 +35,8 @@ const SHOTS = path.resolve(ROOT, flag('out') ?? process.env.SHOTS_DIR ?? 'docs/l
 const VIEWS = (flag('views') ?? process.env.VIEWS ?? 'desktop,phone').split(',');
 const BOUTS = Number(flag('bouts') ?? process.env.BOUTS ?? 2);
 const PARTNERS = (flag('partners') ?? '1') !== '0';
+/** `--extras=0` skips the first-match coach note and the stripe drill. */
+const EXTRAS = (flag('extras') ?? '1') !== '0';
 const PORT = Number(process.env.JJ_PORT ?? 9213);
 const CHROME = findChrome();
 assert(CHROME, 'Chrome/Chromium not found: set CHROME_PATH');
@@ -205,9 +207,52 @@ async function run(name, base) {
       await page.click('#bout-again');
       await waitFor(page, () => ['intro', 'pick'].includes(document.querySelector('#bout')?.getAttribute('data-phase') ?? ''), null, 20_000, 'rematch');
     }
+    // a first match (wins 0): Bia's coach note at the first pick; then the fifth win and the stripe's drill, a slow chain
+    if (EXTRAS) {
+      await page.click('#bout-leave');
+      await sleep(800);
+      const setBjj = (bjj) =>
+        page.evaluate((b) => {
+          window.__tb.net.session.profile.bjj = { ...b };
+          window.__tb.game.profile.bjj = { ...b };
+        }, bjj);
+      await setBjj({ belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'] });
+      await openBout(page);
+      await startBout(page, 'mateus');
+      await waitFor(page, () => document.querySelector('#bout')?.getAttribute('data-phase') === 'pick', null, 20_000, 'first-match pick');
+      await sleep(400);
+      assert(await page.evaluate(() => !!document.querySelector('#bout-pick .bout-coach:not([hidden])')), 'a first match shows Bia’s coach note at the first pick');
+      await shot('first_match_coach');
+      await page.click('#bout-quit');
+      await page.click('#bout-quit');
+      await waitFor(page, () => !document.querySelector('#bout-root'), null, 10_000, 'left the first match');
+      await sleep(800);
+      await setBjj({ belt: 'branca', stripes: 0, wins: 4, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'] });
+      await openBout(page);
+      await startBout(page, 'mateus');
+      let drillShot = false;
+      const res = await playBout(page, {
+        pick: 'bold',
+        tapMs: 90,
+        onBeat: async (b) => {
+          if (b.phase === 'drill' && !drillShot) {
+            drillShot = true;
+            await sleep(300);
+            await shot('drill');
+          }
+        },
+      });
+      log('drill run', res.winner, res.reason, `${res.drills} drill`);
+      if (res.winner === 'you') {
+        assert(res.drills === 1, 'the fifth win opens the stripe drill, played as a chain');
+        await sleep(1200);
+        await shot('drill_end');
+        assert(await page.evaluate(() => window.__tb.game.profile.bjj.unlocked.includes('sleeve_grip')), 'the drill hands over the new move');
+      }
+    }
     // each other sparring partner on the mat: their own gi, skin and hair (the unlocked ones)
     if (PARTNERS) {
-      await page.click('#bout-leave');
+      if (await page.$('#bout-leave')) await page.click('#bout-leave');
       await sleep(800);
       for (const id of ['felipe', 'helena', 'daniel']) {
         await openBout(page);
@@ -221,7 +266,7 @@ async function run(name, base) {
         await sleep(900);
       }
     }
-    assert(checks.windup.size > 0, 'the taps drive the moves’ baked clips (wind-up frames)');
+    if (took.has('chain')) assert(checks.windup.size > 0, 'the taps drive the moves’ baked clips (wind-up frames)');
     assert(checks.meter, 'the control meter is on the pick screen');
     assert(checks.plan, 'the partner telegraphs its next move');
     assert(checks.chevrons, 'the cards show the chain length as chevrons');
