@@ -687,7 +687,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     const amb = world.stats().ambiance;
     expect(typeof amb).toBe('object');
     expect((amb as Record<string, number>)['academia#1']).toBeGreaterThanOrEqual(1);
-    await a.send({ t: 'bout', v: 1, action: 'open' });
+    await a.send({ t: 'bout', v: 2, action: 'open' });
     expect(a.all('bout').some((m) => m.phase === 'lobby')).toBe(true);
     expect(world.stats().instances['academia#1']).toBe(1);
   });

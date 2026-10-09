@@ -2,73 +2,60 @@ import { describe, expect, it } from 'vitest';
 import { completeDrill, normalizeBjj, partnerById, progressForWins, recordWin } from './academia.js';
 import { diaryWord } from './diary.js';
 import {
-  BRACE_CUT,
-  COLLAR_QUEDA,
+  CLEAN_LIFT,
   COMBOS,
-  LONE_COLLAR_PUNISH,
+  COMMANDS,
+  COMMAND_LABEL,
+  DEFENSES,
+  DEFENSE_LABEL,
+  EXCHANGE_CLOCK_MS,
   MAT_TURNS,
   MAT_WORD_IDS,
-  SLEEVE_SHIELD,
-  SLEEVE_SWEEP,
-  TIRED_MALUS,
+  MAX_CARDS,
+  RITMO_RUN,
+  START_RATES,
   UNLOCK_ORDER,
+  baseChain,
   botCommit,
   botMoves,
+  braceBlocks,
+  chainFor,
+  chainWindows,
   chooseBot,
+  cmdWindowMs,
+  defWindowMs,
+  defenseOf,
   drillPosition,
+  feintMove,
   fightMoves,
-  gripNeed,
+  gradeTap,
   isSubmission,
   isTakedown,
   matEffect,
   matLegalMoves,
   matMeter,
-  matOdds,
   matStyle,
-  moveSetsUp,
+  moveDoes,
+  moveLegal,
+  moveTaughtAt,
+  newMat,
+  nextMatWord,
+  offerCards,
+  partnerClean,
   planAnswers,
   planBot,
   planLine,
   planStands,
-  withCombos,
-  type GripFlags,
-  type MatStyle,
-  thinkMsFor,
-  moveLegal,
-  movePercent,
-  moveTaughtAt,
-  newMat,
-  nextMatWord,
+  planValues,
   rankPool,
   resolveMat,
+  saiCount,
+  shouldFeint,
+  withCombos,
+  type GripFlags,
   type MatMoveId,
   type MatState,
 } from './matFight.js';
-
-const ALL: MatMoveId[] = [
-  'collar_tie',
-  'sleeve_grip',
-  'double_leg',
-  'body_lock',
-  'single_leg',
-  'collar_drag',
-  'sleeve_pull',
-  'hip_throw',
-  'hook_sweep',
-  'scissor_sweep',
-  'hip_bump',
-  'posture',
-  'passar',
-  'knee_on_belly',
-  'back_take',
-  'sprawl',
-  'frame',
-  'escape_back',
-  'armbar',
-  'americana',
-  'rnc',
-  'hold',
-];
 
 /** You hold the collar, your turn. */
 const GRIPPED: MatState = { ...newMat(), grips: { you: { collar: true, sleeve: false }, them: { collar: false, sleeve: false } } };
@@ -76,239 +63,407 @@ const grips = (you: Partial<GripFlags>, them: Partial<GripFlags> = {}): MatState
   you: { collar: false, sleeve: false, ...you },
   them: { collar: false, sleeve: false, ...them },
 });
+const at = (kind: Exclude<MatState['position']['kind'], 'standing'>, top: 'you' | 'them', over: Partial<MatState> = {}): MatState => ({ ...newMat(), position: { kind, top }, ...over });
+
+describe('the pads', () => {
+  it('six commands and four defenses in a fixed order, each with an English gloss', () => {
+    expect(COMMANDS).toEqual(['pega', 'puxa', 'empurra', 'gira', 'levanta', 'aperta']);
+    expect(COMMANDS.map((c) => COMMAND_LABEL[c].pt)).toEqual(['Pega!', 'Puxa!', 'Empurra!', 'Gira!', 'Levanta!', 'Aperta!']);
+    expect(COMMANDS.map((c) => COMMAND_LABEL[c].en)).toEqual(['Grab!', 'Pull!', 'Push!', 'Turn!', 'Lift!', 'Squeeze!']);
+    expect(DEFENSES).toEqual(['postura', 'base', 'trava', 'sai']);
+    expect(DEFENSES.map((d) => DEFENSE_LABEL[d].pt)).toEqual(['Postura!', 'Base!', 'Trava!', 'Sai!']);
+    for (const d of DEFENSES) expect(DEFENSE_LABEL[d].stops.en.length).toBeGreaterThan(4);
+  });
+});
+
+describe('chains', () => {
+  it('every move is its fixed chain (the brief table)', () => {
+    const s = newMat();
+    expect(baseChain(s, 'you', 'collar_tie')).toEqual(['pega']);
+    expect(baseChain(s, 'you', 'sleeve_grip')).toEqual(['pega']);
+    expect(baseChain(s, 'you', 'posture')).toEqual(['levanta']);
+    expect(baseChain(s, 'you', 'sprawl')).toEqual(['empurra']);
+    expect(baseChain(s, 'you', 'sleeve_pull')).toEqual(['puxa']);
+    expect(baseChain(s, 'you', 'double_leg')).toEqual(['puxa', 'levanta']);
+    expect(baseChain(s, 'you', 'body_lock')).toEqual(['pega', 'gira']);
+    expect(baseChain(s, 'you', 'collar_drag')).toEqual(['puxa', 'gira']);
+    expect(baseChain(s, 'you', 'hip_throw')).toEqual(['puxa', 'gira', 'levanta']);
+    expect(baseChain(s, 'you', 'single_leg')).toEqual(['puxa', 'levanta', 'gira']);
+    const guardBottom = at('closed_guard', 'them');
+    expect(baseChain(guardBottom, 'you', 'hook_sweep')).toEqual(['puxa', 'gira']);
+    expect(baseChain(guardBottom, 'you', 'hip_bump')).toEqual(['levanta', 'empurra']);
+    expect(baseChain(guardBottom, 'you', 'scissor_sweep')).toEqual(['puxa', 'empurra', 'gira']);
+    expect(baseChain(guardBottom, 'you', 'frame')).toEqual(['empurra']);
+    expect(baseChain(at('closed_guard', 'you'), 'you', 'passar')).toEqual(['empurra', 'levanta', 'gira']);
+    expect(baseChain(at('side_control', 'you'), 'you', 'passar')).toEqual(['empurra', 'gira']);
+    expect(baseChain(at('knee_on_belly', 'you'), 'you', 'passar')).toEqual(['empurra', 'gira']);
+    expect(baseChain(at('side_control', 'you'), 'you', 'knee_on_belly')).toEqual(['levanta', 'empurra']);
+    expect(baseChain(at('mount', 'you'), 'you', 'back_take')).toEqual(['puxa', 'gira', 'pega']);
+    expect(baseChain(at('side_control', 'them'), 'you', 'frame')).toEqual(['empurra', 'gira']);
+    expect(baseChain(at('back_control', 'them'), 'you', 'escape_back')).toEqual(['empurra', 'gira', 'levanta']);
+    expect(baseChain(at('mount', 'you'), 'you', 'americana')).toEqual(['pega', 'empurra', 'aperta']);
+    expect(baseChain(at('mount', 'you'), 'you', 'armbar')).toEqual(['pega', 'gira', 'levanta', 'aperta']);
+    expect(baseChain(at('back_control', 'you'), 'you', 'rnc')).toEqual(['pega', 'gira', 'aperta']);
+    expect(baseChain(s, 'you', 'hold')).toEqual([]);
+  });
+
+  it('the collar makes every throw one command shorter (never under one); a tough defender adds one to finishes and big attacks', () => {
+    expect(chainFor(GRIPPED, 'you', 'double_leg')).toEqual(['levanta']);
+    expect(chainFor(GRIPPED, 'you', 'collar_drag')).toEqual(['gira']);
+    expect(chainFor({ ...newMat(), grips: grips({ collar: true, sleeve: true }) }, 'you', 'hip_throw')).toEqual(['gira', 'levanta']);
+    expect(chainFor(newMat(), 'you', 'double_leg')).toEqual(['puxa', 'levanta']);
+    // the sleeve alone does not shorten anything
+    expect(chainFor({ ...newMat(), grips: grips({ sleeve: true }) }, 'you', 'double_leg')).toHaveLength(2);
+    const daniel = partnerById('daniel')!.defense;
+    expect(daniel).toBeGreaterThanOrEqual(0.75);
+    expect(chainFor(at('mount', 'you'), 'you', 'armbar', daniel)).toEqual(['pega', 'gira', 'levanta', 'puxa', 'aperta']);
+    expect(chainFor(at('closed_guard', 'you'), 'you', 'passar', daniel)).toHaveLength(4);
+    expect(chainFor(at('side_control', 'you'), 'you', 'passar', daniel)).toHaveLength(3);
+    // a 2-point takedown is not "big"
+    expect(chainFor(newMat(), 'you', 'double_leg', daniel)).toHaveLength(2);
+    expect(chainFor(at('mount', 'you'), 'you', 'armbar', partnerById('mateus')!.defense)).toHaveLength(4);
+  });
+
+  it('windows shrink 5% a level to half; a first match is ×1.4; the last Aperta! of a finish is ×0.8', () => {
+    expect(cmdWindowMs(0)).toBe(2200);
+    expect(cmdWindowMs(4)).toBe(1760);
+    expect(cmdWindowMs(10)).toBe(1100);
+    expect(cmdWindowMs(40)).toBe(1100);
+    expect(cmdWindowMs(0, true)).toBe(3080);
+    expect(chainWindows(['pega', 'gira', 'levanta', 'aperta'], 'armbar', 0)).toEqual([2200, 2200, 2200, 1760]);
+    expect(chainWindows(['puxa', 'levanta'], 'double_leg', 4)).toEqual([1760, 1760]);
+  });
+
+  it('the defense window follows the partner speed and widens with your sleeve', () => {
+    const felipe = defWindowMs(0, partnerById('felipe')!.speed, false);
+    const helena = defWindowMs(0, partnerById('helena')!.speed, false);
+    expect(felipe).toBeLessThan(helena);
+    expect(felipe / cmdWindowMs(0)).toBeCloseTo(0.44, 2);
+    expect(helena / cmdWindowMs(0)).toBeCloseTo(0.672, 2);
+    expect(defWindowMs(0, 0.5, true)).toBe(Math.round(defWindowMs(0, 0.5, false) * 1.35));
+  });
+
+  it('grades a tap: Perfeito inside 45% of the window, Boa inside it, Tarde after it or never, Errou on the wrong button', () => {
+    expect(gradeTap('pega', 'pega', 900, 2200)).toBe('perfeito');
+    expect(gradeTap('pega', 'pega', 990, 2200)).toBe('perfeito');
+    expect(gradeTap('pega', 'pega', 1000, 2200)).toBe('boa');
+    expect(gradeTap('pega', 'pega', 2200, 2200)).toBe('boa');
+    expect(gradeTap('pega', 'pega', 2201, 2200)).toBe('tarde');
+    expect(gradeTap('pega', null, 0, 2200)).toBe('tarde');
+    expect(gradeTap('pega', 'puxa', 100, 2200)).toBe('errou');
+  });
+
+  it('the partner is clean at its accuracy (lifted) minus 0.04 a command; Daniel needs four Sai!', () => {
+    expect(partnerClean(0.6, 1)).toBeCloseTo(0.6 + CLEAN_LIFT, 5);
+    expect(partnerClean(0.6, 3)).toBeCloseTo(0.6 + CLEAN_LIFT - 0.08, 5);
+    expect(partnerClean(0.86, 1)).toBeLessThanOrEqual(0.97);
+    expect(partnerClean(partnerById('felipe')!.accuracy, 2)).toBeLessThan(partnerClean(partnerById('helena')!.accuracy, 2));
+    expect(saiCount(partnerById('mateus')!.defense)).toBe(3);
+    expect(saiCount(partnerById('daniel')!.defense)).toBe(4);
+  });
+});
 
 describe('position machine', () => {
-  it('starts standing: grips and defenses are open, every throw waits for a grip', () => {
+  it('starts standing: grips, defenses and the plain throws are open; the grip follow-ups wait for their grips', () => {
     const st = newMat();
     expect(st.position).toEqual({ kind: 'standing' });
     expect(st.actor).toBe('you');
-    const legal = matLegalMoves(st, 'you', ALL);
-    expect(legal.sort()).toEqual(['collar_tie', 'hold', 'posture', 'sleeve_grip', 'sprawl'].sort());
-    expect(moveLegal(st.position, 'you', 'armbar')).toBe(false);
-    expect(moveLegal(st.position, 'you', 'scissor_sweep')).toBe(false);
-    expect(gripNeed(st, 'you', 'double_leg')).toEqual({ pt: 'Precisa de uma pegada', en: 'Needs a grip' });
-    expect(gripNeed(st, 'you', 'hip_throw')?.pt).toBe('Precisa da gola e da manga');
-    expect(resolveMat(st, 'you', 'double_leg', 0, 'branca').ok).toBe(false);
+    const all = withCombos(rankPool('preta'));
+    const legal = matLegalMoves(st, 'you', all);
+    expect(legal.sort()).toEqual(['body_lock', 'collar_tie', 'double_leg', 'hold', 'posture', 'single_leg', 'sleeve_grip', 'sprawl'].sort());
+    expect(resolveMat(st, 'you', 'hip_throw', true).ok).toBe(false);
+    expect(resolveMat(st, 'you', 'armbar', true).ok).toBe(false);
   });
 
-  it('a takedown that lands moves to the named position and scores once', () => {
-    const leg = resolveMat(GRIPPED, 'you', 'double_leg', 0, 'branca');
-    expect(leg.success).toBe(true);
+  it('a takedown that lands moves to its position and scores once; one that does not land scores nothing and spends the grips', () => {
+    const leg = resolveMat(GRIPPED, 'you', 'double_leg', true);
+    expect(leg.landed).toBe(true);
     expect(leg.points).toBe(2);
+    expect(leg.line.pt).toBe('Dois pontos!');
     expect(leg.state.position).toEqual({ kind: 'side_control', top: 'you' });
-    expect(leg.state.points.you).toBe(2);
     expect(leg.sound).toBe('whoosh');
-    const trip = resolveMat(GRIPPED, 'you', 'body_lock', 0, 'branca');
-    expect(trip.state.position).toEqual({ kind: 'closed_guard', top: 'you' });
-    expect(trip.points).toBe(2);
+    const miss = resolveMat(GRIPPED, 'you', 'double_leg', false);
+    expect(miss.landed).toBe(false);
+    expect(miss.line.pt).toBe('Errou!');
+    expect(miss.state.grips.you).toEqual({ collar: false, sleeve: false });
+    expect(miss.state.position).toEqual({ kind: 'standing' });
+    expect(miss.state.actor).toBe('them');
+    expect(resolveMat(newMat(), 'you', 'body_lock', true).state.position).toEqual({ kind: 'closed_guard', top: 'you' });
   });
 
-  it('a miss leaves the position and scores nothing, and the throw spends its grips', () => {
-    const r = resolveMat(GRIPPED, 'you', 'double_leg', 0.99, 'branca');
-    expect(r.state.grips.you).toEqual({ collar: false, sleeve: false });
-    expect(r.success).toBe(false);
-    expect(r.points).toBe(0);
-    expect(r.state.position).toEqual({ kind: 'standing' });
-    expect(r.state.actor).toBe('them');
-    expect(r.state.points).toEqual({ you: 0, them: 0 });
-  });
-
-  it('a missed submission dumps the attacker to closed guard on the bottom', () => {
-    const mount: MatState = { ...newMat(), position: { kind: 'mount', top: 'you' } };
-    const r = resolveMat(mount, 'you', 'armbar', 0.99, 'azul');
-    expect(r.success).toBe(false);
-    expect(r.sound).toBe('sub');
+  it('a finish that does not land drops the attacker to the bottom of the guard (Escapou!); one that lands ends the match', () => {
+    const mount = at('mount', 'you');
+    const r = resolveMat(mount, 'you', 'armbar', false);
     expect(r.state.position).toEqual({ kind: 'closed_guard', top: 'them' });
-    expect(r.state.points.you).toBe(0);
-    expect(r.submission).toBe(false);
+    expect(r.line.pt).toBe('Escapou!');
+    expect(r.sound).toBe('sub');
+    const win = resolveMat({ ...mount, points: { you: 0, them: 6 } }, 'you', 'armbar', true);
+    expect(win.submission).toBe(true);
+    expect(win.line.pt).toBe('Final!');
+    expect(win.state).toMatchObject({ over: true, winner: 'you', reason: 'submission', turnsUsed: 1 });
   });
 
-  it('a landed submission ends the match at once', () => {
-    const mount: MatState = { ...newMat(), position: { kind: 'mount', top: 'you' }, points: { you: 0, them: 6 } };
-    const r = resolveMat(mount, 'you', 'armbar', 0, 'azul');
-    expect(r.submission).toBe(true);
-    expect(r.state.over).toBe(true);
-    expect(r.state.winner).toBe('you');
-    expect(r.state.reason).toBe('submission');
-    expect(r.state.turnsUsed).toBe(1);
+  it('passes: three points from the guard to the side, four from the side or the knee to the top', () => {
+    const fromGuard = resolveMat(at('closed_guard', 'you'), 'you', 'passar', true);
+    expect(fromGuard.state.position).toEqual({ kind: 'side_control', top: 'you' });
+    expect(fromGuard.points).toBe(3);
+    const fromSide = resolveMat(at('side_control', 'you'), 'you', 'passar', true);
+    expect(fromSide.state.position).toEqual({ kind: 'mount', top: 'you' });
+    expect(fromSide.points).toBe(4);
+    expect(fromSide.line.pt).toBe('Quatro pontos!');
+    const knee = resolveMat(at('side_control', 'you'), 'you', 'knee_on_belly', true);
+    expect(knee.points).toBe(2);
+    const back = resolveMat(at('mount', 'you'), 'you', 'back_take', true);
+    expect(back.points).toBe(4);
+    expect(back.state.position).toEqual({ kind: 'back_control', top: 'you' });
   });
 
-  it('hold is certain, scores nothing, and keeps the position', () => {
-    const st: MatState = { ...newMat(), position: { kind: 'mount', top: 'you' }, points: { you: 4, them: 0 } };
-    const r = resolveMat(st, 'you', 'hold', 0.99, 'branca');
-    expect(r.success).toBe(true);
-    expect(r.points).toBe(0);
-    expect(r.sound).toBe('none');
-    expect(r.state.position).toEqual({ kind: 'mount', top: 'you' });
-  });
-
-  it('pays a new position once per exchange, then again after a reset', () => {
-    let st = resolveMat(GRIPPED, 'you', 'double_leg', 0, 'branca').state;
-    expect(st.points.you).toBe(2);
+  it('pays a position once per exchange, Gancho sweeps, and the escapes go back to the guard', () => {
+    let st = resolveMat(newMat(), 'you', 'double_leg', true).state;
     st = { ...st, actor: 'you', position: { kind: 'closed_guard', top: 'them' } };
-    const again = resolveMat(st, 'you', 'hip_bump', 0, 'azul');
-    expect(again.state.position).toEqual({ kind: 'side_control', top: 'you' });
-    expect(again.points).toBe(0);
-    const swept = resolveMat({ ...newMat(), position: { kind: 'closed_guard', top: 'them' } }, 'you', 'scissor_sweep', 0, 'azul');
-    expect(swept.state.position).toEqual({ kind: 'mount', top: 'you' });
-    expect(swept.points).toBe(2);
-    expect(swept.sound).toBe('mount');
-  });
-
-  it('Gancho scores a sweep from closed guard; Postura breaks one of their grips and keeps the position', () => {
-    const swept = resolveMat({ ...newMat(), position: { kind: 'closed_guard', top: 'them' } }, 'you', 'hook_sweep', 0, 'branca');
-    expect(swept.success).toBe(true);
+    expect(resolveMat(st, 'you', 'hip_bump', true).points).toBe(0);
+    const swept = resolveMat(at('closed_guard', 'them'), 'you', 'hook_sweep', true);
     expect(swept.points).toBe(2);
     expect(swept.state.position).toEqual({ kind: 'side_control', top: 'you' });
-    expect(moveLegal(newMat().position, 'you', 'hook_sweep')).toBe(false);
+    expect(resolveMat(at('side_control', 'them'), 'you', 'frame', true).state.position).toEqual({ kind: 'closed_guard', top: 'them' });
+    expect(resolveMat(at('back_control', 'them'), 'you', 'escape_back', true).state.position).toEqual({ kind: 'closed_guard', top: 'them' });
+  });
+
+  it('Hold always lands, scores nothing and keeps the position', () => {
+    const r = resolveMat(at('mount', 'you', { points: { you: 4, them: 0 } }), 'you', 'hold', false);
+    expect(r.landed).toBe(true);
+    expect(r.points).toBe(0);
+    expect(r.state.position).toEqual({ kind: 'mount', top: 'you' });
+  });
+});
+
+describe('grips, braces and defenses', () => {
+  it('Postura strips one grip (collar first) and braces; Base braces against takedowns', () => {
     const st: MatState = { ...newMat(), grips: grips({ collar: true }, { collar: true, sleeve: true }) };
-    const up = resolveMat(st, 'you', 'posture', 0, 'branca');
-    expect(up.points).toBe(0);
-    expect(up.state.position).toEqual({ kind: 'standing' });
-    // the collar goes first; your own grip stays
+    const up = resolveMat(st, 'you', 'posture', true);
     expect(up.state.grips.them).toEqual({ collar: false, sleeve: true });
-    expect(up.state.grips.you.collar).toBe(true);
     expect(up.events).toEqual([
       { kind: 'strip', side: 'you', grips: ['collar'] },
       { kind: 'brace', side: 'you', brace: 'postura' },
     ]);
     expect(up.state.brace.you).toBe('postura');
-    expect(up.state.scored).toEqual(st.scored);
+    expect(resolveMat(GRIPPED, 'you', 'sprawl', true).state.brace.you).toBe('base');
   });
 
-  it('Base braces against the next takedown (or sweep, on top of guard) and keeps the grips', () => {
-    const r = resolveMat(GRIPPED, 'you', 'sprawl', 0, 'branca');
-    expect(r.state.position).toEqual({ kind: 'standing' });
-    expect(r.state.grips.you).toEqual({ collar: true, sleeve: false });
-    expect(r.state.brace.you).toBe('base');
-    expect(r.points).toBe(0);
-    expect(moveLegal({ kind: 'closed_guard', top: 'you' }, 'you', 'sprawl')).toBe(true);
-    expect(moveLegal({ kind: 'side_control', top: 'you' }, 'you', 'sprawl')).toBe(false);
+  it('a brace stops the matching attack with no tap and is the Vantagem of whoever braced, either side', () => {
+    const based: MatState = { ...newMat(), actor: 'them', brace: { you: 'base', them: null } };
+    expect(braceBlocks(based, 'them', 'double_leg')).toBe(true);
+    expect(braceBlocks(based, 'them', 'collar_tie')).toBe(false);
+    const r = resolveMat(based, 'them', 'double_leg', false);
+    expect(r.events).toContainEqual({ kind: 'blocked', side: 'you' });
+    expect(r.state.adv.you).toBe(1);
+    expect(r.line.pt).toBe('Vantagem!');
+    expect(r.state.brace.you).toBeNull();
+    const theirs: MatState = { ...newMat(), brace: { you: null, them: 'postura' } };
+    expect(braceBlocks(theirs, 'you', 'sleeve_grip')).toBe(true);
+    expect(resolveMat(theirs, 'you', 'sleeve_grip', false).state.adv.them).toBe(1);
   });
 
-  it('Passar leaves the Queda position for mount, and the top of guard for side control', () => {
-    const afterQueda = resolveMat(GRIPPED, 'you', 'double_leg', 0, 'branca').state;
-    expect(afterQueda.position).toEqual({ kind: 'side_control', top: 'you' });
-    expect(moveLegal(afterQueda.position, 'you', 'passar')).toBe(true);
-    expect(moveLegal(afterQueda.position, 'you', 'armbar')).toBe(false);
-    const passed = resolveMat({ ...afterQueda, actor: 'you' }, 'you', 'passar', 0, 'branca');
-    expect(passed.points).toBe(3);
-    expect(passed.line.pt).toBe('Três pontos!');
-    expect(passed.state.position).toEqual({ kind: 'mount', top: 'you' });
-    expect(moveLegal(passed.state.position, 'you', 'armbar')).toBe(true);
-    const fromGuard = resolveMat({ ...newMat(), position: { kind: 'closed_guard', top: 'you' } }, 'you', 'passar', 0, 'branca');
-    expect(fromGuard.state.position).toEqual({ kind: 'side_control', top: 'you' });
-    expect(fromGuard.points).toBe(3);
-    const knee = resolveMat({ ...newMat(), position: { kind: 'knee_on_belly', top: 'you' } }, 'you', 'passar', 0, 'branca');
-    expect(knee.state.position).toEqual({ kind: 'mount', top: 'you' });
-    expect(moveLegal(newMat().position, 'you', 'passar')).toBe(false);
+  it('nobody braces twice in a row', () => {
+    const st = resolveMat(newMat(), 'you', 'sprawl', true).state;
+    const back = resolveMat(st, 'them', 'hold', true).state;
+    expect(back.braced.you).toBe(true);
+    const legal = matLegalMoves(back, 'you', ['collar_tie', 'posture', 'sprawl', 'double_leg']);
+    expect(legal).not.toContain('sprawl');
+    expect(legal).not.toContain('posture');
+    expect(legal).toContain('double_leg');
+    const after = resolveMat(back, 'you', 'collar_tie', true).state;
+    expect(after.braced.you).toBe(false);
   });
 
-  it('Joelho, Encaixe, and Tornozelo only fire from positions the match can reach', () => {
-    const afterQueda = resolveMat(GRIPPED, 'you', 'double_leg', 0, 'branca').state;
-    expect(moveLegal(afterQueda.position, 'you', 'knee_on_belly')).toBe(true);
-    expect(moveLegal(afterQueda.position, 'you', 'back_take')).toBe(true);
-    expect(moveLegal(newMat().position, 'you', 'knee_on_belly')).toBe(false);
-    expect(moveLegal(newMat().position, 'you', 'back_take')).toBe(false);
-    const knee = resolveMat({ ...afterQueda, actor: 'you' }, 'you', 'knee_on_belly', 0, 'branca');
-    expect(knee.points).toBe(2);
-    expect(knee.state.position).toEqual({ kind: 'knee_on_belly', top: 'you' });
-    const mount = resolveMat({ ...knee.state, actor: 'you' }, 'you', 'passar', 0, 'branca');
-    expect(mount.state.position).toEqual({ kind: 'mount', top: 'you' });
-    expect(moveLegal(mount.state.position, 'you', 'armbar')).toBe(true);
-    const back = resolveMat({ ...mount.state, actor: 'you' }, 'you', 'back_take', 0, 'roxa');
-    expect(back.points).toBe(4);
-    expect(back.line.pt).toBe('Quatro pontos!');
-    expect(back.state.position).toEqual({ kind: 'back_control', top: 'you' });
-    expect(moveLegal(back.state.position, 'you', 'rnc')).toBe(true);
-    expect(moveLegal(back.state.position, 'them', 'escape_back')).toBe(true);
-    const ankle = resolveMat(GRIPPED, 'you', 'single_leg', 0, 'roxa');
-    expect(ankle.points).toBe(2);
-    expect(ankle.state.position).toEqual({ kind: 'knee_on_belly', top: 'you' });
-    expect(ankle.state.grips.you).toEqual({ collar: false, sleeve: false });
-    expect(movePercent('back_take', 'azul')).toBe(0);
-    expect(movePercent('knee_on_belly', 'branca')).toBe(44);
+  it('the defense that stops each attack kind', () => {
+    const s = newMat();
+    expect(defenseOf(s, 'them', 'collar_tie')).toBe('postura');
+    expect(defenseOf(s, 'them', 'double_leg')).toBe('base');
+    expect(defenseOf(s, 'them', 'sleeve_pull')).toBe('base');
+    expect(defenseOf(at('closed_guard', 'you'), 'them', 'hook_sweep')).toBe('base');
+    expect(defenseOf(at('side_control', 'them'), 'them', 'passar')).toBe('trava');
+    expect(defenseOf(at('side_control', 'you'), 'them', 'frame')).toBe('trava');
+    expect(defenseOf(at('closed_guard', 'you'), 'them', 'frame')).toBeNull();
+    expect(defenseOf(at('mount', 'them'), 'them', 'armbar')).toBe('sai');
+    expect(defenseOf(s, 'them', 'posture')).toBeNull();
+    expect(defenseOf(s, 'them', 'hold')).toBeNull();
   });
 
-  it('frame and escape return the bottom player to closed guard', () => {
-    const side = resolveMat({ ...newMat(), position: { kind: 'side_control', top: 'them' } }, 'you', 'frame', 0, 'azul');
-    expect(side.state.position).toEqual({ kind: 'closed_guard', top: 'them' });
-    const back = resolveMat({ ...newMat(), position: { kind: 'back_control', top: 'them' } }, 'you', 'escape_back', 0, 'azul');
-    expect(back.state.position).toEqual({ kind: 'closed_guard', top: 'them' });
-    expect(moveLegal({ kind: 'knee_on_belly', top: 'them' }, 'you', 'frame')).toBe(true);
-    expect(moveLegal({ kind: 'mount', top: 'them' }, 'you', 'frame')).toBe(true);
-    expect(moveLegal({ kind: 'back_control', top: 'you' }, 'you', 'rnc')).toBe(true);
-    expect(moveLegal({ kind: 'closed_guard', top: 'you' }, 'you', 'americana')).toBe(true);
+  it('Defendeu!: a defended scoring attack is a Vantagem; a defended grip or escape is not', () => {
+    const shot = resolveMat({ ...newMat(), actor: 'them' }, 'them', 'double_leg', false, { defended: true });
+    expect(shot.events).toContainEqual({ kind: 'defended', side: 'you', adv: true });
+    expect(shot.state.adv.you).toBe(1);
+    expect(shot.line.pt).toBe('Vantagem!');
+    const grip = resolveMat({ ...newMat(), actor: 'them' }, 'them', 'collar_tie', false, { defended: true });
+    expect(grip.state.adv.you).toBe(0);
+    expect(grip.line.pt).toBe('Defendeu!');
+    const sub = resolveMat(at('mount', 'them', { actor: 'them' }), 'them', 'armbar', false, { defended: true });
+    expect(sub.state.adv.you).toBe(1);
+    expect(sub.state.position).toEqual({ kind: 'closed_guard', top: 'you' });
   });
-});
 
-describe('percent table', () => {
-  const table: Record<Exclude<MatMoveId, 'hold'>, number[]> = {
-    collar_tie: [70, 78, 84, 90, 94],
-    sleeve_grip: [65, 74, 82, 88, 93],
-    double_leg: [45, 55, 65, 74, 82],
-    body_lock: [50, 60, 70, 78, 85],
-    single_leg: [0, 0, 40, 52, 64],
-    collar_drag: [55, 64, 72, 80, 86],
-    sleeve_pull: [80, 85, 89, 92, 94],
-    hip_throw: [75, 80, 85, 90, 93],
-    hook_sweep: [38, 50, 62, 72, 80],
-    scissor_sweep: [40, 52, 64, 74, 82],
-    hip_bump: [48, 58, 68, 76, 84],
-    posture: [55, 66, 76, 84, 90],
-    passar: [50, 62, 72, 80, 88],
-    knee_on_belly: [44, 56, 66, 76, 84],
-    back_take: [0, 0, 36, 50, 64],
-    sprawl: [60, 70, 78, 85, 90],
-    frame: [35, 48, 60, 72, 82],
-    escape_back: [25, 38, 52, 66, 78],
-    armbar: [18, 30, 42, 55, 68],
-    americana: [0, 22, 28, 44, 60],
-    rnc: [0, 0, 24, 36, 55],
-  };
-  const belts = ['branca', 'azul', 'roxa', 'marrom', 'preta'] as const;
-
-  it('matches the belt table, with zeros where a submission is still locked', () => {
-    for (const [id, row] of Object.entries(table) as [Exclude<MatMoveId, 'hold'>, number[]][]) {
-      belts.forEach((belt, i) => expect(movePercent(id, belt), `${id} ${belt}`).toBe(row[i]));
+  it('a grip held through three of your turns slips', () => {
+    let st = resolveMat(newMat(), 'you', 'collar_tie', true).state;
+    for (let i = 0; i < 2; i++) {
+      st = resolveMat(st, 'them', 'hold', true).state;
+      st = resolveMat(st, 'you', 'hold', true).state;
     }
-    expect(movePercent('hold', 'branca')).toBe(100);
+    expect(st.grips.you.collar).toBe(false);
+  });
+
+  it('advantages break a points tie at the bell; the meter reads grips, position and the last exchange', () => {
+    const r = resolveMat({ ...newMat(), points: { you: 2, them: 2 }, adv: { you: 1, them: 0 }, turnsUsed: MAT_TURNS - 1 }, 'you', 'hold', true);
+    expect(r.state).toMatchObject({ over: true, winner: 'you', reason: 'advantages' });
+    expect(matMeter(GRIPPED)).toBeGreaterThan(matMeter(newMat()));
+    expect(matMeter(at('mount', 'you'))).toBeGreaterThan(50);
+    expect(matMeter(at('mount', 'them'))).toBeLessThan(-50);
   });
 });
 
-describe('10-turn winner', () => {
-  it('the higher score wins when the tenth turn is not a submission, and a tie is a draw', () => {
-    const ahead = resolveMat({ ...newMat(), points: { you: 4, them: 2 }, turnsUsed: 9 }, 'you', 'hold', 0, 'branca');
-    expect(ahead.state.turnsUsed).toBe(MAT_TURNS);
-    expect(ahead.state.over).toBe(true);
-    expect(ahead.state.winner).toBe('you');
-    expect(ahead.state.reason).toBe('points');
-    const tied = resolveMat({ ...newMat(), points: { you: 2, them: 2 }, turnsUsed: 9 }, 'you', 'hold', 0.2, 'branca');
-    expect(tied.state.winner).toBe('draw');
-    expect(tied.state.reason).toBe('draw');
-    const behind = resolveMat({ ...newMat(), points: { you: 0, them: 2 }, turnsUsed: 9, actor: 'them' }, 'them', 'hold', 0, 'branca');
-    expect(behind.state.winner).toBe('them');
-  });
-
-  it('a submission on the last turn still wins, even from behind', () => {
-    const st: MatState = { ...newMat(), position: { kind: 'mount', top: 'you' }, points: { you: 0, them: 8 }, turnsUsed: 9 };
-    const r = resolveMat(st, 'you', 'armbar', 0, 'azul');
-    expect(r.state.winner).toBe('you');
-    expect(r.state.reason).toBe('submission');
-    expect(r.state.turnsUsed).toBe(10);
-  });
-
-  it('ten holds from 0-0 are a draw and do not run an eleventh turn', () => {
+describe('Ritmo', () => {
+  it('three all-Perfeito chains in a row are a Vantagem (Que ritmo!), then the count starts again', () => {
     let st = newMat();
-    for (let i = 0; i < MAT_TURNS; i++) {
-      const r = resolveMat(st, st.actor, 'hold', 0.5, 'branca');
-      st = r.state;
-    }
+    const mine = (id: MatMoveId, perfect: boolean, landed = true) => {
+      const r = resolveMat({ ...st, actor: 'you' }, 'you', id, landed, { perfect });
+      st = { ...r.state, actor: 'you', brace: { you: null, them: null }, braced: { you: false, them: false } };
+      return r;
+    };
+    mine('collar_tie', true);
+    mine('sleeve_grip', true);
+    expect(st.ritmo).toBe(2);
+    const third = mine('posture', true);
+    expect(third.events).toContainEqual({ kind: 'ritmo', side: 'you' });
+    expect(third.line.pt).toBe('Que ritmo!');
+    expect(st.adv.you).toBe(1);
+    expect(st.ritmo).toBe(0);
+    expect(RITMO_RUN).toBe(3);
+  });
+
+  it('a miss or a chain with one Boa! resets it; Hold leaves it', () => {
+    let st: MatState = { ...newMat(), ritmo: 2 };
+    st = resolveMat(st, 'you', 'hold', true).state;
+    expect(st.ritmo).toBe(2);
+    st = resolveMat({ ...st, actor: 'you' }, 'you', 'collar_tie', true, { perfect: false }).state;
+    expect(st.ritmo).toBe(0);
+    st = resolveMat({ ...newMat(), ritmo: 2 }, 'you', 'double_leg', false, { perfect: true }).state;
+    expect(st.ritmo).toBe(0);
+  });
+});
+
+describe('16 exchanges', () => {
+  it('sixteen holds from 0-0 are a draw; the clock is 2:00 of 7.5 s exchanges', () => {
+    let st = newMat();
+    for (let i = 0; i < MAT_TURNS; i++) st = resolveMat(st, st.actor, 'hold', true).state;
+    expect(MAT_TURNS).toBe(16);
     expect(st.over).toBe(true);
     expect(st.winner).toBe('draw');
-    const extra = resolveMat(st, 'you', 'hold', 0, 'branca');
-    expect(extra.ok).toBe(false);
-    expect(extra.state.turnsUsed).toBe(10);
+    expect(resolveMat(st, 'you', 'hold', true).ok).toBe(false);
+    expect(MAT_TURNS * EXCHANGE_CLOCK_MS).toBe(120_000);
+  });
+
+  it('a finish on the last exchange still wins from behind', () => {
+    const r = resolveMat(at('mount', 'you', { points: { you: 0, them: 8 }, turnsUsed: MAT_TURNS - 1 }), 'you', 'armbar', true);
+    expect(r.state.winner).toBe('you');
+    expect(r.state.reason).toBe('submission');
+  });
+});
+
+describe('the pick: at most four cards, no percentages', () => {
+  const all = withCombos(rankPool('azul'));
+
+  it('ranks the answer to the telegraph first, then the best attack, a finish, a setup', () => {
+    const plan = { move: 'double_leg' as const, kind: 'queda' as const };
+    const cards = offerCards(newMat(), all, plan);
+    expect(cards.length).toBeLessThanOrEqual(MAX_CARDS);
+    expect(cards[0]).toMatchObject({ move: 'sprawl', answers: true });
+    expect(cards.some((c) => c.kind === 'attack')).toBe(true);
+    const mount = offerCards(at('mount', 'you'), all, null);
+    expect(mount.map((c) => c.move)).toContain('armbar');
+    expect(mount.find((c) => c.move === 'armbar')).toMatchObject({ kind: 'finish', chain: 4 });
+    expect(mount.find((c) => c.move === 'armbar')?.risk?.pt).toBe('Se errar: você por baixo');
+  });
+
+  it('a grip follow-up leads the attacks, and the card says what the move does in plain words', () => {
+    const both: MatState = { ...newMat(), grips: grips({ collar: true, sleeve: true }) };
+    const cards = offerCards(both, all, null);
+    expect(cards.find((c) => c.kind === 'attack')?.move).toBe('collar_drag');
+    expect(cards.find((c) => c.move === 'collar_drag')).toMatchObject({ chain: 1, points: 2 });
+    expect(moveDoes(newMat(), 'you', 'double_leg')).toEqual({ pt: '+2 · você por cima', en: '+2 · you on top' });
+    expect(moveDoes(newMat(), 'you', 'sleeve_grip').pt).toBe('Protege você');
+    expect(moveDoes(at('mount', 'you'), 'you', 'armbar').pt).toBe('Vale a vitória!');
+    for (const c of cards) expect(`${c.does.pt} ${c.does.en}`).not.toMatch(/%/);
+  });
+
+  it('a held grip is not offered again, and nothing is offered twice', () => {
+    const cards = offerCards(GRIPPED, all, null);
+    expect(cards.map((c) => c.move)).not.toContain('collar_tie');
+    expect(new Set(cards.map((c) => c.move)).size).toBe(cards.length);
+  });
+});
+
+describe('the partner AI', () => {
+  const all = botMoves('branca', 'branca');
+  const ctx = { allowed: all, foeAllowed: all };
+
+  it('on top it passes; behind on its last move from the top it goes for the finish', () => {
+    expect(['passar', 'knee_on_belly']).toContain(chooseBot(at('side_control', 'them', { actor: 'them' }), ctx));
+    const losing = at('mount', 'them', { actor: 'them', points: { you: 4, them: 0 }, turnsUsed: MAT_TURNS - 1 });
+    expect(isSubmission(chooseBot(losing, ctx))).toBe(true);
+  });
+
+  it('with a grip in hand it throws (the collar made the throw one command)', () => {
+    const st: MatState = { ...newMat(), actor: 'them', grips: grips({}, { collar: true, sleeve: true }) };
+    expect(isTakedown(planBot(st, ctx).move)).toBe(true);
+  });
+
+  it('reads the player: the more you block, the less its attacks are worth', () => {
+    const st: MatState = { ...newMat(), actor: 'them' };
+    const value = (block: number) => planValues(st, { ...ctx, rates: { block, chain: START_RATES.chain } }).find(([id]) => id === 'double_leg')![1];
+    expect(value(0.95)).toBeLessThan(value(0.1));
+    // and the better your chains land, the more it fears your next attack (its standing value drops)
+    const best = (chain: number) => Math.max(...planValues(st, { ...ctx, rates: { block: 0.5, chain } }).map(([, v]) => v));
+    expect(best(0.95)).toBeLessThan(best(0.2));
+  });
+
+  it('keeps the telegraphed move unless your move broke it', () => {
+    const st: MatState = { ...newMat(), actor: 'them' };
+    const plan = planBot(st, ctx);
+    expect(botCommit(st, plan, ctx)).toEqual({ move: plan.move, replanned: false });
+    const broke = resolveMat({ ...newMat(), actor: 'you' }, 'you', 'double_leg', true).state;
+    expect(planStands(broke, { move: 'double_leg', kind: 'queda' }, all)).toBe(false);
+    expect(botCommit(broke, { move: 'double_leg', kind: 'queda' }, ctx).replanned).toBe(true);
+  });
+
+  it('feints from blue belt only, by aggression; a feint is an attack of another kind', () => {
+    expect(shouldFeint(3, 0.92, 0)).toBe(false);
+    expect(shouldFeint(4, 0.45, 0)).toBe(false);
+    expect(shouldFeint(4, 0.92, 0.1)).toBe(true);
+    expect(shouldFeint(4, 0.92, 0.2)).toBe(false);
+    const st: MatState = { ...newMat(), actor: 'them' };
+    const blue = botMoves('azul', 'azul');
+    const f = feintMove(st, { move: 'double_leg', kind: 'queda' }, { allowed: blue, foeAllowed: blue, style: matStyle(partnerById('rafael')!) });
+    expect(f).not.toBeNull();
+    expect(defenseOf(st, 'them', f!)).not.toBe('base');
+  });
+
+  it('every telegraph line names the partner and avoids position and technique names', () => {
+    const LOCK = /\b(oss|rola|guarda|montada|costas|armlock|kimura|triângulo|mata-leão)\b/i;
+    for (const k of ['gola', 'manga', 'queda', 'soltar', 'base', 'puxar', 'raspar', 'passar', 'subir', 'finalizar', 'sair', 'travar', 'segurar'] as const) {
+      const l = planLine(k, 'Helena');
+      expect(l.pt.startsWith('Helena ')).toBe(true);
+      expect(l.pt).not.toMatch(LOCK);
+    }
+    const legal = matLegalMoves(newMat(), 'you', withCombos(rankPool('azul')));
+    expect(planAnswers(newMat(), { move: 'double_leg', kind: 'queda' }, legal)).toEqual(['sprawl', 'sleeve_grip']);
+  });
+});
+
+describe('move effects', () => {
+  it('matEffect says what a move does if it lands', () => {
+    expect(matEffect(newMat(), 'you', 'double_leg')).toMatchObject({ points: 2, to: 'cem_quilos', toAhead: 'you', submission: false });
+    expect(matEffect(at('mount', 'you'), 'you', 'armbar')).toMatchObject({ submission: true, riskBottom: true });
+    expect(matEffect(newMat(), 'you', 'collar_tie')).toMatchObject({ points: 0, to: 'de_pe' });
   });
 });
 
@@ -393,7 +548,7 @@ describe('stripe unlock order', () => {
 });
 
 describe('cross-rank cap', () => {
-  it('a brown belt against a white belt only gets the white pool, at brown percents', () => {
+  it('a brown belt against a white belt only gets the white pool', () => {
     const moves = fightMoves({ belt: 'marrom', unlocked: rankPool('marrom'), opponentBelt: 'branca' });
     expect(moves).toEqual([
       'collar_tie',
@@ -410,10 +565,6 @@ describe('cross-rank cap', () => {
       'sleeve_pull',
       'hip_throw',
     ]);
-    expect(movePercent('double_leg', 'marrom')).toBe(74);
-    expect(movePercent('double_leg', 'branca')).toBe(45);
-    expect(movePercent('armbar', 'marrom')).toBe(55);
-    expect(movePercent('armbar', 'branca')).toBe(18);
     expect(moves).not.toContain('americana');
     expect(moves).not.toContain('rnc');
     expect(moves).not.toContain('back_take');
@@ -438,176 +589,6 @@ describe('cross-rank cap', () => {
   });
 });
 
-describe('grips are strategy', () => {
-  it('Gola: Queda +25 and opens Arrastar, which lands behind them for two', () => {
-    expect(matOdds(GRIPPED, 'you', 'double_leg', 'branca')).toEqual({ percent: 70, base: 45, parts: [{ pt: 'Gola', en: 'Collar', delta: COLLAR_QUEDA }] });
-    expect(matLegalMoves(GRIPPED, 'you', ['collar_tie', 'double_leg'])).toContain('collar_drag');
-    const drag = resolveMat(GRIPPED, 'you', 'collar_drag', 0, 'branca');
-    expect(drag.points).toBe(2);
-    expect(drag.state.position).toEqual({ kind: 'back_control', top: 'you' });
-    expect(drag.state.grips.you).toEqual({ collar: false, sleeve: false });
-  });
-
-  it('a lone collar is punished: their Abraço gets +15, even with no grip of their own', () => {
-    const theirTurn: MatState = { ...GRIPPED, actor: 'them' };
-    expect(matLegalMoves(theirTurn, 'them', ['body_lock', 'double_leg'])).toEqual(['body_lock', 'hold']);
-    expect(matOdds(theirTurn, 'them', 'body_lock', 'branca').percent).toBe(50 + LONE_COLLAR_PUNISH);
-    // add the sleeve: the collar is no longer alone, and the sleeve shields you
-    const both: MatState = { ...theirTurn, grips: grips({ collar: true, sleeve: true }) };
-    expect(matOdds(both, 'them', 'body_lock', 'branca').percent).toBe(50 - SLEEVE_SHIELD);
-  });
-
-  it('Manga shields you (−20 on their throws), opens Puxar, and Puxar keeps the sleeve for a +20 sweep', () => {
-    const st: MatState = { ...newMat(), actor: 'them', grips: grips({ sleeve: true }, { collar: true }) };
-    expect(matOdds(st, 'them', 'double_leg', 'branca').parts).toEqual([
-      { pt: 'Gola', en: 'Collar', delta: COLLAR_QUEDA },
-      { pt: 'Manga dele', en: 'Their sleeve', delta: -SLEEVE_SHIELD },
-    ]);
-    expect(matOdds(st, 'them', 'double_leg', 'branca').percent).toBe(50);
-    const mine: MatState = { ...newMat(), grips: grips({ sleeve: true }) };
-    const pull = resolveMat(mine, 'you', 'sleeve_pull', 0, 'branca');
-    expect(pull.points).toBe(0);
-    expect(pull.state.position).toEqual({ kind: 'closed_guard', top: 'them' });
-    expect(pull.state.grips.you.sleeve).toBe(true);
-    const back: MatState = { ...pull.state, actor: 'you' };
-    expect(matOdds(back, 'you', 'hook_sweep', 'branca').percent).toBe(38 + SLEEVE_SWEEP);
-    // the sleeve still shields you on the bottom
-    expect(matOdds(pull.state, 'them', 'passar', 'branca').percent).toBe(50 - SLEEVE_SHIELD);
-  });
-
-  it('both grips open Arremesso, the strongest throw, which lands on top with the knee', () => {
-    const both: MatState = { ...newMat(), grips: grips({ collar: true, sleeve: true }) };
-    const legal = matLegalMoves(both, 'you', ['collar_tie', 'sleeve_grip', 'double_leg']);
-    expect(legal).toEqual(expect.arrayContaining(['hip_throw', 'collar_drag', 'sleeve_pull', 'double_leg']));
-    const pct = (id: MatMoveId) => matOdds(both, 'you', id, 'branca').percent;
-    expect(pct('hip_throw')).toBeGreaterThan(pct('double_leg'));
-    expect(pct('hip_throw')).toBeGreaterThan(pct('collar_drag'));
-    const t = resolveMat(both, 'you', 'hip_throw', 0, 'branca');
-    expect(t.points).toBe(2);
-    expect(t.state.position).toEqual({ kind: 'knee_on_belly', top: 'you' });
-  });
-
-  it('an attack into a brace is cut, and a miss into it is an advantage for the defender', () => {
-    const braced: MatState = { ...newMat(), actor: 'them', grips: grips({}, { collar: true }), brace: { you: 'base', them: null } };
-    expect(matOdds(braced, 'them', 'double_leg', 'branca').percent).toBe(45 + COLLAR_QUEDA - BRACE_CUT.base.queda!);
-    const miss = resolveMat(braced, 'them', 'double_leg', 0.99, 'branca');
-    expect(miss.state.adv).toEqual({ you: 1, them: 0 });
-    expect(miss.events).toContainEqual({ kind: 'blocked', side: 'you' });
-    expect(miss.line.pt).toBe('Vantagem!');
-    // the brace waited for this move only
-    expect(miss.state.brace.you).toBeNull();
-    // a grip into Postura is cut by 30
-    const posture: MatState = { ...newMat(), actor: 'them', brace: { you: 'postura', them: null } };
-    expect(matOdds(posture, 'them', 'collar_tie', 'branca').percent).toBe(70 - 30);
-  });
-
-  it('a grip held through three of your turns slips, and you are tired (−10) for one move', () => {
-    let st = resolveMat(newMat(), 'you', 'collar_tie', 0, 'branca').state;
-    expect(st.gripAge.you.collar).toBe(1);
-    st = resolveMat(st, 'them', 'hold', 0, 'branca').state;
-    st = resolveMat(st, 'you', 'hold', 0, 'branca').state;
-    expect(st.grips.you.collar).toBe(true);
-    st = resolveMat(st, 'them', 'hold', 0, 'branca').state;
-    const slip = resolveMat(st, 'you', 'hold', 0, 'branca');
-    expect(slip.state.grips.you.collar).toBe(false);
-    expect(slip.events).toContainEqual({ kind: 'slip', side: 'you', grips: ['collar'] });
-    expect(slip.state.tired.you).toBe(true);
-    const next = { ...slip.state, actor: 'you' as const };
-    expect(matOdds(next, 'you', 'collar_tie', 'branca').parts).toContainEqual({ pt: 'Cansaço', en: 'Tired', delta: -TIRED_MALUS });
-    expect(resolveMat(next, 'you', 'collar_tie', 0, 'branca').state.tired.you).toBe(false);
-  });
-
-  it('advantages break a points tie at the bell', () => {
-    const r = resolveMat({ ...newMat(), points: { you: 2, them: 2 }, adv: { you: 0, them: 1 }, turnsUsed: 9 }, 'you', 'hold', 0, 'branca');
-    expect(r.state.winner).toBe('them');
-    expect(r.state.reason).toBe('advantages');
-  });
-
-  it('the meter swings with every answer: a grip, a strip, a throw, a miss', () => {
-    const start = matMeter(newMat());
-    expect(start).toBe(0);
-    const grip = resolveMat(newMat(), 'you', 'collar_tie', 0, 'branca');
-    expect(grip.meterTo).toBeGreaterThan(grip.meterFrom);
-    const miss = resolveMat(newMat(), 'you', 'collar_tie', 0.99, 'branca');
-    expect(miss.meterTo).toBeLessThan(miss.meterFrom);
-    const throwIt = resolveMat(GRIPPED, 'you', 'double_leg', 0, 'branca');
-    expect(throwIt.meterTo).toBeGreaterThan(30);
-    const strip = resolveMat({ ...newMat(), actor: 'them', grips: grips({ collar: true }) }, 'them', 'posture', 0, 'branca');
-    expect(strip.meterTo).toBeLessThan(strip.meterFrom);
-    expect(matMeter({ ...newMat(), position: { kind: 'back_control', top: 'them' } })).toBeLessThan(-60);
-  });
-
-  it('every setup says what it opens; a throw does not (its card shows points)', () => {
-    expect(moveSetsUp(newMat(), 'you', 'collar_tie')?.pt).toBe('Queda +25% · abre Arrastar');
-    expect(moveSetsUp(GRIPPED, 'you', 'sleeve_grip')?.pt).toBe('Abre o Arremesso · protege você');
-    expect(moveSetsUp(newMat(), 'you', 'sleeve_grip')?.pt).toBe('Protege você · abre Puxar');
-    expect(moveSetsUp({ ...newMat(), grips: grips({}, { collar: true }) }, 'you', 'posture')?.pt).toBe('Solta as pegadas dele');
-    expect(moveSetsUp(newMat(), 'you', 'sprawl')?.pt).toBe('Trava a queda dele');
-    expect(moveSetsUp(GRIPPED, 'you', 'double_leg')).toBeNull();
-  });
-});
-
-describe('the partner telegraphs', () => {
-  const all = botMoves('branca', 'branca');
-
-  it('opens with a grip, never a throw it cannot make', () => {
-    const plan = planBot(newMat(), 'branca', all, undefined, all);
-    expect(['collar_tie', 'sleeve_grip', 'posture', 'sprawl']).toContain(plan.move);
-    expect(['gola', 'manga', 'soltar', 'base']).toContain(plan.kind);
-  });
-
-  it('punishes a lone collar, and the answers to that are flagged', () => {
-    const st: MatState = { ...GRIPPED, actor: 'them' };
-    const plan = planBot(st, 'branca', all, undefined, all);
-    expect(plan).toEqual({ move: 'body_lock', kind: 'contra' });
-    expect(planLine(plan.kind, 'Mateus')).toEqual({ pt: 'Mateus vai castigar a sua gola sozinha.', en: 'Mateus will punish your lone collar grip.' });
-    const legal = matLegalMoves(GRIPPED, 'you', all);
-    expect(planAnswers(GRIPPED, plan, legal)).toEqual(['sleeve_grip', 'sprawl', 'posture']);
-  });
-
-  it('with its grips in hand it throws the strongest throw they open', () => {
-    const st: MatState = { ...newMat(), actor: 'them', grips: grips({}, { collar: true, sleeve: true }) };
-    expect(planBot(st, 'branca', all, undefined, all)).toEqual({ move: 'hip_throw', kind: 'queda' });
-  });
-
-  it('keeps the telegraphed move unless your answer broke it', () => {
-    const plan = { move: 'body_lock' as const, kind: 'contra' as const };
-    const st: MatState = { ...GRIPPED, actor: 'them' };
-    expect(botCommit(st, plan, 'branca', all, undefined, all)).toEqual({ move: 'body_lock', replanned: false });
-    // your throw landed first: the plan is gone with the position
-    const broke = resolveMat(GRIPPED, 'you', 'double_leg', 0, 'branca').state;
-    const r = botCommit(broke, plan, 'branca', all, undefined, all);
-    expect(r.replanned).toBe(true);
-    expect(r.move).not.toBe('body_lock');
-    expect(planStands(broke, plan, all)).toBe(false);
-  });
-
-  it('every telegraph line names the partner and avoids position and technique names', () => {
-    const LOCK = /\b(oss|rola|guarda|montada|costas|armlock|kimura|triângulo|mata-leão)\b/i;
-    for (const k of ['gola', 'manga', 'queda', 'contra', 'soltar', 'base', 'puxar', 'raspar', 'passar', 'subir', 'finalizar', 'sair', 'travar', 'segurar'] as const) {
-      const l = planLine(k, 'Helena');
-      expect(l.pt.startsWith('Helena ')).toBe(true);
-      expect(l.en.startsWith('Helena ')).toBe(true);
-      expect(l.pt).not.toMatch(LOCK);
-    }
-  });
-});
-
-describe('bot policy', () => {
-  it('on top it passes; on the bottom of guard a blue belt sweeps', () => {
-    const side: MatState = { ...newMat(), position: { kind: 'side_control', top: 'them' }, actor: 'them' };
-    expect(['passar', 'knee_on_belly']).toContain(chooseBot(side, 'branca', botMoves('branca', 'branca')));
-    const bottom: MatState = { ...newMat(), position: { kind: 'closed_guard', top: 'you' }, actor: 'them' };
-    expect(['hook_sweep', 'scissor_sweep', 'hip_bump']).toContain(chooseBot(bottom, 'azul', botMoves('azul', 'azul')));
-  });
-
-  it('behind on its last move it goes for the finish', () => {
-    const losing: MatState = { ...newMat(), position: { kind: 'mount', top: 'them' }, actor: 'them', points: { you: 4, them: 0 }, turnsUsed: 9 };
-    expect(chooseBot(losing, 'azul', botMoves('azul', 'azul'))).toBe('armbar');
-    const back: MatState = { ...newMat(), position: { kind: 'back_control', top: 'them' }, actor: 'them', points: { you: 2, them: 0 }, turnsUsed: 9 };
-    expect(isSubmission(chooseBot(back, 'marrom', botMoves('marrom', 'marrom')))).toBe(true);
-  });
-});
 
 describe('mat diary words', () => {
   const HEADS = [
@@ -686,58 +667,5 @@ describe('drill placement', () => {
       const pos = drillPosition(u.move);
       expect(moveLegal(pos, 'you', u.move), u.move).toBe(true);
     }
-  });
-});
-
-describe('polish: grips, partner styles, move effects', () => {
-  it('a grip you already hold is not offered again, and cannot be played', () => {
-    const st = resolveMat(newMat(), 'you', 'collar_tie', 0, 'branca').state;
-    const back: MatState = { ...st, actor: 'you' };
-    expect(matLegalMoves(back, 'you', ['collar_tie', 'sleeve_grip', 'double_leg'])).not.toContain('collar_tie');
-    expect(matLegalMoves(back, 'you', ['collar_tie', 'sleeve_grip', 'double_leg'])).toContain('sleeve_grip');
-    expect(resolveMat(back, 'you', 'collar_tie', 0, 'branca').ok).toBe(false);
-  });
-
-  it('the bot does not burn turns re-gripping', () => {
-    const both: MatState = { ...newMat(), actor: 'them', grips: { you: { collar: false, sleeve: false }, them: { collar: true, sleeve: false } } };
-    const pick = chooseBot(both, 'branca', botMoves('branca', 'branca'));
-    expect(pick).not.toBe('collar_tie');
-  });
-
-  it('partners fight like their cards: pinned, Daniel gets out; with one grip, Felipe shoots sooner than Helena', () => {
-    const daniel = matStyle(partnerById('daniel')!);
-    const pinned: MatState = { ...newMat(), position: { kind: 'side_control', top: 'you' }, actor: 'them' };
-    expect(chooseBot(pinned, 'azul', botMoves('azul', 'azul'), daniel)).toBe('frame');
-    const felipe = matStyle(partnerById('felipe')!);
-    const helena = matStyle(partnerById('helena')!);
-    const pool = botMoves('branca', 'branca');
-    // count how often each throws in the first moves of the same matches: the fast one throws at least as often
-    const throwsOf = (s: MatStyle) => {
-      let n = 0;
-      for (const g of [grips({}, { collar: true }), grips({}, { sleeve: true }), grips({ sleeve: true }, { collar: true }), grips({ collar: true }, { sleeve: true })]) {
-        if (isTakedown(chooseBot({ ...newMat(), actor: 'them', grips: g }, 'branca', pool, s))) n++;
-      }
-      return n;
-    };
-    expect(throwsOf(felipe)).toBeGreaterThanOrEqual(throwsOf(helena));
-  });
-
-  it('accuracy is an edge on the odds; speed sets a think time inside 2-5 s', () => {
-    expect(matStyle(partnerById('mateus')!).edge).toBe(0);
-    expect(matStyle(partnerById('helena')!).edge).toBeGreaterThan(5);
-    // a 70% takedown at roll 0.75 misses plain, lands with Helena's edge
-    expect(resolveMat(GRIPPED, 'you', 'double_leg', 0.75, 'branca').success).toBe(false);
-    expect(resolveMat(GRIPPED, 'you', 'double_leg', 0.75, 'branca', false, matStyle(partnerById('helena')!).edge).success).toBe(true);
-    const felipe = thinkMsFor(matStyle(partnerById('felipe')!));
-    const helena = thinkMsFor(matStyle(partnerById('helena')!));
-    expect(felipe).toBeLessThan(helena);
-    for (const t of [felipe, helena, thinkMsFor(null)]) expect(t >= 2000 && t <= 5000).toBe(true);
-  });
-
-  it('matEffect says what a move does if it lands', () => {
-    expect(matEffect(newMat(), 'you', 'double_leg')).toMatchObject({ points: 2, to: 'cem_quilos', toAhead: 'you', submission: false });
-    const mount: MatState = { ...newMat(), position: { kind: 'mount', top: 'you' } };
-    expect(matEffect(mount, 'you', 'armbar')).toMatchObject({ submission: true, riskBottom: true });
-    expect(matEffect(newMat(), 'you', 'collar_tie')).toMatchObject({ points: 0, to: 'de_pe' });
   });
 });

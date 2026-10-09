@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_APPEARANCE,
-  MAT_INTENT_REVEAL_MS,
   MAT_TURNS,
+  NET_GRACE_MS,
   ROLL_RV_LOSS,
   ROLL_RV_WIN,
+  WINDUP_MS,
   type BoutServerMsg,
   type ClientMsg,
+  type MatAttack,
+  type MatDefense,
   type ServerMsg,
 } from '@tudobem/shared';
 
@@ -41,6 +44,8 @@ interface Client {
   lastBout: () => Bout | undefined;
 }
 
+const WHITE = { belt: 'branca' as const, stripes: 0, wins: 1, unlocked: ['collar_tie' as const] };
+
 let n = 0;
 async function setup(extra: Partial<WorldOptions> = {}): Promise<{ world: World; a: Client }> {
   const world = new World(
@@ -61,31 +66,70 @@ async function setup(extra: Partial<WorldOptions> = {}): Promise<{ world: World;
   await a.send({ t: 'hello' });
   await a.send({ t: 'createProfile', name: `Ana${n}`, pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
   a.s.profile!.giOwned = true;
-  a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie'] };
+  a.s.profile!.bjj = { ...WHITE };
   await a.send({ t: 'join', room: 'academia' });
   return { world, a };
 }
 
-/** Pick whatever is offered until the match or the professor drill ends the turn loop. */
-async function play(a: Client) {
-  const answeredSeqs = new Set<number>();
-  for (let guard = 0; guard < 80; guard++) {
-    if (a.last('end') || a.last('drill')) return;
+const start = async (a: Client, partner = 'mateus') => {
+  await a.send({ t: 'bout', v: 2, action: 'start', partner: partner as 'mateus' });
+};
+
+/** The defense that stops an attack kind (what a reading player taps from blue belt). */
+const DEF: Record<MatAttack, MatDefense> = { pegada: 'postura', queda: 'base', raspagem: 'base', passagem: 'trava', final: 'sai' };
+
+/** Pick a move on the pick on screen. */
+async function pick(a: Client, move: string) {
+  const p = a.last('pick')!;
+  await a.send({ t: 'bout', v: 2, action: 'pick', seq: p.seq, move });
+}
+
+/** Tap the chain on screen: right by default, `wrongAt` taps a wrong command at that step. */
+async function tapChain(a: Client, o: { wrongAt?: number; ms?: number } = {}) {
+  const c = a.last('chain')!;
+  for (let i = 0; i < c.cmds.length; i++) {
+    const cmd = i === o.wrongAt ? (c.cmds[i] === 'pega' ? 'puxa' : 'pega') : c.cmds[i]!;
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: c.seq, step: i, cmd, ms: o.ms ?? 200 });
+    if (i === o.wrongAt) return;
+  }
+}
+
+/** Answer the defense on screen (after the wind-up): right by default. */
+async function defendBeat(a: Client, right = true) {
+  const d = a.last('defend')!;
+  advance(d.leadMs + 50);
+  const want = d.call ?? DEF[d.attack];
+  for (let i = 0; i < d.count; i++) {
+    await a.send({ t: 'bout', v: 2, action: 'defend', seq: d.seq, step: i, cmd: right ? want : want === 'base' ? 'trava' : 'base', ms: 150 });
+    if (!right) return;
+  }
+}
+
+/** Play whatever is on screen until the match (or the professor drill) ends: the first card, every command right. */
+async function play(a: Client, o: { defend?: boolean } = {}) {
+  const done = new Set<number>();
+  for (let guard = 0; guard < 600; guard++) {
+    if (a.last('end') || (a.last('chain')?.drill && !a.s.bout?.beat?.seq)) return;
     const m = a.lastBout();
-    if (m?.phase === 'intent' && !answeredSeqs.has(m.seq)) {
-      answeredSeqs.add(m.seq);
-      await a.send({ t: 'bout', v: 1, action: 'intent', seq: m.seq, intent: m.intents[0]!.id });
+    if (m?.phase === 'chain' && m.drill) return;
+    if (m && 'seq' in m && !done.has(m.seq)) {
+      if (m.phase === 'pick') {
+        done.add(m.seq);
+        await pick(a, m.cards[0]?.id ?? 'hold');
+      } else if (m.phase === 'chain') {
+        done.add(m.seq);
+        await tapChain(a);
+      } else if (m.phase === 'defend') {
+        done.add(m.seq);
+        await defendBeat(a, o.defend ?? true);
+      }
     }
-    advance(40);
+    advance(60);
   }
   throw new Error('bout did not finish: ' + JSON.stringify(a.lastBout()).slice(0, 300));
 }
 
-const start = async (a: Client, partner = 'mateus') => {
-  await a.send({ t: 'bout', v: 1, action: 'start', partner: partner as 'mateus' });
-};
-
-/** The player's tenth turn is Hold, so the score on the mat decides the match. */
+/** Jump to the last exchange with this score, then Hold: the score on the mat decides the match. */
 async function holdOut(a: Client, you: number, them: number) {
   advance(1000);
   const b = a.s.bout!;
@@ -94,12 +138,26 @@ async function holdOut(a: Client, you: number, them: number) {
   b.mat.actor = 'you';
   b.mat.over = false;
   b.mat.winner = null;
-  const intent = a.last('intent')!;
-  await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'hold' });
+  await deal(a, 'hold');
   advance(2000);
 }
 
-describe('Treino no tatame (server)', () => {
+/** Deal a pick with these cards on the mat as it is now (a test shortcut to a position or a card the ranking would not show). */
+async function deal(a: Client, move: string) {
+  const b = a.s.bout!;
+  b.phase = 'pick';
+  b.beat = null;
+  b.offered = [move as never, 'hold'];
+  b.seq += 1000;
+  await a.send({ t: 'bout', v: 2, action: 'pick', seq: b.seq, move });
+}
+
+/** Make the partner's next move this one (the feint slot is the commit the server honours first). */
+const force = (a: Client, move: string) => {
+  a.s.bout!.feint = move as never;
+};
+
+describe('Treino no tatame v3 (server)', () => {
   beforeEach(() => {
     clock = 5_000_000;
     pending.length = 0;
@@ -107,133 +165,324 @@ describe('Treino no tatame (server)', () => {
 
   it('opens a lobby with five partners; only the first is unlocked for a new player', async () => {
     const { a } = await setup();
-    await a.send({ t: 'bout', v: 1, action: 'open' });
+    a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie'] };
+    await a.send({ t: 'bout', v: 2, action: 'open' });
     const lobby = a.last('lobby')!;
+    expect(lobby.v).toBe(2);
     expect(lobby.partners).toHaveLength(5);
     expect(lobby.partners.filter((p) => p.unlocked).map((p) => p.id)).toEqual(['mateus']);
     expect(lobby.level).toBe(0);
-    expect(lobby.bjj.belt).toBe('branca');
     expect(lobby.bjj.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar']);
-    expect(lobby.suggested).toBe('mateus');
-    for (const p of lobby.partners) {
-      expect(p.bio.pt.length).toBeGreaterThan(10);
-      expect(JSON.stringify(p)).not.toMatch(/\boss\b|\brola\b|gracie/i);
-    }
+    for (const p of lobby.partners) expect(JSON.stringify(p)).not.toMatch(/\boss\b|\brola\b|gracie/i);
   });
 
-  it('only opens in the academia and refuses a locked or unknown partner', async () => {
+  it('rejects protocol v1, a locked or unknown partner, and a bout away from the mat', async () => {
     const { a } = await setup();
+    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus' } as never);
+    expect(a.inbox.at(-1)).toMatchObject({ t: 'error', code: 'bout' });
+    expect(a.s.bout).toBeUndefined();
+    await a.send({ t: 'bout', v: 1, action: 'intent', seq: 1, intent: 'hold' } as never);
+    expect(a.inbox.at(-1)).toMatchObject({ t: 'error', code: 'bout' });
     await start(a, 'rafael');
     expect(a.inbox.at(-1)).toMatchObject({ t: 'error', code: 'bout' });
-    expect(a.s.bout).toBeUndefined();
-    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'nobody' as never });
+    await start(a, 'nobody');
     expect(a.inbox.at(-1)).toMatchObject({ t: 'error', code: 'bout' });
     await a.send({ t: 'join', room: 'praca' });
-    await a.send({ t: 'bout', v: 1, action: 'open' });
+    await a.send({ t: 'bout', v: 2, action: 'open' });
     expect(a.inbox.at(-1)).toMatchObject({ t: 'error', code: 'bout' });
-    await a.send({ t: 'join', room: 'academia' });
-    await a.send({ t: 'bout', v: 2 as never, action: 'start', partner: 'mateus' });
-    expect(a.inbox.at(-1)).toMatchObject({ t: 'error', code: 'bout' });
-    expect(a.s.bout).toBeUndefined();
   });
 
-  it('shows the percent before a move, and Hold has none', async () => {
+  it('the pick: at most four cards with chevrons and plain words, Segurar apart, the telegraph, no percent anywhere', async () => {
+    const { a } = await setup();
+    await start(a);
+    const intro = a.last('intro')!;
+    expect(intro).toMatchObject({ turns: 16, first: false, line: { pt: 'Combate!' } });
+    advance(1000);
+    const p = a.last('pick')!;
+    expect(p.cards.length).toBeGreaterThan(0);
+    expect(p.cards.length).toBeLessThanOrEqual(4);
+    expect(p.cards.map((c) => c.id)).not.toContain('hold');
+    const queda = p.cards.find((c) => c.id === 'double_leg')!;
+    expect(queda).toMatchObject({ chain: 2, points: 2, kind: 'attack', does: { pt: '+2 · você por cima' } });
+    expect(p.plan?.line.pt.startsWith('Mateus vai')).toBe(true);
+    expect(JSON.stringify(p)).not.toMatch(/%|percent/);
+    expect(p.st).toMatchObject({ clockMs: 120_000, exchange: 0, turns: 16, meter: 0, ritmo: 0 });
+    // a first-ever match is flagged (coach notes, longer windows)
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
+    a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie'] };
+    await start(a);
+    expect(a.last('intro')!.first).toBe(true);
+  });
+
+  it('a chain tapped right lands the move: Queda scores two and Bia calls it', async () => {
     const { a } = await setup();
     await start(a);
     advance(1000);
-    const intent = a.last('intent')!;
-    expect(intent.st.exchange).toBe(0);
-    expect(intent.st.position).toBe('de_pe');
-    const collar = intent.intents.find((i) => i.id === 'collar_tie')!;
-    const hold = intent.intents.find((i) => i.id === 'hold')!;
-    expect(collar.percent).toBe(70);
-    expect(collar.sets).toEqual({ pt: 'Queda +25% · abre Arrastar', en: 'Takedown +25% · opens Drag' });
-    expect(hold.percent).toBeUndefined();
-    // every throw waits for a grip: Queda is owned, not on offer, and says why
-    expect(intent.intents.some((i) => i.id === 'double_leg')).toBe(false);
-    expect(intent.owned?.find((i) => i.id === 'double_leg')?.needs).toEqual({ pt: 'Precisa de uma pegada', en: 'Needs a grip' });
-    expect(intent.intents.find((i) => i.id === 'posture')?.percent).toBe(55);
-    // the partner telegraphs before you choose, by name, and the meter starts level
-    expect(intent.plan?.line.pt.startsWith('Mateus vai')).toBe(true);
-    expect(intent.plan?.line.en.startsWith('Mateus ')).toBe(true);
-    expect(intent.st.meter).toBe(0);
-    expect(intent.st.grips).toEqual({ you: { collar: false, sleeve: false, age: { collar: 0, sleeve: 0 } }, partner: { collar: false, sleeve: false, age: { collar: 0, sleeve: 0 } } });
-    expect(intent.intents.some((i) => i.id === 'body_lock')).toBe(false);
-    expect(intent.intents.some((i) => i.id === 'hook_sweep')).toBe(false);
-    expect(intent.intents.some((i) => i.id === 'armbar')).toBe(false);
-    expect(intent.intents.some((i) => i.id === 'passar')).toBe(false);
-    expect(intent.owned?.find((i) => i.id === 'passar')?.percent).toBe(50);
-    expect(intent.owned?.find((i) => i.id === 'armbar')?.percent).toBe(18);
-    expect(intent.owned?.find((i) => i.id === 'hook_sweep')?.percent).toBe(38);
-    expect(intent.owned?.find((i) => i.id === 'double_leg')?.percent).toBe(45);
-    const standing = intent.intents.filter((i) => i.id !== 'hold');
-    expect(standing.map((i) => i.id).sort()).toEqual(['collar_tie', 'posture']);
-    expect(Math.max(...standing.map((i) => i.percent ?? 0))).toBe(70);
-    expect(a.last('challenge')).toBeUndefined();
+    await pick(a, 'double_leg');
+    const c = a.last('chain')!;
+    expect(c).toMatchObject({ cmds: ['puxa', 'levanta'], windowMs: [2200, 2200], from: 'de_pe', sub: false, move: { id: 'double_leg', pt: 'Queda' } });
+    await tapChain(a);
+    const r = a.last('resolve')!;
+    expect(r).toMatchObject({ actor: 'you', move: 'double_leg', landed: true, how: 'landed', points: 2, sound: 'whoosh', say: { pt: 'Dois pontos!' } });
+    expect(r.grades).toEqual(['perfeito', 'perfeito']);
+    expect(r.st.position).toBe('cem_quilos');
+    expect(r.st.points.you).toBe(2);
+    expect(r.st.clockMs).toBe(15 * 7_500);
   });
 
-  it('a connected takedown carries a whoosh, a mount a thump, a submission attempt the same tone either way', async () => {
+  it('a wrong tap ends the chain there (Errou!), a late one too (Tarde!), and so does the deadline with no tap', async () => {
     const { a } = await setup();
-    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 10, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'knee_on_belly'] };
+    await start(a);
+    advance(1000);
+    await pick(a, 'double_leg');
+    await tapChain(a, { wrongAt: 1 });
+    let r = a.last('resolve')!;
+    expect(r).toMatchObject({ landed: false, how: 'wrong', step: 1, points: 0 });
+    expect(r.grades).toEqual(['perfeito', 'errou']);
+    expect(r.st.position).toBe('de_pe');
+
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
+    await start(a);
+    advance(1000);
+    await pick(a, 'double_leg');
+    const c = a.last('chain')!;
+    advance(c.windowMs[0]! + 100);
+    // the deadline (window + network grace) has not fired yet, but the tap itself was timed past the window
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: c.seq, step: 0, cmd: 'puxa', ms: c.windowMs[0]! + 80 });
+    r = a.last('resolve')!;
+    expect(r).toMatchObject({ landed: false, how: 'late', step: 0 });
+    expect(r.grades).toEqual(['tarde']);
+
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
+    await start(a);
+    advance(1000);
+    await pick(a, 'double_leg');
+    const c2 = a.last('chain')!;
+    advance(c2.windowMs[0]! + NET_GRACE_MS + 5);
+    r = a.last('resolve')!;
+    expect(r.seq).toBe(c2.seq);
+    expect(r).toMatchObject({ landed: false, how: 'late', step: 0, grades: ['tarde'] });
+  });
+
+  it('the server clock bounds the grade: a tap claimed fast after a slow wait is only Boa; stale and out-of-order taps are ignored', async () => {
+    const { a } = await setup();
+    await start(a);
+    advance(1000);
+    await pick(a, 'double_leg');
+    const c = a.last('chain')!;
+    advance(1800);
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: c.seq, step: 1, cmd: 'levanta', ms: 10 });
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: c.seq + 99, step: 0, cmd: 'puxa', ms: 10 });
+    expect(a.last('resolve')).toBeUndefined();
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: c.seq, step: 0, cmd: 'puxa', ms: 10 });
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: c.seq, step: 0, cmd: 'puxa', ms: 10 });
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: c.seq, step: 1, cmd: 'levanta', ms: 10 });
+    const r = a.last('resolve')!;
+    expect(r.grades).toEqual(['boa', 'perfeito']);
+    expect(r.landed).toBe(true);
+  });
+
+  it("the partner's attack is a defense beat after its wind-up: the right tap is Defendeu! and a Vantagem", async () => {
+    const { a } = await setup();
     await start(a);
     advance(1000);
     a.s.bout!.rng = () => 0;
-    const grip = a.last('intent')!;
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: grip.seq, intent: 'collar_tie' });
-    const gripped = a.last('resolve')!;
-    expect(gripped.sound).toBe('hit');
-    expect(gripped.grip).toEqual([{ kind: 'grip', side: 'you', grip: 'collar' }]);
-    expect(gripped.st.grips?.you.collar).toBe(true);
-    expect(gripped.meterTo!).toBeGreaterThan(gripped.meterFrom!);
+    await pick(a, 'collar_tie');
+    await tapChain(a);
+    force(a, 'double_leg');
+    advance(100);
+    const d = a.last('defend')!;
+    expect(d).toMatchObject({ move: { id: 'double_leg' }, attack: 'queda', call: 'base', count: 1, leadMs: WINDUP_MS });
+    expect(d.line.pt).toBe('Mateus vai tentar a queda.');
+    // Mateus (speed 0.45): a shorter window than a chain window; nothing happens before the wind-up is over
+    expect(d.windowMs).toBeLessThan(2200);
+    await defendBeat(a, true);
+    const r = a.last('resolve')!;
+    expect(r).toMatchObject({ actor: 'partner', move: 'double_leg', landed: false, how: 'defended', say: { pt: 'Vantagem!' } });
+    expect(r.st.adv.you).toBe(1);
+    expect(r.grip).toContainEqual({ kind: 'defended', side: 'you', adv: true });
+    advance(100);
+    expect(a.last('pick')!.seq).toBeGreaterThan(d.seq);
+  });
 
-    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 10, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'knee_on_belly'] };
-    await a.send({ t: 'bout', v: 1, action: 'quit' });
+  it('a wrong or missing defense lets the attack land in full', async () => {
+    const { a } = await setup();
     await start(a);
     advance(1000);
     a.s.bout!.rng = () => 0;
-    a.s.bout!.mat.grips.you.collar = true;
-    const td = a.last('intent')!;
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: td.seq, intent: 'double_leg' });
-    const whoosh = a.last('resolve')!;
-    expect(whoosh.sound).toBe('whoosh');
-    expect(whoosh.percent).toBe(70);
-    expect(whoosh.st.points.you).toBe(2);
-    expect(whoosh.st.position).toBe('cem_quilos');
+    await pick(a, 'collar_tie');
+    await tapChain(a);
+    force(a, 'double_leg');
+    advance(100);
+    await defendBeat(a, false);
+    let r = a.last('resolve')!;
+    expect(r).toMatchObject({ actor: 'partner', landed: true, how: 'wrong', points: 2 });
+    expect(r.st.points.partner).toBe(2);
 
-    await a.send({ t: 'bout', v: 1, action: 'quit' });
-    a.s.profile!.bjj = {
-      belt: 'azul',
-      stripes: 0,
-      wins: 20,
-      unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'body_lock', 'sprawl', 'scissor_sweep'],
-    };
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
     await start(a);
     advance(1000);
-    a.s.bout!.mat.position = { kind: 'closed_guard', top: 'them' };
     a.s.bout!.rng = () => 0;
-    const sweep = a.last('intent')!;
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: sweep.seq, intent: 'scissor_sweep' });
-    const mounted = a.last('resolve')!;
-    expect(mounted.sound).toBe('mount');
-    expect(mounted.st.position).toBe('montada');
+    await pick(a, 'collar_tie');
+    await tapChain(a);
+    force(a, 'double_leg');
+    advance(100);
+    const d = a.last('defend')!;
+    advance(d.leadMs + d.windowMs + NET_GRACE_MS + 5);
+    r = a.last('resolve')!;
+    expect(r).toMatchObject({ actor: 'partner', landed: true, how: 'late' });
+  });
 
-    await a.send({ t: 'bout', v: 1, action: 'quit' });
-    a.s.profile!.bjj = {
-      belt: 'azul',
-      stripes: 3,
-      wins: 50,
-      unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'body_lock', 'sprawl', 'scissor_sweep', 'hip_bump', 'frame', 'escape_back', 'armbar'],
-    };
+  it('your sleeve grip widens the defense window by 1.35', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie', 'sleeve_grip'] };
     await start(a);
     advance(1000);
+    a.s.bout!.rng = () => 0;
+    await pick(a, 'collar_tie');
+    await tapChain(a);
+    force(a, 'double_leg');
+    advance(100);
+    const plain = a.last('defend')!.windowMs;
+    await defendBeat(a, true);
+    advance(2000);
+    await pick(a, 'sleeve_grip');
+    await tapChain(a);
+    force(a, 'sleeve_grip');
+    advance(100);
+    expect(Math.abs(a.last('defend')!.windowMs - plain * 1.35)).toBeLessThanOrEqual(1);
+  });
+
+  it('a brace you put up blocks the matching attack with no tap (Vantagem), and the partner botches on its own sometimes', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { belt: 'azul', stripes: 0, wins: 20, unlocked: ['collar_tie', 'sleeve_grip', 'knee_on_belly', 'body_lock', 'sprawl'] };
+    await start(a);
+    advance(1000);
+    a.s.bout!.rng = () => 0;
+    await deal(a, 'sprawl');
+    await tapChain(a);
+    expect(a.last('resolve')!.st.brace?.you).toBe('base');
+    force(a, 'double_leg');
+    advance(100);
+    let r = a.last('resolve')!;
+    expect(r).toMatchObject({ actor: 'partner', how: 'blocked', landed: false, say: { pt: 'Vantagem!' } });
+    expect(a.bout().filter((m) => m.phase === 'defend')).toHaveLength(0);
+    expect(r.st.adv.you).toBe(1);
+
+    advance(100);
+    await deal(a, 'collar_tie');
+    await tapChain(a);
+    a.s.bout!.rng = () => 0.999;
+    force(a, 'double_leg');
+    advance(100);
+    r = a.last('resolve')!;
+    expect(r).toMatchObject({ actor: 'partner', how: 'botched', landed: false, say: { pt: 'Errou!' } });
+    expect(r.st.adv.you).toBe(1);
+  });
+
+  it("the partner's finish is the escape mash: three Sai! (Daniel's four); miss one and you tap", async () => {
+    const { a } = await setup();
+    await start(a);
+    advance(1000);
+    a.s.bout!.rng = () => 0;
+    await pick(a, 'hold');
+    a.s.bout!.mat.position = { kind: 'mount', top: 'them' };
+    force(a, 'armbar');
+    advance(100);
+    let d = a.last('defend')!;
+    expect(d).toMatchObject({ attack: 'final', call: 'sai', count: 3 });
+    await defendBeat(a, true);
+    const r = a.last('resolve')!;
+    expect(r).toMatchObject({ how: 'defended', landed: false });
+    expect(r.st.position).toBe('guarda_fechada');
+    expect(r.st.ahead).toBe('you');
+
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
+    a.s.profile!.bjj = { belt: 'branca', stripes: 3, wins: 15, unlocked: ['collar_tie', 'sleeve_grip', 'knee_on_belly'] };
+    await start(a, 'daniel');
+    advance(1000);
+    a.s.bout!.rng = () => 0;
+    await pick(a, 'hold');
+    a.s.bout!.mat.position = { kind: 'mount', top: 'them' };
+    force(a, 'armbar');
+    advance(100);
+    d = a.last('defend')!;
+    expect(d.count).toBe(4);
+    advance(d.leadMs + 50);
+    await a.send({ t: 'bout', v: 2, action: 'defend', seq: d.seq, step: 0, cmd: 'sai', ms: 100 });
+    advance(d.windowMs + NET_GRACE_MS + 5);
+    expect(a.last('resolve')).toMatchObject({ actor: 'partner', landed: true, how: 'late' });
+    advance(2000);
+    expect(a.last('end')).toMatchObject({ winner: 'partner', reason: 'finalizacao' });
+  });
+
+  it('your finish: the last Aperta! is tight; a landed chain ends the match, a missed one leaves you underneath (Escapou!)', async () => {
+    const { a } = await setup();
+    await start(a);
+    advance(1000);
+    // put the pair on the mount and deal the pick from there
     a.s.bout!.mat.position = { kind: 'mount', top: 'you' };
-    a.s.bout!.rng = () => 0.99;
-    const miss = a.last('intent')!;
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: miss.seq, intent: 'armbar' });
-    const sub = a.last('resolve')!;
-    expect(sub.sound).toBe('sub');
-    expect(sub.st.position).toBe('guarda_fechada');
-    expect(sub.st.ahead).toBe('partner');
+    await deal(a, 'armbar');
+    const c = a.last('chain')!;
+    expect(c).toMatchObject({ cmds: ['pega', 'gira', 'levanta', 'aperta'], windowMs: [2200, 2200, 2200, 1760], sub: true });
+    await tapChain(a, { wrongAt: 3 });
+    expect(a.last('resolve')).toMatchObject({ landed: false, how: 'wrong', say: { pt: 'Escapou!' } });
+    expect(a.last('resolve')!.st).toMatchObject({ position: 'guarda_fechada', ahead: 'partner' });
+  });
+
+  it('Ritmo: three all-Perfeito chains in a row are a Vantagem; the end card counts the perfect commands and lists the words', async () => {
+    const { a } = await setup();
+    await start(a);
+    advance(1000);
+    for (let i = 0; i < 3; i++) {
+      a.s.bout!.mat.grips = { you: { collar: false, sleeve: false }, them: { collar: false, sleeve: false } };
+      a.s.bout!.mat.brace = { you: null, them: null };
+      a.s.bout!.mat.braced = { you: false, them: false };
+      a.s.bout!.mat.actor = 'you';
+      await deal(a, 'collar_tie');
+      await tapChain(a, { ms: 100 });
+    }
+    const r = a.last('resolve')!;
+    expect(r.grip).toContainEqual({ kind: 'ritmo', side: 'you' });
+    expect(r.say?.pt).toBe('Que ritmo!');
+    expect(r.st.adv.you).toBe(1);
+    await holdOut(a, 2, 0);
+    const end = a.last('end')!;
+    expect(end.perfect).toBe(3);
+    expect(end.words).toEqual([{ pt: 'Pega!', en: 'Grab!' }]);
+  });
+
+  it('feints: from blue belt Bia is silent, the line is the telegraph, and the attack may be another kind', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { belt: 'azul', stripes: 0, wins: 20, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip', 'knee_on_belly', 'body_lock', 'sprawl', 'scissor_sweep'] };
+    await start(a, 'rafael');
+    advance(1000);
+    a.s.bout!.rng = () => 0;
+    a.s.bout!.plan = { move: 'double_leg', kind: 'queda' };
+    await pick(a, 'hold');
+    force(a, 'collar_tie');
+    advance(100);
+    const d = a.last('defend')!;
+    expect(d.call).toBeUndefined();
+    expect(d.line.pt).toBe('Rafael vai tentar a queda.');
+    expect(d.attack).toBe('pegada');
+    // the reading player taps Base for the telegraphed takedown: wrong
+    advance(d.leadMs + 50);
+    await a.send({ t: 'bout', v: 2, action: 'defend', seq: d.seq, step: 0, cmd: 'base', ms: 100 });
+    expect(a.last('resolve')).toMatchObject({ landed: true, how: 'wrong', feint: true });
+  });
+
+  it('plays a full sixteen-exchange match by taps, and every beat is a pick, a chain, a defense or a resolve', async () => {
+    const { a } = await setup();
+    await start(a);
+    await play(a);
+    const end = a.last('end') ?? a.last('chain');
+    expect(end).toBeTruthy();
+    const phases = new Set(a.bout().map((m) => m.phase));
+    for (const p of phases) expect(['intro', 'pick', 'chain', 'defend', 'resolve', 'end']).toContain(p);
+    const resolves = a.bout().filter((m) => m.phase === 'resolve');
+    expect(resolves.length).toBeGreaterThan(0);
+    expect(resolves.length).toBeLessThanOrEqual(MAT_TURNS);
   });
 
   it('a win pays one diary word and keeps the belt on the account after the match is gone', async () => {
@@ -242,253 +491,128 @@ describe('Treino no tatame (server)', () => {
     await start(a);
     await holdOut(a, 2, 0);
     const end = a.last('end')!;
-    expect(end.winner).toBe('you');
-    expect(end.reason).toBe('pontos');
-    expect(end.rv).toBe(ROLL_RV_WIN);
-    expect(end.word).toEqual({ pt: 'academia', en: 'gym' });
-    expect(end.stripeUp).toBe(false);
+    expect(end).toMatchObject({ winner: 'you', reason: 'pontos', rv: ROLL_RV_WIN, word: { pt: 'academia', en: 'gym' }, stripeUp: false });
     expect(a.s.profile!.coins).toBe(coins0 + end.rv);
-    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 0, wins: 1, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'] });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 0, wins: 2 });
     expect(a.s.profile!.diary).toEqual(['diary.rua.academia']);
     expect(a.s.bout).toBeUndefined();
-    await a.send({ t: 'bout', v: 1, action: 'open' });
-    expect(a.last('lobby')!.bjj.wins).toBe(1);
   });
 
-  it('a loss earns no word and takes no stripe', async () => {
+  it('a loss earns no word and takes no stripe; a draw earns no win', async () => {
     const { a } = await setup();
     a.s.profile!.diary = ['diary.rua.academia'];
     a.s.profile!.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie', 'sleeve_grip'] };
     await start(a);
     await holdOut(a, 0, 4);
     const end = a.last('end')!;
-    expect(end.winner).toBe('partner');
-    expect(end.rv).toBe(ROLL_RV_LOSS);
+    expect(end).toMatchObject({ winner: 'partner', rv: ROLL_RV_LOSS, stripeUp: false, beltUp: false });
     expect(end.word ?? null).toBeNull();
-    expect(end.stripeUp).toBe(false);
-    expect(end.beltUp).toBe(false);
     expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 1, wins: 5 });
-    expect(a.s.profile!.diary).toEqual(['diary.rua.academia']);
-  });
-
-  it('a draw earns no win and takes no stripe', async () => {
-    const { a } = await setup();
-    a.s.profile!.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie', 'sleeve_grip'] };
     await start(a);
     await holdOut(a, 1, 1);
-    const end = a.last('end')!;
-    expect(end.winner).toBe('draw');
-    expect(end.stripeUp).toBe(false);
-    expect(end.beltUp).toBe(false);
-    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 1, wins: 5 });
+    expect(a.last('end')!.winner).toBe('draw');
+    expect(a.s.profile!.bjj).toMatchObject({ wins: 5 });
   });
 
-  it('the fifth win starts the professor drill, and landing it unlocks the move', async () => {
+  it('the fifth win starts the professor drill: the new move as a slow chain with no timer, then it is yours', async () => {
     const { a } = await setup();
     a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 4, unlocked: ['collar_tie'] };
     await start(a);
     await holdOut(a, 2, 0);
-    const drill = a.last('drill')!;
-    expect(drill.move.id).toBe('sleeve_grip');
+    const drill = a.last('chain')!;
+    expect(drill).toMatchObject({ drill: true, move: { id: 'sleeve_grip' }, cmds: ['pega'], windowMs: [0], line: { pt: 'Agora você.' } });
     expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 1, wins: 5, pendingDrill: 'sleeve_grip' });
-    expect(a.s.bout).toBeDefined();
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: drill.seq, intent: 'sleeve_grip' });
+    advance(60_000);
+    expect(a.last('end')).toBeUndefined();
+    // a wrong button is not the next step
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: drill.seq, step: 0, cmd: 'gira', ms: 0 });
+    expect(a.s.profile!.bjj?.pendingDrill).toBe('sleeve_grip');
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: drill.seq, step: 0, cmd: 'pega', ms: 0 });
     advance(2000);
     const end = a.last('end')!;
     expect(end.stripeUp).toBe(true);
     expect(end.word).toEqual({ pt: 'academia', en: 'gym' });
-    expect(a.s.profile!.bjj?.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip']);
+    expect(a.s.profile!.bjj?.unlocked).toContain('sleeve_grip');
     expect(a.s.profile!.bjj?.pendingDrill).toBeUndefined();
     expect(a.s.bout).toBeUndefined();
   });
 
-  it('a pending drill is still there on the next visit', async () => {
-    const { a } = await setup();
-    a.s.profile!.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie'], pendingDrill: 'sleeve_grip' };
-    await a.send({ t: 'bout', v: 1, action: 'open' });
-    expect(a.last('drill')!.move.id).toBe('sleeve_grip');
-    expect(a.last('lobby')).toBeUndefined();
-  });
-
-  it('twenty wins put on the blue belt', async () => {
+  it('a pending drill is still there on the next visit, and twenty wins put on the blue belt', async () => {
     const { world, a } = await setup();
+    a.s.profile!.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie'], pendingDrill: 'sleeve_grip' };
+    await a.send({ t: 'bout', v: 2, action: 'open' });
+    expect(a.last('chain')).toMatchObject({ drill: true, move: { id: 'sleeve_grip' } });
+    expect(a.last('lobby')).toBeUndefined();
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
     a.s.profile!.bjj = { belt: 'branca', stripes: 3, wins: 19, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'body_lock'] };
     await start(a);
     await holdOut(a, 2, 0);
-    const drill = a.last('drill')!;
-    expect(drill.move.id).toBe('scissor_sweep');
+    expect(a.last('chain')).toMatchObject({ drill: true, move: { id: 'scissor_sweep' }, cmds: ['puxa', 'empurra', 'gira'] });
     expect(a.s.profile!.bjj).toMatchObject({ belt: 'azul', stripes: 0, wins: 20, pendingDrill: 'scissor_sweep' });
-    expect(a.s.profile!.bjj?.unlocked).toContain('sprawl');
-    expect(a.inbox.some((m) => m.t === 'avatarUpdated' && m.avatar.belt === 'azul')).toBe(true);
     expect(world.publicAvatar(a.s).belt).toBe('azul');
   });
 
-  it('plays a full ten-turn match without a quiz', async () => {
-    const { a } = await setup();
-    await start(a);
-    const intro = a.last('intro')!;
-    expect(intro.partner.id).toBe('mateus');
-    expect(intro.line.pt).toBe('Combate!');
-    await play(a);
-    const end = a.last('end') ?? a.last('drill');
-    expect(end).toBeTruthy();
-    expect(a.last('challenge')).toBeUndefined();
-    const resolves = a.bout().filter((m) => m.phase === 'resolve');
-    expect(resolves.length).toBeGreaterThan(0);
-    expect(resolves.length).toBeLessThanOrEqual(MAT_TURNS);
-  });
-
-  it('ignores stale, foreign and impossible messages', async () => {
-    const { a } = await setup();
-    await start(a);
-    advance(1000);
-    const intent = a.last('intent')!;
-    const n0 = a.bout().length;
-    await a.send({ t: 'bout', v: 1, action: 'answer', seq: intent.seq, answer: { kind: 'choice', index: 0 } });
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq + 999, intent: 'hold' });
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'nope' });
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'finalizar' });
-    expect(a.bout().length).toBe(n0);
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'hold' });
-    expect(a.last('resolve')).toBeTruthy();
-  });
-
-  it('a later pick waits out the cartoons and the think pause before Hold can fire', async () => {
-    const { a } = await setup();
-    await start(a);
-    advance(1000);
-    const first = a.last('intent')!;
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: first.seq, intent: 'collar_tie' });
-    advance(500);
-    const second = a.last('intent')!;
-    expect(second.seq).not.toBe(first.seq);
-    const timed = () => a.bout().filter((m) => m.phase === 'resolve' && m.yours.timeout);
-    expect(timed()).toHaveLength(0);
-    // The offer itself is already on the wire. The advertised pick is not, until the reveal finishes.
-    advance(second.pickMs + 1000);
-    expect(timed()).toHaveLength(0);
-    expect(a.last('intent')!.seq).toBe(second.seq);
-    advance(MAT_INTENT_REVEAL_MS);
-    expect(timed().length).toBeGreaterThan(0);
-  });
-
-  it('nobody picking a move is not stuck: Hold is played and pays nothing', async () => {
-    const { a } = await setup();
-    await start(a);
-    advance(1000);
-    const intent = a.last('intent')!;
-    advance(intent.pickMs + 1000);
-    const res = a.bout().find((m): m is Phase<'resolve'> => m.phase === 'resolve' && m.yours.timeout);
-    expect(res?.sound).toBe('none');
-  });
-
-  it('an idle bout (no moves played) pays nothing', async () => {
+  it('nobody picking is not stuck: Hold is played, and an idle bout pays nothing', async () => {
     const { a } = await setup();
     const coins0 = a.s.profile!.coins;
     await start(a);
+    advance(1000);
+    const p = a.last('pick')!;
+    advance(p.pickMs + 1000);
+    expect(a.bout().some((m) => m.phase === 'resolve' && m.how === 'hold' && m.actor === 'you')).toBe(true);
     advance(30 * 60_000);
     const end = a.last('end')!;
-    expect(end).toBeTruthy();
     expect(end.rv).toBe(0);
     expect(end.winner).not.toBe('you');
-    expect(end.word ?? null).toBeNull();
     expect(a.s.profile!.coins).toBe(coins0);
-    expect(a.s.profile!.bjj?.wins ?? 0).toBe(0);
     expect(a.s.bout).toBeUndefined();
   });
 
-  it('quitting pays nothing and clears the bout; leaving the room too', async () => {
+  it('quitting pays nothing and clears the bout; leaving the room too; a second start is ignored; a rematch is fresh', async () => {
     const { a } = await setup();
     const coins0 = a.s.profile!.coins;
     await start(a);
     advance(1000);
-    await a.send({ t: 'bout', v: 1, action: 'quit' });
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
     expect(a.last('end')).toMatchObject({ winner: 'none', reason: 'quit', rv: 0 });
-    expect(a.s.bout).toBeUndefined();
     expect(a.s.profile!.coins).toBe(coins0);
     await start(a);
-    expect(a.s.bout).toBeDefined();
+    const token = a.s.bout!.token;
+    await start(a);
+    expect(a.s.bout!.token).toBe(token);
     await a.send({ t: 'join', room: 'praca' });
     expect(a.s.bout).toBeUndefined();
     const n0 = a.bout().length;
     advance(60_000);
     expect(a.bout().length).toBe(n0);
-  });
-
-  it('a second start while one is running is ignored', async () => {
-    const { a } = await setup();
-    await start(a);
-    const token = a.s.bout!.token;
-    await start(a);
-    expect(a.s.bout!.token).toBe(token);
-  });
-
-  it('rematch is one tap into a fresh standing match', async () => {
-    const { a } = await setup();
+    await a.send({ t: 'join', room: 'academia' });
     await start(a);
     await holdOut(a, 0, 2);
-    const end = a.last('end')!;
-    expect(end.rematchSamePosition).toBe(true);
-    expect(end.winner).toBe('partner');
-    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus', rematch: true });
+    expect(a.last('end')!.rematchSamePosition).toBe(true);
+    await a.send({ t: 'bout', v: 2, action: 'start', partner: 'mateus', rematch: true });
     advance(500);
-    expect(a.s.bout!.mat.turnsUsed).toBe(0);
-    expect(a.s.bout!.mat.points).toEqual({ you: 0, them: 0 });
-    expect(a.s.bout!.mat.position).toEqual({ kind: 'standing' });
-    expect(a.last('intro')!.st.position).toBe('de_pe');
+    expect(a.s.bout!.mat).toMatchObject({ turnsUsed: 0, points: { you: 0, them: 0 }, position: { kind: 'standing' } });
   });
 
   it('a profile saved with only the old fields follows the win count', async () => {
     const { a } = await setup();
     a.s.profile!.bjj = { belt: 'azul', stripes: 0, wins: 10, unlocked: [] };
-    await a.send({ t: 'bout', v: 1, action: 'open' });
+    await a.send({ t: 'bout', v: 2, action: 'open' });
     const lobby = a.last('lobby')!;
     expect(lobby.bjj).toMatchObject({ belt: 'branca', stripes: 2, wins: 10 });
-    expect(lobby.level).toBe(2);
     expect(lobby.partners.filter((p) => p.unlocked).map((p) => p.id)).toEqual(['mateus', 'felipe', 'helena']);
-  });
-});
-
-describe('polish: partners and academy floors', () => {
-  beforeEach(() => {
-    pending.length = 0;
-  });
-
-  it('every offered move says what it does if it lands, and a held grip is not offered again', async () => {
-    const { a } = await setup();
-    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus' });
-    advance(2000);
-    const first = a.last('intent')!;
-    for (const i of first.intents.filter((x) => x.id !== 'hold')) expect(i.effect, i.id).toBeDefined();
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: first.seq, intent: 'collar_tie' });
-    advance(20_000);
-    const next = a.last('intent')!;
-    expect(next.seq).not.toBe(first.seq);
-    const mine = a.bout().find((m): m is Phase<'resolve'> => m.phase === 'resolve' && m.actor === 'you');
-    // a landed collar tie is held, so it is not offered again; a missed one still is
-    if (mine?.yours.correct) expect(next.intents.map((i) => i.id)).not.toContain('collar_tie');
-    else expect(next.intents.map((i) => i.id)).toContain('collar_tie');
-  });
-
-  it('the intro carries the partner think time', async () => {
-    const { a } = await setup();
-    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus' });
-    const intro = a.last('intro')!;
-    expect(intro.thinkMs).toBeGreaterThanOrEqual(2000);
-    expect(intro.thinkMs).toBeLessThanOrEqual(5000);
   });
 
   it('an academy floor has its own mat: a bout runs there', async () => {
-    const { world, a } = await setup();
+    const { a } = await setup();
     a.s.profile!.bjj = { belt: 'marrom', stripes: 0, wins: 140, unlocked: [] };
     await a.send({ t: 'academy', action: 'directory' });
     await a.send({ t: 'academy', action: 'found', name: 'Equipe Teste', crest: 'ipe', giColor: 'azul', giStamp: 'sol' });
     expect(a.s.instance?.def.id).toBe('andar');
-    await a.send({ t: 'bout', v: 1, action: 'open' });
+    await a.send({ t: 'bout', v: 2, action: 'open' });
     expect(a.last('lobby')).toBeDefined();
-    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus' });
+    await start(a);
     await play(a);
     expect(a.last('end')).toBeDefined();
-    void world;
   });
 });

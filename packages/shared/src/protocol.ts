@@ -19,8 +19,8 @@ import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } fr
 import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerId } from './academia.js';
 import type { AcademyCard, CrestId, GiColorId, GiStampId } from './playerAcademy.js';
 import type { PadariaCard, PadariaDoorState, PadariaUpgradeKind } from './playerPadaria.js';
-import type { BoutAnswer, ChallengeView } from './challenges.js';
-import type { ExchangeEvent, IntentId, RefSignal, Score } from './bout.js';
+import type { ExchangeEvent, RefSignal, Score } from './bout.js';
+import type { MatAttack, MatCardKind, MatCommand, MatDefense, TapGrade } from './matFight.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 import type { CartelaActivity } from './cartela.js';
 import type { PriceOption, VendorId } from './feira.js';
@@ -117,14 +117,16 @@ export type ClientMsg =
   | { t: 'escola'; action: 'quit' }
   | { t: 'escola'; action: 'goal'; goal: number; tz?: number }
   /**
-   * Treino no tatame (the Academia bout), protocol version 1. The server owns the bout: the client only picks an intent and answers
-   * the challenge the server issued (`seq` must match the prompt on screen); timers and results are the server's.
+   * Treino no tatame (the Academia bout), protocol version 2 (Tatame v3 "Comando"). The server owns the bout and its clock: the client
+   * picks a card (`pick`), taps the commands of the chain it was sent (`tap`, one per command, `step` 0-based, `ms` since that command
+   * appeared) and answers the partner's attack (`defend`, `step` for the escape mash). `seq` must match the beat on screen.
    */
-  | { t: 'bout'; v: 1; action: 'open' }
-  | { t: 'bout'; v: 1; action: 'start'; partner: PartnerId; listen?: boolean; rematch?: boolean }
-  | { t: 'bout'; v: 1; action: 'intent'; seq: number; intent: string }
-  | { t: 'bout'; v: 1; action: 'answer'; seq: number; answer: BoutAnswer }
-  | { t: 'bout'; v: 1; action: 'quit' }
+  | { t: 'bout'; v: 2; action: 'open' }
+  | { t: 'bout'; v: 2; action: 'start'; partner: PartnerId; listen?: boolean; rematch?: boolean }
+  | { t: 'bout'; v: 2; action: 'pick'; seq: number; move: string }
+  | { t: 'bout'; v: 2; action: 'tap'; seq: number; step: number; cmd: string; ms: number }
+  | { t: 'bout'; v: 2; action: 'defend'; seq: number; cmd: string; ms: number; step?: number }
+  | { t: 'bout'; v: 2; action: 'quit' }
   /**
    * Hidden ops panel (credits easter egg). The server checks the password once per socket; later actions need that flag.
    * `list` refreshes the online player roster; `kick` removes another player; `money` pays the caller; `clock` / `weather` pin the shared sky.
@@ -343,28 +345,26 @@ export type ConversaServerMsg =
     }
   | { t: 'conversa'; phase: 'blocked'; reason: 'daily' | 'unavailable'; pt: string; en: string };
 
-/** The bout as the client draws it (everything derived from `BoutState`, plus the position it names). */
+/** The bout as the client draws it (everything derived from the mat state, plus the pose it names). */
 export interface BoutSnapshot {
   rung: number;
-  momentum: number;
   points: Score;
   adv: Score;
-  pegada: number;
-  pegadaB: number;
-  /** game ms left on the 5:00 clock */
+  /** game ms left on the 2:00 clock (7.5 s an exchange) */
   clockMs: number;
+  /** exchanges played, both fighters (the match is {@link turns}) */
   exchange: number;
+  turns?: number;
   position: BjjPositionId;
   ahead: 'you' | 'partner' | null;
-  streak: number;
-  /** Tatame v2: the control meter, -100 (partner) .. 100 (you). */
+  /** The control meter, -100 (partner) .. 100 (you). */
   meter?: number;
   /** The grips each fighter holds, drawn on the fighters and in the HUD. `age` is own turns held (it slips at 3). */
   grips?: { you: BoutGrips; partner: BoutGrips };
   /** A defense waiting for the other fighter's next move. */
   brace?: { you: 'postura' | 'base' | 'recuperar' | null; partner: 'postura' | 'base' | 'recuperar' | null };
-  /** A grip slipped: the next move is weaker. */
-  tired?: { you: boolean; partner: boolean };
+  /** Your all-Perfeito chains in a row (Ritmo: three are a Vantagem). */
+  ritmo?: number;
 }
 
 export interface BoutGrips {
@@ -373,7 +373,7 @@ export interface BoutGrips {
   age: { collar: number; sleeve: number };
 }
 
-/** The partner's telegraphed next move (Tatame v2). `answers` are your moves on offer that counter it. */
+/** The partner's telegraphed next move. `answers` are your cards that counter it. */
 export interface BoutPlanOut {
   kind: string;
   move: string;
@@ -381,13 +381,15 @@ export interface BoutPlanOut {
   answers: string[];
 }
 
-/** A grip or defense moment of a resolved move, for the mat (grip snap, strip, slip, brace, a blocked attack). */
+/** A grip or defense moment of a resolved move, for the mat (grip snap, strip, slip, brace, a block, a defense, a Ritmo). */
 export type BoutGripEvent =
   | { kind: 'grip'; side: 'you' | 'partner'; grip: 'collar' | 'sleeve' }
   | { kind: 'strip'; side: 'you' | 'partner'; grips: ('collar' | 'sleeve')[] }
   | { kind: 'slip'; side: 'you' | 'partner'; grips: ('collar' | 'sleeve')[] }
   | { kind: 'brace'; side: 'you' | 'partner'; brace: 'postura' | 'base' | 'recuperar' }
-  | { kind: 'blocked'; side: 'you' | 'partner' };
+  | { kind: 'blocked'; side: 'you' | 'partner' }
+  | { kind: 'defended'; side: 'you' | 'partner'; adv: boolean }
+  | { kind: 'ritmo'; side: 'you' | 'partner' };
 
 export interface BoutPartnerCard {
   id: PartnerId;
@@ -400,121 +402,131 @@ export interface BoutPartnerCard {
   stars: number;
 }
 
-export interface BoutIntentOut {
+/** One move card of the pick (at most four). No percentages: the chevrons are the chain length. */
+export interface BoutCardOut {
   id: string;
   pt: string;
   en: string;
-  risk: 1 | 2 | 3;
-  /** Shown before the player confirms. Omitted for Hold, which always works. */
-  percent?: number;
-  /** If it lands: points scored, where the pair ends up (who on top), whether it finishes; a finish that misses puts you on your back. */
-  effect?: { points: number; to: BjjPositionId; toAhead: 'you' | 'partner' | null; submission: boolean; riskBottom: boolean };
-  /** What moved the percent off the belt table ("Gola +20"). */
-  odds?: { pt: string; en: string; delta: number }[];
-  /** What a setup move opens, in a few words. */
-  sets?: Bilingual;
-  /** This move answers the partner's telegraphed plan. */
+  kind: MatCardKind;
+  /** commands to tap */
+  chain: number;
+  points: number;
+  /** what it does if it lands, in plain words (+2 · você por cima, Protege você, Vale a vitória!) */
+  does: Bilingual;
+  /** a finish that misses leaves you on the bottom */
+  risk?: Bilingual;
+  /** this card answers the partner's telegraph */
   answers?: boolean;
-  /** A follow-up the grips opened (Arrastar, Puxar, Arremesso). */
-  combo?: boolean;
-  /** Owned but waiting for a grip ("Precisa da gola"). */
-  needs?: Bilingual;
 }
 
-export type BoutRole = 'exchange' | 'finish' | 'escape';
+/** Why a move did or did not land, for the resolve beat. */
+export type BoutHow = 'landed' | 'missed' | 'late' | 'wrong' | 'defended' | 'blocked' | 'botched' | 'hold' | 'drill';
 
-/** Server → client for the bout (`t: 'bout'`, `v: 1`). Every prompt carries the `seq` the answer must echo. */
+/** Server → client for the bout (`t: 'bout'`, `v: 2`). Every beat carries the `seq` its answer must echo. */
 export type BoutServerMsg =
-  | { t: 'bout'; v: 1; phase: 'lobby'; partners: BoutPartnerCard[]; bjj: BjjProgress; level: number; suggested: PartnerId }
+  | { t: 'bout'; v: 2; phase: 'lobby'; partners: BoutPartnerCard[]; bjj: BjjProgress; level: number; suggested: PartnerId }
   | {
       t: 'bout';
-      v: 1;
+      v: 2;
       phase: 'intro';
       partner: { id: PartnerId; name: string; style: Bilingual };
       st: BoutSnapshot;
       introMs: number;
-      /** How long this partner thinks before their move (the client's pause between the cartoons). */
-      thinkMs?: number;
       level: number;
       line: Bilingual;
       signal: RefSignal;
+      /** A first-ever match (wins 0): longer windows and Bia's three coach notes. */
+      first: boolean;
+      turns: number;
     }
   | {
       t: 'bout';
-      v: 1;
-      phase: 'intent';
+      v: 2;
+      phase: 'pick';
       seq: number;
       st: BoutSnapshot;
-      /** Legal this position. These are the ones the player can confirm. */
-      intents: BoutIntentOut[];
-      /** Owned moves, including ones this position cannot play yet, so the bar can show their percent. */
-      owned?: BoutIntentOut[];
-      finish: boolean;
+      /** At most four, ranked (the answer to the telegraph first). */
+      cards: BoutCardOut[];
       pickMs: number;
       /** What the partner will do next, shown before you choose. */
       plan?: BoutPlanOut;
     }
   | {
       t: 'bout';
-      v: 1;
-      phase: 'drill';
+      v: 2;
+      phase: 'chain';
       seq: number;
       st: BoutSnapshot;
       move: { id: string; pt: string; en: string };
+      /** The commands to tap, in order, and each one's window (ms from when it appears). The drill's windows are 0: no timer. */
+      cmds: MatCommand[];
+      windowMs: number[];
+      /** The pose the move starts from (the clip to drive). */
+      from: BjjPositionId;
+      aheadFrom: 'you' | 'partner' | null;
+      /** A finish: the partner's escape bar fills over the whole chain. */
+      sub: boolean;
+      /** The professor's drill: no timer, Bia calls each command slowly. */
+      drill?: boolean;
+      line?: Bilingual;
+    }
+  | {
+      t: 'bout';
+      v: 2;
+      phase: 'defend';
+      seq: number;
+      st: BoutSnapshot;
+      move: { id: string; pt: string; en: string };
+      attack: MatAttack;
+      /** The right defense, called by Bia at white belt (a listening task). Omitted from blue belt: read the telegraph. */
+      call?: MatDefense;
+      /** "Mateus vai tentar a queda." (what is coming, in words) */
       line: Bilingual;
-      /** Pose the demonstration starts from, before `st` (the landing). */
+      /** The partner's wind-up before the pad appears, then each window. */
+      leadMs: number;
+      windowMs: number;
+      /** Taps in a row (three or four Sai! against a finish; one otherwise). */
+      count: number;
       from: BjjPositionId;
       aheadFrom: 'you' | 'partner' | null;
     }
   | {
       t: 'bout';
-      v: 1;
-      phase: 'challenge';
-      seq: number;
-      st: BoutSnapshot;
-      role: BoutRole;
-      intent: IntentId | null;
-      /** finalização in several steps: 1-based step and the step count */
-      step: number;
-      steps: number;
-      challenge: ChallengeView;
-      limitMs: number;
-    }
-  | {
-      t: 'bout';
-      v: 1;
+      v: 2;
       phase: 'resolve';
       seq: number;
       st: BoutSnapshot;
-      intent: string;
       /** Whose move just resolved. */
-      actor?: 'you' | 'partner';
-      /** The move that just played, so the mat can run that gag's cartoon before the pose changes. */
-      move?: string;
+      actor: 'you' | 'partner';
+      move: string;
+      landed: boolean;
+      how: BoutHow;
+      /** Your grade per command tapped (the chain), or per defense tap. */
+      grades?: TapGrade[];
+      /** The chain broke at this step (0-based). */
+      step?: number;
+      cmds?: MatCommand[];
+      points: number;
       /** Placeholder tone. Missing audio must not stop the match. */
       sound?: 'hit' | 'whoosh' | 'mount' | 'sub' | 'none';
       say?: Bilingual;
-      yours: { correct: boolean; speed: number; fast: boolean; timeout: boolean };
-      partner: { intent: string; correct: boolean };
-      /** net momentum push (positive: toward you) */
-      delta: number;
       events: ExchangeEvent[];
       /** how long the beat lasts on screen (ms) */
       holdMs: number;
-      /** Tatame v2: grip snaps, strips, slips, braces and blocked attacks of this move. */
       grip?: BoutGripEvent[];
-      /** The percent the move rolled against. */
-      percent?: number;
-      /** The control meter before and after. */
       meterFrom?: number;
       meterTo?: number;
-      /** The partner dropped its telegraphed move because your answer broke it. */
+      /** The pose before the move (the clip it played from). */
+      from: BjjPositionId;
+      aheadFrom: 'you' | 'partner' | null;
+      /** The partner's move was not the one it telegraphed. */
+      feint?: boolean;
+      /** The partner dropped its telegraphed move because your move broke it. */
       replanned?: boolean;
     }
-  | { t: 'bout'; v: 1; phase: 'finish_end'; kind: 'finalizacao' | 'escape'; success: boolean; st: BoutSnapshot; line: Bilingual; signal: RefSignal | null; holdMs: number }
   | {
       t: 'bout';
-      v: 1;
+      v: 2;
       phase: 'end';
       winner: BoutWinner | 'none';
       reason: BoutReason;
@@ -528,10 +540,14 @@ export type BoutServerMsg =
       line: Bilingual;
       thanks: Bilingual;
       signal: RefSignal | null;
-      /** After a loss, one-tap rematch the same guard position (and bot memory). */
+      /** After a loss, one-tap rematch the same partner. */
       rematchSamePosition?: boolean;
       /** The one new diary word this win taught, or omitted when a loss or an exhausted list taught nothing. */
       word?: Bilingual | null;
+      /** Palavras de hoje: the commands you used this match (PT with EN). */
+      words?: Bilingual[];
+      /** Comandos perfeitos: commands tapped Perfeito this match. */
+      perfect?: number;
     };
 
 /** Server → client messages. */
