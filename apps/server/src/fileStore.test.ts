@@ -1,47 +1,55 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { fileAdapter } from './fileStore.js';
+import { closeDatabase, openDatabase } from './sqliteDb.js';
 import type { StoredProfile } from './store.js';
 
-const photo = (id: string) => ({ id, at: 1, image: `data:image/jpeg;base64,${id.repeat(50)}` });
+const photo = (id: string) => ({ id, at: 1, image: `data:image/jpeg;base64,${id.repeat(20)}` });
 const row = (id: string, photos?: ReturnType<typeof photo>[]) => ({ id, name: id, ...(photos ? { photos } : {}) }) as unknown as StoredProfile;
 
 describe('fileAdapter', () => {
-  it('keeps photo images out of profiles.json and rewrites photos.json only when photos change', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-store-'));
+  let dir = '';
+  afterEach(() => {
+    if (dir) {
+      closeDatabase(dir);
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    dir = '';
+  });
+
+  it('keeps photo images out of the profiles table and does not rewrite an unchanged photo row', () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-store-'));
     const a = fileAdapter(dir);
     a.load();
     const rows = [row('p1', [photo('a1')]), row('p2')];
     a.save(rows);
-    const profiles = fs.readFileSync(path.join(dir, 'profiles.json'), 'utf8');
+    const db = openDatabase(dir);
+    const profiles = (db.prepare('SELECT json FROM profiles').all() as { json: string }[]).map((r) => r.json).join('\n');
     expect(profiles).not.toContain('data:image');
-    expect(JSON.parse(fs.readFileSync(path.join(dir, 'photos.json'), 'utf8'))).toEqual({ p1: [photo('a1')] });
+    expect(JSON.parse((db.prepare('SELECT json FROM photos WHERE profile_id = ?').get('p1') as { json: string }).json)).toEqual([photo('a1')]);
 
-    // a save where nobody's photos changed does not touch photos.json
-    const before = fs.statSync(path.join(dir, 'photos.json')).mtimeMs;
-    fs.utimesSync(path.join(dir, 'photos.json'), 0, 0);
+    const before = (db.prepare('SELECT total_changes() AS n').get() as { n: number }).n;
     a.save(rows);
-    expect(fs.statSync(path.join(dir, 'photos.json')).mtimeMs).toBe(0);
-    expect(before).toBeGreaterThan(0);
+    expect((db.prepare('SELECT total_changes() AS n').get() as { n: number }).n).toBe(before);
 
-    // a new photo rewrites it, and a fresh load puts the photos back on the profile
-    rows[0].photos = [photo('a2'), photo('a1')];
+    rows[0]!.photos = [photo('a2'), photo('a1')];
     a.save(rows);
     const loaded = fileAdapter(dir).load();
     expect(loaded.find((r) => r.id === 'p1')?.photos?.map((p) => p.id)).toEqual(['a2', 'a1']);
     expect(loaded.find((r) => r.id === 'p2')?.photos).toBeUndefined();
   });
 
-  it('moves photos saved inline by an older build into photos.json', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-store-'));
+  it('moves photos saved inline in profiles.json into the photos table', () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-store-'));
     fs.writeFileSync(path.join(dir, 'profiles.json'), JSON.stringify([row('old', [photo('x')])]));
     const a = fileAdapter(dir);
     const rows = a.load();
-    expect(rows[0].photos?.[0].id).toBe('x');
-    a.save(rows);
-    expect(fs.readFileSync(path.join(dir, 'profiles.json'), 'utf8')).not.toContain('data:image');
-    expect(fileAdapter(dir).load()[0].photos?.[0].id).toBe('x');
+    expect(rows[0]?.photos?.[0]?.id).toBe('x');
+    expect(fs.existsSync(path.join(dir, 'profiles.json'))).toBe(false);
+    const db = openDatabase(dir);
+    expect((db.prepare('SELECT json FROM profiles WHERE id = ?').get('old') as { json: string }).json).not.toContain('data:image');
+    expect(fileAdapter(dir).load()[0]?.photos?.[0]?.id).toBe('x');
   });
 });

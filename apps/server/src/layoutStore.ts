@@ -1,6 +1,6 @@
 /**
- * Saved design-mode layouts. Same volume as profiles (`layouts.json` beside `profiles.json`).
- * Missing file means every room uses the layout shipped in the repo.
+ * Saved design-mode layouts. Stored in SQLite (`kv` key `layouts`) on the same volume as profiles.
+ * A missing row means every room uses the layout shipped in the repo.
  */
 import { validateRoomLayout, type PropDef, type RoomId } from '@tudobem/shared';
 

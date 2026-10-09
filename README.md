@@ -140,8 +140,8 @@ apps/client       Phaser 3 pixel view + DOM UI; the title screen, dialogue box, 
 - **No pay-to-win**: RV is earned only from graded language acts, recados and the Caderno; nameplates can't be bought. Everyone is **Verde** in Phase 0.
 - **The server is authoritative**: movement, rewards, payments, hand-overs and the clock are validated server-side; the client is a view.
 - **Adults only (18+) in intent**: the only age prompt is an optional 18+ tick on signup. No birth date is collected. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).
-- **Accounts**: multiplayer requires an email + password account. Passwords are hashed with scrypt; the session is an `HttpOnly; SameSite=Lax` cookie stored only as a SHA-256 hash in `DATA_DIR/accounts.json`, with a 30-day sliding expiry. Failed logins are rate-limited per email and per IP. Auth POSTs and the WebSocket upgrade reject other sites' origins. `/api/conversa` pays RV to the signed-in player only.
-- **Feedback**: the **Fala** chip on the HUD opens a short note (optional Problema / Ideia / Gostei). `POST /api/feedback` appends it to `DATA_DIR/feedback.json`. A signed-in player is stored by account id only — the account email is not copied. A guest may leave an optional contact. Daily review: `GET /api/feedback` with `Authorization: Bearer $TB_ADMIN_PASSWORD` (the same secret as the hidden admin panel; local dev uses that panel's password).
+- **Accounts**: multiplayer requires an email + password account. Passwords are hashed with scrypt; the session is an `HttpOnly; SameSite=Lax` cookie stored only as a SHA-256 hash in `DATA_DIR/tudobem.sqlite`, with a 30-day sliding expiry. Failed logins are rate-limited per email and per IP. Auth POSTs and the WebSocket upgrade reject other sites' origins. `/api/conversa` pays RV to the signed-in player only.
+- **Feedback**: the **Fala** chip on the HUD opens a short note (optional Problema / Ideia / Gostei). `POST /api/feedback` appends it to the SQLite `feedback` table in `DATA_DIR/tudobem.sqlite`. A signed-in player is stored by account id only — the account email is not copied. A guest may leave an optional contact. Daily review: `GET /api/feedback` with `Authorization: Bearer $TB_ADMIN_PASSWORD` (the same secret as the hidden admin panel; local dev uses that panel's password).
 - **Idle kick**: no real input for 15 minutes (warning at 14) frees the seat with a soft *"Volte quando quiser"* card. The account stays signed in.
 
 ## Content packs
@@ -166,7 +166,7 @@ The credit is also in the game (**Créditos** in the top bar) with the fonts (Nu
 | Env | Default | Meaning |
 | --- | --- | --- |
 | `PORT` / `HOST` | `8787` / `0.0.0.0` | Server listen address |
-| `DATA_DIR` | `./data` | Profiles (`profiles.json`), accounts + hashed sessions (`accounts.json`), moderation log (`moderation.jsonl`) |
+| `DATA_DIR` | `./data` | SQLite database (`tudobem.sqlite`), hourly backups (`backups/`), moderation log (`moderation.jsonl`). See [docs/SQLITE.md](docs/SQLITE.md) |
 | `XAI_API_KEY` | *(none)* | Optional. Turns on AI Conversa turns, NPC memory summaries and AI-written replies; without it the authored fallbacks play (`CONVERSA_MODEL`, `CONVERSA_REASONING_EFFORT` tune it) |
 | `IDLE_KICK_SECONDS` | `900` | Kick players after this long without real input (warning 60 s before) |
 | `SESSION_TTL_DAYS` | `30` | Sliding login session lifetime |

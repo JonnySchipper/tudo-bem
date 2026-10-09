@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CONVERSA_SUBJECTS, DEFAULT_APPEARANCE, TUTORIAL_STEPS, classifyChat, conversaDateKey, type TutorialStep } from '@tudobem/shared';
 import { handleConversaApi } from './conversaApi.js';
 import { fileAdapter } from './fileStore.js';
+import { closeDatabase, openDatabase } from './sqliteDb.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 
 function profile(id: string, coins = 100, granted?: string): StoredProfile {
@@ -64,7 +65,10 @@ describe('Conversa RV persist', () => {
       server = null;
       await new Promise<void>((resolve, reject) => closing.close((err) => (err ? reject(err) : resolve())));
     }
-    if (dir) fs.rmSync(dir, { recursive: true, force: true });
+    if (dir) {
+      closeDatabase(dir);
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
     dir = '';
   });
 
@@ -113,7 +117,7 @@ describe('Conversa RV persist', () => {
     expect(first.body.payout).toBe(20);
     expect(first.body.coins).toBe(120);
 
-    const saved = JSON.parse(fs.readFileSync(path.join(dir, 'profiles.json'), 'utf8')) as StoredProfile[];
+    const saved = (openDatabase(dir).prepare('SELECT json FROM profiles').all() as { json: string }[]).map((r) => JSON.parse(r.json) as StoredProfile);
     expect(saved[0]?.coins).toBe(120);
     expect(saved[0]?.daily.conversaRvGranted?.carlos).toBe(conversaDateKey());
 
