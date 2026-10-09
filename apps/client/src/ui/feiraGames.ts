@@ -116,9 +116,9 @@ function paintBoard(m: Extract<FeiraGameMsg, { phase: 'board' }>, alsoCart: bool
       ...m.medals.map((row) => h('li', null,
         h('span', { class: 'fg-name' }, row.name),
         h('span', { class: 'fg-counts' },
-          h('i', { class: 'fg-medal gold', title: 'Ouro' }, medalMark('gold')), ` ${row.gold} `,
-          h('i', { class: 'fg-medal silver', title: 'Prata' }, medalMark('silver')), ` ${row.silver} `,
-          h('i', { class: 'fg-medal bronze', title: 'Bronze' }, medalMark('bronze')), ` ${row.bronze}`,
+          h('i', { class: 'fg-medal gold', title: 'Ouro · Gold (1st place on a day)' }, medalMark('gold')), ` ${row.gold} `,
+          h('i', { class: 'fg-medal silver', title: 'Prata · Silver (2nd place on a day)' }, medalMark('silver')), ` ${row.silver} `,
+          h('i', { class: 'fg-medal bronze', title: 'Bronze · Bronze (3rd place on a day)' }, medalMark('bronze')), ` ${row.bronze}`,
         ),
       )))
     : h('p', { class: 'fg-empty' }, 'Nenhuma medalha ainda.', en('No medals yet.'));
