@@ -143,6 +143,10 @@ export function mountAirportTutorial(onStep?: () => void): { refresh: () => void
   refreshPanel = render;
   game.on('profile', render);
   game.on('room', render);
+  // the "what next" card belongs to the airport: leaving it (doors, bus, a skip) takes the card along
+  game.on('room', () => {
+    if (!inAirport()) document.getElementById('aero-next')?.remove();
+  });
   game.on('hud', render);
   // a snack from the café is in your hand (the server puts it on your avatar)
   game.on('avatars', () => {
@@ -156,6 +160,8 @@ export function mountAirportTutorial(onStep?: () => void): { refresh: () => void
 /** Out of the arrivals hall: a short card with where to go next (the checklist and the arrow carry on from there). */
 export function showAirportNext(): void {
   document.getElementById('aero-next')?.remove();
+  // it is shown a beat after the hall's doors: by then the player may already have gone on
+  if (!inAirport()) return;
   const ok = h('button', { type: 'button', class: 'primary', id: 'aero-next-ok', onclick: () => card.remove() }, 'Let’s go!', h('span', { class: 'en' }, ' · Vamos!'));
   const card = h(
     'div',
