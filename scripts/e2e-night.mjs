@@ -97,6 +97,8 @@ async function main() {
     await waitFor(page, () => window.__tb.clock.minutes() >= 1350 && window.__tb.clock.minutes() < 1400, null, 150_000, '22:30');
     await walkTo(page, 24, 21); // in front of banco_2
     await waitIdleAt(page, 24, 21);
+    // he walks over from the padaria: on a slow runner he is still on the way when the clock passes 22:30, so wait for him to arrive
+    await waitFor(page, () => [...window.__tb.game.avatars.values()].some((a) => a.pub.npc === 'carlos' && a.pub.x === 24 && a.pub.y === 20), null, 90_000, 'Seu Carlos on the bench').catch(() => {});
     await sleep(1000);
     const npcs = await npcsHere(page);
     const carlos = npcs.find((n) => n.id === 'carlos');
