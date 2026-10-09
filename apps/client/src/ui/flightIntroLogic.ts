@@ -15,3 +15,24 @@ export function irisRadius(open: number, w: number, h: number, cx: number, cy: n
   const far = Math.max(Math.hypot(x, y), Math.hypot(w - x, y), Math.hypot(x, h - y), Math.hypot(w - x, h - y));
   return Math.max(0, Math.min(1, open)) * (far + 2);
 }
+
+/** How long after sign-up an account that has not seen the fly-in still counts as brand new. */
+export const FLIGHT_FRESH_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Whether `welcome` should play the fly-in. Brand-new accounts only, once: the creator was up on this page (`justCreated`), or the
+ * server says the arrivals hall is still ahead on a profile made moments ago (a reload or reconnect between the creator and `welcome`
+ * loses `justCreated`). `seen` is the per-profile "already played" mark; older accounts never replay it.
+ */
+export function shouldPlayFlightIntro(o: {
+  room: string;
+  justCreated: boolean;
+  seen: boolean;
+  profile: { createdAt?: number; desembarqueDone?: boolean };
+  now: number;
+}): boolean {
+  if (o.room !== 'desembarque' || o.seen) return false;
+  if (o.justCreated) return true;
+  const age = o.now - (o.profile.createdAt ?? 0);
+  return o.profile.desembarqueDone === false && age >= 0 && age < FLIGHT_FRESH_MS;
+}
