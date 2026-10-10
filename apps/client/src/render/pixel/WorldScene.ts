@@ -48,7 +48,7 @@ import type { Manifest } from './manifest';
 import { FACING, facingAlongPath, type Facing } from './facing';
 import { createPetFollow, petCommandFromLines, stepPet, type PetFollow } from './petFollow';
 import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './charsheet';
-import { danceSway, emotePlaysSheet } from './emoteMotion';
+import { danceSway, emoteNod, emotePlaysSheet } from './emoteMotion';
 import { CharSheets } from './charCache';
 import type { CharAssets } from './charAssets';
 import { composeLook } from './composeLook';
@@ -1724,6 +1724,8 @@ export class WorldScene extends Phaser.Scene {
       const dur = emoteDuration(this.m.sheet, a.emote.kind) / 1000;
       if (!emotePlaysSheet(a.emote.kind)) {
         sway = danceSway(a.emote.kind, t, dur > 0 ? dur : 1.3, reducedMotion());
+        // nobody waves: Oi is a one-pixel nod, twice
+        bounce = -Math.round(emoteNod(a.emote.kind, t, reducedMotion()) * avatarDrawScale());
       } else if (dur > 0) {
         if (t >= 0 && t < dur) emote = `${a.emote.kind}@${a.emote.t0}`;
       } else if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2);
@@ -1801,7 +1803,8 @@ export class WorldScene extends Phaser.Scene {
    */
   private updateEmoteIcon(v: AvatarView, a: ClientAvatar, wx: number, wy: number, sitting: boolean, now: number): void {
     const t = a.emote ? now / 1000 - a.emote.t0 : -1;
-    const d = a.emote && t >= 0 && t < EMOTE_ICON_S ? this.m.sprites[`fx/emote_${a.emote.kind}`] : undefined;
+    // Oi has no pop-up: its icon is a waving hand, and nobody waves. The nod is the greeting.
+    const d = a.emote && a.emote.kind !== 'oi' && t >= 0 && t < EMOTE_ICON_S ? this.m.sprites[`fx/emote_${a.emote.kind}`] : undefined;
     if (!d || !a.emote) {
       if (v.icon?.visible) v.icon.setVisible(false);
       return;

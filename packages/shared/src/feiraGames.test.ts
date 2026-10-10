@@ -37,9 +37,9 @@ import {
   withoutHiddenFeiraCart,
   type FeiraDayScore,
 } from './feiraGames.js';
-import { pastelOrders } from './feiraPastel.js';
+import { PASTEL_DURATION_MS, pastelOrders } from './feiraPastel.js';
 import { caldoOrders } from './feiraCaldo.js';
-import { TAPIOCA_SPREAD, tapiocaOrders, tapiocaServeQuality, tapiocaSpread } from './feiraTapioca.js';
+import { TAPIOCA_COOK, TAPIOCA_DURATION_MS, TAPIOCA_PATIENCE_MS, TAPIOCA_SPREAD, tapiocaOrders, tapiocaServeQuality, tapiocaSpread } from './feiraTapioca.js';
 import './feiraPastel.js';
 import './feiraCaldo.js';
 
@@ -103,7 +103,7 @@ describe('feira scoring and payout', () => {
     const seed = 42;
     const orders = tapiocaOrders(seed);
     const outcomes = orders.map((o, i) => ({ i, quality: 'perfect' as const, atMs: o.at + 1000 }));
-    const judged = judgeFeiraResult('tapioca', seed, outcomes, 90_000);
+    const judged = judgeFeiraResult('tapioca', seed, outcomes, TAPIOCA_DURATION_MS);
     expect(judged.ok).toBe(true);
     if (!judged.ok) return;
     expect(judged.score).toBeLessThanOrEqual(FEIRA_GAME_MAX_SCORE);
@@ -158,6 +158,17 @@ describe('feira scoring and payout', () => {
     expect(tapiocaServeQuality('perfect', true, 0.8, 'even')).toBe('perfect');
     // about a second of holding lands an even disc
     expect(tapiocaSpread(TAPIOCA_SPREAD.fillPerSec * 0.9)).toBe('even');
+  });
+
+  it('cooks slowly and waits long enough to juggle the other pans, and every customer arrives inside the run', () => {
+    expect(TAPIOCA_COOK.cookMs - TAPIOCA_COOK.earlyMs).toBeGreaterThanOrEqual(5_000);
+    expect(TAPIOCA_PATIENCE_MS).toBeGreaterThanOrEqual(40_000);
+    for (const seed of [1, 42, 99, 2026]) {
+      for (const [orders, duration] of [[tapiocaOrders(seed), TAPIOCA_DURATION_MS], [pastelOrders(seed), PASTEL_DURATION_MS]] as const) {
+        expect(orders.every((o) => o.at < duration - 15_000), `seed ${seed}`).toBe(true);
+        expect(Math.min(...orders.map((o) => o.patienceMs))).toBeGreaterThanOrEqual(35_000);
+      }
+    }
   });
 });
 

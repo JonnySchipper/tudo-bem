@@ -33,6 +33,7 @@ import { game } from '../state';
 import { ambience } from '../ambience';
 import { readShowEnglish } from './dialogueLogic';
 import { reducedMotion } from '../render/pixel/perf';
+import { nodDip } from '../render/pixel/emoteMotion';
 import { sharedCharAssets, type CharAssets } from '../render/pixel/charAssets';
 import { composeLook } from '../render/pixel/composeLook';
 import { lookForAppearance, lookForNpc } from '../render/pixel/looks';
@@ -327,6 +328,8 @@ export interface HitSpec {
   rect: Rect;
   /** a click, a tap, Enter/Space */
   tap?: () => void;
+  /** Enter/Space only (no pointer), when the keyboard needs a shortcut for something a pointer must drag. Defaults to `tap`. */
+  key?: () => void;
   /** pointer held down / let go (spreading, cranking) */
   press?: (down: boolean) => void;
   /** start a drag from here; null when there is nothing to carry */
@@ -391,10 +394,14 @@ export interface StageConfig<O extends StageOrder> {
   draw(g: Ctx, t: number, now: number): void;
   /** a tap on a customer (payload null) or something dropped on them */
   serve(c: StageCustomer<O>, payload: DragPayload | null): void;
+  /** Set when a pointer tap on a customer must not serve: this pop says to drag it there. The keyboard still serves. */
+  dragHint?: { pt: string; en: string };
   finish(outcomes: FeiraOrderOutcome[]): void;
 }
 
 const POINTS: Record<FeiraQuality, number> = { perfect: 48, ok: 32, soft: 16, miss: 0 };
+/** What floats over a served customer. needs_br: true */
+const QUALITY_WORD: Record<FeiraQuality, string> = { perfect: 'Perfeito!', ok: 'Muito bem!', soft: 'Quase!', miss: 'Ih…' };
 const WALK_SPEED = 120; // art px per second
 /** Feet sit this far under the top of the counter plank: waist up shows over it. */
 const FEET = 6;
@@ -710,7 +717,7 @@ export class FeiraStage<O extends StageOrder> {
       if (c.bubble) c.bubble.classList.toggle('fst-hurry', p < 0.3);
     }
     this.queueChip.hidden = queued === 0;
-    if (queued) this.queueChip.textContent = `+${queued} na fila`;
+    if (queued) this.queueChip.textContent = `${queued} na fila`;
   }
 
   private walk(dt: number, now: number) {
@@ -816,7 +823,8 @@ export class FeiraStage<O extends StageOrder> {
       this.shake(2, 220);
     } else {
       this.served += 1;
-      this.floatAt(x, y, `+${pts}`, quality);
+      // a word, not a sum: no math in the feira games (the HUD keeps the running score)
+      this.floatAt(x, y, QUALITY_WORD[quality], quality);
       if (why) this.floatAt(x, y + 10, why.pt, 'soft');
       this.sfx(quality === 'perfect' ? 'cash' : 'ding');
       if (quality === 'perfect' && this.combo >= 2) window.setTimeout(() => this.sfx('combo'), 160);
@@ -876,18 +884,14 @@ export class FeiraStage<O extends StageOrder> {
     let row = a.idle.rows![0]!;
     let col = Math.floor((now / 1000) * (a.idle.fps ?? 5) * sheet.idleSpeed) % a.idle.frames;
     const since = now - c.moodAt;
+    // nobody waves: the oi, valeu and dancar rows raise an arm, so a served customer stays on the idle body and
+    // hops (perfect) or nods (ok, soft) under the emote over their head
+    let nod = 0;
     if (c.mood === 'walk' || c.mood === 'leave') {
       row = a.walk.rows![1]!; // facing W: they come in from the right and leave to the left
       col = Math.floor((now / 1000) * (a.walk.fps ?? 10)) % a.walk.frames;
-    } else if (c.mood === 'happy') {
-      row = a.dancar.row ?? 13;
-      col = Math.floor((since / 1000) * (a.dancar.fps ?? 8)) % a.dancar.frames;
-    } else if (c.mood === 'ok') {
-      row = a.valeu.row ?? 15;
-      col = Math.min(a.valeu.frames - 1, Math.floor((since / 1000) * (a.valeu.fps ?? 8)));
-    } else if (c.mood === 'meh') {
-      row = a.oi.row ?? 12;
-      col = Math.floor((since / 1000) * (a.oi.fps ?? 8)) % a.oi.frames;
+    } else if (c.mood === 'ok' || c.mood === 'meh') {
+      nod = nodDip(since / 1000, this.reduced);
     } else if (c.mood === 'angry') {
       row = a.desculpa.row ?? 16;
       col = Math.min(a.desculpa.frames - 1, Math.floor((since / 1000) * (a.desculpa.fps ?? 8)));
@@ -897,7 +901,7 @@ export class FeiraStage<O extends StageOrder> {
     }
     const shake = c.mood === 'angry' && since < 400 ? (Math.floor(since / 50) % 2 ? 1 : -1) : 0;
     const hop = c.mood === 'happy' && !this.reduced ? -Math.round(Math.abs(Math.sin(since / 110)) * 3) : 0;
-    g.drawImage(sheet.canvas, col * fw, row * fh, fw, fh, x - fw + shake, feet - fh * 2 + hop, fw * 2, fh * 2);
+    g.drawImage(sheet.canvas, col * fw, row * fh, fw, fh, x - fw + shake, feet - fh * 2 + hop + nod, fw * 2, fh * 2);
   }
 
   private drawCustomerTop(c: StageCustomer<O>, now: number) {
@@ -1072,7 +1076,7 @@ export class FeiraStage<O extends StageOrder> {
       btn.addEventListener('pointerdown', (e) => this.pointerDown(e, n));
       btn.addEventListener('click', (e) => {
         // keyboard (and synthetic clicks) arrive as click with no pointer press in progress
-        if ((e as MouseEvent).detail === 0 && this.started && !this.over && !this.closing) n.spec.tap?.();
+        if ((e as MouseEvent).detail === 0 && this.started && !this.over && !this.closing) (n.spec.key ?? n.spec.tap)?.();
       });
       this.hitsEl.append(btn);
       this.hits.set(spec.id, node);
@@ -1107,7 +1111,8 @@ export class FeiraStage<O extends StageOrder> {
         id: `${this.cfg.prefix}-serve-${c.index}`,
         label: `Servir ${c.order.name} · Serve`,
         rect: { x: Math.round(slot * c.spot) + 2, y: top, w: Math.floor(slot) - 4, h: this.L.counterY + FEET - top },
-        tap: () => this.cfg.serve(c, null),
+        tap: () => (this.cfg.dragHint ? this.pop(this.cfg.dragHint) : this.cfg.serve(c, null)),
+        key: () => this.cfg.serve(c, null),
         drop: (p) => {
           this.cfg.serve(c, p);
           return true;
@@ -1291,7 +1296,7 @@ export class FeiraStage<O extends StageOrder> {
     el.style.top = `${(this.L.work.y + 4) * z}px`;
     this.textEl.querySelectorAll('.fst-pop').forEach((n) => n.remove());
     this.textEl.append(el);
-    window.setTimeout(() => el.remove(), 1300);
+    window.setTimeout(() => el.remove(), 1800);
   }
 
   /** A small DOM label pinned to an art-px point, for station names (kept until removed). */
@@ -1338,7 +1343,8 @@ export class FeiraStage<O extends StageOrder> {
       void this.scoreEl.offsetWidth;
       this.scoreEl.classList.add('fst-bump');
     }
-    const combo = this.combo >= 2 ? `×${this.combo}` : '';
+    // a streak of perfects as stars, not a multiplier
+    const combo = this.combo >= 2 ? '★'.repeat(Math.min(5, this.combo)) : '';
     if (this.comboEl.textContent !== combo) {
       this.comboEl.textContent = combo;
       this.comboEl.hidden = !combo;
