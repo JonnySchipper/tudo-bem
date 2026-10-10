@@ -1,0 +1,268 @@
+/*
+ * Pet Shop do Seu Dito (#234): the panel (Adotar, Meus pets, Lojinha). It reuses the stall shelves and item cards of stalls.css and adds
+ * the tabs, the breed swatches, the meet stage with its hearts, the gate card and the pet rows. sp-green and mustard, the shop's colours.
+ */
+
+.backdrop > .panel.petshop-panel {
+  width: min(880px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.petshop-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 12px;
+  flex-wrap: wrap;
+}
+
+.petshop-tab {
+  border-radius: 10px 10px 4px 4px;
+  border-bottom: 3px solid transparent;
+}
+
+.petshop-tab.on {
+  background: #2f5d50;
+  color: #f5e6d3;
+  border-bottom-color: #d4a017;
+}
+
+.petshop-tab.on .en {
+  color: #e8d9be;
+}
+
+.petshop-animal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.petshop-animal.br::after,
+.petshop-br {
+  content: 'BR';
+  font-size: 10px;
+  font-weight: 700;
+  color: #f5e6d3;
+  background: #2f8a55;
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.petshop-animal.br::after {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+}
+
+.petshop-animal {
+  position: relative;
+}
+
+.pet-canvas {
+  image-rendering: pixelated;
+  display: block;
+}
+
+.petshop-breed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px dashed rgba(58, 58, 80, 0.15);
+}
+
+.petshop-breed-name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.petshop-coats {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.petshop-swatch {
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid #3a3a50;
+  background: var(--coat);
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+.petshop-swatch:hover,
+.petshop-swatch:focus-visible {
+  transform: scale(1.12);
+}
+
+.petshop-gate {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fbf1e3;
+  border: 2px solid #d4a017;
+}
+
+.petshop-gate h3 {
+  margin: 0 0 4px;
+}
+
+.petshop-gate-actions,
+.petshop-meet-actions,
+.petshop-pet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.petshop-meet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.petshop-stage {
+  position: relative;
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: linear-gradient(#f5e6d3, #f5e6d3 70%, #e9d6bf 70%);
+}
+
+.petshop-hearts {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  width: 0;
+  height: 0;
+}
+
+.petshop-hearts.on::before,
+.petshop-hearts.on::after {
+  content: '♥';
+  position: absolute;
+  color: #d93232;
+  font-size: 22px;
+  animation: petshop-heart 1.2s ease-out forwards;
+}
+
+.petshop-hearts.on::after {
+  left: 16px;
+  color: #e07070;
+  animation-delay: 0.2s;
+}
+
+@keyframes petshop-heart {
+  from {
+    transform: translateY(20px) scale(0.6);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-24px) scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .petshop-hearts.on::before,
+  .petshop-hearts.on::after {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.petshop-pets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.petshop-pet {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fbf6ec;
+  flex-wrap: wrap;
+}
+
+.petshop-pet.active {
+  background: #e8f1ec;
+  outline: 2px solid #2f5d50;
+}
+
+.petshop-pet-info {
+  flex: 1 1 140px;
+  display: flex;
+  flex-direction: column;
+}
+
+.petshop-pet select {
+  max-width: 200px;
+}
+
+.petshop-commands ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.petshop-commands li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.petshop-empty,
+.petshop-note {
+  color: var(--ink-soft);
+}
+
+.petshop-shop .item-icon-box img.pixel {
+  image-rendering: pixelated;
+}
+
+/* the kitnet pet card: "{nome} quer passear?" */
+.backdrop > .panel.petshop-home-card {
+  width: min(340px, calc(100vw - 24px));
+  text-align: center;
+}
+
+.petshop-home-card canvas {
+  display: block;
+  margin: 6px auto 4px;
+  image-rendering: pixelated;
+}
+
+.petshop-home-actions {
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* the Apoiar panel's owned pets (#234) */
+.support-owned {
+  flex-wrap: wrap;
+  margin-top: 6px;
+}

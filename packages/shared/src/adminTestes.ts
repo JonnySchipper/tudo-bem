@@ -7,7 +7,7 @@ import { BELT_LADDER, STRIPES_PER_BELT, normalizeBjj, winsToBelt, type Belt, typ
 import type { BubbleStyle } from './subscription.js';
 import type { Nameplate, RoomId } from './types.js';
 
-export const ADMIN_TEST_ROOMS = ['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'academia', 'escola', 'kitnet', 'aeroporto', 'desembarque', 'praia'] as const;
+export const ADMIN_TEST_ROOMS = ['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'academia', 'escola', 'petshop', 'kitnet', 'aeroporto', 'desembarque', 'praia'] as const;
 export type AdminTestRoom = (typeof ADMIN_TEST_ROOMS)[number];
 
 const BELT_SET = new Set<string>(BELT_LADDER.map((s) => s.belt));
@@ -30,6 +30,7 @@ export function adminTestRoomLabel(room: AdminTestRoom): { pt: string; en: strin
     padaria: { pt: 'Padaria', en: 'Bakery' },
     academia: { pt: 'Academia', en: 'Academy' },
     escola: { pt: 'Escola', en: 'School' },
+    petshop: { pt: 'Pet Shop', en: 'Pet shop' },
     kitnet: { pt: 'Kitnet', en: 'Studio' },
     aeroporto: { pt: 'Aeroporto', en: 'Airport' },
     desembarque: { pt: 'Desembarque', en: 'Arrivals hall' },

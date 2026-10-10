@@ -113,17 +113,19 @@ function baseEntry(def, img, anchor) {
 }
 
 /** Flat cast shadow (down-right) derived from the sprite silhouette, stored as `<key>#cast` and linked from the sprite entry. */
-function addCast(def, img, anchor) {
+function addCast(def, img, anchor, atlas = 'outdoor') {
   if (!def.cast) return;
   const { img: sh, ax, ay } = castShadow(img, anchor[1], anchor[0], def.cast.kx, def.cast.ky, def.cast.rgba);
   const name = `${def.key}#cast`;
-  addFrame('outdoor', name, sh);
+  addFrame(atlas, name, sh);
   sprites[def.key].cast = { frame: name, w: sh.w, h: sh.h, ax, ay };
 }
 
 /**
  * A `derive` generator returns "parts": { key?, img | frames[], seq?, fps?, anchor, meta? }. The first part (key = def.key) inherits the
  * import-map entry (footprint, shadow, cast, light...); extra parts (lit-window overlays, companions) carry their own `meta`.
+ * `def.atlas` (the import-map entry) puts every part of the derive in that atlas instead of `outdoor` (the pet shop: the outdoor atlas is
+ * at the texture size limit), frames and cast shadow included.
  */
 async function emitParts(def, parts) {
   for (const part of parts) {
@@ -137,18 +139,19 @@ async function emitParts(def, parts) {
       sprites[key] = { ...baseEntry(m, first, part.anchor), atlas: part.atlas };
       continue;
     }
+    const atlas = def.atlas ?? worldAtlas(key);
     await savePng(first, path.join(CUSTOM_PNG, key.replaceAll('/', '_') + '.png'));
     if (part.frames) {
-      const names = frames.map((f, i) => { const n = `${key}/${i}`; addFrame('outdoor', n, f); return n; });
+      const names = frames.map((f, i) => { const n = `${key}/${i}`; addFrame(atlas, n, f); return n; });
       // `seq` (optional) plays the unique frames in a longer order (holds, rare twitches) without packing a frame twice
       const order = part.seq ? part.seq.map((i) => names[i]) : names;
-      sprites[key] = { ...baseEntry(m, first, part.anchor), frame: names[0], anim: { frames: order, fps: part.fps ?? 6 } };
+      sprites[key] = { ...baseEntry(m, first, part.anchor), atlas, frame: names[0], anim: { frames: order, fps: part.fps ?? 6 } };
     } else {
-      addFrame('outdoor', key, first);
-      sprites[key] = baseEntry(m, first, part.anchor);
+      addFrame(atlas, key, first);
+      sprites[key] = { ...baseEntry(m, first, part.anchor), atlas };
     }
     for (const k of ['overhead', 'windows', 'lit', 'attach']) if (m[k] !== undefined) sprites[key][k] = m[k];
-    addCast(m, first, part.anchor);
+    addCast(m, first, part.anchor, atlas);
   }
 }
 

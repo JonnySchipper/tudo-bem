@@ -10,6 +10,7 @@
 import { blank, paste } from '../../../../scripts/lib/pixel/img.mjs';
 import { blank as paintBlank, put, shape, ell, box, or, NAVY } from './paint.mjs';
 import { dogWalk } from './dog.mjs';
+import { PET_STRIPS, breedStrip } from './petshapes.mjs';
 
 export const PET_W = 24;
 export const PET_H = 20;
@@ -475,11 +476,16 @@ function strip(frames) {
   return img;
 }
 
-/** Standalone strips for the world spritesheets (`chars/pet_dog`, `chars/pet_cat`). */
+/**
+ * Standalone strips for the world spritesheets: the legacy subscriber pets in their final colours (`chars/pet_dog`, `chars/pet_cat`: the
+ * caramelo and the orange cat as they were before #234, so nothing that reads them changes), then one key-coloured strip per breed shape
+ * and pattern the catalog uses (`chars/pet_<species>_<shape>_<pattern>`, petshapes.mjs), recoloured at runtime.
+ */
 export async function petStrips() {
   const meta = { frames: 20, frameW: PET_W, fps: 8, anims: PET_ANIMS };
   return [
     { key: 'chars/pet_dog', img: strip(dogFrames()), meta },
     { key: 'chars/pet_cat', img: strip(catFrames()), meta },
+    ...PET_STRIPS.map((c) => ({ key: `chars/pet_${c.species}_${c.shape}_${c.pattern}`, img: breedStrip(c.species, c.shape, c.pattern), meta: { ...meta, keyed: true } })),
   ];
 }

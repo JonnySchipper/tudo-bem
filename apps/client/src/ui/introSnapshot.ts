@@ -188,11 +188,11 @@ export function vilaSnapshot(): Promise<HTMLCanvasElement> {
 
 /**
  * The title screen shows the whole Vila Ipê as one picture (split into areas): the Rua dos Ipês across the top (its west and east halves side
- * by side, 21 + 19 tiles) and the Praça Central under it, lined up on the brick path that joins them (rua x15-18 = praça x14-17, so the praça sits
- * 1 tile in), with lawn filling the corners either side of the praça. 640 x 640 art px: tall enough for the pan on a phone (zoom 2) without ever
- * showing the void.
+ * by side, 21 + 25 tiles since the pet shop widened the east half, #234) and the Praça Central under it, lined up on the brick path that joins them
+ * (rua x15-18 = praça x14-17, so the praça sits 1 tile in), with lawn filling the corners either side of the praça. 736 x 640 art px: tall enough
+ * for the pan on a phone (zoom 2) without ever showing the void.
  */
-export const VILA_SNAPSHOT = { width: 40 * T, height: 40 * T, praca: { x: 1 * T, y: 16 * T } } as const;
+export const VILA_SNAPSHOT = { width: (ROOMS.rua.cols + ROOMS.rua_leste.cols) * T, height: 40 * T, praca: { x: 1 * T, y: 16 * T } } as const;
 
 export function planVilaSnapshot(m: Manifest): SnapshotPlan {
   const rua = planSnapshot(ROOMS.rua, m);
@@ -202,7 +202,7 @@ export function planVilaSnapshot(m: Manifest): SnapshotPlan {
   // lawn in the corners beside the praça (a room of grass that the game never uses, just for the picture)
   const grassOf = (cols: number): RoomDef => ({ ...ROOMS.praca, id: 'filler' as RoomDef['id'], cols, rows: 24, floor: Array.from({ length: 24 }, () => 'g'.repeat(cols)), props: [], portals: [], npcs: [] });
   const leftCols = VILA_SNAPSHOT.praca.x / T;
-  const rightCols = 40 - leftCols - 32;
+  const rightCols = VILA_SNAPSHOT.width / T - leftCols - 32;
   const left = planSnapshot(grassOf(leftCols), m);
   const right = planSnapshot(grassOf(rightCols), m);
   const ops = [

@@ -62,7 +62,7 @@ function targets(room: RoomDef): { what: string; tile: Tile }[] {
 }
 
 const AREAS = ['rua', 'rua_leste', 'praca', 'feira'] as const;
-const SIZES = { rua: [21, 16], rua_leste: [19, 16], praca: [32, 24], feira: [32, 20] } as const;
+const SIZES = { rua: [21, 16], rua_leste: [25, 16], praca: [32, 24], feira: [32, 20] } as const;
 const edgeKey = (p: { x: number; y: number }) => key(p.x, p.y);
 
 describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira)', () => {
@@ -80,7 +80,7 @@ describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira
     expect(ROOMS.rua.name).toBe('Rua dos Ipês');
     expect(ROOMS.rua_leste.name).toBe('Rua dos Ipês (leste)');
     expect(ROOMS.rua_leste.gloss).toBe('Ipê Street (east)');
-    expect(ROOMS.rua.cols + ROOMS.rua_leste.cols).toBe(40); // the old street, cut in two
+    expect(ROOMS.rua.cols + ROOMS.rua_leste.cols).toBe(46); // the old 40-tile street, cut in two, plus the pet shop's front (#234)
     expect(ROOMS.feira.name).toBe('Feira de Rua');
   });
 
@@ -129,7 +129,7 @@ describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira
     const doors = ROOMS.rua.portals.filter((p) => !p.edge);
     expect(doors.map((p) => p.to).sort()).toEqual(['kitnet', 'padaria']);
     for (const p of [...doors, ...ROOMS.rua_leste.portals.filter((q) => !q.edge && q.to !== 'aeroporto' && q.to !== 'praia')]) {
-      const rua = ROOMS[p.to === 'academia' || p.to === 'escola' ? 'rua_leste' : 'rua'];
+      const rua = ROOMS[p.to === 'academia' || p.to === 'escola' || p.to === 'petshop' ? 'rua_leste' : 'rua'];
       const grid = buildGrid(rua);
       expect(p.wall, p.id).toBeUndefined();
       expect(p.y).toBe(5);
@@ -215,7 +215,7 @@ describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira
     const seen = new Set<string>(['praca']);
     const queue = ['praca'] as (keyof typeof ROOMS)[];
     while (queue.length) for (const p of ROOMS[queue.shift()!].portals) if (!seen.has(p.to)) (seen.add(p.to), queue.push(p.to));
-    expect([...seen].sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'praca', 'praia', 'rua', 'rua_leste']);
+    expect([...seen].sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'petshop', 'praca', 'praia', 'rua', 'rua_leste']);
   });
 });
 
@@ -289,7 +289,7 @@ describe('the street is two areas (rua west, rua_leste east)', () => {
     for (const a of ['rua', 'rua_leste', 'praca'] as const) for (const b of ['rua', 'rua_leste', 'praca'] as const) expect(reach(a).has(b), `${a} -> ${b}`).toBe(true);
     // the rua_leste is only joined to the rua (not to the praça directly)
     expect(ROOMS.rua_leste.portals.filter((p) => p.edge).every((p) => p.to === 'rua')).toBe(true);
-    expect(ROOMS.rua_leste.portals.filter((p) => !p.edge).map((p) => p.to).sort()).toEqual(['academia', 'aeroporto', 'escola', 'praia']);
+    expect(ROOMS.rua_leste.portals.filter((p) => !p.edge).map((p) => p.to).sort()).toEqual(['academia', 'aeroporto', 'escola', 'petshop', 'praia']);
     expect(ROOMS.rua.portals.filter((p) => !p.edge).map((p) => p.to).sort()).toEqual(['kitnet', 'padaria']);
   });
 
@@ -329,7 +329,7 @@ describe('the street is two areas (rua west, rua_leste east)', () => {
     }
   });
 
-  it('keeps the facades, doors and parking bays whole: no prop crosses the cut, and the two halves tile the old 40 columns', () => {
+  it('keeps the facades, doors and parking bays whole: no prop crosses the cut, and the two halves tile the old 40 columns plus the pet shop', () => {
     for (const id of ['rua', 'rua_leste'] as const) {
       const room = ROOMS[id];
       for (const p of room.props) for (const t of propTiles(p)) expect(t.x >= 0 && t.x < room.cols, `${id}: ${p.id}`).toBe(true);
@@ -338,7 +338,57 @@ describe('the street is two areas (rua west, rua_leste east)', () => {
     const edificio = ROOMS.rua.props.find((p) => p.id === 'edificio')!;
     expect(edificio.x + (edificio.w ?? 1)).toBe(ROOMS.rua.cols);
     expect(ROOMS.rua_leste.props.find((p) => p.id === 'academia')!.x).toBe(0);
-    expect(ROOMS.rua.cols + ROOMS.rua_leste.cols).toBe(40);
+    // the east half grew by the pet shop's 6-tile front between the escola and the gable (#234)
+    expect(ROOMS.rua.cols + ROOMS.rua_leste.cols).toBe(46);
+  });
+});
+
+describe('the pet shop (#234)', () => {
+  const room = ROOMS.petshop;
+  const grid = buildGrid(room);
+  const door = ROOMS.rua_leste.portals.find((p) => p.id === 'rua_petshop')!;
+
+  it('has its door on row 5 inside its 6-tile front between the escola and the gable, with a 2-tile lane in front', () => {
+    expect(door.to).toBe('petshop');
+    expect({ x: door.x, y: door.y }).toEqual({ x: 19, y: 5 });
+    const front = ROOMS.rua_leste.props.find((p) => p.id === 'petshop')!;
+    expect(front).toMatchObject({ kind: 'fachada', x: 16, y: 0, w: 6, h: 6, art: 'facades/petshop' });
+    const escola = ROOMS.rua_leste.props.find((p) => p.id === 'casa_3')!;
+    const empena = ROOMS.rua_leste.props.find((p) => p.id === 'empena_2')!;
+    expect(escola.x + (escola.w ?? 1)).toBe(front.x);
+    expect(empena.x).toBe(front.x + 6);
+    const street = buildGrid(ROOMS.rua_leste);
+    for (const x of [18, 19, 20]) for (const y of [6, 7]) expect(isWalkable(street, x, y), `${x},${y} lane`).toBe(true);
+    const lane = reachableWide(street, ROOMS.rua_leste.spawn);
+    expect([...lane].some((k) => k === key(19, 6) || k === key(19, 7))).toBe(true);
+    expect(room.portals.find((p) => p.to === 'rua_leste')!.arrive).toEqual({ x: 19, y: 6 });
+  });
+
+  it('walks from the door to the counter, both pens, Seu Dito and back out', () => {
+    expect(room.outdoor).toBeUndefined();
+    expect(room.private).toBe(false);
+    expect([room.cols, room.rows]).toEqual([12, 9]);
+    expect(isWalkable(grid, room.spawn.x, room.spawn.y)).toBe(true);
+    const counter = room.props.find((p) => p.action === 'petshop_counter')!;
+    const pens = room.props.filter((p) => p.action === 'petshop_pen');
+    expect(pens.map((p) => p.id).sort()).toEqual(['cercadinho', 'gatil']);
+    const dito = room.npcs.find((n) => n.id === 'dito')!;
+    expect(dito).toBeDefined();
+    const exit = room.portals.find((p) => p.to === 'rua_leste')!;
+    for (const t of [counter.interact!, ...pens.map((p) => p.interact!), dito.interact, exit]) {
+      expect(isWalkable(grid, t.x, t.y), `${t.x},${t.y}`).toBe(true);
+      expect(findPath(grid, room.spawn, t), `${t.x},${t.y}`).not.toBeNull();
+    }
+    // no prop on the west wall strip, and props never overlap
+    const owner = new Map<string, string>();
+    for (const p of room.props) {
+      expect(p.x, p.id).toBeGreaterThanOrEqual(1);
+      if (!p.blocks) continue;
+      for (const t of propTiles(p)) {
+        expect(owner.get(key(t.x, t.y)), `${p.id} overlaps`).toBeUndefined();
+        owner.set(key(t.x, t.y), p.id);
+      }
+    }
   });
 });
 

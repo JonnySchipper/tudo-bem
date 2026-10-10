@@ -30,9 +30,23 @@
       "art": "casas/terraco_azul"
     },
     {
-      "id": "empena_2",
+      "id": "petshop",
       "kind": "fachada",
       "x": 16,
+      "y": 0,
+      "w": 6,
+      "h": 6,
+      "blocks": true,
+      "label": {
+        "pt": "Pet Shop do Seu Dito",
+        "en": "Seu Dito’s pet shop"
+      },
+      "art": "facades/petshop"
+    },
+    {
+      "id": "empena_2",
+      "kind": "fachada",
+      "x": 22,
       "y": 0,
       "w": 3,
       "h": 6,
@@ -309,9 +323,9 @@
       "art": "props/bush_flower"
     },
     {
-      "id": "sebe_s_17",
+      "id": "sebe_s_23",
       "kind": "sebe",
-      "x": 17,
+      "x": 23,
       "y": 15,
       "w": 2,
       "blocks": true,
@@ -386,7 +400,7 @@
     {
       "id": "d_buzina",
       "kind": "cenario",
-      "x": 16,
+      "x": 22,
       "y": 14,
       "blocks": false,
       "art": "diary/buzina"
@@ -450,7 +464,7 @@
     {
       "id": "barreira_l_8",
       "kind": "cerca",
-      "x": 17,
+      "x": 23,
       "y": 8,
       "w": 2,
       "h": 4,
@@ -460,7 +474,7 @@
     {
       "id": "sebe_l_6",
       "kind": "sebe",
-      "x": 17,
+      "x": 23,
       "y": 6,
       "w": 2,
       "blocks": true,
@@ -469,7 +483,7 @@
     {
       "id": "sebe_l_7",
       "kind": "sebe",
-      "x": 17,
+      "x": 23,
       "y": 7,
       "w": 2,
       "blocks": true,
@@ -478,7 +492,7 @@
     {
       "id": "sebe_l_12",
       "kind": "sebe",
-      "x": 17,
+      "x": 23,
       "y": 12,
       "w": 2,
       "blocks": true,
@@ -487,7 +501,7 @@
     {
       "id": "sebe_l_13",
       "kind": "sebe",
-      "x": 17,
+      "x": 23,
       "y": 13,
       "w": 2,
       "blocks": true,
@@ -496,11 +510,91 @@
     {
       "id": "sebe_l_14",
       "kind": "sebe",
-      "x": 17,
+      "x": 23,
       "y": 14,
       "w": 2,
       "blocks": true,
       "art": "props/hedge_wide"
+    },
+    {
+      "id": "floreira_petshop",
+      "kind": "floreira",
+      "x": 17,
+      "y": 7,
+      "blocks": true
+    },
+    {
+      "id": "placa_petshop",
+      "kind": "cenario",
+      "x": 21,
+      "y": 6,
+      "blocks": true,
+      "art": "props/placa_petshop",
+      "label": {
+        "pt": "ADOTE",
+        "en": "Adopt"
+      }
+    },
+    {
+      "id": "tigela_calcada",
+      "kind": "cenario",
+      "x": 16,
+      "y": 6,
+      "blocks": false,
+      "art": "props/tigela_calcada"
+    },
+    {
+      "id": "lampada_n6",
+      "kind": "poste",
+      "x": 22,
+      "y": 7,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "sebe_s_17",
+      "kind": "sebe",
+      "x": 17,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_19",
+      "kind": "sebe",
+      "x": 19,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_21",
+      "kind": "sebe",
+      "x": 21,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "arv_s7",
+      "kind": "arvore",
+      "x": 19,
+      "y": 14,
+      "w": 2,
+      "blocks": true,
+      "art": "props/arvore_rua"
+    },
+    {
+      "id": "flor_s3",
+      "kind": "sebe",
+      "x": 17,
+      "y": 13,
+      "w": 2,
+      "blocks": true,
+      "art": "props/flor_vermelha"
     }
   ]
 }

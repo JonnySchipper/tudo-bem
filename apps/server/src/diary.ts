@@ -247,7 +247,8 @@ export class DiaryTracker {
     if (typeof anchor !== 'string' || anchor.length > 64) return;
     const word = wordForLine(anchor);
     const info = diaryLine(anchor);
-    if (!word || !info || info.kind === 'arrival') return;
+    // a pen line is earned by petting the animal (PetShopSystem.carinho), not by asking for it
+    if (!word || !info || info.kind === 'arrival' || info.kind === 'pen') return;
     const room = this.d.roomOf(s);
     if (info.kind === 'closed') {
       // the vendor is away: the note is read at their shut stall
@@ -263,6 +264,12 @@ export class DiaryTracker {
     const tile = this.d.tileOf(s);
     if (tileDistance(tile, here.tile) > range && tileDistance(tile, here.interact) > range) return;
     this.earn(s, word, 'conversation');
+  }
+
+  /** A line the server itself spoke to this player (a carinho in the pet shop's pens): its conversation word. The caller checked the distance. */
+  earnLine(s: Session, anchor: string) {
+    const word = wordForLine(anchor);
+    if (word) this.earn(s, word, 'conversation');
   }
 
   private earn(s: Session, word: DiaryWord, via: DiaryWord['source']) {

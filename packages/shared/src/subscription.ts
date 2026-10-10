@@ -84,6 +84,8 @@ export interface EntitlementSlice {
   founderBadge?: boolean;
   founderBanner?: boolean;
   pet?: PetId | null;
+  /** The adopted pet out with you (#234): a lapse sends it home; the pets themselves are kept forever. */
+  activePetId?: string | null;
   bubbleStyle?: BubbleStyle | null;
   furniture?: Record<string, number>;
   apartment?: PlacedFurniture[];
@@ -176,6 +178,8 @@ function grantFounderKeepsakes(p: EntitlementSlice) {
 }
 
 function revertPerks(p: EntitlementSlice) {
+  // the pet goes home to the kitnet (pets, names, collars and toys are kept forever); `pet` is its one-release mirror
+  p.activePetId = null;
   p.pet = null;
   p.bubbleStyle = 'classic';
 }

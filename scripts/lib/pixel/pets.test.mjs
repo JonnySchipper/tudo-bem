@@ -1,5 +1,9 @@
+import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { PET_ANIMS, PET_H, PET_W, petStrips } from '../../../apps/client/assets-src/custom/pets.mjs';
+import { PET_STRIPS } from '../../../apps/client/assets-src/custom/petshapes.mjs';
+import { PET_KEY_RAMPS } from '../../../apps/client/src/render/pixel/palette.ts';
+import { petStripKeys } from '../../../packages/shared/src/petBreeds.ts';
 import { bubble, bubbleSkins } from '../../../apps/client/assets-src/custom/ui.mjs';
 
 function opaque(img, x, y) {
@@ -111,6 +115,72 @@ describe('subscriber pets', async () => {
         expect(edgeIsNavy(frame), `${key} frame ${f} outline`).toBe(true);
       }
     }
+  });
+});
+
+describe('pet shop breed strips (shape × pattern × key colour)', async () => {
+  const parts = await petStrips();
+  const keyed = parts.filter((p) => p.meta.keyed);
+  const keys = new Set(Object.values(PET_KEY_RAMPS).flat());
+  const FIXED = new Set(['#3a3a50', '#2a2233', '#46465e', '#ffffff', '#f4b4c4', '#e07070', '#d56868']);
+  const hexAt = (img, i) => '#' + [0, 1, 2].map((c) => img.data[i + c].toString(16).padStart(2, '0')).join('');
+  const frameOf = (img, f) => {
+    const frame = { w: PET_W, h: PET_H, data: new Uint8Array(PET_W * PET_H * 4) };
+    for (let y = 0; y < PET_H; y++) frame.data.set(img.data.subarray((y * img.w + f * PET_W) * 4, (y * img.w + f * PET_W + PET_W) * 4), y * PET_W * 4);
+    return frame;
+  };
+
+  it('bakes exactly the strips the catalog uses, every key in the manifest', () => {
+    expect(keyed.map((p) => p.key).sort()).toEqual(petStripKeys().sort());
+    expect(keyed.length).toBe(PET_STRIPS.length);
+    const manifest = JSON.parse(fs.readFileSync(new URL('../../../apps/client/public/pixel/manifest.json', import.meta.url), 'utf8'));
+    for (const k of petStripKeys()) expect(manifest.images[k] ?? manifest.chars[k], k).toBeTruthy();
+  });
+
+  it('paints only key colours and the fixed eyes, nose, inner ears and outline', () => {
+    for (const p of keyed) {
+      expect([p.img.w, p.img.h]).toEqual([PET_W * 20, PET_H]);
+      for (let i = 0; i < p.img.data.length; i += 4) {
+        if (!p.img.data[i + 3]) continue;
+        expect(p.img.data[i + 3], p.key).toBe(255);
+        const hex = hexAt(p.img, i);
+        expect(keys.has(hex) || FIXED.has(hex), `${p.key} ${hex}`).toBe(true);
+      }
+    }
+  });
+
+  it('a marked pattern paints coat2 and a solid one never does; every strip has the collar', () => {
+    for (const p of keyed) {
+      const used = new Set();
+      for (let i = 0; i < p.img.data.length; i += 4) if (p.img.data[i + 3]) used.add(hexAt(p.img, i));
+      const has2 = PET_KEY_RAMPS.coat2.some((k) => used.has(k));
+      if (p.key.endsWith('_solido')) expect(has2, p.key).toBe(false);
+      else expect(has2, p.key).toBe(true);
+      expect(PET_KEY_RAMPS.collar.some((k) => used.has(k)), p.key).toBe(true);
+    }
+  });
+
+  it('every frame is one animal with a navy outline', () => {
+    for (const p of keyed) {
+      for (let f = 0; f < 20; f++) {
+        const frame = frameOf(p.img, f);
+        expect(components(frame), `${p.key} frame ${f}`).toBe(1);
+        expect(edgeIsNavy(frame), `${p.key} frame ${f} outline`).toBe(true);
+      }
+    }
+  });
+
+  it('the shapes differ: a salsicha is lower than a grande, a peludo dog is not a medio', () => {
+    const height = (key) => {
+      const img = frameOf(parts.find((p) => p.key === key).img, 0);
+      for (let y = 0; y < PET_H; y++) for (let x = 0; x < PET_W; x++) if (img.data[(y * PET_W + x) * 4 + 3]) return PET_H - y;
+      return 0;
+    };
+    expect(height('chars/pet_dog_salsicha_sela')).toBeLessThan(height('chars/pet_dog_grande_solido'));
+    const a = parts.find((p) => p.key === 'chars/pet_dog_medio_peito').img, b = parts.find((p) => p.key === 'chars/pet_dog_peludo_solido').img;
+    let alphaDiff = 0;
+    for (let i = 3; i < a.data.length; i += 4) if (!!a.data[i] !== !!b.data[i]) alphaDiff++;
+    expect(alphaDiff).toBeGreaterThan(200);
   });
 });
 

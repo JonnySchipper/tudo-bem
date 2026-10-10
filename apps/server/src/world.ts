@@ -105,7 +105,12 @@ import {
   revokeTestSubscription,
   validatePetName,
   visiblePet,
-  visiblePetName,
+  activePet,
+  ensureLegacyPet,
+  homePetSpots,
+  renameOwnedPet,
+  setActivePet,
+  type HomePet,
   GI_ITEM_ID,
   GI_PRICE,
   buyParrotColor,
@@ -175,6 +180,7 @@ import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
 import { DiaryTracker } from './diary.js';
+import { PetShopSystem } from './petShop.js';
 import { EscolaTracker, escolaOf } from './escola.js';
 import { Leaderboards } from './leaderboards.js';
 import { FeiraCounter } from './feira.js';
@@ -392,6 +398,8 @@ export class World {
   private readonly caderno: CadernoTracker;
   /** Language diary: camera, signs, conversation lines, and the escola game. */
   private readonly diary: DiaryTracker;
+  /** Pet Shop do Seu Dito: adoption, the lojinha, the pens (#234). */
+  private readonly petShop: PetShopSystem;
   /** Dona Lúcia's lessons: spaced repetition over the diary, XP, streak, the nameplate tiers. */
   private readonly escola: EscolaTracker;
   /** Praça dual leaderboards (words learned + escola streak). */
@@ -525,6 +533,19 @@ export class World {
       now: () => this.now(),
       day: () => gameDay(this.clockNow()),
       onWord: (s, word) => this.escola.onWord(s, word),
+    });
+    this.petShop = new PetShopSystem({
+      store,
+      err: (s, code, pt, en) => this.err(s, code, pt, en),
+      pushProfile: (s) => this.pushProfile(s),
+      broadcastAvatar: (s) => this.broadcastAvatar(s),
+      tileOf: (s) => this.currentTile(s).tile,
+      roomOf: (s) => s.instance?.def.id ?? null,
+      now: () => this.now(),
+      day: () => gameDay(this.clockNow()),
+      moderateName: (s, raw) => this.moderatePetName(s, raw),
+      earnLine: (s, anchor) => this.diary.earnLine(s, anchor),
+      homePetsChanged: (ownerId) => this.sendHomePets(ownerId),
     });
     this.pescaEngine = new PescaEngine({
       now: () => this.now(),
@@ -814,6 +835,8 @@ export class World {
         return this.parrot(s, msg.action, msg.colorId);
       case 'perk':
         return this.perk(s, msg);
+      case 'pet':
+        return this.petShop.handle(s, msg);
       case 'furniture':
         return this.furniture(s, msg);
       case 'friend':
@@ -1407,6 +1430,7 @@ export class World {
       ...(target.def.id === 'andar' ? { academy: this.floorCard(target, s) } : {}),
       ...(padariaIdFromInstance(target.id) ? { padaria: this.floorPadariaCard(target, s) } : {}),
       ...(def.id === 'feira' ? { feiraCart: this.feiraGames.cartSnapshot() } : {}),
+      ...(def.id === 'kitnet' && target.ownerId ? { homePets: this.homePetsOf(target.ownerId) } : {}),
     });
     // a joiner mid-walk: the avatars above are at the tile each NPC has reached, this sends the rest of each walk
     for (const p of this.npcs.posesIn(def.id)) {
@@ -1909,6 +1933,7 @@ export class World {
       layoutPullRequest: (room, objects) => publishLayoutPullRequest({ token: this.githubToken, room, objects, fetch: this.githubFetch }),
       markBoardsDirty: () => this.leaderboards.markDirty(),
       now: () => this.now(),
+      homePetsChanged: (ownerId) => this.sendHomePets(ownerId),
     });
   }
 
@@ -1967,6 +1992,7 @@ export class World {
     // a line out on the water does not follow you to another room
     this.pescaEngine.dropCast(s);
     if (!inst) return;
+    if (inst.def.id === 'petshop') this.petShop.leftRoom(s);
     inst.members.delete(s.id);
     s.instance = undefined;
     if (s.profile) this.broadcast(inst, { t: 'avatarLeft', id: s.profile.id });
@@ -2049,8 +2075,7 @@ export class World {
       nameplate: p.nameplate,
       founder: normalizeFounderFlag(p.founder),
       founderBadge: p.founderBadge === true,
-      pet: visiblePet(p.pet, hasPerkAccess(p.subscription, this.now())),
-      petName: visiblePetName(p.pet, p.petNames, hasPerkAccess(p.subscription, this.now())),
+      ...this.publicPet(p),
       bubbleStyle: bubbleAppearance('', p.bubbleStyle, hasPerkAccess(p.subscription, this.now())).style,
       ...(this.feiraGames.crownId() === p.id ? { feiraCrown: true } : {}),
       x: cur.tile.x,
@@ -2058,6 +2083,13 @@ export class World {
       dir: sitting && s.instance ? (this.grid(s.instance).seats.get(key(cur.tile.x, cur.tile.y)) ?? cur.dir) : cur.dir,
       sitting,
     };
+  }
+
+  /** The pet out with this player, as others see it (#234): species, name, breed, coat, collar and toy; nothing without perk access. */
+  private publicPet(p: StoredProfile): Pick<PublicAvatar, 'pet' | 'petName' | 'petBreed' | 'petCoat' | 'petCollar' | 'petToy'> {
+    const pet = activePet(p);
+    if (!pet || !visiblePet(pet.species, hasPerkAccess(p.subscription, this.now()))) return { pet: null, petName: null };
+    return { pet: pet.species, petName: pet.name, petBreed: pet.breed, petCoat: pet.coat, petCollar: pet.collar, petToy: pet.toy };
   }
 
   /** Personal gi from the vestiário, plus the academy uniform when this player is a member of the floor they are in. */
@@ -2439,11 +2471,18 @@ export class World {
     const p = s.profile!;
     const active = hasPerkAccess(p.subscription, this.now());
     if (msg.action === 'pet') {
+      // the compatibility shim (Apoiar's Nenhum / Cachorro / Gato, #234): the first pet of that species goes out (a subscriber with none gets
+      // the caramelo or the orange cat, as before the pet shop); null sends everyone home
       if (msg.pet !== null && msg.pet !== 'dog' && msg.pet !== 'cat') return;
       if (msg.pet && !active) {
         return this.err(s, 'perk', 'Pets de assinante ficam disponíveis enquanto a assinatura está ativa.', 'Subscriber pets are available while the subscription is active.');
       }
-      p.pet = msg.pet;
+      if (msg.pet) {
+        const pet = ensureLegacyPet(p, msg.pet, this.now());
+        if (!pet) return this.err(s, 'perk', 'Adote um no Pet Shop do Seu Dito.', 'Adopt one at Seu Dito’s pet shop.');
+        setActivePet(p, pet.id);
+      } else setActivePet(p, null);
+      this.sendHomePets(p.id);
     } else {
       if (!isBubbleStyle(msg.style)) return;
       if (msg.style !== 'classic' && !active) {
@@ -2466,19 +2505,55 @@ export class World {
     if (!hasPerkAccess(p.subscription, this.now())) {
       return this.err(s, 'petName', 'Pets de assinante ficam disponíveis enquanto a assinatura está ativa.', 'Subscriber pets are available while the subscription is active.');
     }
-    const shape = validatePetName(raw);
-    if (!shape.ok) return this.err(s, 'petName', shape.reason.pt, shape.reason.en);
-    const verdict = await this.services.safety.classify(shape.name, this.safetyCtx(s));
-    if (this.sessions.get(s.id) !== s || s.profile !== p) return;
-    const decision = petNameDecision(shape.name, verdict);
-    if (!decision.ok) {
-      this.flag(s, 'profile', verdict, decision.name);
-      return this.err(s, 'petName', decision.reason.pt, decision.reason.en);
-    }
-    p.petNames = { ...(p.petNames ?? {}), [pet]: decision.name };
+    const name = await this.moderatePetName(s, raw);
+    if (name === null || s.profile !== p) return;
+    // the old message names the pet of that species that is out, else the first one (the caramelo / orange cat when there is none yet)
+    const out = activePet(p);
+    const target = out?.species === pet ? out : ensureLegacyPet(p, pet, this.now());
+    if (!target) return this.err(s, 'petName', 'Adote um no Pet Shop do Seu Dito.', 'Adopt one at Seu Dito’s pet shop.');
+    renameOwnedPet(p, target.id, name);
     this.store.save(p.id);
     this.pushProfile(s);
     this.broadcastAvatar(s);
+    this.sendHomePets(p.id);
+  }
+
+  /**
+   * A pet name the player typed: shape first, then the same classifier as chat (word filter, then the moderation model). A name that is not
+   * `allow` is refused with the classifier's note (error code `petName`) and flagged; null then. Never a censored or substituted string.
+   */
+  private async moderatePetName(s: Session, raw: string): Promise<string | null> {
+    const p = s.profile!;
+    const shape = validatePetName(raw);
+    if (!shape.ok) {
+      this.err(s, 'petName', shape.reason.pt, shape.reason.en);
+      return null;
+    }
+    const verdict = await this.services.safety.classify(shape.name, this.safetyCtx(s));
+    if (this.sessions.get(s.id) !== s || s.profile !== p) return null;
+    const decision = petNameDecision(shape.name, verdict);
+    if (!decision.ok) {
+      this.flag(s, 'profile', verdict, decision.name);
+      this.err(s, 'petName', decision.reason.pt, decision.reason.en);
+      return null;
+    }
+    return decision.name;
+  }
+
+  /** The pets resting in a kitnet (not the one out with its owner): what everyone in that kitnet sees. */
+  private homePetsOf(ownerId: string): HomePet[] {
+    const owner = this.store.get(ownerId);
+    if (!owner) return [];
+    const resting = (owner.pets ?? []).filter((q) => q.id !== owner.activePetId);
+    const blocked = new Set((owner.apartment ?? []).filter((f) => !furnitureById(f.itemId)?.walkable).map((f) => `${f.x},${f.y}`));
+    return homePetSpots(owner.apartment ?? [], resting, (x, y) => blocked.has(`${x},${y}`));
+  }
+
+  /** Re-send a kitnet's resting pets to everyone in it (a pet went out or came home, a bed moved, a collar changed). */
+  private sendHomePets(ownerId: string) {
+    const inst = this.instances.get(`kitnet@${ownerId}`);
+    if (!inst || inst.members.size === 0) return;
+    this.broadcast(inst, { t: 'homePets', pets: this.homePetsOf(ownerId) });
   }
 
   // ---------- Correria no Balcão (the padaria counter game; apps/server/src/correria.ts) ----------
@@ -2595,7 +2670,8 @@ export class World {
       return this.equipHat(s, hat.id);
     }
     const item = furnitureById(itemId);
-    if (!item || item.earned) return;
+    // earned pieces are never sold, and the pet shop's beds and food bag are sold at its lojinha only (`pet` buy)
+    if (!item || item.earned || item.shop) return;
     if (s.instance?.def.id !== 'kitnet' || s.instance.ownerId !== p.id) return this.err(s, 'shop', 'Compre móveis na sua kitnet.', 'Buy furniture from inside your own apartment.');
     if (p.coins < item.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
     p.coins -= item.price;
@@ -2815,6 +2891,8 @@ export class World {
     this.store.save(p.id);
     this.pushProfile(s);
     this.broadcast(inst, { t: 'furnitureState', furniture: p.apartment });
+    // a bed or a rug moved: the resting pets settle again
+    if ((p.pets?.length ?? 0) > 0) this.sendHomePets(p.id);
   }
 
   private occupied(inst: Instance, x: number, y: number) {

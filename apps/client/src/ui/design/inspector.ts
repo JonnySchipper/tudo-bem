@@ -59,6 +59,8 @@ export const ACTION_LABELS: Record<PropAction, string> = {
   feira_cart: 'Carrinho de jogos da feira (market game cart)',
   feira_sign: 'Placa da feira (market sign)',
   leaderboard: 'Placar (leaderboard)',
+  petshop_counter: 'Balcão do pet shop (pet shop counter)',
+  petshop_pen: 'Cercadinho / gatil (pet shop pen)',
   pesca: 'Ponto de pesca (fishing spot)',
   boat_rental: 'Aluguel de barcos (boat rental)',
   party_boat: 'Barco de festa (party boat)',

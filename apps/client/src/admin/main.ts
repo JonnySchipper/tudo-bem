@@ -512,6 +512,44 @@ async function viewPlayer(id: string): Promise<Node[]> {
     h('button', { onclick: () => act('player/item', { id: pid, kind: kind.value, itemId: item.value, op: 'remove', qty: Number(qty.value) }, 'Removed.') }, 'Remove'),
   );
 
+  // pets (#234): the adopted animals, out / at home, remove, and a grant without a comp
+  type BreedOpt = { id: string; pt: string; en: string; species: string; coats: { id: string; pt: string; en: string }[] };
+  type PetRow = { id: string; breed: string; breedPt: string; coat: string; name: string | null; collar: string | null; toy: string | null; legacy?: boolean };
+  const breeds = (catalogs!.breeds ?? []) as BreedOpt[];
+  const pets = (p.pets ?? []) as PetRow[];
+  const breedSel = h('select', { 'aria-label': 'Breed', class: 'grow' }, ...breeds.map((b) => h('option', { value: b.id }, `${b.pt} · ${b.en} (${b.species})`))) as HTMLSelectElement;
+  const coatSel = h('select', { 'aria-label': 'Coat' }) as HTMLSelectElement;
+  const fillCoats = () => {
+    clear(coatSel);
+    for (const c of breeds.find((b) => b.id === breedSel.value)?.coats ?? []) coatSel.append(h('option', { value: c.id }, `${c.pt} · ${c.en}`));
+  };
+  breedSel.addEventListener('change', fillCoats);
+  fillCoats();
+  const petName = h('input', { placeholder: 'Name (optional)', maxlength: '16', style: 'width:140px', 'aria-label': 'Pet name' }) as HTMLInputElement;
+  const petsBlock = h(
+    'div',
+    null,
+    table(
+      ['Name', 'Breed', 'Coat', 'Collar / toy', ''],
+      pets.map((q) => [
+        h('span', null, q.name ?? h('span', { class: 'muted' }, 'no name'), ' ', q.id === p.activePetId ? pill('out', 'good') : pill('home'), q.legacy ? pill('legacy') : null),
+        q.breedPt,
+        q.coat,
+        [q.collar, q.toy].filter(Boolean).join(' · ') || '—',
+        h(
+          'div',
+          { class: 'row', style: 'margin:0' },
+          q.id === p.activePetId
+            ? h('button', { onclick: () => act('player/pet-active', { id: pid, petId: null }, 'Put away.') }, 'Em casa')
+            : h('button', { onclick: () => act('player/pet-active', { id: pid, petId: q.id }, 'Taken out.') }, 'Levar'),
+          h('button', { class: 'danger', onclick: () => confirmTyped('Remove pet', `Takes ${q.name ?? q.breedPt} off ${p.name}’s profile.`, q.name ?? q.breedPt, (typed) => void act('player/pet-remove', { id: pid, petId: q.id, confirm: typed }, 'Pet removed.')) }, 'Remove'),
+        ),
+      ]),
+      { empty: 'No pets yet.' },
+    ),
+    h('div', { class: 'row' }, breedSel, coatSel, petName, h('button', { class: 'primary', onclick: () => act('player/pet-grant', { id: pid, breed: breedSel.value, coat: coatSel.value, name: petName.value }, 'Pet granted.') }, 'Grant pet')),
+  );
+
   // belt
   const belt = h('select', { 'aria-label': 'Belt' }, ...(catalogs!.belts as string[]).map((b) => h('option', { value: b, selected: b === p.belt }, b))) as HTMLSelectElement;
   const stripes = h('select', { 'aria-label': 'Stripes' }, ...[0, 1, 2, 3, 4].map((n) => h('option', { value: String(n), selected: n === p.stripes }, `${n} stripe${n === 1 ? '' : 's'}`))) as HTMLSelectElement;
@@ -595,7 +633,8 @@ async function viewPlayer(id: string): Promise<Node[]> {
         'div',
         null,
         card('Give or take RV', coinsForm, h('p', { class: 'small muted' }, `Up to ${catalogs!.adminGrantMax} RV at a time. Admin grants are logged, and the player sees it live.`)),
-        card('Items, hats, birds, furniture', itemForm, h('p', { class: 'small muted' }, 'From the real catalogs. Subscriber pets (dog, cat) come with a comp on the Subscriptions page.')),
+        card('Items, hats, birds, furniture', itemForm, h('p', { class: 'small muted' }, 'From the real catalogs. Adoption needs a comp or a direct grant (Pets card).')),
+        card('Pets', petsBlock, h('p', { class: 'small muted' }, `Up to 6. A granted pet waits at home in the kitnet; it only follows the player while they have access (subscription or comp). Collars and toys owned: ${(p.petItems ?? []).join(', ') || 'none'}.`)),
         card('Belt and stripes', beltForm),
         card('Tutorials and intro', h('div', { class: 'row' }, intro('tutorial', 'Tutorial steps'), intro('desembarque', 'Desembarque'), intro('arrivalIntro', 'Arrival intro'), intro('flight', 'Flight in')), h('p', { class: 'small muted' }, 'The tutorial bonus is not paid twice. Arrival resets start on the next sign-in.')),
         card(

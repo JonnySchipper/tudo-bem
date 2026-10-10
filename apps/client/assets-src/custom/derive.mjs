@@ -23,6 +23,7 @@ import * as telhadosMod from './telhados.mjs';
 import * as backdropMod from './backdrop.mjs';
 import * as fundosMod from './fundos.mjs';
 import * as frame3Mod from './frame3.mjs';
+import * as petshopMod from './petshop.mjs';
 import * as praiaMod from './praia.mjs';
 import { soleira } from './v3.mjs';
 
@@ -83,6 +84,7 @@ export const DERIVE = {
   skyline: backdropMod.skyline,
   pontoOnibus: vilaMod.pontoOnibusPart,
   emBreve: vilaMod.emBrevePart,
+  petshopSet: petshopMod.petshopSet,
   praia: praiaMod.praia,
 };
 

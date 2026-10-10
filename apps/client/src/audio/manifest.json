@@ -16,6 +16,7 @@
     "rosa": "pt-BR-FranciscaNeural",
     "ze": "pt-BR-AntonioNeural",
     "chico": "pt-BR-AntonioNeural",
+    "dito": "pt-BR-AntonioNeural",
     "bento": "pt-BR-AntonioNeural",
     "neide": "pt-BR-FranciscaNeural",
     "jo": "pt-BR-FranciscaNeural"
@@ -230,6 +231,162 @@
       "voice": "julia",
       "text": "Beleza! Aproveite a praça. Tchau!",
       "file": "julia-5fef280ff4.mp3"
+    },
+    {
+      "id": "dito-bf94d94e31",
+      "voice": "dito",
+      "text": "Bom dia! Bem-vindo ao pet shop. Quer ver os bichinhos?",
+      "file": "dito-bf94d94e31.mp3"
+    },
+    {
+      "id": "dito-d61136d705",
+      "voice": "dito",
+      "text": "Boa tarde! Bem-vindo ao pet shop. Quer ver os bichinhos?",
+      "file": "dito-d61136d705.mp3"
+    },
+    {
+      "id": "dito-7f85df99b9",
+      "voice": "dito",
+      "text": "Boa noite! Bem-vindo ao pet shop. Quer ver os bichinhos?",
+      "file": "dito-7f85df99b9.mp3"
+    },
+    {
+      "id": "dito-dc79cc373d",
+      "voice": "dito",
+      "text": "Tem cachorro e gato esperando um lar. Pode fazer carinho, eles adoram.",
+      "file": "dito-dc79cc373d.mp3"
+    },
+    {
+      "id": "dito-fb7ce6bd6e",
+      "voice": "dito",
+      "text": "Vamos ver quem tá esperando um lar! Escolhe com calma, viu?",
+      "file": "dito-fb7ce6bd6e.mp3"
+    },
+    {
+      "id": "dito-f601057653",
+      "voice": "dito",
+      "text": "Tem ração, brinquedo, coleira e caminha. Tudo com reais virtuais.",
+      "file": "dito-f601057653.mp3"
+    },
+    {
+      "id": "dito-a233277e04",
+      "voice": "dito",
+      "text": "O banho e tosa é ali no canto. O bichinho sai cheiroso!",
+      "file": "dito-a233277e04.mp3"
+    },
+    {
+      "id": "dito-71de33a144",
+      "voice": "dito",
+      "text": "Esse aqui? Boa escolha. Agora é só dar um nome.",
+      "file": "dito-71de33a144.mp3"
+    },
+    {
+      "id": "dito-9bfcdf3d7d",
+      "voice": "dito",
+      "text": "Parabéns! Agora faz parte da família.",
+      "file": "dito-9bfcdf3d7d.mp3"
+    },
+    {
+      "id": "dito-b843a528f1",
+      "voice": "dito",
+      "text": "Seis já é uma matilha! Deixa um em casa primeiro.",
+      "file": "dito-b843a528f1.mp3"
+    },
+    {
+      "id": "dito-8bbc11f843",
+      "voice": "dito",
+      "text": "Adoção é pra quem apoia a Vila. Mas carinho é de graça, viu?",
+      "file": "dito-8bbc11f843.mp3"
+    },
+    {
+      "id": "dito-25b0d33aeb",
+      "voice": "dito",
+      "text": "Prontinho. Seu bichinho vai adorar.",
+      "file": "dito-25b0d33aeb.mp3"
+    },
+    {
+      "id": "dito-df4f7c6c05",
+      "voice": "dito",
+      "text": "Faltam uns reais virtuais ainda. Volta depois, sem pressa.",
+      "file": "dito-df4f7c6c05.mp3"
+    },
+    {
+      "id": "dito-4db1d4fa10",
+      "voice": "dito",
+      "text": "Vai passear? Leva a guia!",
+      "file": "dito-4db1d4fa10.mp3"
+    },
+    {
+      "id": "dito-bac89c4e4e",
+      "voice": "dito",
+      "text": "Deixa em casa que eu sei que ele fica bem.",
+      "file": "dito-bac89c4e4e.mp3"
+    },
+    {
+      "id": "dito-203b97250a",
+      "voice": "dito",
+      "text": "Olha o rabo abanando! Ele gostou de você.",
+      "file": "dito-203b97250a.mp3"
+    },
+    {
+      "id": "dito-0ae28789ae",
+      "voice": "dito",
+      "text": "Essa aqui adora carinho na barriga.",
+      "file": "dito-0ae28789ae.mp3"
+    },
+    {
+      "id": "dito-cc637189ee",
+      "voice": "dito",
+      "text": "Olha esse focinho molhado! Ele quer te dar um beijo.",
+      "file": "dito-cc637189ee.mp3"
+    },
+    {
+      "id": "dito-04e8075d09",
+      "voice": "dito",
+      "text": "Tá ouvindo? Ele tá ronronando.",
+      "file": "dito-04e8075d09.mp3"
+    },
+    {
+      "id": "dito-5b11f55f7e",
+      "voice": "dito",
+      "text": "Olha o bigode dela, todo arrepiado.",
+      "file": "dito-5b11f55f7e.mp3"
+    },
+    {
+      "id": "dito-0910ad6a9b",
+      "voice": "dito",
+      "text": "Esse gato brinca com tudo. Até com o rabo!",
+      "file": "dito-0910ad6a9b.mp3"
+    },
+    {
+      "id": "ui-f828a1957f",
+      "voice": "ui",
+      "text": "senta",
+      "file": "ui-f828a1957f.mp3"
+    },
+    {
+      "id": "ui-6e8ccad4a5",
+      "voice": "ui",
+      "text": "deita",
+      "file": "ui-6e8ccad4a5.mp3"
+    },
+    {
+      "id": "ui-fce3569ac8",
+      "voice": "ui",
+      "text": "vem",
+      "file": "ui-fce3569ac8.mp3"
+    },
+    {
+      "id": "ui-40f93657e8",
+      "voice": "ui",
+      "text": "busca",
+      "file": "ui-40f93657e8.mp3"
+    },
+    {
+      "id": "ui-eff0e37693",
+      "voice": "ui",
+      "text": "brinca",
+      "file": "ui-eff0e37693.mp3"
     },
     {
       "id": "julia-a13cfa886f",
@@ -3818,6 +3975,42 @@
       "voice": "ui",
       "text": "KIMONO. Compre aqui. antes do tatame",
       "file": "ui-b36c320347.mp3"
+    },
+    {
+      "id": "ui-f1658ce738",
+      "voice": "ui",
+      "text": "PET SHOP. Do Seu Dito",
+      "file": "ui-f1658ce738.mp3"
+    },
+    {
+      "id": "ui-d9d41d2562",
+      "voice": "ui",
+      "text": "ADOÇÃO. Adote um amigo",
+      "file": "ui-d9d41d2562.mp3"
+    },
+    {
+      "id": "ui-eca3f307bb",
+      "voice": "ui",
+      "text": "RAÇAS. Vira-lata · Fila brasileiro · Poodle. Siamês · Persa",
+      "file": "ui-eca3f307bb.mp3"
+    },
+    {
+      "id": "ui-35443c5108",
+      "voice": "ui",
+      "text": "VETERINÁRIO. Terça e quinta",
+      "file": "ui-35443c5108.mp3"
+    },
+    {
+      "id": "ui-457b192d8f",
+      "voice": "ui",
+      "text": "BANHO E TOSA",
+      "file": "ui-457b192d8f.mp3"
+    },
+    {
+      "id": "ui-8b2fc2a137",
+      "voice": "ui",
+      "text": "RAÇÃO · PETISCO · BRINQUEDO",
+      "file": "ui-8b2fc2a137.mp3"
     },
     {
       "id": "ui-4e34534995",
@@ -10150,6 +10343,216 @@
       "file": "ui-b1fb0f86c0.mp3"
     },
     {
+      "id": "ui-73c6e05db1",
+      "voice": "ui",
+      "text": "cachorro",
+      "file": "ui-73c6e05db1.mp3"
+    },
+    {
+      "id": "ui-d38411da31",
+      "voice": "ui",
+      "text": "gatinho",
+      "file": "ui-d38411da31.mp3"
+    },
+    {
+      "id": "ui-7fbeac6a4d",
+      "voice": "ui",
+      "text": "cercadinho",
+      "file": "ui-7fbeac6a4d.mp3"
+    },
+    {
+      "id": "ui-fb8d0510fd",
+      "voice": "ui",
+      "text": "arranhador",
+      "file": "ui-fb8d0510fd.mp3"
+    },
+    {
+      "id": "ui-5d1ae87970",
+      "voice": "ui",
+      "text": "aquário",
+      "file": "ui-5d1ae87970.mp3"
+    },
+    {
+      "id": "ui-45620bd627",
+      "voice": "ui",
+      "text": "peixe",
+      "file": "ui-45620bd627.mp3"
+    },
+    {
+      "id": "ui-c6e0cbe275",
+      "voice": "ui",
+      "text": "caminha",
+      "file": "ui-c6e0cbe275.mp3"
+    },
+    {
+      "id": "ui-ea0d0050f5",
+      "voice": "ui",
+      "text": "brinquedo",
+      "file": "ui-ea0d0050f5.mp3"
+    },
+    {
+      "id": "ui-32dd6d8184",
+      "voice": "ui",
+      "text": "bolinha",
+      "file": "ui-32dd6d8184.mp3"
+    },
+    {
+      "id": "ui-90e6fbc643",
+      "voice": "ui",
+      "text": "ossinho",
+      "file": "ui-90e6fbc643.mp3"
+    },
+    {
+      "id": "ui-9db68f816e",
+      "voice": "ui",
+      "text": "pelúcia",
+      "file": "ui-9db68f816e.mp3"
+    },
+    {
+      "id": "ui-19f0026a8e",
+      "voice": "ui",
+      "text": "prateleira de ração",
+      "file": "ui-19f0026a8e.mp3"
+    },
+    {
+      "id": "ui-31b5505973",
+      "voice": "ui",
+      "text": "banheira",
+      "file": "ui-31b5505973.mp3"
+    },
+    {
+      "id": "ui-1f1641a84e",
+      "voice": "ui",
+      "text": "secador",
+      "file": "ui-1f1641a84e.mp3"
+    },
+    {
+      "id": "ui-73a3c6318f",
+      "voice": "ui",
+      "text": "toalhinha",
+      "file": "ui-73a3c6318f.mp3"
+    },
+    {
+      "id": "ui-67c38611ca",
+      "voice": "ui",
+      "text": "pata",
+      "file": "ui-67c38611ca.mp3"
+    },
+    {
+      "id": "ui-26e871ef0d",
+      "voice": "ui",
+      "text": "pet shop",
+      "file": "ui-26e871ef0d.mp3"
+    },
+    {
+      "id": "ui-24f1d1a770",
+      "voice": "ui",
+      "text": "adoção",
+      "file": "ui-24f1d1a770.mp3"
+    },
+    {
+      "id": "ui-c1120f3fca",
+      "voice": "ui",
+      "text": "raça",
+      "file": "ui-c1120f3fca.mp3"
+    },
+    {
+      "id": "ui-7df77ed06b",
+      "voice": "ui",
+      "text": "veterinário",
+      "file": "ui-7df77ed06b.mp3"
+    },
+    {
+      "id": "ui-dde43bdd44",
+      "voice": "ui",
+      "text": "banho e tosa",
+      "file": "ui-dde43bdd44.mp3"
+    },
+    {
+      "id": "ui-e9061247ff",
+      "voice": "ui",
+      "text": "petisco",
+      "file": "ui-e9061247ff.mp3"
+    },
+    {
+      "id": "ui-6bfab2822a",
+      "voice": "ui",
+      "text": "bichinho",
+      "file": "ui-6bfab2822a.mp3"
+    },
+    {
+      "id": "ui-21a871b144",
+      "voice": "ui",
+      "text": "lar",
+      "file": "ui-21a871b144.mp3"
+    },
+    {
+      "id": "ui-1bd2cea844",
+      "voice": "ui",
+      "text": "escolher",
+      "file": "ui-1bd2cea844.mp3"
+    },
+    {
+      "id": "ui-21cb0d6ff6",
+      "voice": "ui",
+      "text": "cheiroso",
+      "file": "ui-21cb0d6ff6.mp3"
+    },
+    {
+      "id": "ui-50b2b46740",
+      "voice": "ui",
+      "text": "filhote",
+      "file": "ui-50b2b46740.mp3"
+    },
+    {
+      "id": "ui-d86a934ca7",
+      "voice": "ui",
+      "text": "orelha",
+      "file": "ui-d86a934ca7.mp3"
+    },
+    {
+      "id": "ui-f2b968ebe0",
+      "voice": "ui",
+      "text": "vira-lata",
+      "file": "ui-f2b968ebe0.mp3"
+    },
+    {
+      "id": "ui-b4ca94a4c7",
+      "voice": "ui",
+      "text": "rabo",
+      "file": "ui-b4ca94a4c7.mp3"
+    },
+    {
+      "id": "ui-eb8fa3b8e8",
+      "voice": "ui",
+      "text": "carinho",
+      "file": "ui-eb8fa3b8e8.mp3"
+    },
+    {
+      "id": "ui-c7d84c98a7",
+      "voice": "ui",
+      "text": "focinho",
+      "file": "ui-c7d84c98a7.mp3"
+    },
+    {
+      "id": "ui-609a0bb482",
+      "voice": "ui",
+      "text": "ronronar",
+      "file": "ui-609a0bb482.mp3"
+    },
+    {
+      "id": "ui-88b179a2f6",
+      "voice": "ui",
+      "text": "bigode",
+      "file": "ui-88b179a2f6.mp3"
+    },
+    {
+      "id": "ui-0ed918d7b8",
+      "voice": "ui",
+      "text": "brincar",
+      "file": "ui-0ed918d7b8.mp3"
+    },
+    {
       "id": "ui-262172f0c8",
       "voice": "ui",
       "text": "bagre",
@@ -11402,6 +11805,30 @@
       "voice": "comissaria",
       "text": "A porta do aeroporto é ali embaixo.",
       "file": "comissaria-235be7666b.mp3"
+    },
+    {
+      "id": "dito-63b8e5e580",
+      "voice": "dito",
+      "text": "Hoje chegou um filhote novo!",
+      "file": "dito-63b8e5e580.mp3"
+    },
+    {
+      "id": "dito-83a78ac39c",
+      "voice": "dito",
+      "text": "Carinho atrás da orelha, eles adoram.",
+      "file": "dito-83a78ac39c.mp3"
+    },
+    {
+      "id": "dito-510d4c29e4",
+      "voice": "dito",
+      "text": "Senta! Isso. Bom menino.",
+      "file": "dito-510d4c29e4.mp3"
+    },
+    {
+      "id": "dito-ce625607fc",
+      "voice": "dito",
+      "text": "Vira-lata é o cachorro mais fiel que existe.",
+      "file": "dito-ce625607fc.mp3"
     },
     {
       "id": "bento-6850f7d1a1",

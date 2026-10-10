@@ -15,6 +15,7 @@ import escola from '../layouts/escola.json';
 import andar from '../layouts/andar.json';
 import aeroporto from '../layouts/aeroporto.json';
 import desembarque from '../layouts/desembarque.json';
+import petshop from '../layouts/petshop.json';
 import praia from '../layouts/praia.json';
 import barcoFesta from '../layouts/barco_festa.json';
 
@@ -30,6 +31,7 @@ const FILES: Record<RoomId, { objects: PropDef[] }> = {
   andar: andar as { objects: PropDef[] },
   aeroporto: aeroporto as { objects: PropDef[] },
   desembarque: desembarque as { objects: PropDef[] },
+  petshop: petshop as { objects: PropDef[] },
   praia: praia as { objects: PropDef[] },
   barco_festa: barcoFesta as { objects: PropDef[] },
 };

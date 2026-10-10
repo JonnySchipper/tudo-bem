@@ -11,6 +11,8 @@ export type Hit =
   | { kind: 'portal'; portal: PortalDef }
   | { kind: 'seat'; tile: Tile }
   | { kind: 'furniture'; f: PlacedFurniture }
+  /** A pet resting in a kitnet (#234): its owner gets the Levar / Fechar card. */
+  | { kind: 'homePet'; petId: string; name: string | null }
   | { kind: 'tile'; tile: Tile };
 
 /** A tutorial arrow pointing at a tile. */
@@ -57,6 +59,8 @@ export interface WorldView {
   hudInsets?(): { top: number; bottom: number; left: number; right: number };
   /** Stop drawing while a full-screen scene covers the world (the flight-in cutscene), and start again. */
   hold?(on: boolean): void;
+  /** Two small hearts rise over a pen animal you petted (#234, `fx/carinho`). */
+  carinho?(target: { penId: string; slot: number }): void;
   /** The camera's viewfinder (client px) as a world-px rect, through the camera as drawn (ui/viewfinder.ts). */
   frameToWorld?(frame: { x: number; y: number; w: number; h: number }): { x0: number; y0: number; x1: number; y1: number } | null;
   /** World rects of what is drawn for a prop of this room, or null when it is not drawn. */

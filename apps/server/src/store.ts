@@ -1,4 +1,4 @@
-import { isBubbleStyle, isPetId, isSubscriptionStatus, normalizeFounderFlag, normalizePetNames, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
+import { applyPets, isBubbleStyle, isPetId,isSubscriptionStatus, normalizeFounderFlag, normalizePetNames, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
 import {
   freshMission,
   normalizeCartela,
@@ -351,6 +351,8 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.subscription = normalizeSubscription(p.subscription);
   p.pet = isPetId(p.pet) ? p.pet : null;
   p.petNames = normalizePetNames(p.petNames);
+  // the pet shop (#234): a save from before it becomes `pets` (its dog and cat, with their names); `pet` / `petNames` stay as mirrors
+  applyPets(p);
   p.bubbleStyle = isBubbleStyle(p.bubbleStyle) ? p.bubbleStyle : 'classic';
   if (!Array.isArray(p.billingEventIds)) p.billingEventIds = [];
   else p.billingEventIds = p.billingEventIds.filter((id) => typeof id === 'string').slice(-200);

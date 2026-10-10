@@ -38,12 +38,14 @@ export interface FurnitureDef {
   price: number;
   /** Seat furniture can be sat on. */
   seat: boolean;
-  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro' | 'rede' | 'filtro' | 'banner' | 'praia';
+  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro' | 'rede' | 'filtro' | 'banner' | 'caminha' | 'racao' | 'praia';
   color: string;
   /** Walk-through items (rugs, the founders banner) do not block tiles. */
   walkable?: boolean;
   /** Earned, never sold at the atelier. Price stays 0 and no RV changes hands. */
   earned?: boolean;
+  /** Sold only at that shop (the pet shop's lojinha, #234): the atelier hides it and refuses to sell it. */
+  shop?: 'petshop';
 }
 
 /** Atelier catalog for the kitnet. */
@@ -73,6 +75,11 @@ export const FURNITURE: FurnitureDef[] = [
     walkable: true,
     earned: true,
   },
+  // the pet shop's lojinha (#234; prices equal PET_ITEMS): a home pet lies on a bed; they gather at the bowl when you come in
+  { id: 'caminha_xadrez', pt: 'Caminha xadrez', en: 'Plaid pet bed', price: 20, seat: false, kind: 'caminha', color: '#d93232', walkable: true, shop: 'petshop' },
+  { id: 'caminha_azul', pt: 'Caminha azul', en: 'Blue pet bed', price: 20, seat: false, kind: 'caminha', color: '#4280dd', walkable: true, shop: 'petshop' },
+  { id: 'caminha_cesta', pt: 'Cesta de vime', en: 'Wicker basket', price: 25, seat: false, kind: 'caminha', color: '#c78c59', walkable: true, shop: 'petshop' },
+  { id: 'saco_racao', pt: 'Saco de ração + pote', en: 'Food bag + bowl', price: 15, seat: false, kind: 'racao', color: '#cb2a2a', shop: 'petshop' },
   // the Praia (PRAIA-PLAN.md 7.3): two beach things sold at the atelier, five earned at sea and never priced. needs_br: true
   { id: 'cadeira_praia', pt: 'Cadeira de praia', en: 'Beach chair', price: 12, seat: true, kind: 'praia', color: '#3d56d2' },
   { id: 'concha_pequena', pt: 'Conchinha', en: 'Little seashell', price: 8, seat: false, kind: 'praia', color: '#e6cdb0' },

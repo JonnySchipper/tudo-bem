@@ -8,7 +8,7 @@ import { AERO_MAP_ROWS, AREA_AT, MAP_COLS, MAP_H, MAP_ROWS, MAP_T, MAP_W, PRAIA_
 
 const root = path.resolve(__dirname, '../../public/pixel');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')) as Manifest;
-// every atlas the world loads up front (the outdoor one, and the beach's own)
+// every atlas the world loads up front (the outdoor one, and the beach's own; the pet shop's pieces have their own, #234)
 const atlases = Object.fromEntries(
   Object.entries(manifest.atlases).filter(([, a]) => !a.lazy).map(([name, a]) => [name, JSON.parse(fs.readFileSync(path.join(root, a.data), 'utf8')) as { frames: Record<string, unknown> }]),
 );
@@ -27,7 +27,7 @@ describe('the Mapa: one picture of Vila Ipê', () => {
       if ('via' in on) expect(ROOM_ON_MAP[on.via], `${id} via ${on.via}`).toHaveProperty('hit');
     }
     const rooms = mapSpots().filter((s) => s.room);
-    expect(rooms.map((s) => s.id).sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'praca', 'praia', 'rua', 'rua_leste']);
+    expect(rooms.map((s) => s.id).sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'petshop', 'praca', 'praia', 'rua', 'rua_leste']);
     // each place travels to its own room and is labelled with that room's own name and gloss
     for (const s of rooms) {
       expect(s.room).toBe(s.id);
@@ -67,7 +67,7 @@ describe('the Mapa: one picture of Vila Ipê', () => {
       }
     }
     // the shops and homes sit on the street they open onto
-    for (const [id, area] of [['padaria', 'rua'], ['kitnet', 'rua'], ['rua', 'rua'], ['academia', 'rua_leste'], ['escola', 'rua_leste'], ['rua_leste', 'rua_leste'], ['praca', 'praca'], ['feira', 'feira'], ['aeroporto', 'aeroporto']] as const) {
+    for (const [id, area] of [['padaria', 'rua'], ['kitnet', 'rua'], ['rua', 'rua'], ['academia', 'rua_leste'], ['escola', 'rua_leste'], ['petshop', 'rua_leste'], ['rua_leste', 'rua_leste'], ['praca', 'praca'], ['feira', 'feira'], ['aeroporto', 'aeroporto']] as const) {
       const [ax, ay, aw, ah] = areaBox(area);
       for (const [x, y, w, h] of (ROOM_ON_MAP[id] as { hit: Box[] }).hit) expect(x >= ax && y >= ay && x + w <= ax + aw && y + h <= ay + ah, `${id} in ${area}`).toBe(true);
     }
@@ -85,6 +85,7 @@ describe('the Mapa: one picture of Vila Ipê', () => {
     expect((ROOM_ON_MAP.kitnet as { hit: Box[] }).hit[0]).toEqual(front('rua', 'facades/edificio_ipe'));
     expect((ROOM_ON_MAP.academia as { hit: Box[] }).hit[0]).toEqual(front('rua_leste', 'facades/academia'));
     expect((ROOM_ON_MAP.escola as { hit: Box[] }).hit[0]).toEqual(front('rua_leste', 'casas/terraco_azul'));
+    expect((ROOM_ON_MAP.petshop as { hit: Box[] }).hit[0]).toEqual(front('rua_leste', 'facades/petshop'));
   });
 
   it('draws the Fazenda as coming soon: no travel, a bilingual teaser', () => {
@@ -169,7 +170,7 @@ describe('the Mapa picture (drawn from the game\'s own areas)', () => {
 
   it('draws the real buildings and landmarks of every place', () => {
     const frames = new Set(plan.ops.flatMap((o) => (o.kind === 'sprite' ? [o.frame] : [])));
-    for (const key of ['facades/padaria', 'facades/edificio_ipe', 'facades/academia', 'casas/terraco_azul', 'props/fountain', 'props/coreto', 'props/ponto_onibus', 'aero/aviao', 'aero/torre', 'aero/vidraca_letreiro', 'vehicles/onibus_w', 'props/carrinho_coco', 'praia/quiosque_coco', 'praia/barco_remo'])
+    for (const key of ['facades/padaria', 'facades/edificio_ipe', 'facades/academia', 'casas/terraco_azul', 'facades/petshop', 'props/fountain', 'props/coreto', 'props/ponto_onibus', 'aero/aviao', 'aero/torre', 'aero/vidraca_letreiro', 'vehicles/onibus_w', 'props/carrinho_coco', 'praia/quiosque_coco', 'praia/barco_remo'])
       expect(frames.has(manifest.sprites[key]?.frame ?? key), key).toBe(true);
     expect([...frames].some((f) => f.startsWith('feira/frutas')), 'feira stalls').toBe(true);
   });

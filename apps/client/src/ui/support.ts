@@ -9,6 +9,7 @@ import {
   BUBBLE_STYLES,
   PET_COPY,
   SUBSCRIPTION_PRICE,
+  breedById,
   hasPerkAccess,
   isPreviewUnlocked,
   type BubbleStyle,
@@ -26,6 +27,10 @@ export interface SupportActions {
   setBubble: (style: BubbleStyle) => void;
   /** Open the naming dialog for the pet that is out. */
   renamePet: (pet: PetId) => void;
+  /** The pet shop panel on Meus pets (#234): every adopted pet, take one out, collars and toys. */
+  openPets?: () => void;
+  /** Take one owned pet out (null: everyone home). */
+  takePet?: (petId: string | null) => void;
 }
 
 export async function openSupport(actions: SupportActions): Promise<void> {
@@ -133,6 +138,30 @@ export async function openSupport(actions: SupportActions): Promise<void> {
                     { type: 'button', id: 'pet-rename', onclick: () => actions.renamePet(p.pet as PetId) },
                     bi('Renomear', 'Rename'),
                   ),
+                )
+              : null,
+            p?.pets?.length && actions.takePet
+              ? h(
+                  'div',
+                  { class: 'support-row support-owned', id: 'support-owned', role: 'group', 'aria-label': 'Seus pets (Your pets)' },
+                  ...p.pets.map((pet) => {
+                    const on = pet.id === p.activePetId;
+                    return h(
+                      'button',
+                      { type: 'button', class: on ? 'on' : '', 'data-pet-id': pet.id, onclick: () => actions.takePet?.(on ? null : pet.id) },
+                      pet.name ?? 'Sem nome',
+                      en(`${breedById(pet.breed)?.pt ?? pet.breed}${on ? ' · out' : ''}`, true),
+                    );
+                  }),
+                )
+              : null,
+            actions.openPets
+              ? h(
+                  'p',
+                  { class: 'support-petshop', id: 'support-petshop' },
+                  'Mais raças no Pet Shop do Seu Dito, na Rua dos Ipês.',
+                  en('More breeds at Seu Dito’s pet shop, on Ipê Street.', true),
+                  h('button', { type: 'button', id: 'support-my-pets', onclick: () => (closeModal(), actions.openPets?.()) }, bi(`Meus pets (${p?.pets?.length ?? 0})`, 'My pets')),
                 )
               : null,
             h('h3', null, 'Balão', en('Bubble', true)),

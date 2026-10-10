@@ -9,6 +9,7 @@ import './styles/creator.css';
 import './styles/intro-pixel.css';
 import './styles/panels.css';
 import './styles/stalls.css';
+import './styles/petShop.css';
 import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
@@ -100,6 +101,7 @@ import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido
 import { openCredits } from './ui/credits';
 import { openSupport } from './ui/support';
 import { bindPetName, maybeAskPetName, openPetName, showPetNameError } from './ui/petName';
+import { bindPetShop, openHomePetCard, openPetShop, petAdopted } from './ui/petShop';
 import { bindAdmin, onAdminMsg } from './ui/admin';
 import { applyServerLayout } from './ui/layoutSync';
 import { dialogueBoxKey, dialogueBoxNpc, isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
@@ -466,7 +468,9 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
   } else {
     // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help)
     openNpcTalk(npc, {
-      openShop,
+      // Seu Dito's "Quero ver a lojinha" / "Quero ver!" open the pet shop panel; everyone else's shop is Nanda's hats
+      openShop: npc === 'dito' ? () => void openPetShop('lojinha') : openShop,
+      openAdopt: npc === 'dito' ? () => void openPetShop('adotar') : undefined,
       onLine: (anchor) => sendLine(anchor),
       buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
       openMat: () => openBout(),
@@ -635,6 +639,10 @@ function propAction(action: string, propId?: string) {
     const open = action === 'feira_cart' ? 'cart' : 'sign';
     game.pendingFeiraOpen = open;
     net.send({ t: 'feiraGame', action: 'board', open });
+  } else if (action === 'petshop_counter') {
+    void openPetShop('lojinha');
+  } else if (action === 'petshop_pen') {
+    void openPetShop('adotar');
   } else if (action === 'padaria_counter') {
     const own = game.room?.padaria;
     if (own) openHouseCounter(own);
@@ -812,6 +820,9 @@ function updateGuides() {
     else if (!t.carlos) add(guideAt('portal', 'leste_rua_1', 60, '← Padaria: pela Rua', '← Bakery: via the Street'));
     else if (!t.chapeu) add(guideAt('portal', 'leste_rua_1', 60, '← Chapéus: pela Rua', '← Hats: via the Street'));
     else if (!t.cadeira) add(guideAt('portal', 'leste_rua_1', 60, '← Minha kitnet: pela Rua', '← My kitnet: via the Street'));
+    // the pet shop's own sign on its door, every visit (#234): petting and the words are free; the Apoiar card inside is the only upsell
+    const petDoor = guideAt('portal', 'rua_petshop', 0, '🐾 Pet Shop · Faça carinho nos bichinhos');
+    if (petDoor) add({ ...petDoor, en: 'Pet shop · Pet the animals inside', kind: 'door' });
   } else if (r.room === 'praca') {
     if (!t.carlos) add(guideAt('portal', 'praca_rua_1', 60, 'Padaria: pela Rua ↑', 'Bakery: via the Street ↑'));
     else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus', 'Hats'));
@@ -973,7 +984,7 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque' || last === 'praia';
+      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'petshop' || last === 'aeroporto' || last === 'desembarque' || last === 'praia';
       // a new arrival starts in the arrivals hall (the guided tutorial), then the airport until Célia's hand-over; everybody else comes
       // back where they were, or to the praça
       // the dashboard's design link (`/?design=<room>`) wins over both, once the player has arrived
@@ -1282,6 +1293,19 @@ net.on((m: ServerMsg) => {
       }
       boutUi?.handle(m);
       break;
+    case 'homePets':
+      // the kitnet's resting pets changed (one went out or came home, a bed moved)
+      if (game.room?.room === 'kitnet') game.room = { ...game.room, homePets: m.pets };
+      game.emit('homePets');
+      break;
+    case 'petshop':
+      if (m.phase === 'adopted') petAdopted();
+      break;
+    case 'npcSay':
+      // Seu Dito's line over his head after a carinho (the server already kept its diary word)
+      npcSay(m.npc, m);
+      speak(m.pt, { speaker: m.npc });
+      break;
     case 'furnitureState':
       game.furniture = m.furniture;
       if (game.selectedFurniture && !m.furniture.some((f) => f.uid === game.selectedFurniture)) game.selectedFurniture = null;
@@ -1334,9 +1358,39 @@ function ambientBubblesFull(): boolean {
 
 // ---------------------------------------------------------------- game start + input
 
+/** Apoiar o Tudo Bem (the HUD menu, and the pet shop's gate card). */
+function openSupportPanel() {
+  void openSupport({
+    subscribe: async () => {
+      const res = await fetch('/api/billing/checkout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+      if (res.status === 503) return { soon: true };
+      if (!res.ok) return { soon: true };
+      const data = (await res.json()) as { url?: string };
+      return typeof data.url === 'string' ? { url: data.url } : { soon: true };
+    },
+    setPet: (pet) => net.send({ t: 'perk', action: 'pet', pet }),
+    setBubble: (style) => net.send({ t: 'perk', action: 'bubble', style }),
+    renamePet: (pet) => openPetName(pet),
+    openPets: () => void openPetShop('meus'),
+    takePet: (petId) => net.send({ t: 'pet', action: 'active', petId }),
+  });
+}
+
 function startGame() {
   started = true;
   bindPetName((pet, name) => net.send({ t: 'perk', action: 'petName', pet, name }));
+  bindPetShop({
+    carinho: (penId, slot) => {
+      net.send({ t: 'pet', action: 'carinho', penId, slot });
+      renderer.carinho?.({ penId, slot }); // the hearts over the animal (fx/carinho); the word and Seu Dito's line come back from the server
+    },
+    adopt: (breed, coat, name) => net.send({ t: 'pet', action: 'adopt', breed, coat, name }),
+    setActive: (petId) => net.send({ t: 'pet', action: 'active', petId }),
+    rename: (petId, name) => net.send({ t: 'pet', action: 'rename', petId, name }),
+    buy: (itemId) => net.send({ t: 'pet', action: 'buy', itemId }),
+    equip: (petId, slot, itemId) => net.send({ t: 'pet', action: 'equip', petId, slot, itemId }),
+    support: openSupportPanel,
+  });
   window.dispatchEvent(new Event('tb:game-start'));
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && correriaUi?.live) correriaUi.requestSync();
@@ -1361,20 +1415,7 @@ function startGame() {
       });
     },
     openCredits,
-    openSupport: () => {
-      void openSupport({
-        subscribe: async () => {
-          const res = await fetch('/api/billing/checkout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
-          if (res.status === 503) return { soon: true };
-          if (!res.ok) return { soon: true };
-          const data = (await res.json()) as { url?: string };
-          return typeof data.url === 'string' ? { url: data.url } : { soon: true };
-        },
-        setPet: (pet) => net.send({ t: 'perk', action: 'pet', pet }),
-        setBubble: (style) => net.send({ t: 'perk', action: 'bubble', style }),
-        renamePet: (pet) => openPetName(pet),
-      });
-    },
+    openSupport: openSupportPanel,
     openCaderno: () => {
       markDesembStep('diario');
       openDiario();
@@ -1536,6 +1577,8 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       const d = furnitureById(hit.f.itemId);
       return d ? [d.pt, game.editMode ? `${d.en} — click to select` : d.en] : null;
     }
+    case 'homePet':
+      return [hit.name ?? 'Bichinho', game.isOwnKitnet ? 'Resting at home — click to take along' : 'Resting at home'];
     default:
       return null;
   }
@@ -1623,6 +1666,10 @@ function handleClickInner(hit: Hit | null) {
       walkTo(hit.tile, null, true);
       break;
     case 'furniture':
+      break;
+    case 'homePet':
+      // your own pet resting at home: "quer passear?" (a visitor's click just looks)
+      if (game.isOwnKitnet) openHomePetCard(hit.petId);
       break;
     case 'tile':
       walkToFloor(hit.tile);

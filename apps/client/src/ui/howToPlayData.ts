@@ -120,6 +120,21 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     phone: 'Tap chips or type, then tap Pagar.',
   },
   {
+    id: 'petshop',
+    kind: 'place',
+    selector: '.backdrop[data-modal="petshop"]',
+    pt: 'Pet Shop do Seu Dito',
+    en: 'Seu Dito’s pet shop',
+    goal: 'Meet the animals, learn their words, and (as a supporter) adopt one.',
+    steps: [
+      'Pet an animal in a pen (Fazer carinho): Seu Dito tells you about it, and that line goes in your Diário.',
+      'Read the signs on the walls and photograph the things in the shop: every word here is free.',
+      'Talk to Seu Dito at the counter.',
+      'The Lojinha sells collars, toys, beds and food bowls for RV you earned in the Vila.',
+      'Supporters can adopt a dog or a cat, name it and take it for a walk. The others wait at home in your kitnet.',
+    ],
+  },
+  {
     id: 'balcao',
     kind: 'place',
     selector: '#dialogue-box[data-dialogue^="counter-"]',

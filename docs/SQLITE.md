@@ -28,7 +28,9 @@ Each row is the same JSON object the old files held, keyed by id. Writes update 
 
 Fishing stays on the profile JSON too (`pesca`: the log, the bucket, rentals, the trip under way, the day's sales; `normalizePesca` on load), so the Praia adds no table. Party boat trips live in server memory only: a trip never outlives a process, and a restart lands everyone on the pier. The dashboard's "today" beach numbers are server memory as well.
 
-Lemon Squeezy state stays on the profile (`subscription`, `billingEventIds`). There is no separate billing file. The append-only moderation log stays `moderation.jsonl`.
+Lemon Squeezy state stays on the profile (`subscription`, `billingEventIds`). There is no separate billing file.
+
+Adopted pets (#234) live on the profile JSON too (`pets`, `activePetId`, `petItems`; `pet` and `petNames` are mirrors for one release). No schema change: `normalizeProfile` migrates an old save's dog and cat on load. The append-only moderation log stays `moderation.jsonl`.
 
 Admin Testes flags (`testDayOffset`, `testClockOffsetMs`, and the rest) stay on the profile JSON. Design-mode overrides (`#163`) are the `layouts` kv row. `LayoutStore` reads and writes that row through `layoutFileAdapter`. A volume that still has `layouts.json` is imported on boot and the file is renamed with the others. Backups are a copy of the whole database, so that row is included.
 

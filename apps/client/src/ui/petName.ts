@@ -43,10 +43,13 @@ export function maybeAskPetName(): void {
   openPetName(pet);
 }
 
-/** The naming dialog. `rename` prefills the current name. */
-export function openPetName(pet: PetId): void {
+/**
+ * The naming dialog. It prefills the current name of that species' pet. The pet shop (#234) passes `onSave` (adopt or rename one owned pet)
+ * and `current`; the dialog then closes when that pet's name appears on the profile (`savedName`).
+ */
+export function openPetName(pet: PetId, opts: { current?: string; onSave?: (name: string) => void; savedName?: () => string | null | undefined } = {}): void {
   const prompt = PET_NAME_PROMPT[pet];
-  const current = game.profile?.petNames?.[pet] ?? '';
+  const current = opts.current ?? game.profile?.petNames?.[pet] ?? '';
   errEl = h('p', { class: 'pet-name-err', id: 'pet-name-err', hidden: true });
   const input = h('input', {
     id: 'pet-name-input',
@@ -67,7 +70,8 @@ export function openPetName(pet: PetId): void {
       return;
     }
     if (errEl) errEl.hidden = true;
-    saveName(pet, shaped.name);
+    if (opts.onSave) opts.onSave(shaped.name);
+    else saveName(pet, shaped.name);
   };
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -104,7 +108,7 @@ export function openPetName(pet: PetId): void {
   );
   const off = game.on('profile', () => {
     const shaped = validatePetName(input.value);
-    const saved = game.profile?.petNames?.[pet];
+    const saved = opts.savedName ? opts.savedName() : game.profile?.petNames?.[pet];
     if (shaped.ok && saved === shaped.name) close();
   });
   const close = openModal('pet-name', root, { onClose: () => off() });

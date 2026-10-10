@@ -193,6 +193,24 @@ const EMBLEMS: Record<string, { rows: string[]; ink: Record<string, string> }> =
     ],
     ink: { k: K, y: '#f2c230', p: '#e889a8', w: '#f0d8b0' },
   },
+  // the Pet Shop: a paw print (four toes over the pad), mustard on the sp-green cover
+  pata: {
+    rows: [
+      '..kk....kk..',
+      '.kyyk..kyyk.',
+      '.kyyk..kyyk.',
+      'kk..kkkk..kk',
+      'kyyk....kyyk',
+      'kyyk.kk.kyyk',
+      '.kk.kyyk.kk.',
+      '...kyyyyk...',
+      '..kyyyyyyk..',
+      '..kyyyyyyk..',
+      '...kyyyyk...',
+      '....kkkk....',
+    ],
+    ink: { k: K, y: '#e8b33a' },
+  },
   // the Praia: a fish jumping over a wave
   peixe: {
     rows: [

@@ -46,6 +46,8 @@ export interface AdminWorldDeps {
   layoutPullRequest: (room: RoomId, objects: PropDef[]) => Promise<PublishResult>;
   markBoardsDirty: () => void;
   now: () => number;
+  /** The owner's pets at home changed: re-send `homePets` to whoever is in their kitnet (#234). */
+  homePetsChanged?: (ownerId: string) => void;
 }
 
 export interface OnlinePlayer {
@@ -63,7 +65,7 @@ export interface AdminWorldHost {
   instances(): { id: string; room: RoomId; name: string; players: number; cpus: number }[];
   isOnline(profileId: string): boolean;
   /** A profile changed under the admin: push it (and the avatar, for looks) to that player if they are online. */
-  changed(profileId: string, opts?: { avatar?: boolean }): void;
+  changed(profileId: string, opts?: { avatar?: boolean; pets?: boolean }): void;
   /** RV moved: the HUD counter animates like any other reward, and a take shows a notice. */
   coins(profileId: string, delta: number, coins: number, reason: Bilingual): void;
   notify(profileId: string, level: 'info' | 'warn', copy: Bilingual): void;
@@ -111,6 +113,8 @@ export function adminWorldHost(d: AdminWorldDeps): AdminWorldHost {
     isOnline: (id) => !!d.sessionByProfile(id)?.profile,
     changed(id, opts) {
       d.markBoardsDirty();
+      // the kitnet shows the owner's pets to every visitor, online owner or not
+      if (opts?.pets) d.homePetsChanged?.(id);
       const s = d.sessionByProfile(id);
       if (!s?.profile) return;
       d.pushProfile(s);

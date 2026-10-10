@@ -19,6 +19,8 @@
     "e2e:all": "node scripts/e2e-all.mjs",
     "e2e:solo": "node scripts/e2e-solo.mjs",
     "e2e:pet-name": "node scripts/e2e-pet-name.mjs",
+    "shots:pet-shop": "node scripts/pet-shop-shots.mjs",
+    "shots:pet-breeds": "node scripts/pet-breeds-sheet.mjs",
     "e2e:held-snacks": "node scripts/held-snacks-shots.mjs",
     "e2e:stalls": "node scripts/e2e-stalls.mjs",
     "tts": "node scripts/bake-tts.mjs",

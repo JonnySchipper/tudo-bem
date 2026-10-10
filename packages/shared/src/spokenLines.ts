@@ -15,6 +15,7 @@ import { airportSpokenLines } from './airportTalk.js';
 import { flightSpokenLines } from './flightTalk.js';
 import { ROOMS, type NpcId } from './rooms.js';
 import { correriaSpokenLines } from './correriaSpeech.js';
+import { PEN_LINES, PETSHOP_LINES, PET_COMMANDS } from './petShop.js';
 
 /**
  * Every Portuguese line the game speaks aloud, found by walking the game's own data. The bake script (`pnpm tts`) turns this list into
@@ -66,6 +67,11 @@ export function collectSpokenLines(): SpokenLine[] {
       for (const minute of MINUTES) for (const pronoun of ['ele', 'ela']) add(npc as NpcId, spokenNameless(node.line.pt, { minute, pronoun }), `npcTalk ${npc}.${id}`);
     }
   }
+
+  // Pet Shop do Seu Dito (#234): his panel lines, what he says when you pet an animal, and the pet commands of the cheat sheet
+  for (const [id, l] of Object.entries(PETSHOP_LINES)) add('dito', l.pt, `petshop ${id}`);
+  for (const [id, l] of Object.entries(PEN_LINES)) add('dito', l.pt, `petshop ${id}`);
+  for (const c of PET_COMMANDS) add('ui', c.pt, `petshop command ${c.pt}`);
 
   // Júlia's guide
   for (const minute of MINUTES) add('julia', spokenNameless(JULIA_INTRO.pt, { minute }), 'juliaTalk intro');

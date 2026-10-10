@@ -110,6 +110,27 @@ function aeroporto(img) {
   rect(img, 2, 54, 60, 1, '#a9b6ca');
 }
 
+/** the pet shop: the cream wall with a scatter of mustard paw prints, a shelf of ração bags, the sp-green wainscot */
+function petshop(img) {
+  lit(img, 2, 2, 62, 62, '#f5e6d3', '#fbf1e3', '#e9d6bf');
+  const paw = (x, y) => { for (const [dx, dy] of [[0, 1], [1, 0], [3, 0], [4, 1], [1, 3], [2, 3], [3, 3], [1, 4], [2, 4], [3, 4], [2, 2]]) put(img, x + dx, y + dy, '#e8c46a'); };
+  for (const [x, y] of [[5, 6], [12, 14], [50, 5], [56, 15]]) paw(x, y);
+  // a shelf with two bags of ração at shoulder height on both sides
+  for (const [x0, w] of [[2, 12], [50, 12]]) {
+    rect(img, x0, 32, w, 3, '#a9764f');
+    rect(img, x0, 32, w, 1, '#c78c59');
+    rect(img, x0, 34, w, 1, '#6b4c2c');
+  }
+  for (const [x, c, hi] of [[3, '#cb2a2a', '#fc5c46'], [8, '#46756a', '#689183'], [51, '#3d56d2', '#50a7e8'], [56, '#d4a017', '#f8d239']]) {
+    rect(img, x, 24, 5, 8, c);
+    rect(img, x, 24, 5, 1, hi);
+    rect(img, x + 1, 27, 3, 2, '#f5e6d3');
+  }
+  // the wainscot
+  for (let y = 46; y < 62; y++) for (let x = 2; x < 62; x++) put(img, x, y, (x - 2) % 8 === 0 ? '#24554e' : '#2f5d50');
+  rect(img, 2, 46, 60, 1, '#588278');
+}
+
 /** the Praia: a pale sky, the sea's horizon with a glint row, and the sand */
 function praia(img) {
   lit(img, 2, 2, 62, 62, '#bfe3ee', '#d6eef5', '#a6d4e4');
@@ -121,7 +142,7 @@ function praia(img) {
   for (let x = 3; x < 62; x += 9) put(img, x, 53 + (x % 3), '#d6bd86');
 }
 
-export const BACKGROUNDS = { padaria, feira, praca, escola, academia, aeroporto, praia };
+export const BACKGROUNDS = { padaria, feira, praca, escola, academia, aeroporto, petshop, praia };
 
 /** each feira vendor's tarp, as their stall has it (feira.mjs: frutas red, verduras green, pastel yellow, flores blue; cream between) */
 export const TARP = {

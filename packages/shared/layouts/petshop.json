@@ -1,0 +1,237 @@
+{
+  "room": "petshop",
+  "objects": [
+    {
+      "id": "balcao",
+      "kind": "balcao",
+      "x": 1,
+      "y": 2,
+      "w": 5,
+      "blocks": true,
+      "action": "petshop_counter",
+      "interact": {
+        "x": 2,
+        "y": 3
+      },
+      "label": {
+        "pt": "Balcão do Seu Dito",
+        "en": "Seu Dito’s counter"
+      }
+    },
+    {
+      "id": "caixa",
+      "kind": "cenario",
+      "x": 5,
+      "y": 2,
+      "blocks": false,
+      "art": "props/caixa",
+      "oy": -10
+    },
+    {
+      "id": "aquario",
+      "kind": "aquario",
+      "x": 3,
+      "y": 2,
+      "blocks": false,
+      "oy": -12,
+      "label": {
+        "pt": "Aquário",
+        "en": "Aquarium"
+      }
+    },
+    {
+      "id": "cercadinho",
+      "kind": "cercadinho",
+      "x": 6,
+      "y": 0,
+      "w": 3,
+      "h": 2,
+      "blocks": true,
+      "action": "petshop_pen",
+      "interact": {
+        "x": 7,
+        "y": 2
+      },
+      "label": {
+        "pt": "Cercadinho dos cachorros",
+        "en": "The dogs’ pen"
+      }
+    },
+    {
+      "id": "gatil",
+      "kind": "gatil",
+      "x": 9,
+      "y": 0,
+      "w": 2,
+      "h": 2,
+      "blocks": true,
+      "action": "petshop_pen",
+      "interact": {
+        "x": 9,
+        "y": 2
+      },
+      "label": {
+        "pt": "Gatil",
+        "en": "The cats’ pen"
+      }
+    },
+    {
+      "id": "arranhador",
+      "kind": "cenario",
+      "x": 11,
+      "y": 1,
+      "blocks": true,
+      "art": "props/arranhador"
+    },
+    {
+      "id": "prateleira_racao_1",
+      "kind": "prateleira_racao",
+      "x": 1,
+      "y": 4,
+      "blocks": true
+    },
+    {
+      "id": "prateleira_racao_2",
+      "kind": "prateleira_racao",
+      "x": 1,
+      "y": 5,
+      "blocks": true
+    },
+    {
+      "id": "prateleira_racao_3",
+      "kind": "prateleira_racao",
+      "x": 1,
+      "y": 8,
+      "blocks": true
+    },
+    {
+      "id": "cesto_brinquedos",
+      "kind": "cenario",
+      "x": 2,
+      "y": 8,
+      "blocks": true,
+      "art": "props/cesto_brinquedos"
+    },
+    {
+      "id": "caminha_1",
+      "kind": "cenario",
+      "x": 4,
+      "y": 7,
+      "blocks": true,
+      "art": "props/caminha_xadrez"
+    },
+    {
+      "id": "caminha_2",
+      "kind": "cenario",
+      "x": 5,
+      "y": 7,
+      "blocks": true,
+      "art": "props/caminha_azul"
+    },
+    {
+      "id": "pote",
+      "kind": "cenario",
+      "x": 7,
+      "y": 7,
+      "blocks": false,
+      "art": "props/pote_duplo"
+    },
+    {
+      "id": "balanca",
+      "kind": "cenario",
+      "x": 10,
+      "y": 7,
+      "blocks": true,
+      "art": "props/balanca_pet"
+    },
+    {
+      "id": "toalha",
+      "kind": "cenario",
+      "x": 9,
+      "y": 4,
+      "blocks": false,
+      "art": "props/toalha_pet"
+    },
+    {
+      "id": "mesa_tosa",
+      "kind": "cenario",
+      "x": 10,
+      "y": 4,
+      "blocks": true,
+      "art": "props/mesa_tosa"
+    },
+    {
+      "id": "banheira",
+      "kind": "banheira",
+      "x": 11,
+      "y": 4,
+      "blocks": true
+    },
+    {
+      "id": "secador",
+      "kind": "cenario",
+      "x": 11,
+      "y": 5,
+      "blocks": false,
+      "art": "props/secador"
+    },
+    {
+      "id": "d_cercadinho",
+      "kind": "cenario",
+      "x": 8,
+      "y": 2,
+      "blocks": false,
+      "art": "diary/cercadinho"
+    },
+    {
+      "id": "d_peixe",
+      "kind": "cenario",
+      "x": 4,
+      "y": 2,
+      "blocks": false,
+      "art": "diary/peixe",
+      "oy": -10
+    },
+    {
+      "id": "d_bolinha",
+      "kind": "cenario",
+      "x": 3,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/bolinha"
+    },
+    {
+      "id": "d_ossinho",
+      "kind": "cenario",
+      "x": 3,
+      "y": 8,
+      "ox": 6,
+      "blocks": false,
+      "art": "diary/ossinho"
+    },
+    {
+      "id": "d_pelucia",
+      "kind": "cenario",
+      "x": 6,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/pelucia"
+    },
+    {
+      "id": "xampu_pet",
+      "kind": "cenario",
+      "x": 11,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/xampu"
+    },
+    {
+      "id": "d_pata",
+      "kind": "cenario",
+      "x": 2,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/pata"
+    }
+  ]
+}

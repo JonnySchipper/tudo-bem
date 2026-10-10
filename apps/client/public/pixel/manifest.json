@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 2048,
-   "frames": 1221
+   "frames": 1227
   },
   "bjj": {
    "image": "atlas/bjj.png",
@@ -16,6 +16,13 @@
    "h": 768,
    "frames": 560,
    "lazy": true
+  },
+  "petshop": {
+   "image": "atlas/petshop.png",
+   "data": "atlas/petshop.json",
+   "w": 512,
+   "h": 192,
+   "frames": 52
   },
   "praia": {
    "image": "atlas/praia.png",
@@ -19363,6 +19370,96 @@
    "overhead": null,
    "shadow": null
   },
+  "diary/cercadinho": {
+   "atlas": "outdoor",
+   "frame": "diary/cercadinho",
+   "w": 11,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/peixe": {
+   "atlas": "outdoor",
+   "frame": "diary/peixe",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/bolinha": {
+   "atlas": "outdoor",
+   "frame": "diary/bolinha",
+   "w": 7,
+   "h": 7,
+   "ax": 3,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/ossinho": {
+   "atlas": "outdoor",
+   "frame": "diary/ossinho",
+   "w": 9,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pelucia": {
+   "atlas": "outdoor",
+   "frame": "diary/pelucia",
+   "w": 9,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pata": {
+   "atlas": "outdoor",
+   "frame": "diary/pata",
+   "w": 7,
+   "h": 8,
+   "ax": 3,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "decals/grass_light_0": {
    "atlas": "outdoor",
    "frame": "decals/grass_light_0",
@@ -21407,6 +21504,678 @@
    "anim": null,
    "overhead": null,
    "shadow": "fx/shadow_16"
+  },
+  "facades/petshop": {
+   "atlas": "petshop",
+   "frame": "facades/petshop",
+   "w": 96,
+   "h": 96,
+   "ax": 48,
+   "ay": 95,
+   "footprint": [
+    6,
+    6
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     19,
+     72,
+     10,
+     17
+    ],
+    [
+     45,
+     67,
+     19,
+     15
+    ],
+    [
+     67,
+     67,
+     18,
+     15
+    ]
+   ],
+   "lit": "facades/petshop_lit",
+   "cast": {
+    "frame": "facades/petshop#cast",
+    "w": 127,
+    "h": 19,
+    "ax": 48,
+    "ay": 1
+   }
+  },
+  "facades/petshop_lit": {
+   "atlas": "petshop",
+   "frame": "facades/petshop_lit",
+   "w": 96,
+   "h": 96,
+   "ax": 48,
+   "ay": 95,
+   "footprint": [
+    6,
+    6
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/placa_petshop": {
+   "atlas": "petshop",
+   "frame": "props/placa_petshop",
+   "w": 27,
+   "h": 27,
+   "ax": 13,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "props/placa_petshop#cast",
+    "w": 40,
+    "h": 9,
+    "ax": 13,
+    "ay": 1
+   }
+  },
+  "props/tigela_calcada": {
+   "atlas": "petshop",
+   "frame": "props/tigela_calcada",
+   "w": 14,
+   "h": 8,
+   "ax": 7,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/cercadinho": {
+   "atlas": "petshop",
+   "frame": "props/cercadinho",
+   "w": 48,
+   "h": 41,
+   "ax": 24,
+   "ay": 32,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/gatil": {
+   "atlas": "petshop",
+   "frame": "props/gatil",
+   "w": 34,
+   "h": 45,
+   "ax": 17,
+   "ay": 44,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/arranhador": {
+   "atlas": "petshop",
+   "frame": "props/arranhador",
+   "w": 18,
+   "h": 37,
+   "ax": 9,
+   "ay": 35,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "props/arranhador#cast",
+    "w": 34,
+    "h": 11,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "props/prateleira_racao": {
+   "atlas": "petshop",
+   "frame": "props/prateleira_racao",
+   "w": 18,
+   "h": 31,
+   "ax": 9,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/prateleira_racao#cast",
+    "w": 32,
+    "h": 10,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "props/cesto_brinquedos": {
+   "atlas": "petshop",
+   "frame": "props/cesto_brinquedos",
+   "w": 18,
+   "h": 17,
+   "ax": 9,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "props/cesto_brinquedos#cast",
+    "w": 27,
+    "h": 7,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "props/caminha_xadrez": {
+   "atlas": "petshop",
+   "frame": "props/caminha_xadrez",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_xadrez_0": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_xadrez_0",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_xadrez_1": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_xadrez_1",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/caminha_azul": {
+   "atlas": "petshop",
+   "frame": "props/caminha_azul",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_azul_0": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_azul_0",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_azul_1": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_azul_1",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/caminha_cesta": {
+   "atlas": "petshop",
+   "frame": "props/caminha_cesta",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_cesta_0": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_cesta_0",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_cesta_1": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_cesta_1",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/saco_racao_0": {
+   "atlas": "petshop",
+   "frame": "furniture/saco_racao_0",
+   "w": 18,
+   "h": 17,
+   "ax": 9,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "furniture/saco_racao_0#cast",
+    "w": 27,
+    "h": 7,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "furniture/saco_racao_1": {
+   "atlas": "petshop",
+   "frame": "furniture/saco_racao_1",
+   "w": 18,
+   "h": 17,
+   "ax": 8,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "furniture/saco_racao_1#cast",
+    "w": 27,
+    "h": 7,
+    "ax": 8,
+    "ay": 1
+   }
+  },
+  "props/pote_duplo": {
+   "atlas": "petshop",
+   "frame": "props/pote_duplo",
+   "w": 18,
+   "h": 9,
+   "ax": 9,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/saco_racao": {
+   "atlas": "petshop",
+   "frame": "props/saco_racao",
+   "w": 18,
+   "h": 17,
+   "ax": 9,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "props/saco_racao#cast",
+    "w": 27,
+    "h": 7,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "props/balanca_pet": {
+   "atlas": "petshop",
+   "frame": "props/balanca_pet",
+   "w": 18,
+   "h": 15,
+   "ax": 9,
+   "ay": 14,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/mesa_tosa": {
+   "atlas": "petshop",
+   "frame": "props/mesa_tosa",
+   "w": 18,
+   "h": 23,
+   "ax": 9,
+   "ay": 22,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/mesa_tosa#cast",
+    "w": 29,
+    "h": 8,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "props/banheira_tosa": {
+   "atlas": "petshop",
+   "frame": "props/banheira_tosa/0",
+   "w": 18,
+   "h": 21,
+   "ax": 9,
+   "ay": 20,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/banheira_tosa/0",
+     "props/banheira_tosa/1"
+    ],
+    "fps": 2
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/banheira_tosa#cast",
+    "w": 28,
+    "h": 8,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "props/secador": {
+   "atlas": "petshop",
+   "frame": "props/secador",
+   "w": 18,
+   "h": 27,
+   "ax": 9,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "props/secador#cast",
+    "w": 31,
+    "h": 9,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "props/toalha_pet": {
+   "atlas": "petshop",
+   "frame": "props/toalha_pet",
+   "w": 18,
+   "h": 15,
+   "ax": 9,
+   "ay": 14,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "props/aquario": {
+   "atlas": "petshop",
+   "frame": "props/aquario/0",
+   "w": 18,
+   "h": 16,
+   "ax": 9,
+   "ay": 15,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/aquario/0",
+     "props/aquario/1"
+    ],
+    "fps": 2
+   },
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/quadro_racas": {
+   "atlas": "petshop",
+   "frame": "walls/quadro_racas",
+   "w": 62,
+   "h": 26,
+   "ax": 0,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/poster_adocao": {
+   "atlas": "petshop",
+   "frame": "walls/poster_adocao",
+   "w": 40,
+   "h": 40,
+   "ax": 0,
+   "ay": 40,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/placa_banho_tosa": {
+   "atlas": "petshop",
+   "frame": "walls/placa_banho_tosa",
+   "w": 32,
+   "h": 24,
+   "ax": 0,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/placa_vet": {
+   "atlas": "petshop",
+   "frame": "walls/placa_vet",
+   "w": 48,
+   "h": 24,
+   "ax": 0,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/carinho": {
+   "atlas": "petshop",
+   "frame": "fx/carinho/0",
+   "w": 16,
+   "h": 16,
+   "ax": 8,
+   "ay": 15,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "fx/carinho/0",
+     "fx/carinho/1",
+     "fx/carinho/2"
+    ],
+    "fps": 6
+   },
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/ossinho": {
+   "atlas": "petshop",
+   "frame": "fx/ossinho",
+   "w": 9,
+   "h": 6,
+   "ax": 4,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/pelucia": {
+   "atlas": "petshop",
+   "frame": "fx/pelucia",
+   "w": 9,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/bolinha": {
+   "atlas": "petshop",
+   "frame": "fx/bolinha",
+   "w": 7,
+   "h": 7,
+   "ax": 3,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/ratinho": {
+   "atlas": "petshop",
+   "frame": "fx/ratinho",
+   "w": 10,
+   "h": 6,
+   "ax": 4,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
   },
   "praia/mureta": {
    "atlas": "praia",
@@ -26399,6 +27168,42 @@
     44
    ]
   },
+  "portraits/dito_neutro": {
+   "file": "portraits/dito_neutro.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    38
+   ]
+  },
+  "portraits/dito_feliz": {
+   "file": "portraits/dito_feliz.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    38
+   ]
+  },
+  "portraits/dito_surpreso": {
+   "file": "portraits/dito_surpreso.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    38
+   ]
+  },
+  "portraits/dito_pensativo": {
+   "file": "portraits/dito_pensativo.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    38
+   ]
+  },
   "portraits/bento_neutro": {
    "file": "portraits/bento_neutro.png",
    "w": 64,
@@ -26644,6 +27449,71 @@
   },
   "icons/copo_vazio": {
    "file": "icons/copo_vazio.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/coleira_vermelha": {
+   "file": "icons/coleira_vermelha.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/coleira_azul": {
+   "file": "icons/coleira_azul.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/coleira_verde": {
+   "file": "icons/coleira_verde.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/coleira_rosa": {
+   "file": "icons/coleira_rosa.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/bandana_brasil": {
+   "file": "icons/bandana_brasil.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/bolinha": {
+   "file": "icons/bolinha.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/ratinho": {
+   "file": "icons/ratinho.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/ossinho": {
+   "file": "icons/ossinho.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/pelucia": {
+   "file": "icons/pelucia.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/caminha_xadrez": {
+   "file": "icons/caminha_xadrez.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/caminha_azul": {
+   "file": "icons/caminha_azul.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/caminha_cesta": {
+   "file": "icons/caminha_cesta.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/saco_racao": {
+   "file": "icons/saco_racao.png",
    "w": 16,
    "h": 16
   },
@@ -27020,6 +27890,1536 @@
      19
     ]
    }
+  },
+  "chars/pet_dog_medio_peito": {
+   "file": "chars/pet_dog_medio_peito.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_medio_manchado": {
+   "file": "chars/pet_dog_medio_manchado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_grande_pontas": {
+   "file": "chars/pet_dog_grande_pontas.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_grande_tigrado": {
+   "file": "chars/pet_dog_grande_tigrado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_pequeno_manchado": {
+   "file": "chars/pet_dog_pequeno_manchado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_grande_solido": {
+   "file": "chars/pet_dog_grande_solido.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_grande_sela": {
+   "file": "chars/pet_dog_grande_sela.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_grande_peito": {
+   "file": "chars/pet_dog_grande_peito.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_medio_sela": {
+   "file": "chars/pet_dog_medio_sela.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_medio_solido": {
+   "file": "chars/pet_dog_medio_solido.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_grande_pintado": {
+   "file": "chars/pet_dog_grande_pintado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_peludo_solido": {
+   "file": "chars/pet_dog_peludo_solido.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_peludo_manchado": {
+   "file": "chars/pet_dog_peludo_manchado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_peludo_sela": {
+   "file": "chars/pet_dog_peludo_sela.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_pequeno_sela": {
+   "file": "chars/pet_dog_pequeno_sela.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_pequeno_solido": {
+   "file": "chars/pet_dog_pequeno_solido.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_pequeno_tigrado": {
+   "file": "chars/pet_dog_pequeno_tigrado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_pequeno_pontas": {
+   "file": "chars/pet_dog_pequeno_pontas.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_salsicha_sela": {
+   "file": "chars/pet_dog_salsicha_sela.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_dog_salsicha_manchado": {
+   "file": "chars/pet_dog_salsicha_manchado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_comum_solido": {
+   "file": "chars/pet_cat_comum_solido.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_comum_tigrado": {
+   "file": "chars/pet_cat_comum_tigrado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_comum_peito": {
+   "file": "chars/pet_cat_comum_peito.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_comum_manchado": {
+   "file": "chars/pet_cat_comum_manchado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_esguio_pontas": {
+   "file": "chars/pet_cat_esguio_pontas.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_peludo_solido": {
+   "file": "chars/pet_cat_peludo_solido.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_peludo_tigrado": {
+   "file": "chars/pet_cat_peludo_tigrado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_peludo_pontas": {
+   "file": "chars/pet_cat_peludo_pontas.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_esguio_pintado": {
+   "file": "chars/pet_cat_esguio_pintado.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
+  },
+  "chars/pet_cat_esguio_solido": {
+   "file": "chars/pet_cat_esguio_solido.png",
+   "w": 480,
+   "h": 20,
+   "frames": 20,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
+    ]
+   },
+   "keyed": true
   },
   "ui/bubble_sol": {
    "file": "ui/bubble_sol.png",

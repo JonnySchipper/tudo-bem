@@ -825,6 +825,52 @@ item. Spoken lines are baked (`pnpm tts`), so a wording change needs a re-bake.
 | 606 | Convite enviado para {nome}. · {nome} não respondeu. · Só dá pra chamar amigos. · {nome} não está online. · {nome} já está a bordo. · {nome} já está em outro barco. · {nome} está ocupado agora. · Esse convite já passou. · Você já está num barco de festa. · Termine o que está fazendo primeiro. · Alugue o barco de festa primeiro. · O barco de festa ainda não está saindo. · O barco de festa sai do píer do Bento. · Esse barco é de outra turma. · O barco está lotado! | Party boat notices and errors | server `partyBoat.ts` | “ocupado” is masculine for every pronoun today | |
 | 607 | Quem lê isso, me manda um “oi” da praia! · Hoje o mar estava calmo e eu estava feliz. · Se você achou esta garrafa, faça um pedido. · Aprendi uma palavra nova hoje: saudade. · O pôr do sol daqui é o mais bonito do mundo. · Não esqueça o protetor solar! · Um dia eu volto pra essa praia. · Peixe grande gosta de gente paciente. · Boa sorte na pescaria, amigo! · Obrigado por ler até aqui. Tenha um bom dia! | The ten bottle messages | `pescaLines.ts` BOTTLE_MESSAGES | Spoken (ui); no names, no contact details | |
 
+## Y. Pet Shop do Seu Dito (#234)
+
+<a id="y-petshop"></a>
+The pet shop on Rua dos Ipês (leste): Seu Dito (Benedito Alves, 62, from a sítio in Minas), his talk tree and idle lines (`npcTalk.ts`,
+`rooms.ts`), his pen and panel lines (`petShop.ts` `PEN_LINES`, `PETSHOP_LINES`), the breed catalog (`petBreeds.ts`), the lojinha
+(`petShop.ts` `PET_ITEMS`), the signs (`hotspots.ts`), the panel (`ui/petShop.ts`) and the Pet Shop chapter of the Diário
+(`diary-words.json`, area `petshop`). Everything Seu Dito says is spoken (voice `dito`). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 608 | {saudacao}, {nome}! Bem-vindo ao pet shop. Quer ver os bichinhos? | {greeting}, {name}! Welcome to the pet shop. Want to see the little animals? | `npcTalk.ts` dito.oi | "pet shop" as Brazilians say it; teaches bichinho | |
+| 609 | Tem cachorro e gato esperando um lar. Pode fazer carinho, eles adoram. | There are dogs and cats waiting for a home. You can pet them, they love it. | dito.bichos | teaches lar | |
+| 610 | Vamos ver quem tá esperando um lar! Escolhe com calma, viu? | Let's see who's waiting for a home! Choose calmly, okay? | dito.adotar | teaches escolher (match escolhe) | |
+| 611 | Tem ração, brinquedo, coleira e caminha. Tudo com reais virtuais, {nome}. | There's food, toys, collars and beds. All with virtual reais, {name}. | dito.loja | | |
+| 612 | O banho e tosa é ali no canto. O bichinho sai cheiroso! | The bath and grooming is over in the corner. The little one comes out smelling great! | dito.tosa | teaches cheiroso | |
+| 613 | Quero ver os bichinhos. · O que tem na loja? · Posso adotar um? · Vou fazer carinho. · Quero ver! · Deixa eu pensar. · Quero ver a lojinha. · E banho e tosa? · Que legal! · {obrigad}, Seu Dito. | (player chips) | dito talk tree | | |
+| 614 | Hoje chegou um filhote novo! · Carinho atrás da orelha, eles adoram. · Senta! Isso. Bom menino. · Vira-lata é o cachorro mais fiel que existe. | (idle lines) | `rooms.ts` DITO.idleLines | teach filhote, orelha, senta, vira-lata | |
+| 615 | Olha o rabo abanando! Ele gostou de você. | Look at the tail wagging! He liked you. | `petShop.ts` pen_dog_1 | said when you pet a dog; teaches rabo | |
+| 616 | Essa aqui adora carinho na barriga. | This one loves a belly rub. | pen_dog_2 | teaches carinho | |
+| 617 | Olha esse focinho molhado! Ele quer te dar um beijo. | Look at that wet snout! He wants to give you a kiss. | pen_dog_3 | teaches focinho (nariz is the airplane's word); was "lambe o nariz" in the plan | |
+| 618 | Tá ouvindo? Ele tá ronronando. | Hear that? He's purring. | pen_cat_1 | teaches ronronar | |
+| 619 | Olha o bigode dela, todo arrepiado. | Look at her whiskers, all bristled. | pen_cat_2 | teaches bigode | |
+| 620 | Esse gato brinca com tudo. Até com o rabo! | This cat plays with everything. Even its tail! | pen_cat_3 | teaches brincar | |
+| 621 | Esse aqui? Boa escolha. Agora é só dar um nome. · Parabéns! Agora faz parte da família. · Seis já é uma matilha! Deixa um em casa primeiro. | (adoption lines) | `PETSHOP_LINES` | spoken from the panel | |
+| 622 | Adoção é pra quem apoia a Vila. Mas carinho é de graça, viu? | Adoption is for those who support the Vila. But petting is free, okay? | `PETSHOP_LINES.gate` | the one upsell line; spoken once per panel opening | |
+| 623 | Prontinho. Seu bichinho vai adorar. · Faltam uns reais virtuais ainda. Volta depois, sem pressa. · Vai passear? Leva a guia! · Deixa em casa que eu sei que ele fica bem. | (shop and switch lines) | `PETSHOP_LINES` | | |
+| 624 | PET SHOP · Do Seu Dito | | `hotspots.ts` petshop_letreiro | facade sign; teaches pet shop | |
+| 625 | ADOÇÃO · Adote um amigo | Adoption · Adopt a friend | petshop_adocao | teaches adoção | |
+| 626 | RAÇAS · Vira-lata · Fila brasileiro · Poodle · Siamês · Persa | Breeds | petshop_racas | teaches raça | |
+| 627 | VETERINÁRIO · Terça e quinta | Vet · Tuesday and Thursday | petshop_vet | teaches veterinário | |
+| 628 | BANHO E TOSA | Bath and grooming | petshop_banho_tosa | teaches banho e tosa (one phrase) | |
+| 629 | RAÇÃO · PETISCO · BRINQUEDO | Pet food · Treats · Toys | petshop_lojinha | teaches petisco | |
+| 630 | cachorro · gatinho · cercadinho · arranhador · aquário · peixe · caminha · brinquedo · bolinha · ossinho · pelúcia · prateleira de ração · banheira · secador · toalhinha · pata | (camera words) | `diary-words.json` petshop | toalhinha because toalha is the kitnet's | |
+| 631 | Pet Shop · no pet shop | Pet shop · at the pet shop | diary area, `escola.ts` AREA_IN | chapter name | |
+| 632 | Faça carinho nos bichinhos do pet shop. | Pet the animals at the pet shop. | `escola.ts` huntHint | hint when only pen words are missing | |
+| 633 | The 38 breed names (Vira-lata caramelo, Fila brasileiro, Terrier brasileiro (Fox Paulistinha), Gato vira-lata (SRD), Frajola, Gata escaminha…) and their coat names | | `petBreeds.ts` | each breed's `pt`, each coat's `pt` | |
+| 634 | Coleira vermelha · azul · verde · rosa · Bandana do Brasil · Bolinha · Ratinho de pano · Ossinho · Pelúcia · Caminha xadrez · Caminha azul · Cesta de vime · Saco de ração + pote | (lojinha items) | `PET_ITEMS` | | |
+| 635 | Adotar · Meus pets · Lojinha · Na loja hoje · Catálogo de raças · Fazer carinho · Levar · Em casa · Renomear · Comprar · Apoiar a Vila · Só olhar · Em breve · Sem nome · Passeando | (panel) | `ui/petShop.ts` | | |
+| 636 | Adoção é pra apoiadores · Apoiadores adotam até 6 bichinhos, levam um pra passear e o resto fica em casa, na kitnet. | Adoption is for supporters… | `ui/petShop.ts` gate card | | |
+| 637 | Nenhum pet ainda. Os bichinhos estão esperando no Pet Shop do Seu Dito. · Seus pets estão em casa, na kitnet. Pra passear com eles, apoie a Vila de novo. | No pets yet… · Your pets are at home… | `ui/petShop.ts` Meus pets | | |
+| 638 | Caminhas e o saco de ração vão pra sua kitnet. Coleiras e brinquedos você põe no bichinho em Meus pets. | Beds and the food bag go to your kitnet… | `ui/petShop.ts` Lojinha | | |
+| 639 | Comandos: senta · deita · vem · busca · brinca | sit · lie down · come · fetch · play | `PET_COMMANDS` | spoken (ui) | |
+| 640 | {nome} quer passear? · Seu bichinho · Fechar | Does {name} want a walk? | `ui/petShop.ts` kitnet card | | |
+| 641 | Mais raças no Pet Shop do Seu Dito, na Rua dos Ipês. · Meus pets ({n}) | More breeds at Seu Dito's pet shop… | `ui/support.ts` | Apoiar panel | |
+| 642 | A lojinha fica no Pet Shop do Seu Dito. · Chegue mais perto do balcão. · Chegue mais perto do cercadinho. · Você já tem esse. · Esse item não serve pra esse bichinho. · Adote um no Pet Shop do Seu Dito. | (server errors) | `apps/server/src/petShop.ts`, `world.ts` | | |
+
 ## Totals
 
-607 numbered strings in sections A to Q, S, T, U, V, W and X, plus 9 proposed-card entries.
+642 numbered strings in sections A to Q, S, T, U, V, W, X and Y, plus 9 proposed-card entries.

@@ -41,7 +41,12 @@ import {
   STREET_SNACKS,
   CARRY,
   carryOf,
+  petToyCommands,
+  publicPetLook,
 } from '@tudobem/shared';
+import { ensurePetTexture, petAnimKey } from './petLook';
+import { homeResidents, penResidents } from './residentPets';
+import { toyOverlay, type ToyOverlay } from './petToys';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
@@ -173,6 +178,8 @@ interface AvatarView {
   pet: Phaser.GameObjects.Sprite | null;
   petKind: string;
   petKey: string;
+  /** The pet's toy next to it (#234): a fetched ball, a bone between the paws (petToys.ts). */
+  petToy: Phaser.GameObjects.Image | null;
   petFollow: PetFollow;
   /** Chat timestamp already offered to the pet, so a line is heard once. */
   petHeard: number;
@@ -329,6 +336,12 @@ export class WorldScene extends Phaser.Scene {
   private umbrellas: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null }[] = [];
   private avatars = new Map<string, AvatarView>();
   private furniture = new Map<string, FurnitureView>();
+  /** Pen animals and resting pets (#234), by resident key. */
+  private residents = new Map<string, Phaser.GameObjects.Sprite>();
+  /** The toys beside the resting pets, by resident key. */
+  private residentToys = new Map<string, Phaser.GameObjects.Image>();
+  /** When this room was built (the kitnet pets gather at the bowl for a few seconds). */
+  private residentsSince = Date.now();
   private grid: RoomGrid | null = null;
   private gridFurniture: PlacedFurniture[] | null = null;
   /** The room the grid was built from, so a live cart toggle rebuilds collision with the sprites. */
@@ -382,6 +395,8 @@ export class WorldScene extends Phaser.Scene {
       const img = m.images?.[`chars/pet_${kind}`];
       if (img?.file && img.frameW) this.load.spritesheet(`pet:${kind}`, b + img.file, { frameWidth: img.frameW, frameHeight: img.h });
     }
+    // the pet shop's breed strips (key colours, a few KB each): recoloured per look on first use (petLook.ts)
+    for (const [key, img] of Object.entries(m.images ?? {})) if (img.keyed && img.file) this.load.image(`petsrc:${key}`, b + img.file);
   }
 
   create(): void {
@@ -697,6 +712,11 @@ export class WorldScene extends Phaser.Scene {
     this.trilhoLive = false;
     // furniture rectangles were registered with the room objects
     this.furniture.clear();
+    for (const r of this.residents.values()) r.destroy();
+    this.residents.clear();
+    for (const t of this.residentToys.values()) t.destroy();
+    this.residentToys.clear();
+    this.residentsSince = Date.now();
     this.rig.clearRoom();
     this.shadows?.clearRoom();
     this.ao?.clearRoom();
@@ -1270,6 +1290,7 @@ export class WorldScene extends Phaser.Scene {
     const dyn: HitBox[] = [];
     this.syncFurniture(dyn);
     this.syncAvatars(def, now, dyn, dt);
+    this.syncResidents(def, dyn);
     this.syncGlints(now);
     this.syncBout(dt, now);
     this.syncCounter(dt, now);
@@ -1670,6 +1691,7 @@ export class WorldScene extends Phaser.Scene {
       pet: null,
       petKind: '',
       petKey: '',
+      petToy: null,
       petFollow: createPetFollow(),
       petHeard: -1,
       carry: null,
@@ -1695,6 +1717,7 @@ export class WorldScene extends Phaser.Scene {
   private destroyAvatar(v: AvatarView): void {
     v.parrot?.destroy();
     v.pet?.destroy();
+    v.petToy?.destroy();
     v.carry?.destroy();
     v.carryBeat?.img.destroy();
     v.icon?.destroy();
@@ -1945,6 +1968,62 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * The pets nobody is walking (#234): the day's animals in the pet shop's pens, and the owner's pets resting in a kitnet. The pen animals
+   * are not hit targets (the pen props under them take the click); a resting pet is (its owner gets the Levar card). Planned in
+   * residentPets.ts from the shared clock.
+   */
+  private syncResidents(def: RoomDef, dyn: HitBox[]): void {
+    const plan =
+      def.id === 'petshop'
+        ? penResidents(clock.day(), clock.now())
+        : def.id === 'kitnet'
+          ? homeResidents(game.room?.homePets ?? [], game.furniture, Date.now(), Date.now() - this.residentsSince)
+          : [];
+    const seen = new Set<string>();
+    for (const r of plan) {
+      const tex = ensurePetTexture(this, r.look);
+      if (!tex) continue;
+      seen.add(r.key);
+      let spr = this.residents.get(r.key);
+      if (!spr || spr.texture.key !== tex) {
+        spr?.destroy();
+        spr = this.rig.world(this.add.sprite(0, 0, tex, 0)).setOrigin(0.5, 1);
+        spr.disableInteractive();
+        this.residents.set(r.key, spr);
+      }
+      const anim = petAnimKey(tex, r.pose);
+      if (this.anims.exists(anim) && spr.anims.currentAnim?.key !== anim) spr.play({ key: anim, startFrame: 0 });
+      spr.setPosition(r.x, r.y).setFlipX(r.flip).setDepth(standingDepth(r.y, r.key));
+      const toy = this.placeToy(this.residentToys.get(r.key) ?? null, toyOverlay(r.toy, r.pose, r.flip, r.x, r.y), spr.depth, true);
+      if (toy) this.residentToys.set(r.key, toy);
+      else this.residentToys.delete(r.key);
+      if (r.homeId) dyn.push({ x0: r.x - 10, y0: r.y - 16, x1: r.x + 10, y1: r.y + 2, hit: { kind: 'homePet', petId: r.homeId, name: r.name ?? null }, depth: r.y + 0.4 });
+    }
+    for (const [k, spr] of this.residents) {
+      if (seen.has(k)) continue;
+      spr.destroy();
+      this.residents.delete(k);
+      this.residentToys.get(k)?.destroy();
+      this.residentToys.delete(k);
+    }
+  }
+
+  /**
+   * Two small hearts rise over the animal you petted in a pen (`fx/carinho`, three frames at 6 fps, #234): the meet view's Fazer carinho.
+   * Only this client draws it (the server keeps the diary word; nothing about a carinho goes over the wire to others).
+   */
+  carinho(target: { penId: string; slot: number }): void {
+    const d = this.m.sprites['fx/carinho'];
+    if (!d) return;
+    const prefix = `pen:${target.penId}:${target.slot}:`;
+    const spr = [...this.residents].find(([k]) => k.startsWith(prefix))?.[1];
+    if (!spr) return;
+    const fx = this.rig.world(this.add.sprite(spr.x, spr.y - 22, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(DEPTH.overhead + 1);
+    if (d.anim) fx.play({ key: ensureAnim(this, 'fx/carinho', d), startFrame: 0 });
+    this.tweens.add({ targets: fx, y: spr.y - 30, alpha: { from: 1, to: 0 }, duration: 1100, ease: 'Quad.easeOut', onComplete: () => fx.destroy() });
+  }
+
   /** Which strip to play, and whether to mirror it. West reuses the east poses. Idle is the front blink. */
   private petPose(facing: Facing, pose: PetFollow['pose']): { name: string; flip: boolean } {
     const flip = facing === 'W';
@@ -1970,20 +2049,25 @@ export class WorldScene extends Phaser.Scene {
    * never added to that list, so it cannot take a click meant for the player or a neighbour.
    */
   private updatePet(v: AvatarView, a: ClientAvatar, wx: number, wy: number, dt: number): void {
-    const kind = a.pub.pet === 'dog' || a.pub.pet === 'cat' ? a.pub.pet : null;
+    const look = publicPetLook(a.pub);
+    const kind = look?.species ?? null;
     const heard = petCommandFromLines(
       a.bubbles,
       v.petHeard,
       kind ? [PET_COPY[kind].pt, PET_COPY[kind].en, ...(a.pub.petName ? [a.pub.petName] : [])] : [],
+      petToyCommands(a.pub),
     );
     v.petHeard = heard.heardAt;
-    if (!kind) {
+    // the look's texture (breed, coat, collar); the legacy dog and cat keep their own strips
+    const tex = look ? ensurePetTexture(this, look) : null;
+    if (!kind || !tex) {
       if (v.pet) {
         v.pet.destroy();
         v.pet = null;
         v.petKind = '';
         v.petKey = '';
       }
+      v.petToy = this.placeToy(v.petToy, null, 0, false);
       if (Number.isFinite(v.petFollow.x)) v.petFollow = createPetFollow();
       return;
     }
@@ -1996,16 +2080,16 @@ export class WorldScene extends Phaser.Scene {
       command: heard.command,
     });
     const pose = this.petPose(follow.facing, follow.pose);
-    const anim = `anim:pet:${kind}:${pose.name}`;
+    const anim = petAnimKey(tex, pose.name);
     if (!this.anims.exists(anim)) {
       v.pet?.setVisible(false);
       return;
     }
-    if (!v.pet || v.petKind !== kind) {
+    if (!v.pet || v.petKind !== tex) {
       v.pet?.destroy();
-      v.pet = this.rig.world(this.add.sprite(0, 0, `pet:${kind}`, 0)).setOrigin(0.5, 1);
+      v.pet = this.rig.world(this.add.sprite(0, 0, tex, 0)).setOrigin(0.5, 1);
       v.pet.disableInteractive();
-      v.petKind = kind;
+      v.petKind = tex;
       v.petKey = '';
     }
     if (v.petKey !== anim) {
@@ -2017,6 +2101,22 @@ export class WorldScene extends Phaser.Scene {
     v.pet.setFlipX(pose.flip);
     v.pet.setDepth(standingDepth(follow.y, `${a.pub.id}:pet`));
     v.pet.setScale(1);
+    const toy = toyOverlay(a.pub.petToy, pose.name, pose.flip, v.pet.x, v.pet.y, { fetch: follow.fetch, play: follow.play });
+    v.petToy = this.placeToy(v.petToy, toy, v.pet.depth, v.pet.visible);
+  }
+
+  /** Shows, moves or removes one toy sprite (petToys.ts); returns what the caller keeps. Just in front of the pet, or just behind it. */
+  private placeToy(img: Phaser.GameObjects.Image | null, toy: ToyOverlay | null, depth: number, visible: boolean): Phaser.GameObjects.Image | null {
+    const d = toy ? this.m.sprites[toy.key] : undefined;
+    if (!toy || !d) {
+      img?.destroy();
+      return null;
+    }
+    if (!img || img.frame.name !== d.frame) {
+      img?.destroy();
+      img = this.rig.world(this.add.image(0, 0, d.atlas, d.frame)).setOrigin(...originOf(d));
+    }
+    return img.setPosition(toy.x, toy.y).setDepth(depth + (toy.behind ? -0.02 : 0.02)).setVisible(visible);
   }
 
   /**

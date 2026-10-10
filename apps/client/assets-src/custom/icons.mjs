@@ -4,6 +4,7 @@
 // navy outline, 1 px lit rim / 2 px shaded rim). Keys are `icons/<itemId>`.
 import { blank, put, shape, flat, grid, line, ell, box, or, and, sub, fillRect, ring, NAVY } from './paint.mjs';
 import { C, K, hline } from './kit.mjs';
+import { PET_ICONS } from './petshop.mjs';
 
 const N = 16;
 const el = (cx, cy, rx, ry, a = 0) => (x, y) => {
@@ -494,6 +495,8 @@ export const ICONS = {
   coco_vazio: cocoVazio,
   copinho_vazio: copinhoVazio,
   copo_vazio: copoVazio,
+  // the pet shop's lojinha (#234): collars, toys, beds and the food bag (authored in petshop.mjs)
+  ...PET_ICONS,
 };
 
 export async function iconParts() {

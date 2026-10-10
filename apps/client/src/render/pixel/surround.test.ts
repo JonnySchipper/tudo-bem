@@ -4,7 +4,7 @@ import { T } from './coords';
 import { SURROUND_TILES, VILA_LAYOUT, surroundFor, surroundRect } from './surround';
 
 const OUTDOOR: RoomId[] = ['rua', 'rua_leste', 'praca', 'feira', 'aeroporto'];
-const INTERIOR: RoomId[] = ['padaria', 'kitnet', 'academia', 'escola', 'andar'];
+const INTERIOR: RoomId[] = ['padaria', 'kitnet', 'academia', 'escola', 'andar', 'petshop'];
 
 /** Room-tile column of the surround floor (the margin is the border around the map). */
 const cell = (floor: string[], x: number, y: number): string => floor[y + SURROUND_TILES][x + SURROUND_TILES];

@@ -27,7 +27,7 @@ export const VILA_GUIDE = {
     { pt: 'Favores', gloss: 'Favors', en: 'A gold ! over a neighbour: they need a small favor. The Favores (favors) list near the top shows your next step and where to go. Favors pay reais virtuais (RV), the play money, and make friends (♥ hearts).' },
     { pt: 'Diário', gloss: 'Your diary', en: 'Your diary. Every word you find is kept here: take photos, read signs, listen to people. Practise them in lessons at the Escola (school).' },
     { pt: 'Cartela', gloss: 'Stamp card', en: `The bakery game, the Feira (street market), jiu-jitsu and a bate-papo (chat) in the Praça (square) each give one stamp a day. ${CARTELA_GOAL} stamps pay RV.` },
-    { pt: 'Lugares', gloss: 'Places', en: 'Padaria (bakery: order and play at the counter), Feira (market), Academia (jiu-jitsu gym), Escola (school: lessons), the Praia (beach: fishing and boats, on the 875 bus), and your own kitnet (studio flat) to decorate.' },
+    { pt: 'Lugares', gloss: 'Places', en: 'Padaria (bakery: order and play at the counter), Feira (market), Academia (jiu-jitsu gym), Escola (school: lessons), the Pet Shop (pet the animals, learn their words), the Praia (beach: fishing and boats, on the 875 bus), and your own kitnet (studio flat) to decorate.' },
     { pt: 'Relógio', gloss: 'Clock', en: 'The Vila has its own clock: a whole day lasts 48 minutes. People keep hours, but there is always a way to play.' },
   ] satisfies VilaGuideLine[],
   tip: 'Not sure where to start? Follow Júlia’s welcome list, at the top right. The first time you open anything new, a short card explains it, and the ? button brings it back.',
