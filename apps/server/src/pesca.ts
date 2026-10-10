@@ -164,7 +164,13 @@ export class PescaEngine {
     pr.casts++;
     this.d.save(p);
     s.send({ t: 'pesca', phase: 'cast', seq, ...cast, ...(this.d.pinned ? { pinned: pinnedRoll(water) } : {}) });
-    this.moments(s, water, ['first_cast', ...(water === 'praia' && isTideHour(cast.minute) ? (['tide_cast'] as EarnMoment[]) : [])]);
+    const sunset = cast.minute >= 17 * 60 + 30 && cast.minute < 18 * 60 + 30;
+    this.moments(s, water, [
+      'first_cast',
+      ...(water === 'praia' && isTideHour(cast.minute) ? (['tide_cast'] as EarnMoment[]) : []),
+      // out on the deep-sea boat as the sun goes down: the horizon
+      ...(water === 'alto_mar' && sunset ? (['sunset_aboard'] as EarnMoment[]) : []),
+    ]);
   }
 
   private result(s: PescaSession, rawSeq: unknown, rawEvents: unknown) {

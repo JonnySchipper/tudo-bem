@@ -181,6 +181,7 @@ import { FeiraGamesEngine, FeiraGamesStore, type FeiraGameRun } from './feiraGam
 import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 import { PraiaStore, memoryPraia } from './praiaStore.js';
 import { PescaEngine, type PescaCastRun } from './pesca.js';
+import { BarcoEngine } from './barco.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
@@ -407,6 +408,8 @@ export class World {
   readonly praia: PraiaStore;
   /** Fishing at the Praia (pesca.ts). */
   private readonly pescaEngine: PescaEngine;
+  /** Seu Bento's rentals (barco.ts). */
+  private readonly barco: BarcoEngine;
   private readonly githubToken?: string;
   private readonly githubFetch?: typeof fetch;
 
@@ -532,6 +535,20 @@ export class World {
       pinned: opts.pescaPin ?? readEnv('TB_TEST_PESCA') === '1',
       aboardParty: (s) => this.aboardParty(s as Session),
       onPartyCatch: (s, fish) => this.onPartyCatch(s as Session, fish),
+    });
+    this.barco = new BarcoEngine({
+      now: () => this.now(),
+      save: (p) => this.store.save(p.id),
+      pushProfile: (s) => this.pushProfile(s as Session),
+      err: (s, code, pt, en) => this.err(s as Session, code, pt, en),
+      tileOf: (s) => this.currentTile(s as Session).tile,
+      schedule: (fn, ms) => this.schedule(fn, ms),
+      teach: (s, words) => this.diary.teachPesca(s as Session, words),
+      price: (tier) => this.config.get(tier === 'remo' ? 'boatRemoRv' : tier === 'pesca' ? 'boatPescaRv' : tier === 'alto_mar' ? 'boatAltoMarRv' : 'boatFestaRv'),
+      tripMs: () => this.config.get('tripMinutes') * 60_000,
+      partyBoat: () => this.praia.config().partyBoat,
+      dropCast: (s) => this.pescaEngine.dropCast(s),
+      sessionOf: (id) => this.sessionByProfile(id),
     });
     this.escola = new EscolaTracker({
       store,
@@ -738,6 +755,8 @@ export class World {
         return this.buySnack(s, msg.itemId);
       case 'pesca':
         return this.pescaEngine.handle(s, msg);
+      case 'barco':
+        return this.barco.handle(s, msg);
       case 'padaria':
         return this.buyCounter(s, msg.itemId);
       case 'carry':
@@ -1301,6 +1320,8 @@ export class World {
     }
     const target = this.instanceFor(room, s, opts);
     if ('error' in target) return this.err(s, 'join', target.error.pt, target.error.en);
+    // a rented boat stays at the beach: leaving it hands the boat back
+    if (s.instance?.def.id === 'praia' && room !== 'praia') this.barco.end(s, 'left');
     this.leaveInstance(s);
     const def = target.def;
     const tile = arrive?.tile ?? def.spawn;

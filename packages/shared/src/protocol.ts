@@ -27,7 +27,7 @@ import type { Weather } from './weather.js';
 import type { FeiraBoardRow, FeiraCartAdminGame, FeiraCartMode, FeiraCartSchedule, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
 import type { BoardRow } from './leaderboards.js';
 import type { PraiaMode } from './praia.js';
-import type { WaterId } from './pesca.js';
+import type { BoatTier, WaterId } from './pesca.js';
 import type { FishId } from './fish.js';
 import type { PescaEvent, PescaOutcome, PescaRoll } from './pescaSim.js';
 import type { AdminTestSnapshot } from './adminTestes.js';
@@ -165,6 +165,10 @@ export type ClientMsg =
   | { t: 'pesca'; action: 'quit' }
   | { t: 'pesca'; action: 'tray' }
   | { t: 'pesca'; action: 'sell'; fish?: FishId }
+  /** Seu Bento's boats (PRAIA-PLAN.md 3.3): the menu, rent a solo boat for one trip, hand it back. */
+  | { t: 'barco'; action: 'menu' }
+  | { t: 'barco'; action: 'rent'; tier: BoatTier }
+  | { t: 'barco'; action: 'return' }
   /** Subscriber list for the Assinaturas section. */
   | { t: 'admin'; action: 'subscribers' }
   /** Dev/test subscription (no payment). Admin socket only. */
@@ -676,7 +680,24 @@ export type ServerMsg =
   | { t: 'pesca'; phase: 'result'; seq: number; outcome: PescaOutcome; newSpecies: boolean; record: boolean; words: Bilingual[]; line?: Bilingual & { speaker: NpcId } }
   /** Jô's tray: the fish in your bucket and what she pays for each, and how much more RV she can pay you today. */
   | { t: 'pesca'; phase: 'tray'; fish: PescaTrayRow[]; capLeft: number }
-  | { t: 'pesca'; phase: 'sold'; rv: number; coins: number; fish: PescaTrayRow[]; capLeft: number };
+  | { t: 'pesca'; phase: 'sold'; rv: number; coins: number; fish: PescaTrayRow[]; capLeft: number }
+  /** Bento's menu: each tier with its live price (a server tunable) and its new fish in words; the trip you have, if any. */
+  | { t: 'barco'; phase: 'menu'; tiers: BarcoTierRow[]; trip: { tier: BoatTier; until: number } | null; partyBoat: boolean }
+  /** A trip started (or is still running); `until` is server time. */
+  | { t: 'barco'; phase: 'trip'; tier: BoatTier; until: number }
+  /** The boat went back to Bento: handed back, the time ran out, or you left the beach. */
+  | { t: 'barco'; phase: 'ended'; tier: BoatTier; why: 'returned' | 'time' | 'left' };
+
+/** One chip of Bento's rental menu. */
+export interface BarcoTierRow {
+  tier: BoatTier;
+  pt: string;
+  en: string;
+  price: number;
+  canAfford: boolean;
+  /** the fish this boat adds, as words (never a count) */
+  newFish: Bilingual[];
+}
 
 /** One species in the bucket, as Jô's tray shows it. */
 export interface PescaTrayRow {

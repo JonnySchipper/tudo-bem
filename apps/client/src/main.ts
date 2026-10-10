@@ -110,6 +110,7 @@ import { profileMetJulia } from './ui/juliaMet';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty } from './ui/feira';
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { askTray, bindPesca, onPescaMsg, onPescaRefused, openCaderneta, openPescaSpot } from './ui/pesca';
+import { askBarcos, bindBarco, onBarcoMsg, returnBarco } from './ui/pesca/barcoMenu';
 import './styles/pesca.css';
 import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
@@ -712,10 +713,12 @@ function praiaAction(action: 'pesca' | 'fish_sell' | 'boat_rental' | 'party_boat
   if (action === 'pesca' && propId) openPescaSpot(propId);
   else if (action === 'fish_sell') askTray();
   else if (action === 'caderneta') openCaderneta();
+  else if (action === 'boat_rental') askBarcos();
   else toast('info', 'Em breve.', 'Coming soon.');
 }
 
-bindPesca((m) => net.send(m));
+bindPesca((m) => net.send(m), () => returnBarco());
+bindBarco({ send: (m) => net.send(m) });
 
 function startMinigame() {
   closeDialogue();
@@ -1006,6 +1009,9 @@ net.on((m: ServerMsg) => {
       break;
     case 'pesca':
       onPescaMsg(m);
+      break;
+    case 'barco':
+      onBarcoMsg(m);
       break;
     case 'praia':
       // the admin switch: the map shows the beach as a teaser again while it is closed to this player
