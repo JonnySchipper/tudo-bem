@@ -138,6 +138,8 @@ export const FOOTSTEPS: Record<FloorKind, FootstepSound> = {
   tatame: { freq: 420, q: 0.7, filter: 'lowpass', dur: 0.08, gain: 0.04, thump: 90 },
   // the airport's polished stone: a bright, short click
   granilite: { freq: 3200, q: 1.7, filter: 'bandpass', dur: 0.04, gain: 0.046, thump: 0 },
+  // the pet shop's vinyl: a soft, dull tap
+  vinilico: { freq: 1800, q: 1.0, filter: 'bandpass', dur: 0.045, gain: 0.042, thump: 0 },
   // the Praia: a soft crunch in the sand, a hollow tap on the pier's planks (nobody walks on water; the entry keeps the record full)
   areia: { freq: 650, q: 0.5, filter: 'lowpass', dur: 0.1, gain: 0.036, thump: 0 },
   agua: { freq: 500, q: 0.5, filter: 'lowpass', dur: 0.08, gain: 0.02, thump: 0 },

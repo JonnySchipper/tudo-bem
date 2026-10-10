@@ -104,7 +104,7 @@ export function roomBounds(room: RoomDef, tallestFacade = 0): Rect {
  */
 export const CAMERA_LEAD_NORTH: Partial<Record<RoomId, number>> = { aeroporto: 4 * 16, desembarque: 3 * 16 };
 
-export const WALL_STYLE: Record<RoomId, string> = { praca: 'praca', rua: 'praca', rua_leste: 'praca', feira: 'praca', padaria: 'padaria', kitnet: 'kitnet', academia: 'academia', escola: 'academia', andar: 'academia', aeroporto: 'praca', desembarque: 'praca', petshop: 'padaria', praia: 'praca', barco_festa: 'praca' };
+export const WALL_STYLE: Record<RoomId, string> = { praca: 'praca', rua: 'praca', rua_leste: 'praca', feira: 'praca', padaria: 'padaria', kitnet: 'kitnet', academia: 'academia', escola: 'academia', andar: 'academia', aeroporto: 'praca', desembarque: 'praca', petshop: 'petshop', praia: 'praca', barco_festa: 'praca' };
 
 export const northWallKey = (style: string, part: 'l' | 'm' | 'r') => `walls/north_${style}_${part}`;
 export const westWallKey = (style: string, bottom: boolean) => `walls/west_${style}${bottom ? '_b' : ''}`;
@@ -140,6 +140,8 @@ export function decorArt(d: WallDecor): DecorArt | null {
       return { key: 'walls/placa', mode: 'center', bottom: -12, tiles: 4 };
     case 'poster': return { key: d.text?.startsWith('RESPEITO') ? 'walls/poster_respeito' : d.text === 'ADOÇÃO' ? 'walls/poster_adocao' : 'walls/poster', mode: 'center', bottom: -8, tiles: 2 };
     case 'quadro_racas': return { key: 'walls/quadro_racas', mode: 'center', bottom: -10, tiles: 4 };
+    // the pet shop's paw bunting along the top of the wall
+    case 'varal_patas': return { key: 'walls/varal_patas', mode: 'tile', bottom: -36, tiles: 1 };
     case 'toldo': return { key: 'walls/toldo', mode: 'center', bottom: -30, tiles: 4 };
     case 'mural': return { key: span >= 6 ? 'walls/mural' : 'walls/mural_s', mode: 'center', bottom: -6, tiles: span >= 6 ? 7 : 4 };
     case 'predio': return { key: 'walls/predio', mode: 'center', bottom: -1, tiles: 3 };

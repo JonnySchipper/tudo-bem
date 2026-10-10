@@ -14,7 +14,7 @@ const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'apps/client/public/
 const layout = (room) => JSON.parse(fs.readFileSync(path.join(ROOT, 'packages/shared/layouts', `${room}.json`), 'utf8')).objects;
 const ctx = { load: (spec) => loadPng(path.join(SRC, spec.replace(/^ext:/, 'limezu-modern-exteriors/Modern_Exteriors_16x16/'))) };
 
-const KIND_ART = { aquario: 'props/aquario', cercadinho: 'props/cercadinho', gatil: 'props/gatil', prateleira_racao: 'props/prateleira_racao', banheira: 'props/banheira_tosa' };
+const KIND_ART = { vaso: 'props/pot_teal', aquario: 'props/aquario', cercadinho: 'props/cercadinho', gatil: 'props/gatil', prateleira_racao: 'props/prateleira_racao', banheira: 'props/banheira_tosa' };
 const WALLS = ['walls/quadro_racas', 'walls/poster_adocao', 'walls/placa_banho_tosa', 'walls/placa_vet'];
 const FURNITURE = ['props/caminha_xadrez', 'props/caminha_azul', 'props/caminha_cesta', 'props/saco_racao'];
 
@@ -24,7 +24,10 @@ describe('pet shop art', async () => {
 
   it('every object of the shop and of its sidewalk resolves to a sprite', () => {
     const keys = [];
-    for (const o of layout('petshop')) if (o.kind !== 'balcao') keys.push(o.art ?? KIND_ART[o.kind]);
+    for (const o of layout('petshop')) {
+      if (o.kind === 'balcao') for (let i = 0; i < (o.w ?? 1); i++) keys.push(`${o.art}_${i}_of_${o.w}`);
+      else keys.push(o.art ?? KIND_ART[o.kind]);
+    }
     for (const o of layout('rua_leste').filter((q) => /petshop/.test(q.id))) if (o.art) keys.push(o.art);
     expect(keys.length).toBeGreaterThan(25);
     for (const k of keys) expect(manifest.sprites[k], k).toBeTruthy();
@@ -55,8 +58,9 @@ describe('pet shop art', async () => {
     expect(Object.keys(PET_ICONS)).toHaveLength(13);
   });
 
-  it('the diary objects of the shop have their grids', () => {
-    for (const o of layout('petshop').filter((q) => q.id.startsWith('d_'))) expect(DIARY_ITEMS[o.art.replace('diary/', '')], o.id).toBeTruthy();
+  // a diary object is a small diary piece, or one of the shop's own props (the paw rug is the pata, the play-pen for sale the cercadinho)
+  it('the diary objects of the shop have their grids or are pet shop pieces', () => {
+    for (const o of layout('petshop').filter((q) => q.id.startsWith('d_'))) expect(o.art.startsWith('diary/') ? DIARY_ITEMS[o.art.replace('diary/', '')] : byKey.get(o.art), o.id).toBeTruthy();
   });
 
   it('nothing is magenta, soft (but the lit overlay) or empty', () => {

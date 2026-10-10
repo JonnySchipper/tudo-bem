@@ -9,6 +9,51 @@
   overflow-y: auto;
 }
 
+/* the shop's own awning along the top edge (sp-green and cream, like the facade's), over the panel's paper */
+html.px-ui .backdrop > .panel.petshop-panel,
+.backdrop > .panel.petshop-panel {
+  background:
+    linear-gradient(#1d3a31, #1d3a31) 0 17px / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, #2f5d50 0 16px, #f5e6d3 16px 32px) 0 0 / 100% 20px no-repeat,
+    repeating-linear-gradient(90deg, #2f5d50 0 8px, transparent 8px 16px, #f5e6d3 16px 24px, transparent 24px 32px) 0 20px / 100% 6px no-repeat,
+    var(--hud-paper, #fbf1e3);
+}
+
+/* the header: Seu Dito's portrait beside the title */
+.petshop-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 48px;
+}
+
+.petshop-portrait {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  background: #e3eee3;
+  box-shadow:
+    0 -2px 0 0 #2f5d50,
+    0 2px 0 0 #2f5d50,
+    -2px 0 0 0 #2f5d50,
+    2px 0 0 0 #2f5d50;
+}
+
+.petshop-portrait .px-portrait-img {
+  width: 64px !important;
+  height: 64px !important;
+}
+
+.backdrop > .panel.petshop-panel .petshop-head h2 {
+  color: #2f5d50;
+  margin: 0;
+}
+
+.backdrop > .panel.petshop-panel .petshop-head h2 + .en {
+  margin-bottom: 0;
+}
+
 .petshop-tabs {
   display: flex;
   gap: 6px;
@@ -21,10 +66,16 @@
   border-bottom: 3px solid transparent;
 }
 
-.petshop-tab.on {
+.backdrop > .panel .petshop-tab.on {
   background: #2f5d50;
   color: #f5e6d3;
   border-bottom-color: #d4a017;
+  box-shadow:
+    0 -2px 0 0 #1d3a31,
+    0 2px 0 0 #d4a017,
+    -2px 0 0 0 #1d3a31,
+    2px 0 0 0 #1d3a31,
+    inset 0 -3px 0 0 #24554e;
 }
 
 .petshop-tab.on .en {
@@ -37,6 +88,36 @@
   align-items: center;
   gap: 2px;
   cursor: pointer;
+  padding-top: 8px;
+}
+
+/* the animal on its pen's floor: wooden planks under a picket rail for the dogs, the sage cushion and mesh for the cats */
+.petshop-animal-pen {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+  margin-bottom: 4px;
+  background:
+    repeating-linear-gradient(90deg, #f8f8f8 0 6px, transparent 6px 10px) 0 0 / 100% 14px no-repeat,
+    linear-gradient(#c6bdd5, #c6bdd5) 0 14px / 100% 2px no-repeat,
+    repeating-linear-gradient(#f2bd7a 0 10px, #daa463 10px 12px);
+}
+
+.petshop-animal.cat .petshop-animal-pen {
+  background:
+    repeating-linear-gradient(45deg, #d8d0e0 0 2px, #a2a6be 2px 3px) 0 0 / 100% 14px no-repeat,
+    linear-gradient(#f8f8f8, #f8f8f8) 0 14px / 100% 2px no-repeat,
+    repeating-linear-gradient(45deg, #588278 0 6px, #689183 6px 7px);
+}
+
+.petshop-animal:hover .pet-canvas,
+.petshop-animal:focus-visible .pet-canvas {
+  transform: translateY(-3px);
+}
+
+.petshop-today .grid-items {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 
 .petshop-animal.br::after,
@@ -54,6 +135,7 @@
   position: absolute;
   top: 6px;
   left: 6px;
+  z-index: 1;
 }
 
 .petshop-animal {
@@ -63,6 +145,29 @@
 .pet-canvas {
   image-rendering: pixelated;
   display: block;
+}
+
+.petshop-catalog-group {
+  margin: 4px 0 10px;
+}
+
+.petshop-catalog-group h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 8px 0 2px;
+  padding: 4px 8px;
+  font-family: var(--font-pixel);
+  color: #f5e6d3;
+  background: #2f5d50;
+}
+
+.petshop-catalog-group h4 .en {
+  color: #e8d9be;
+}
+
+.petshop-catalog-group.cat h4 {
+  background: #46756a;
 }
 
 .petshop-breed {
@@ -88,21 +193,28 @@
   justify-content: flex-end;
 }
 
-.petshop-swatch {
-  width: 26px;
-  height: 26px;
-  min-height: 26px;
+/* a coat sample: a round of the coat colour with a light patch, in a navy ring (a ghost button, so the panel's square button skin stays off) */
+.backdrop > .panel.petshop-panel button.ghost.petshop-swatch {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
   padding: 0;
   border-radius: 50%;
   border: 2px solid #3a3a50;
-  background: var(--coat);
-  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.15);
+  background: radial-gradient(circle at 34% 32%, rgba(255, 255, 255, 0.55) 0 3px, transparent 4px), var(--coat);
+  box-shadow:
+    inset -3px -3px 0 rgba(0, 0, 0, 0.18),
+    0 2px 0 rgba(58, 58, 80, 0.25);
+  text-decoration: none;
   cursor: pointer;
 }
 
-.petshop-swatch:hover,
-.petshop-swatch:focus-visible {
-  transform: scale(1.12);
+.backdrop > .panel.petshop-panel button.ghost.petshop-swatch:hover,
+.backdrop > .panel.petshop-panel button.ghost.petshop-swatch:focus-visible {
+  transform: scale(1.15);
+  outline: 2px solid #d4a017;
+  outline-offset: 1px;
 }
 
 .petshop-gate {
@@ -134,14 +246,50 @@
   text-align: center;
 }
 
+/* the meet stage: the pen's back wall (mint over the sage wainscot, the mustard rail) and its floor */
 .petshop-stage {
   position: relative;
   display: flex;
   gap: 18px;
   justify-content: center;
-  padding: 14px 24px;
-  border-radius: 14px;
-  background: linear-gradient(#f5e6d3, #f5e6d3 70%, #e9d6bf 70%);
+  align-items: flex-end;
+  min-width: min(440px, 100%);
+  padding: 22px 28px 10px;
+  background:
+    linear-gradient(#e3eee3, #e3eee3) 0 0 / 100% 38% no-repeat,
+    linear-gradient(#d4a017, #d4a017) 0 38% / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, #a9c8b6 0 6px, #8fb3a0 6px 7px) 0 0 / 100% 62% no-repeat,
+    repeating-linear-gradient(#f2bd7a 0 12px, #daa463 12px 14px);
+  box-shadow:
+    0 -3px 0 0 #2f5d50,
+    0 3px 0 0 #2f5d50,
+    -3px 0 0 0 #2f5d50,
+    3px 0 0 0 #2f5d50;
+}
+
+.petshop-stage.cat {
+  background:
+    linear-gradient(#e3eee3, #e3eee3) 0 0 / 100% 38% no-repeat,
+    linear-gradient(#d4a017, #d4a017) 0 38% / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, #a9c8b6 0 6px, #8fb3a0 6px 7px) 0 0 / 100% 62% no-repeat,
+    repeating-linear-gradient(45deg, #588278 0 8px, #689183 8px 9px);
+}
+
+.petshop-meet h3 {
+  margin: 6px 0 0;
+  font-family: var(--font-pixel);
+  color: #2f5d50;
+}
+
+.petshop-says {
+  max-width: 520px;
+  padding: 8px 12px;
+  background: #fffdf8;
+  box-shadow:
+    0 -2px 0 0 #cdb792,
+    0 2px 0 0 #cdb792,
+    -2px 0 0 0 #cdb792,
+    2px 0 0 0 #cdb792;
 }
 
 .petshop-hearts {
@@ -200,14 +348,39 @@
   align-items: center;
   gap: 12px;
   padding: 8px 10px;
-  border-radius: 12px;
-  background: #fbf6ec;
+  background: #fffdf8;
   flex-wrap: wrap;
+  box-shadow:
+    0 -2px 0 0 #cdb792,
+    0 2px 0 0 #cdb792,
+    -2px 0 0 0 #cdb792,
+    2px 0 0 0 #cdb792,
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8);
 }
 
 .petshop-pet.active {
-  background: #e8f1ec;
-  outline: 2px solid #2f5d50;
+  background: #eef5ef;
+  box-shadow:
+    0 -3px 0 0 #2f5d50,
+    0 3px 0 0 #2f5d50,
+    -3px 0 0 0 #2f5d50,
+    3px 0 0 0 #2f5d50,
+    inset 0 -3px 0 0 #d5e6da;
+}
+
+/* the pet on a little round bed */
+.petshop-pet-pic {
+  flex: none;
+  display: grid;
+  place-items: end center;
+  width: 84px;
+  height: 70px;
+  padding-bottom: 4px;
+  background: radial-gradient(ellipse 36px 11px at 50% 84%, #f5e6d3 0 74%, #e07070 77% 96%, #3a3a50 97% 100%, transparent 101%);
+}
+
+.petshop-pet.cat .petshop-pet-pic {
+  background: radial-gradient(ellipse 36px 11px at 50% 84%, #f5e6d3 0 74%, #50a7e8 77% 96%, #3a3a50 97% 100%, transparent 101%);
 }
 
 .petshop-pet-info {
@@ -232,6 +405,17 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 2px 10px 2px 2px;
+  background: #e3eee3;
+  box-shadow:
+    0 -2px 0 0 #a9c8b6,
+    0 2px 0 0 #a9c8b6,
+    -2px 0 0 0 #a9c8b6,
+    2px 0 0 0 #a9c8b6;
+}
+
+.petshop-commands li b {
+  color: #2f5d50;
 }
 
 .petshop-empty,
@@ -239,7 +423,10 @@
   color: var(--ink-soft);
 }
 
-.petshop-shop .item-icon-box img.pixel {
+/* the 16 px lojinha icons at 3x (the stall kit sizes its pre-zoomed images to auto, which left these at 16 px) */
+.petshop-shop .stall-card .item-icon-box img.pixel {
+  width: 48px;
+  height: 48px;
   image-rendering: pixelated;
 }
 

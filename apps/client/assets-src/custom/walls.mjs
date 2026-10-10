@@ -12,6 +12,8 @@ export const STYLES = {
   praca: { face: '#e2d3b8', faceLo: '#d3c3a6', faceHi: '#eee2cc', cap: '#f2ece0', capLo: '#cfc4b2', trim: '#8f7a62', base: '#9c8b74', block: false },
   padaria: { face: '#f5e6d3', faceLo: '#e9d6bf', faceHi: '#fbf1e3', cap: '#fbf4ea', capLo: '#d8c5ae', trim: '#c45c26', base: '#a84a20', block: false },
   kitnet: { face: '#efe0c6', faceLo: '#e2d0b3', faceHi: '#f7ebd5', cap: '#f8f1e4', capLo: '#d5c5ab', trim: '#8b5e3c', base: '#8b5e3c', block: false },
+  // the pet shop (#234 visual pass): pale mint plaster over a sage beadboard wainscot, a mustard chair rail between (the shop's brand colours)
+  petshop: { face: '#e3eee3', faceLo: '#d4e3d6', faceHi: '#eff6ee', cap: '#f6f1e6', capLo: '#cfc6b2', trim: '#2f5d50', base: '#24554e', block: false, wain: '#a9c8b6', wainLo: '#8fb3a0', wainHi: '#c3dccd', rail: '#d4a017', railHi: '#f2b22b', railLo: '#a86f1e' },
   academia: { face: '#e9dcc4', faceLo: '#cfc3ac', faceHi: '#f3e9d5', cap: '#f2ece0', capLo: '#c3b8a4', trim: '#3f5b8a', base: '#33496f', block: true, paint: '#4a6a9c', paintLo: '#3c5883', paintHi: '#6486b8' },
 };
 
@@ -63,6 +65,18 @@ export function northTile(style, part) {
     fillRect(img, 0, 46, 16, 1, '#573c2c');
   } else if (style === 'padaria') {
     fillRect(img, 0, 46, 16, 1, s.base);
+  } else if (style === 'petshop') {
+    // beadboard wainscot (rows 29..44): a groove every 4 px, lit on its left edge; the mustard rail over it; a green skirting under it
+    for (let y = 29; y < 45; y++) for (let x = 0; x < 16; x++) {
+      const k = x % 4;
+      put(img, x, y, k === 3 ? s.wainLo : k === 0 ? s.wainHi : h2(x, y, 7) < 0.04 ? s.wainLo : s.wain);
+    }
+    fillRect(img, 0, 26, 16, 1, s.railHi);
+    fillRect(img, 0, 27, 16, 1, s.rail);
+    fillRect(img, 0, 28, 16, 1, s.railLo);
+    for (let x = 0; x < 16; x++) put(img, x, 29, mix(s.wain, NAVY, 0.25));
+    fillRect(img, 0, 45, 16, 2, s.base);
+    fillRect(img, 0, 45, 16, 1, s.trim);
   } else {
     fillRect(img, 0, 45, 16, 2, s.base);
   }
@@ -99,6 +113,7 @@ export function westTile(style, bottom) {
   fillRect(img, 15, 0, 1, 16, mix(sideFace, NAVY, 0.5));
   if (style === 'kitnet') { fillRect(img, 12, 0, 2, 16, s.trim); }
   if (style === 'academia') { fillRect(img, 8, 0, 6, 16, mix(s.paint, NAVY, 0.25)); }
+  if (style === 'petshop') { fillRect(img, 8, 0, 1, 16, s.rail); fillRect(img, 9, 0, 5, 16, mix(s.wain, NAVY, 0.2)); }
   for (let x = 16; x < 20; x++) for (let y = 0; y < 16; y++) setA(img, x, y, [26, 16, 48], SHADOW[x - 16]);
   if (bottom) {
     // the strip ends at the south edge: navy end cap
