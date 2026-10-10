@@ -1236,7 +1236,7 @@ export class WorldScene extends Phaser.Scene {
     const dyn: HitBox[] = [];
     this.syncFurniture(dyn);
     this.syncAvatars(def, now, dyn, dt);
-    this.syncResidents(def);
+    this.syncResidents(def, dyn);
     this.syncGlints(now);
     this.syncBout(dt, now);
     this.syncCounter(dt, now);
@@ -1911,10 +1911,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /**
-   * The pets nobody is walking (#234): the day's animals in the pet shop's pens, and the owner's pets resting in a kitnet. Not hit targets
-   * (the pen props under them take the click). Planned in residentPets.ts from the shared clock.
+   * The pets nobody is walking (#234): the day's animals in the pet shop's pens, and the owner's pets resting in a kitnet. The pen animals
+   * are not hit targets (the pen props under them take the click); a resting pet is (its owner gets the Levar card). Planned in
+   * residentPets.ts from the shared clock.
    */
-  private syncResidents(def: RoomDef): void {
+  private syncResidents(def: RoomDef, dyn: HitBox[]): void {
     const plan =
       def.id === 'petshop'
         ? penResidents(clock.day(), clock.now())
@@ -1936,6 +1937,7 @@ export class WorldScene extends Phaser.Scene {
       const anim = petAnimKey(tex, r.pose);
       if (this.anims.exists(anim) && spr.anims.currentAnim?.key !== anim) spr.play({ key: anim, startFrame: 0 });
       spr.setPosition(r.x, r.y).setFlipX(r.flip).setDepth(standingDepth(r.y, r.key));
+      if (r.homeId) dyn.push({ x0: r.x - 10, y0: r.y - 16, x1: r.x + 10, y1: r.y + 2, hit: { kind: 'homePet', petId: r.homeId, name: r.name ?? null }, depth: r.y + 0.4 });
     }
     for (const [k, spr] of this.residents) {
       if (seen.has(k)) continue;

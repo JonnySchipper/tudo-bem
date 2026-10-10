@@ -11,6 +11,8 @@ export type Hit =
   | { kind: 'portal'; portal: PortalDef }
   | { kind: 'seat'; tile: Tile }
   | { kind: 'furniture'; f: PlacedFurniture }
+  /** A pet resting in a kitnet (#234): its owner gets the Levar / Fechar card. */
+  | { kind: 'homePet'; petId: string; name: string | null }
   | { kind: 'tile'; tile: Tile };
 
 /** A tutorial arrow pointing at a tile. */

@@ -44,6 +44,9 @@ export function hitRank(h: Hit, isCpu: (id: string) => boolean): number {
       return 3;
     case 'seat':
       return 2;
+    // a resting pet lies on its bed: the pet beats the furniture under it
+    case 'homePet':
+      return 1.5;
     case 'furniture':
       return 1;
     default:

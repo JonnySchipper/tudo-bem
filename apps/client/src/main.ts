@@ -101,7 +101,7 @@ import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido
 import { openCredits } from './ui/credits';
 import { openSupport } from './ui/support';
 import { bindPetName, maybeAskPetName, openPetName, showPetNameError } from './ui/petName';
-import { bindPetShop, openPetShop, petAdopted } from './ui/petShop';
+import { bindPetShop, openHomePetCard, openPetShop, petAdopted } from './ui/petShop';
 import { bindAdmin, onAdminMsg } from './ui/admin';
 import { applyServerLayout } from './ui/layoutSync';
 import { dialogueBoxKey, dialogueBoxNpc, isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
@@ -1317,6 +1317,7 @@ function openSupportPanel() {
     setBubble: (style) => net.send({ t: 'perk', action: 'bubble', style }),
     renamePet: (pet) => openPetName(pet),
     openPets: () => void openPetShop('meus'),
+    takePet: (petId) => net.send({ t: 'pet', action: 'active', petId }),
   });
 }
 
@@ -1517,6 +1518,8 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       const d = furnitureById(hit.f.itemId);
       return d ? [d.pt, game.editMode ? `${d.en} — click to select` : d.en] : null;
     }
+    case 'homePet':
+      return [hit.name ?? 'Bichinho', game.isOwnKitnet ? 'Resting at home — click to take along' : 'Resting at home'];
     default:
       return null;
   }
@@ -1603,6 +1606,10 @@ function handleClickInner(hit: Hit | null) {
       walkTo(hit.tile, null, true);
       break;
     case 'furniture':
+      break;
+    case 'homePet':
+      // your own pet resting at home: "quer passear?" (a visitor's click just looks)
+      if (game.isOwnKitnet) openHomePetCard(hit.petId);
       break;
     case 'tile':
       walkToFloor(hit.tile);

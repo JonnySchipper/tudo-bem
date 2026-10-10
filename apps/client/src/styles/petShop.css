@@ -242,3 +242,27 @@
 .petshop-shop .item-icon-box img.pixel {
   image-rendering: pixelated;
 }
+
+/* the kitnet pet card: "{nome} quer passear?" */
+.backdrop > .panel.petshop-home-card {
+  width: min(340px, calc(100vw - 24px));
+  text-align: center;
+}
+
+.petshop-home-card canvas {
+  display: block;
+  margin: 6px auto 4px;
+  image-rendering: pixelated;
+}
+
+.petshop-home-actions {
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* the Apoiar panel's owned pets (#234) */
+.support-owned {
+  flex-wrap: wrap;
+  margin-top: 6px;
+}

@@ -4,7 +4,7 @@
  * the commands cheat sheet) and Lojinha (collars, toys, beds and food for earned RV). The rules are the server's; the view model is
  * petShopLogic.ts. needs_br: every Portuguese string.
  */
-import { PETSHOP_LINES, gameDay, hasPerkAccess, type PetLook, type PetSpecies } from '@tudobem/shared';
+import { PETSHOP_LINES, gameDay, hasPerkAccess, ownedPetLook, type PetLook, type PetSpecies } from '@tudobem/shared';
 import { fetchPublicConfig } from '../auth/config';
 import { clock } from '../gameClock';
 import { game } from '../state';
@@ -306,6 +306,35 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
     paint();
   });
   openModal('petshop', root, { onClose: () => off() });
+}
+
+/**
+ * The kitnet pet card: click a pet resting at home and it asks "{nome} quer passear?" with Levar / Fechar. Without a subscription the card
+ * says the pets stay home (Levar is not offered). needs_br.
+ */
+export function openHomePetCard(petId: string): void {
+  const p = game.profile;
+  const pet = p?.pets?.find((q) => q.id === petId);
+  if (!pet) return;
+  const access = hasPerkAccess(p?.subscription, Date.now());
+  const name = pet.name ?? 'Seu bichinho';
+  const enName = pet.name ?? 'Your pet';
+  const root = h(
+    'div',
+    { class: 'panel petshop-home-card', id: 'petshop-home-card', role: 'dialog', 'aria-labelledby': 'petshop-home-title' },
+    h('button', { class: 'close ghost', onclick: () => closeModal(), 'aria-label': 'Fechar (Close)' }, '✕'),
+    petCanvas(ownedPetLook(pet), { scale: 4, frames: [12, 13], fps: 2 }),
+    h('h2', { id: 'petshop-home-title' }, `${name} quer passear?`),
+    en(`Does ${enName} want a walk?`),
+    access ? null : h('p', { class: 'petshop-note' }, 'Seus pets estão em casa, na kitnet. Pra passear com eles, apoie a Vila de novo.', en('Your pets are at home in the kitnet. To walk them again, support the Vila again.', true)),
+    h(
+      'div',
+      { class: 'row petshop-home-actions' },
+      access ? h('button', { type: 'button', class: 'primary', id: 'petshop-home-take', onclick: () => (actions?.setActive(pet.id), closeModal()) }, bi('Levar', 'Take along')) : null,
+      h('button', { type: 'button', class: 'ghost', id: 'petshop-home-close', onclick: () => closeModal() }, bi('Fechar', 'Close')),
+    ),
+  );
+  openModal('petshop-home', root);
 }
 
 /** The adoption moment: Seu Dito's line, then the panel on Meus pets with the new pet out. */
