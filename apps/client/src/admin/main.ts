@@ -580,6 +580,14 @@ async function viewPlayer(id: string): Promise<Node[]> {
             h('dd', null, p.correria ? `${p.correria.shifts ?? 0} shifts, best ${p.correria.best ?? 0}` : '—'),
             h('dt', null, 'Feira medals'),
             h('dd', null, String(p.feiraMedals.length)),
+            h('dt', null, 'Pesca'),
+            h(
+              'dd',
+              null,
+              p.pesca
+                ? `${p.pesca.species} species · ${p.pesca.catches} caught in ${p.pesca.casts} casts${p.pesca.record ? ` · record ${p.pesca.record.fish} ${p.pesca.record.cm} cm` : ''} · bucket ${Object.values(p.pesca.balde as Record<string, number>).reduce((a, b) => a + b, 0)} · sold today ${p.pesca.salesToday.rv} RV · rentals ${Object.entries(p.pesca.rentals as Record<string, number>).map(([t, n]) => `${t} ${n}`).join(', ') || 'none'}${p.pesca.trip && p.pesca.trip.until > Date.now() ? ` · out on the ${p.pesca.trip.tier} boat` : ''} · party boat hosted ${p.pesca.party.hosted}, guest ${p.pesca.party.guested}`
+                : 'never fished',
+            ),
           ),
         ),
       ),
@@ -614,6 +622,7 @@ async function viewPlayer(id: string): Promise<Node[]> {
           h(
             'div',
             { class: 'row' },
+            p.pesca ? h('button', { onclick: () => confirm(`Clear ${p.name}’s fishing (log, bucket, rentals, trip)? Diary words and earned items stay.`) && act('player/reset-pesca', { id: pid }, 'Fishing reset.') }, 'Reset pesca') : null,
             h('button', { class: 'danger', onclick: () => confirmTyped('Reset progress', `Wipes RV, belt, diary, escola, purchases and tutorials for ${p.name}. Keeps the login, name, looks, friends, photos and subscription.`, p.name, (typed) => void act('player/reset-progress', { id: pid, confirm: typed }, 'Progress reset.')) }, 'Reset progress'),
             deleteButton(pid, a?.email ?? p.name),
           ),
@@ -822,11 +831,52 @@ async function viewWorld(): Promise<Node[]> {
   const overrides = new Map((d.layouts as Json[]).map((l) => [l.room, l.objects]));
   const cap = h('input', { type: 'number', min: '1', max: '16', value: String(d.roomCap.value), style: 'width:80px', 'aria-label': 'Room cap' }) as HTMLInputElement;
   const cart = d.feiraCart as Json;
+  const praia = d.praia as Json;
+  const counts = (o: Record<string, number>) =>
+    Object.entries(o)
+      .map(([k, n]) => `${k} ${n}`)
+      .join(', ') || 'none';
   return [
     h('h1', null, 'World & areas'),
     h(
       'div',
       { class: 'grid two' },
+      card(
+        'Praia',
+        h('p', { class: 'small muted' }, 'Open: everyone. Preview: subscribers’ early access only (learning stays free once it opens). Closed: the map shows “Em breve” and everyone on the beach rides the bus back. The party boat switch brings every trip back to the pier when it goes off.'),
+        h(
+          'div',
+          { class: 'row' },
+          h('b', null, 'Mode '),
+          ...['open', 'preview', 'closed'].map((m) => h('button', { disabled: praia.mode === m, class: praia.mode === m ? 'primary' : '', onclick: () => act('praia/mode', { mode: m }, `Praia: ${m}.`) }, m)),
+        ),
+        h(
+          'div',
+          { class: 'row' },
+          h('b', null, 'Party boat '),
+          pill(praia.partyBoat ? 'on' : 'off', praia.partyBoat ? 'good' : ''),
+          h('button', { onclick: () => act('praia/mode', { partyBoat: !praia.partyBoat }, `Party boat ${praia.partyBoat ? 'off' : 'on'}.`) }, praia.partyBoat ? 'Switch off' : 'Switch on'),
+        ),
+        h(
+          'dl',
+          { class: 'kv' },
+          h('dt', null, 'On the beach now'),
+          h('dd', null, String(praia.onBeach)),
+          h('dt', null, 'Boats out now'),
+          h('dd', null, counts(praia.tripsNow)),
+          h('dt', null, 'Aboard party boats'),
+          h('dd', null, String(praia.aboardParty)),
+          h('dt', null, `Rentals today (${praia.today.day})`),
+          h('dd', null, counts(praia.today.rentals)),
+          h('dt', null, 'Catches today'),
+          h('dd', null, counts(praia.today.catches)),
+          h('dt', null, 'RV paid by Jô today'),
+          h('dd', null, String(praia.today.soldRv)),
+          h('dt', null, 'Bottles found today'),
+          h('dd', null, String(praia.today.bottles)),
+        ),
+        h('p', { class: 'small muted' }, 'Prices, the sale cap and the trip lengths are game variables (the Praia group). Today’s numbers live in server memory and restart with it.'),
+      ),
       card(
         'Feira carts',
         h('p', { class: 'small muted' }, `Carts ship off. Today (${cart.day}): ${cart.featured ? `${cart.featured} is open` : 'every cart is closed'}.`),

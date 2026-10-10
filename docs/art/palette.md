@@ -15,6 +15,8 @@ São Paulo warmth — concrete, terracotta, trees, padaria amber. Not Habbo cand
 | mural-coral | `#E07A5F` | One mural accent wall (Praça) |
 | glass-cool | `#C5D5DE` | Padaria display case |
 | wood-warm | `#8B5E3C` | Counter, chairs, kitnet floor trim |
+| sea-teal | `#3FA9A0` | Praia: the sea, the Praia chapter of the Diário, the party boat pill |
+| sand | `#EBD9A8` | Praia: the sand terrain and the beach details |
 
 ## Lighting
 - Praça: soft late-afternoon (slight warm key from left)

@@ -36,6 +36,8 @@ export interface BarcoDeps {
   dropCast(s: PescaSession): void;
   /** the live session of a profile (the scheduled end may fire after a reconnect) */
   sessionOf(profileId: string): PescaSession | undefined;
+  /** a boat went out (the dashboard's day counts) */
+  onRent?(tier: BoatTier): void;
 }
 
 const SHACK_RANGE = 2;
@@ -108,6 +110,7 @@ export class BarcoEngine {
     const until = now + this.d.tripMs();
     pr.trip = { tier, startedAt: now, until };
     pr.rentals[tier] = (pr.rentals[tier] ?? 0) + 1;
+    this.d.onRent?.(tier);
     this.d.save(p);
     this.d.pushProfile(s);
     s.send({ t: 'notice', level: 'reward', pt: `Seu Bento: “${BENTO_LINES.rented.pt}”`, en: `Mr. Bento: “${BENTO_LINES.rented.en}”` });

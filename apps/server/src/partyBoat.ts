@@ -60,6 +60,8 @@ export interface PartyDeps {
   minute(): number;
   /** a hat was put on: tell the room */
   avatarChanged(s: PartySession): void;
+  /** a trip set sail (the dashboard counts them) */
+  onTrip?(): void;
 }
 
 interface Member {
@@ -97,19 +99,16 @@ const SUNSET_TO = 18 * 60 + 30;
 const NOT_YOURS: Bilingual = { pt: 'Esse barco é de outra turma.', en: 'That boat belongs to another group.' };
 const FULL: Bilingual = { pt: 'O barco está lotado!', en: 'The boat is full!' };
 
-/** Today's stats for the dashboard's Praia card (server memory, reset with the process). */
+/** The live trips for the dashboard's Praia card. */
 export interface PartyStats {
   active: number;
   aboard: number;
-  tripsToday: number;
-  bottlesToday: number;
 }
 
 export class PartyBoats {
   readonly byHost = new Map<string, PartyTrip>();
   readonly byMember = new Map<string, PartyTrip>();
   readonly byId = new Map<string, PartyTrip>();
-  private tripsToday = { day: '', n: 0, bottles: 0 };
 
   constructor(private readonly d: PartyDeps) {}
 
@@ -155,21 +154,9 @@ export class PartyBoats {
   }
 
   stats(): PartyStats {
-    this.rollDay();
     let aboard = 0;
     for (const t of this.byId.values()) aboard += t.members.size;
-    return { active: this.byId.size, aboard, tripsToday: this.tripsToday.n, bottlesToday: this.tripsToday.bottles };
-  }
-
-  /** A message in a bottle came up on a deck (the dashboard counts them). */
-  countBottle() {
-    this.rollDay();
-    this.tripsToday.bottles++;
-  }
-
-  private rollDay() {
-    const day = new Date(this.d.now()).toISOString().slice(0, 10);
-    if (this.tripsToday.day !== day) this.tripsToday = { day, n: 0, bottles: 0 };
+    return { active: this.byId.size, aboard };
   }
 
   // ---------------------------------------------------------------- create, invite, accept
@@ -212,8 +199,7 @@ export class PartyBoats {
     pr.party.hosted++;
     this.d.save(p.id);
     this.d.pushProfile(s);
-    this.rollDay();
-    this.tripsToday.n++;
+    this.d.onTrip?.();
     s.send({ t: 'notice', level: 'reward', pt: 'Seu Bento: “Tá alugado. Volta antes da maré virar!”', en: 'Mr. Bento: “It’s rented. Be back before the tide turns!”' });
     this.share(trip, [p.id], ['host_board']);
     this.pushState(trip);

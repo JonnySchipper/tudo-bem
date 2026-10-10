@@ -184,6 +184,7 @@ import { PraiaStore, memoryPraia } from './praiaStore.js';
 import { PescaEngine, type PescaCastRun } from './pesca.js';
 import { BarcoEngine } from './barco.js';
 import { PartyBoats } from './partyBoat.js';
+import { PraiaStats, type PraiaAdminView } from './praiaStats.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
@@ -414,6 +415,8 @@ export class World {
   private readonly barco: BarcoEngine;
   /** The party boat's trips (partyBoat.ts). */
   readonly parties: PartyBoats;
+  /** Today's beach numbers for the dashboard (praiaStats.ts). */
+  private readonly praiaStats = new PraiaStats(() => todaySaoPaulo());
   private readonly githubToken?: string;
   private readonly githubFetch?: typeof fetch;
 
@@ -539,7 +542,9 @@ export class World {
       pinned: opts.pescaPin ?? readEnv('TB_TEST_PESCA') === '1',
       aboardParty: (s) => this.aboardParty(s as Session),
       onPartyCatch: (s, fish) => this.parties.onCatch(s as Session, fish),
-      onBottle: () => this.parties.countBottle(),
+      onBottle: () => this.praiaStats.bottle(),
+      onCaught: (fish) => this.praiaStats.caught(fish),
+      onSold: (rv) => this.praiaStats.sold(rv),
     });
     this.barco = new BarcoEngine({
       now: () => this.now(),
@@ -554,6 +559,7 @@ export class World {
       partyBoat: () => this.praia.config().partyBoat,
       dropCast: (s) => this.pescaEngine.dropCast(s),
       sessionOf: (id) => this.sessionByProfile(id),
+      onRent: (tier) => this.praiaStats.rented(tier),
     });
     const pescaPinned = opts.pescaPin ?? readEnv('TB_TEST_PESCA') === '1';
     this.parties = new PartyBoats({
@@ -586,6 +592,7 @@ export class World {
       companyMs: () => (pescaPinned ? 5_000 : 5 * 60_000),
       minute: () => gameMinutes(this.clockNow()),
       avatarChanged: (s) => this.broadcastAvatar(s as Session),
+      onTrip: () => this.praiaStats.rented('festa'),
     });
     this.escola = new EscolaTracker({
       store,
@@ -1729,6 +1736,23 @@ export class World {
     return this.parties.aboard(s);
   }
 
+  /** The dashboard's Praia card (PRAIA-PLAN.md 8.5). */
+  praiaAdminView(): PraiaAdminView {
+    const cfg = this.praia.config();
+    const t = this.now();
+    const tripsNow: PraiaAdminView['tripsNow'] = {};
+    let onBeach = 0;
+    for (const s of this.sessions.values()) {
+      if (!s.profile) continue;
+      if (s.instance?.def.id === 'praia') onBeach++;
+      const trip = s.profile.pesca?.trip;
+      if (trip && trip.until > t) tripsNow[trip.tier] = (tripsNow[trip.tier] ?? 0) + 1;
+    }
+    const party = this.parties.stats();
+    if (party.active) tripsNow.festa = party.active;
+    return { mode: cfg.mode, partyBoat: cfg.partyBoat, onBeach, aboardParty: party.aboard, tripsNow, today: this.praiaStats.view() };
+  }
+
   /** May this session's player be on the beach now (open, or preview with a subscriber's early access)? */
   private praiaOpenFor(s: Session): boolean {
     return praiaAllows(this.praia.config(), s.profile?.subscription, this.now());
@@ -1863,6 +1887,8 @@ export class World {
       dropAccount: (accountId) => this.dropAccount(accountId),
       forgetAccount: (accountId, profileId) => this.forgetAccount(accountId, profileId),
       classify: (text, nameplate) => this.services.safety.classify(text, { playerId: 'admin', room: '-', nameplate, recent: [] }),
+      praiaView: () => this.praiaAdminView(),
+      setPraia: (patch) => this.setPraia(patch),
       feiraCartView: () => this.feiraGames.cartView(),
       setFeiraCart: (game, mode) => {
         if (!this.feiraGames.setCartMode(game, mode)) return false;

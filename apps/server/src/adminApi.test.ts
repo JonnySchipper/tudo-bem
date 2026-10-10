@@ -376,6 +376,33 @@ describe('admin dashboard API (/api/admin/*)', () => {
     expect((await write('world/layout-reset', { room: 'lua' })).status).toBe(400);
   });
 
+  it('the Praia card: reads the switch and today’s numbers, changes the mode (audited, broadcast) and the party boat', async () => {
+    await start();
+    const { write, get } = await signIn();
+    const ana = await player('Ana');
+    const v = (await get('praia')).body.praia;
+    expect(v).toMatchObject({ mode: 'open', partyBoat: true, onBeach: 0, aboardParty: 0, tripsNow: {} });
+    expect(v.today).toMatchObject({ rentals: {}, catches: {}, soldRv: 0, bottles: 0 });
+    expect((await write('praia/mode', { mode: 'lua' })).status).toBe(400);
+    expect((await write('praia/mode', {})).status).toBe(400);
+    const r = await write('praia/mode', { mode: 'closed', partyBoat: false });
+    expect(r.status).toBe(200);
+    expect(r.body.praia).toMatchObject({ mode: 'closed', partyBoat: false });
+    expect(lastAudit()).toMatchObject({ action: 'world.praia', before: { mode: 'open', partyBoat: true }, after: { mode: 'closed', partyBoat: false } });
+    await ana.c.waitFor('praia', (m) => m.mode === 'closed' && !m.allowed && !m.partyBoat);
+    expect((await get('world')).body.praia.mode).toBe('closed');
+    await write('praia/mode', { mode: 'open', partyBoat: true });
+    await ana.c.waitFor('praia', (m) => m.mode === 'open' && m.allowed);
+    // the player page's fishing summary, and the audited support reset
+    const p = app!.store.get(ana.id)!;
+    p.pesca = { casts: 3, catches: 2, log: { bagre: { n: 2, bestCm: 41, firstAt: 1, firstWater: 'praia' } }, balde: { bagre: 2 }, rentals: {}, trip: null, sales: { date: '', rv: 0 }, coached: [], party: { hosted: 0, guested: 0 } };
+    expect((await get(`player?id=${ana.id}`)).body.profile.pesca).toMatchObject({ casts: 3, catches: 2, species: 1, record: { fish: 'bagre', cm: 41 } });
+    expect((await write('player/reset-pesca', { id: ana.id })).status).toBe(200);
+    expect(app!.store.get(ana.id)!.pesca).toBeUndefined();
+    expect(lastAudit()).toMatchObject({ action: 'player.reset-pesca', target: ana.id });
+    ana.c.ws.close();
+  });
+
   it('edits game variables in range, applies them live, keeps them across a restart, and resets to default', async () => {
     await start();
     const { write, get } = await signIn();

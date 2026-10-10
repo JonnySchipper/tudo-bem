@@ -79,6 +79,9 @@ export interface PescaDeps {
   onPartyCatch?(s: PescaSession, fish: FishId): void;
   /** A message in a bottle came up (the dashboard counts them). */
   onBottle?(): void;
+  /** A fish landed / Jô paid: the dashboard's day counts. */
+  onCaught?(fish: FishId): void;
+  onSold?(rv: number): void;
 }
 
 /** Earned kitnet furniture: a first garoupa, a first dourado, the party boat's bottle (PRAIA-PLAN.md 7.3, 5.5). */
@@ -232,6 +235,7 @@ export class PescaEngine {
       const furniture = FIRST_CATCH_FURNITURE[f];
       if (newSpecies && furniture) this.giveFurniture(p, furniture);
       if (water === 'festa') this.d.onPartyCatch?.(s, f);
+      this.d.onCaught?.(f);
     }
     if (outcome.kind === 'rejected') console.warn(`[pesca] rejected result from ${p.id}: ${outcome.reason ?? '?'}`);
     this.d.save(p);
@@ -320,6 +324,7 @@ export class PescaEngine {
     }
     if (rv <= 0) return this.d.err(s, 'pesca_cap', JO_SELL.cap.pt, JO_SELL.cap.en);
     pr.sales.rv += rv;
+    this.d.onSold?.(rv);
     this.d.save(p);
     this.d.reward(s, rv, { pt: 'Peixe vendido pra Jô', en: 'Fish sold to Jô' });
     s.send({ t: 'pesca', phase: 'sold', rv, coins: p.coins, fish: this.trayRows(p), capLeft: this.capLeft(p) });
