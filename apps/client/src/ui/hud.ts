@@ -34,7 +34,7 @@ import { openAccount } from './account';
 import { tierIcon, tierName } from './plate';
 import { wireHudNote } from './hudNotes';
 import { CARTELA_RULE } from './hudNotesData';
-import { hudShows } from './disclosure';
+import { atLeast, hudShows, stage } from './disclosure';
 import { chatChips, chatChipsShown } from './chatChips';
 import { clock } from '../gameClock';
 import { showSupportButton } from './supportGate';
@@ -104,6 +104,9 @@ export function holdCartelaChip(stamps: number, ms: number) {
   }, ms);
 }
 
+/** How many toasts stack at once: 2 before the regular stage (S3), then 3. */
+export const toastStackMax = (): number => (game.profile && atLeast(stage(game.profile), 'S3') ? 3 : 2);
+
 export function toast(level: NoticeLevel, pt: string, enText?: string, amount?: number) {
   const el = h(
     'div',
@@ -113,7 +116,8 @@ export function toast(level: NoticeLevel, pt: string, enText?: string, amount?: 
     enText ? en(enText) : null,
   );
   toastsEl.append(el);
-  while (toastsEl.children.length > 3) toastsEl.firstElementChild?.remove();
+  // a newcomer's stack is two deep (the oldest makes way); a regular's three
+  while (toastsEl.children.length > toastStackMax()) toastsEl.firstElementChild?.remove();
   placeHud();
   setTimeout(() => {
     el.remove();

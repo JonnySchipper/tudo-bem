@@ -2678,9 +2678,8 @@ export class World {
       if (result === 'unknown') return;
       if (result === 'coins') return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
       if (result === 'equipped') return this.equipParrotColor(s, itemId);
-      const color = parrotColorById(itemId)!;
       this.store.save(p.id);
-      s.send({ t: 'notice', level: 'reward', pt: `${color.pt} no ombro!`, en: `${color.en} on your shoulder!` });
+      // no notice: the perch's card stamps the new bird and says where it sits (one signal per purchase)
       this.pushProfile(s);
       this.broadcastAvatar(s);
       return;
@@ -2697,8 +2696,7 @@ export class World {
       p.coins -= hat.price;
       p.hats.push(hat.id);
       this.store.save(p.id);
-      const seller = praiaRack ? 'Jô' : 'Nanda';
-      s.send({ t: 'notice', level: 'reward', pt: `${seller}: “${hat.pt}? Fica bem em você!”`, en: `${seller}: “${hat.en}? Looks good on you!”` });
+      // no notice: the stall's card stamps the hat and the seller's line already says it fits (one signal per purchase)
       this.pushProfile(s);
       return this.equipHat(s, hat.id);
     }

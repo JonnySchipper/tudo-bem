@@ -39,6 +39,13 @@ export const CARD_MS = { last: 3400, more: 2000, many: 1400 } as const;
 export const LONG_RUN = 5;
 export const cardMs = (w: { index: number; total: number }): number => (w.index >= w.total ? CARD_MS.last : w.total > LONG_RUN ? CARD_MS.many : CARD_MS.more);
 
+/**
+ * The full "Nova palavra!" card is for the first few words of a session; after that a new word flies into the Diário on its own (the
+ * small word flight) and the Diário's badge counts it. A photo's word bursting out of its print and the journal reveal are not cards.
+ */
+export const FULL_CARDS_PER_SESSION = 3;
+export const wantsFullCard = (shown: number): boolean => shown < FULL_CARDS_PER_SESSION;
+
 /** The cards of one shot (or of one word that came alone), in the order the server sent them. */
 export function momentsOfShot<P>(words: readonly WordMoment[], print?: P): QueuedWord<P>[] {
   return words.map((w, i) => ({ ...w, index: i + 1, total: words.length, ...(print ? { shot: print } : {}), ...(i === words.length - 1 && print ? { print } : {}) }));

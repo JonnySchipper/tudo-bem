@@ -5,10 +5,12 @@ import {
   advancedKeys,
   bagView,
   dayProgress,
+  dayStarsShown,
   finishedRecados,
   giveOptions,
   heartUps,
   heartsView,
+  journalSections,
   journalView,
   npcMarkers,
   offerFrom,
@@ -16,6 +18,7 @@ import {
   trackerEntries,
   tutorialAdvanced,
   tutorialPending,
+  withheldView,
   type RecadoBoard,
 } from './recadoView';
 
@@ -30,28 +33,38 @@ const active = (id: string, step = 0): RecadoActiveView => {
 const board = (over: Partial<RecadoBoard> = {}): RecadoBoard => ({ day: 1, offered: [], active: [], done: [], ...over });
 
 describe('tracker view-model', () => {
-  it('starts with Júlia’s welcome chain and its next step, then the active recados, max 3 lines', () => {
-    const e = trackerEntries(board({ active: [active('carlos_cafe_pra_nanda'), active('nanda_coxinha'), active('julia_cumprimento_certo')] }), profile({ tutorial: tut(2) }));
-    expect(e).toHaveLength(TRACKER_MAX);
-    expect(e[0]).toMatchObject({ kind: 'tutorial', giver: 'julia', progress: '2/3' });
+  it('while Júlia’s welcome chain lasts it is one row: the chain’s next step, or the errand in hand', () => {
+    const p = profile({ tutorial: tut(2) });
+    const offerOf = (id: string) => ({ id, giver: recadoById(id)!.giver, title: recadoById(id)!.title, ask: recadoById(id)!.ask, reward: recadoById(id)!.reward });
+    const e = trackerEntries(board({ offered: [offerOf('nanda_coxinha')] }), p, undefined, true);
+    expect(e).toHaveLength(1);
+    expect(e[0]).toMatchObject({ kind: 'tutorial', giver: 'julia' });
     expect(e[0]!.title.pt).toBe('Bem-vindo à Vila Ipê');
     expect(e[0]!.step.pt).toBe(TUTORIAL_STEPS[2]!.pt);
-    expect(e.slice(1).map((x) => x.key)).toEqual(['carlos_cafe_pra_nanda', 'nanda_coxinha']);
+    const busy = trackerEntries(board({ active: [active('carlos_cafe_pra_nanda'), active('nanda_coxinha')], offered: [offerOf('julia_cumprimento_certo')] }), p, undefined, true);
+    expect(busy.map((x) => x.key)).toEqual(['carlos_cafe_pra_nanda']);
+  });
+
+  it('lists up to 3 active recados once the chain is done', () => {
+    const done = profile({ tutorial: tut(8), tutorialRewarded: true });
+    const e = trackerEntries(board({ active: [active('carlos_cafe_pra_nanda'), active('nanda_coxinha'), active('julia_cumprimento_certo')] }), done, undefined, true);
+    expect(e).toHaveLength(TRACKER_MAX);
+    expect(e.map((x) => x.key)).toEqual(['carlos_cafe_pra_nanda', 'nanda_coxinha', 'julia_cumprimento_certo']);
   });
 
   it('shows only recados once the welcome chain is finished and paid', () => {
     const done = profile({ tutorial: tut(3), tutorialRewarded: true });
     expect(tutorialPending(done)).toBe(false);
-    const e = trackerEntries(board({ active: [active('carlos_manha_de_entregas', 2)] }), done);
+    const e = trackerEntries(board({ active: [active('carlos_manha_de_entregas', 2)] }), done, undefined, true);
     expect(e).toHaveLength(1);
     expect(e[0]).toMatchObject({ kind: 'recado', progress: '3/4', step: { pt: 'passo 2' } });
-    expect(trackerEntries(board(), done)).toEqual([]);
+    expect(trackerEntries(board(), done, undefined, true)).toEqual([]);
     // all steps done but the bonus not paid yet: the chain stays (one last line)
     expect(tutorialPending(profile({ tutorial: tut(3), tutorialRewarded: false }))).toBe(true);
   });
 
   it('is empty without a profile or board', () => {
-    expect(trackerEntries(null, null)).toEqual([]);
+    expect(trackerEntries(null, null, undefined, true)).toEqual([]);
   });
 });
 
@@ -142,32 +155,37 @@ describe('errands you can see before talking to anyone', () => {
 
   it('lists today’s offers in the tracker after the active ones, with where the giver is', () => {
     const b = board({ active: [active('carlos_cafe_pra_nanda', 1)], offered: [offerOf('nanda_coxinha'), offerOf('julia_cumprimento_certo'), offerOf('graca_pao_pra_julia')] });
-    const e = trackerEntries(b, done, 10 * 60);
+    const e = trackerEntries(b, done, 10 * 60, true);
     expect(e.map((x) => x.kind)).toEqual(['recado', 'offer', 'offer']);
     expect(e[0]!.where?.pt).toBe('Praça Central');
     expect(e[1]).toMatchObject({ key: 'offer:nanda_coxinha', giver: 'nanda', progress: '!' });
     expect(e[1]!.step.pt).toBe('Nanda quer te pedir um favor!');
     expect(e[1]!.where?.pt).toBe('Praça Central');
     // no minute: no where-line
-    expect(trackerEntries(b, done)[1]!.where).toBeNull();
+    expect(trackerEntries(b, done, undefined, true)[1]!.where).toBeNull();
+    // before Júlia has been met: no offers in the tracker, no "!" over anyone (the "?" of a step stays)
+    expect(trackerEntries(b, done, 10 * 60, false).map((x) => x.kind)).toEqual(['recado']);
+    const m = npcMarkers(b, new Set(), false);
+    expect([...m.values()]).toEqual(['step']);
+    expect(m.get('nanda')).toBe('step');
   });
 
   it('shows no offers once three errands are active (nothing could be accepted)', () => {
     const b = board({ active: [active('carlos_cafe_pra_nanda'), active('nanda_coxinha'), active('julia_cumprimento_certo')], offered: [offerOf('nanda_um_oi_pro_carlos')] });
-    expect(trackerEntries(b, done).every((x) => x.kind === 'recado')).toBe(true);
-    expect(npcMarkers(b).get('nanda')).toBeUndefined();
+    expect(trackerEntries(b, done, undefined, true).every((x) => x.kind === 'recado')).toBe(true);
+    expect(npcMarkers(b, new Set(), true).get('nanda')).toBeUndefined();
   });
 
   it('marks givers with "!" and the current step’s NPC with "?" (the step wins; Dona Graça stands in at the counter)', () => {
     const b = board({ active: [active('nanda_coxinha', 0)], offered: [offerOf('carlos_cafe_pra_nanda'), offerOf('julia_cumprimento_certo')] });
-    const m = npcMarkers(b);
+    const m = npcMarkers(b, new Set(), true);
     expect(m.get('julia')).toBe('offer');
     expect(m.get('carlos')).toBe('step');
     expect(m.get('graca')).toBe('step');
-    expect(npcMarkers(board({ active: [active('nanda_coxinha', 1)] })).get('nanda')).toBe('step');
+    expect(npcMarkers(board({ active: [active('nanda_coxinha', 1)] }), new Set(), true).get('nanda')).toBe('step');
     // turned down this session: no "!"
-    expect(npcMarkers(b, new Set(['julia_cumprimento_certo'])).has('julia')).toBe(false);
-    expect(npcMarkers(null).size).toBe(0);
+    expect(npcMarkers(b, new Set(['julia_cumprimento_certo']), true).has('julia')).toBe(false);
+    expect(npcMarkers(null, new Set(), true).size).toBe(0);
   });
 
   it('focuses the arrows on the first active errand’s current step', () => {
@@ -180,5 +198,49 @@ describe('errands you can see before talking to anyone', () => {
   it('counts the day toward the Vizinho do dia bonus', () => {
     expect(dayProgress(board({ done: ['a'] }))).toMatchObject({ done: 1, goal: 3, paid: false });
     expect(dayProgress(board({ done: ['a', 'b', 'c', 'd'], bonus: true }))).toMatchObject({ done: 3, paid: true });
+  });
+
+  it('shows the day’s stars to a regular with a recado done today', () => {
+    expect(dayStarsShown('S3', board({ done: ['a'] }))).toBe(true);
+    expect(dayStarsShown('S3', board())).toBe(false);
+    expect(dayStarsShown('S2', board({ done: ['a'] }))).toBe(false);
+    expect(dayStarsShown('S3', null)).toBe(false);
+  });
+});
+
+describe('Favores panel sections', () => {
+  const offerOf = (id: string) => {
+    const d = recadoById(id)!;
+    return { id, giver: d.giver, title: d.title, ask: d.ask, reward: d.reward };
+  };
+
+  it('a newcomer sees today’s favors and the welcome chain, nothing else', () => {
+    const j = journalView(board({ offered: [offerOf('carlos_cafe_pra_nanda'), offerOf('nanda_coxinha')] }), profile({ tutorial: tut(1) }));
+    const s = journalSections(j, 'S1');
+    expect(s).toEqual({ day: false, active: false, today: true, withheld: false, welcome: true, bag: false, friends: false });
+  });
+
+  it('each part waits for something to show: Mochila a bag item, Amizades a heart, the banner a regular; Bem-vindo goes when the chain is done', () => {
+    const p = profile({ tutorial: tut(8), tutorialRewarded: true, bag: { cafe_com_leite: 1 }, bond: { nanda: 10 } });
+    const j = journalView(board({ active: [active('nanda_coxinha')] }), p);
+    expect(journalSections(j, 'S2')).toMatchObject({ day: false, active: true, welcome: false, bag: true, friends: true });
+    expect(journalSections(j, 'S3').day).toBe(true);
+    const nine = journalView(board(), profile({ bond: { nanda: 9 } }));
+    expect(journalSections(nine, 'S2')).toMatchObject({ bag: false, friends: false, active: false });
+  });
+
+  it('greys one held-back recado per giver (the nearest to unlock), for a resident, givers on today’s list left out', () => {
+    const w = withheldView(board(), {});
+    const givers = w.map((x) => x.giver);
+    expect(new Set(givers).size).toBe(givers.length);
+    expect(givers).toContain('carlos');
+    expect(w.find((x) => x.giver === 'carlos')).toMatchObject({ id: 'carlos_agua_pra_julia', name: 'Seu Carlos' });
+    // a giver with an offer today already has something to say
+    expect(withheldView(board({ offered: [offerOf('carlos_cafe_pra_nanda')] }), {}).some((x) => x.giver === 'carlos')).toBe(false);
+    // enough friendship: not held back any more
+    expect(withheldView(board(), { carlos: 100 }).some((x) => x.giver === 'carlos')).toBe(false);
+    const j = journalView(board(), profile());
+    expect(journalSections(j, 'S1')).toMatchObject({ withheld: false, today: false });
+    expect(journalSections(j, 'S2')).toMatchObject({ withheld: true, today: true });
   });
 });

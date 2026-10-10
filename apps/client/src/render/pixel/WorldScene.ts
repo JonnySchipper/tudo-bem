@@ -83,6 +83,7 @@ import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import type { GlintCompass } from './glintCompass';
 import { doorTagsFor, doorsFresh, type DoorTag } from '../../ui/wayfinding';
 import { declinedOffers, npcMarkers } from '../../ui/recadoView';
+import { profileMetJulia } from '../../ui/juliaMet';
 import { T, cssZoomFor, deviceZoomFor, feet, leadNorthFor, outdoorFraming, roomFraming, roomZoom, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 
 /** Door tags per room definition (they never change while the room is up). */
@@ -2575,8 +2576,8 @@ export class WorldScene extends Phaser.Scene {
         stacks.push({ key: 'feira:closed', x: p.px, y: p.py, plate: { text: 'Feira fechada · volta às 6h', gloss: 'Market closed · back at 6 am', kind: 'npc' }, bubbles: [] });
       }
     }
-    // recado markers: "!" over a neighbour with an errand for you, "?" over the one your current step is with
-    const markers = npcMarkers(game.board, declinedOffers);
+    // recado markers: "!" over a neighbour with an errand for you (once Júlia has been met), "?" over the one your current step is with
+    const markers = npcMarkers(game.board, declinedOffers, profileMetJulia());
     for (const [id, v] of this.avatars) {
       const a = game.avatars.get(id);
       if (!a) continue;

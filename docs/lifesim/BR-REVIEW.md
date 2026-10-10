@@ -37,6 +37,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [Z. Chat hints](#z-chat-hints) (2)
 - [AA. Tatame staging](#aa-tatame-staging) (2)
 - [AB. Tapioca practice](#ab-tapioca-practice) (4)
+- [AC. Favores panel](#ac-favores-panel) (1)
 - [AD. Favores step copy](#ad-favores-step-copy) (33)
 
 ## A. Time of day, weekdays and weather
@@ -913,6 +914,17 @@ one of those words is already on the stage (pan labels, the bowls, the lixeira).
 | 649 | Treino · Pular ▶ · Começar ▶ · De novo · Boa! 🎉 Agora é pra valer. | Practice · Skip · Start · Again · Nice! Now for real. | `feiraStage.ts` HUD, `feiraTapiocaPractice.ts` | Correria's practice words (Começar o turno ▶ shortened to Começar ▶) | |
 | 650 | ●●● na fila | (the line of people) | `feiraStage.ts` queue chip | dots instead of a number, no digits on the stage | |
 
+## AC. Favores panel
+
+<a id="ac-favores-panel"></a>
+A recado the giver holds back until the friendship grows (`minBond`) is shown greyed under "Hoje na vila" with who to talk to
+(SIMPLIFICATION-REVIEW D4, `apps/client/src/ui/recados.ts`, `recadoView.ts` `withheldView`). Panel text, read on screen, never spoken
+(no TTS). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 651 | Fale mais com {nome} | Talk more with {nome} | `apps/client/src/ui/recados.ts` Hoje na vila | `{nome}` is the giver with the article the game uses (Seu Carlos, Dona Graça, Nanda) | |
+
 ## AD. Favores step copy
 
 <a id="ad-favores-step-copy"></a>
@@ -956,4 +968,4 @@ The step line of a favor, as a plain sentence (E4, `describeStep` in `packages/s
 
 ## Totals
 
-650 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z, AA and AB, plus 33 in section AD (numbered 661 to 693; 651 to 660 are held for section AC), plus 9 proposed-card entries.
+651 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z, AA, AB and AC, plus 33 in section AD (numbered 661 to 693; 652 to 660 are held for AC), plus 9 proposed-card entries.

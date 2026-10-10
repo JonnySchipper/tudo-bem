@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Phase 8a review screenshots + a full recado walk-through: the welcome tracker (Júlia's chain), the offer in Seu Carlos' dialogue, the tracker
- * mid-recado, the journal (with the Mochila), the "Entregar" chip, the thanks card and the heart-up toast, at desktop and phone size.
+ * mid-recado, the journal (with the Mochila once the bag has something), the "Entregar" chip and the thanks card, at desktop and phone size.
  *
  *   TB_TEST_OFFER=carlos_cafe_pra_nanda TB_TEST_CLOCK_OFFSET_MIN=<min> PORT=8805 TB_TEST_ROLL=1 pnpm start
  *   BASE_URL=http://localhost:8805 node scripts/lifesim-shots-p8a.mjs      # → docs/lifesim/shots/p8a/
@@ -114,10 +114,10 @@ async function run(browser, vp) {
   await sleep(1700);
   await shot(page, vp, 'tracker_mid_recado');
 
-  // 3. the journal: offered / active / Mochila / friends
+  // 3. the journal: Em andamento / Hoje na vila (the Mochila waits for something in the bag, Amizades for a heart)
   await page.click('#btn-recados');
   await page.waitForSelector('[data-modal="recados"] .rj-card.active', { timeout: 5000 });
-  assert((await page.textContent('[data-modal="recados"]')).includes('Mochila'), 'journal has the Mochila');
+  assert(!(await page.$('[data-modal="recados"] #rj-mochila')), 'no Mochila while the bag is empty');
   await sleep(300);
   await shot(page, vp, 'journal');
   await page.keyboard.press('Escape');
@@ -134,6 +134,7 @@ async function run(browser, vp) {
   assert(step1 === 1, `recado step 1 after ordering (got ${step1})`);
   await page.click('#btn-recados');
   await page.waitForSelector('[data-modal="recados"] .rj-item[data-item="cafe_com_leite"]', { timeout: 5000 });
+  assert((await page.textContent('[data-modal="recados"]')).includes('Mochila'), 'the Mochila shows once the bag has something');
   await sleep(900);
   await shot(page, vp, 'journal_bag');
   await page.keyboard.press('Escape');
@@ -178,7 +179,7 @@ async function run(browser, vp) {
   await page.keyboard.press('Escape');
   await sleep(300);
 
-  // 6. a heart-up toast (a real heart needs 10 points: lift Nanda's bond in the page for the picture)
+  // 6. a heart earned outside a recado has no toast (the done card carries a recado's hearts; the panel shows the count)
   await page.evaluate(() => {
     const g = window.__tb.game;
     g.profile = { ...g.profile, bond: { ...g.profile.bond, nanda: 9 } };
@@ -186,9 +187,8 @@ async function run(browser, vp) {
     g.profile = { ...g.profile, bond: { ...g.profile.bond, nanda: 11 } };
     g.emit('profile');
   });
-  await page.waitForSelector('.toast.reward', { timeout: 3000 });
-  await sleep(300);
-  await shot(page, vp, 'heart_up_toast');
+  await sleep(600);
+  assert(!(await page.$('.toast.reward')), 'no heart-up toast');
 
   assert(!errors.length, `no page errors: ${errors.join(' | ')}`);
   await ctx.close();

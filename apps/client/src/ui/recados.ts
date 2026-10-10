@@ -1,14 +1,13 @@
 /**
  * The recado UI (HOWTO Phase 8 steps 2-4): the tracker on the right (the welcome chain from Júlia, then the active recados), the journal
- * panel with today's offered / active / done recados, the Mochila and the hearts, the "recado done" card, the heart-up toast, and the
- * offer / hand-over beats NPCs open their dialogue with.
+ * panel with today's offered / active / done recados, the Mochila and the hearts, the "recado done" card (it carries the heart change),
+ * and the offer / hand-over beats NPCs open their dialogue with.
  */
 import { describeStep, itemById, itemWithArticle, npcName, recadoById, type NpcId } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { icon } from '../art/ui';
 import { openModal } from './modal';
-import { toast } from './hud';
 import { ambience } from '../ambience';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
 import { foodIcon, npcPortrait } from './pixelArt';
@@ -16,11 +15,14 @@ import { showDialogueBox } from './dialogue';
 import { MAX_CONTENT_CHIPS } from './dialogueLogic';
 import { closeDialogue } from './panels';
 import { clock } from '../gameClock';
+import { profileMetJulia } from './juliaMet';
+import { stage } from './disclosure';
 import { greetingFor, greetingCap, RECADO_DAY_BONUS_RV, RECADO_MAX_ACTIVE } from '@tudobem/shared';
 import {
   activeWhere,
   advancedKeys,
   dayProgress,
+  dayStarsShown,
   declinedOffers,
   finishedRecados,
   giverWhere,
@@ -28,6 +30,7 @@ import {
   heartUps,
   heartsView,
   heartsWith,
+  journalSections,
   journalView,
   offerFrom,
   stepStates,
@@ -67,23 +70,6 @@ let actions: { accept: (id: string) => void; drop: (id: string) => void } = { ac
 export function bindRecadoActions(a: typeof actions): void {
   actions = a;
 }
-
-/** The first-time hint in the tracker ("look for the ! over the neighbours") is shown until the player takes a first errand or closes it. */
-const INTRO_KEY = 'tb_recado_intro';
-const introSeen = (): boolean => {
-  try {
-    return localStorage.getItem(INTRO_KEY) === '1';
-  } catch {
-    return true;
-  }
-};
-const markIntroSeen = (): void => {
-  try {
-    localStorage.setItem(INTRO_KEY, '1');
-  } catch {
-    /* private mode */
-  }
-};
 
 /** "★★☆": the day's three recados toward the Vizinho do dia bonus; earned stars gold, the rest an empty outline. */
 const starEls = (d: DayProgress): HTMLElement[] => Array.from({ length: d.goal }, (_, i) => h('i', { class: i < d.done ? 'on' : '' }, i < d.done ? '★' : '☆'));
@@ -166,30 +152,29 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
       }, 1500);
       peek();
     }
+    const entries = trackerEntries(board, p, clock.minutes(), profileMetJulia());
+    const offers = entries.filter((e) => e.kind === 'offer').length;
     // a phone keeps the tracker folded: open it for a few seconds when an errand is taken, and once when today's offers first show up
     const taken = prevBoard && board ? board.active.some((a) => !prevBoard!.active.some((b) => b.id === a.id)) : false;
-    if (taken || (!offersPeeked && board?.offered.length && (board.active.length ?? 0) < RECADO_MAX_ACTIVE)) {
+    if (taken || (!offersPeeked && offers)) {
       offersPeeked = true;
       peek();
     }
     // the third errand of the day also pays Vizinho do dia: the same card says so (the server's notice for it is not toasted)
     const bonusNow = !!(prevBoard && board?.bonus && !prevBoard.bonus);
-    for (const d of finishedRecados(prevBoard, board)) {
+    const finished = finishedRecados(prevBoard, board);
+    for (const d of finished) {
       showRecadoDone(d.id, bonusNow);
       ambience.sting('recado');
     }
-    for (const up of heartUps(prevBond, p?.bond)) {
-      ambience.sting('heart');
-      toast('reward', `♥ ${npcName(up.npc)} gosta de você! ${up.hearts} ${up.hearts === 1 ? 'coração' : 'corações'}`, `Your friendship with ${npcName(up.npc)} grew: ${up.hearts} ♥`);
-    }
+    // the done card shows the heart change; a heart earned some other way (a talk, a bate-papo) gets its sting, and the hearts in the
+    // dialogue header and the panel show the count
+    if (!finished.length && heartUps(prevBond, p?.bond).length) ambience.sting('heart');
     prevBoard = board;
     prevTutorial = p ? { ...p.tutorial } : null;
     prevBond = p?.bond ? { ...p.bond } : p ? {} : null;
 
-    const entries = trackerEntries(board, p, clock.minutes());
-    if (board?.active.length) markIntroSeen();
     el.style.display = entries.length ? '' : 'none';
-    const offers = entries.filter((e) => e.kind === 'offer').length;
     const day = dayProgress(board);
     el.classList.toggle('has-offer', offers > 0);
     head.replaceChildren(
@@ -197,20 +182,11 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
       h('b', null, 'Favores'),
       // collapsed on a phone the head is all there is: a gold "!" says a neighbour is waiting
       ...(offers ? [h('span', { class: 'rtrack-bang', title: 'Novo favor · New favor', 'aria-label': `${offers} favores novos (new favors)` }, '!')] : []),
-      h('small', { class: `rtrack-stars${day.paid ? ' paid' : ''}`, title: `Vizinho do dia: ${day.done}/${day.goal} · Neighbour of the day`, 'aria-label': `Vizinho do dia ${day.done}/${day.goal}` }, starEls(day)),
+      // ★★☆ Vizinho do dia: a regular's, once a recado is done today
+      ...(p && dayStarsShown(stage(p), board) ? [h('small', { class: `rtrack-stars${day.paid ? ' paid' : ''}`, title: `Vizinho do dia: ${day.done}/${day.goal} · Neighbour of the day`, 'aria-label': `Vizinho do dia ${day.done}/${day.goal}` }, starEls(day))] : []),
       h('span', { class: 'rtrack-caret', 'aria-hidden': 'true' }),
     );
-    const intro =
-      offers && !introSeen()
-        ? h(
-            'div',
-            { class: 'rtrack-intro', role: 'note' },
-            h('span', { class: 'rtrack-bang', 'aria-hidden': 'true' }, '!'),
-            h('span', null, 'Os vizinhos precisam de ajuda! Fale com quem tem ! na cabeça.', en('The neighbours need a hand! Talk to anyone with a ! over their head.', true)),
-            h('button', { class: 'ghost rtrack-intro-x', type: 'button', 'aria-label': 'Fechar (Close)', onclick: (ev: Event) => (ev.stopPropagation(), markIntroSeen(), refresh()) }, '✕'),
-          )
-        : null;
-    rows.replaceChildren(...(intro ? [intro] : []), ...entries.map((e) => entryRow(e, flash.has(e.key), openJournal)));
+    rows.replaceChildren(...entries.map((e) => entryRow(e, flash.has(e.key), openJournal)));
     applyOpen();
   };
   game.on('profile', refresh);
@@ -295,11 +271,13 @@ export function openJournal(): void {
   const body = h('div', { class: 'rj-body' });
   const render = () => {
     const j = journalView(game.board, game.profile);
+    // each part waits until it has something in it: a newcomer sees today's favors and the welcome chain, nothing else
+    const show = journalSections(j, game.profile ? stage(game.profile) : 'S0');
     const sections: (HTMLElement | null)[] = [];
     const minute = clock.minutes();
     const day = dayProgress(game.board);
     // needs_br: true
-    sections.push(
+    if (show.day) sections.push(
       h(
         'div',
         { class: `rj-day${day.paid ? ' paid' : ''}`, id: 'rj-day' },
@@ -313,44 +291,40 @@ export function openJournal(): void {
       ),
     );
 
-    sections.push(
+    if (show.active) sections.push(
       h(
         'section',
         { class: 'rj-sec' },
         h('h3', null, 'Em andamento', h('small', null, 'In progress')),
-        j.active.length
-          ? h(
-              'div',
-              { class: 'rj-list' },
-              ...j.active.map((a) => {
-                const def = recadoById(a.id);
-                return h(
-                  'article',
-                  { class: 'rj-card active', 'data-recado': a.id },
-                  npcPortrait(a.giver, 'neutro', 'rj-face'),
-                  h(
-                    'div',
-                    { class: 'rj-main' },
-                    h('div', { class: 'rj-title' }, a.title.pt, h('small', null, `de ${npcName(a.giver)}`), h('em', null, `+${a.reward.rv} RV · ♥${a.reward.bond}`)),
-                    en(a.title.en, true),
-                    h('ul', { class: 'rj-stepl' }, ...stepStates(a, def, describeStep).map((s) => h('li', { class: s.state }, h('span', { class: 'mk' }, s.state === 'done' ? '✓' : s.state === 'now' ? '▸' : '·'), h('span', null, s.text.pt, en(s.text.en, true))))),
-                    h(
-                      'div',
-                      { class: 'rj-actions' },
-                      whereEl(activeWhere(a, minute)),
-                      h('button', { class: 'ghost rj-drop', type: 'button', title: 'Put aside: it goes back on today’s list', onclick: () => actions.drop(a.id) }, 'Deixar pra depois'),
-                    ),
-                  ),
-                );
-              }),
-            )
-          : j.offered.length
-            ? h('p', { class: 'rj-empty' }, 'Nenhum favor ainda. Escolha um aqui embaixo!', en('No favors yet. Pick one below!', true))
-            : h('p', { class: 'rj-empty' }, 'Nenhum favor agora. Fale com os vizinhos!', en('No favors right now. Talk to the neighbors!', true)),
+        h(
+          'div',
+          { class: 'rj-list' },
+          ...j.active.map((a) => {
+            const def = recadoById(a.id);
+            return h(
+              'article',
+              { class: 'rj-card active', 'data-recado': a.id },
+              npcPortrait(a.giver, 'neutro', 'rj-face'),
+              h(
+                'div',
+                { class: 'rj-main' },
+                h('div', { class: 'rj-title' }, a.title.pt, h('small', null, `de ${npcName(a.giver)}`), h('em', null, `+${a.reward.rv} RV · ♥${a.reward.bond}`)),
+                en(a.title.en, true),
+                h('ul', { class: 'rj-stepl' }, ...stepStates(a, def, describeStep).map((s) => h('li', { class: s.state }, h('span', { class: 'mk' }, s.state === 'done' ? '✓' : s.state === 'now' ? '▸' : '·'), h('span', null, s.text.pt, en(s.text.en, true))))),
+                h(
+                  'div',
+                  { class: 'rj-actions' },
+                  whereEl(activeWhere(a, minute)),
+                  h('button', { class: 'ghost rj-drop', type: 'button', title: 'Put aside: it goes back on today’s list', onclick: () => actions.drop(a.id) }, 'Deixar pra depois'),
+                ),
+              ),
+            );
+          }),
+        ),
       ),
     );
 
-    sections.push(
+    if (show.today) sections.push(
       h(
         'section',
         { class: 'rj-sec' },
@@ -386,7 +360,22 @@ export function openJournal(): void {
                 );
               }),
             )
-          : h('p', { class: 'rj-empty' }, 'Sem novidades por hoje.', en('Nothing new today.', true)),
+          : null,
+        // held back until the friendship grows (minBond): greyed, with who to talk to. needs_br: true
+        show.withheld
+          ? h(
+              'div',
+              { class: 'rj-list rj-withheld' },
+              ...j.withheld.map((w) =>
+                h(
+                  'article',
+                  { class: 'rj-card withheld', 'data-recado': w.id, 'aria-disabled': 'true' },
+                  npcPortrait(w.giver, 'neutro', 'rj-face'),
+                  h('div', { class: 'rj-main' }, h('div', { class: 'rj-title' }, w.title.pt), h('p', { class: 'rj-locked' }, `Fale mais com ${w.name}`, en(`Talk more with ${w.name}`, true))),
+                ),
+              ),
+            )
+          : null,
         j.done.length ? h('div', { class: 'rj-done' }, h('b', null, `✓ Feitos hoje: ${j.done.length}`), ...j.done.map((d) => h('span', { class: 'rj-chip' }, d.title.pt))) : null,
       ),
     );
@@ -403,18 +392,17 @@ export function openJournal(): void {
       );
     }
 
-    sections.push(
+    if (show.bag) sections.push(
       h(
         'section',
         { class: 'rj-sec mochila', id: 'rj-mochila' },
         h('h3', null, 'Mochila', h('small', null, 'Bag')),
-        j.bag.length
-          ? h('div', { class: 'rj-bag' }, ...j.bag.map((b) => h('div', { class: 'rj-item', 'data-item': b.itemId, title: `${b.name.pt} · ${b.name.en}` }, foodIcon(b.itemId, 3, b.name.pt), h('span', { class: 'qty' }, `×${b.qty}`), h('span', { class: 'nm' }, b.name.pt))))
-          : h('p', { class: 'rj-empty' }, 'Vazia. Peça algo na padaria!', en('Empty. Order something at the bakery!', true)),
+        h('div', { class: 'rj-bag' }, ...j.bag.map((b) => h('div', { class: 'rj-item', 'data-item': b.itemId, title: `${b.name.pt} · ${b.name.en}` }, foodIcon(b.itemId, 3, b.name.pt), h('span', { class: 'qty' }, `×${b.qty}`), h('span', { class: 'nm' }, b.name.pt)))),
       ),
     );
 
-    sections.push(
+    // the milestones (2 ♥ your name, 4 ♥ a story, 6 ♥ a gift) announce themselves when they happen
+    if (show.friends) sections.push(
       h(
         'section',
         { class: 'rj-sec' },
@@ -427,12 +415,11 @@ export function openJournal(): void {
               'div',
               { class: 'rj-friend', 'data-npc': f.npc },
               npcPortrait(f.npc, 'neutro', 'rj-face small'),
-              h('div', { class: 'rj-fname' }, f.name, h('small', null, SPEAKER_ROLE[f.npc] ?? '', SPEAKER_ROLE_EN[f.npc] ? en(` ${SPEAKER_ROLE_EN[f.npc]}`, true) : null)),
+              h('div', { class: 'rj-fname' }, f.name, h('small', SPEAKER_ROLE_EN[f.npc] ? { title: SPEAKER_ROLE_EN[f.npc] } : null, SPEAKER_ROLE[f.npc] ?? '')),
               h('div', { class: 'rj-hearts', 'aria-label': `${f.hearts.hearts} de 10 corações (${f.hearts.hearts} of 10 hearts)` }, ...Array.from({ length: 10 }, (_, i) => h('i', { class: i < f.hearts.hearts ? 'on' : i === f.hearts.hearts && f.hearts.next > 0 ? 'part' : '' }))),
             ),
           ),
         ),
-        h('p', { class: 'rj-legend' }, '2 ♥ sabe seu nome · 4 ♥ conta a própria história · 6 ♥ presente', en('2 ♥ knows your name · 4 ♥ tells you their story · 6 ♥ a gift', true)),
       ),
     );
 
@@ -449,7 +436,7 @@ export function openJournal(): void {
       { class: 'panel recados' },
       h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('h2', null, 'Favores'),
-      en('Favors for the neighbors · your bag · your friends · paid in reais virtuais (RV), the game’s play money'),
+      en('Favors for the neighbors'),
       body,
       h('div', { class: 'rj-foot' }, h('button', { class: 'ghost', onclick: () => close() }, bi('Fechar', 'Close'))),
     ),

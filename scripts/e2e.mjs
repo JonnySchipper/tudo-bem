@@ -276,18 +276,16 @@ async function main() {
     log('ambiance:', crowd.map((c) => c.name).join(', '), '·', head.trim());
   }
 
-  // 1c. Daily kiosk: Missão do dia (Set A)
+  // 1c. Daily kiosk: Missão do dia (Set A). A regular's loop (S3): for a newcomer the kiosk is scenery, no panel
   await interact(page, { prop: 'quiosque' });
-  await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 12_000 });
-  const steps = await page.$$eval('[data-mission-step]', (els) => els.map((e) => e.textContent));
-  assert(steps[0].startsWith('Cumprimenta') && steps[1].startsWith('Pede') && steps[2].startsWith('Monta'), `kiosk steps Cumprimenta / Pede / Monta (${steps})`);
-  // Curriculum-locked kiosk copy
-  assert((await page.textContent('[data-modal="kiosk"] h2')) === 'Missão do dia', 'kiosk header: Missão do dia');
-  assert((await page.textContent('[data-modal="kiosk"] .rv-badge')).trim() === '+25 RV', 'kiosk +25 RV badge');
-  assert((await page.textContent('#mission-take .pt')) === 'Pegar missão', 'kiosk CTA: Pegar missão');
-  assert((await page.getAttribute('[data-modal="kiosk"] .mission-row', 'aria-label')) === 'Cumprimenta · Pede · Monta', 'kiosk steps row: Cumprimenta · Pede · Monta');
-  await page.click('#mission-take');
+  await sleep(1200);
+  assert(!(await page.$('[data-modal="kiosk"]')), 'a newcomer gets no kiosk panel (SIMPLIFICATION-REVIEW B5)');
+  assert(!(await page.isVisible('#mission-pill')), 'no Missão do dia pill before a mission is taken');
+  // the rules are unchanged: take it over the socket so the steps below still tick, and the pill turns up once taken
+  await page.evaluate(() => window.__tb.net.send({ t: 'mission', action: 'take' }));
   await waitFor(page, () => window.__tb.game.profile?.mission?.taken, null, 5000, 'mission taken');
+  await page.waitForSelector('#mission-pill', { state: 'visible', timeout: 5000 });
+  assert(((await page.textContent('#mission-pill')) ?? '').includes('Missão do dia'), 'the pill shows once a mission is taken');
   await shot(page, '01b_praca_kiosk');
   await page.keyboard.press('Escape');
 
@@ -540,14 +538,9 @@ async function main() {
     const crowd = await cpus(page);
     assert(crowd.length > 0, 'CPUs still in the praça');
     assert(crowd.every((c) => c.bubbles === 0), 'CPUs never chat');
-    // Kiosk now shows the completion state
-    await interact(page, { prop: 'quiosque' });
-    await page.waitForSelector('[data-modal="kiosk"] #mission-done', { timeout: 12_000 });
-    const done = await page.textContent('#mission-done .big');
-    assert(done === 'Missão completa! +25 RV', `kiosk complete copy (${done})`);
-    await shot(page, '08b_kiosk_complete');
-    await page.keyboard.press('Escape');
-    log('kiosk shows “Missão completa! +25 RV”');
+    // a finished mission leaves the HUD (the kiosk panel is a regular's)
+    assert(!(await page.isVisible('#mission-pill')), 'the Missão do dia pill leaves once the mission pays');
+    log('mission paid: the pill is gone');
   }
   // 6a. Nanda greets in the dialogue box (and the server hears the talk). She keeps shop hours, so pin the clock to midday for this step.
   await page.evaluate(() => window.__tb.setClock({ time: '12:00' }));

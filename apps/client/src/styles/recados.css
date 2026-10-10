@@ -400,6 +400,7 @@ html.px-ui .recado-done {
 .rj-steps .en { display: block; font-size: 0.82em; }
 
 .rj-list { display: grid; gap: 8px; }
+.rj-list.rj-withheld { margin-top: 8px; gap: 6px; }
 
 .rj-card { display: flex; gap: 10px; padding: 6px; border: 2px solid var(--px-ink, #573c2c); background: #fff8ec; }
 .rj-card.offered { background: #f6efe4; border-style: dashed; }
@@ -417,8 +418,10 @@ html.px-ui .recado-done {
 .rj-stepl li.later { opacity: 0.7; }
 .rj-stepl .en { display: block; font-size: 0.82em; font-weight: 600; }
 
-.rj-empty { margin: 2px 0; color: var(--ink-soft); font-size: 0.92em; }
-.rj-empty .en { display: block; font-size: 0.82em; }
+.rj-card.withheld { opacity: 0.55; filter: grayscale(0.7); background: #f1ebe2; border-style: dashed; padding: 4px 6px; }
+.rj-card.withheld .rj-face { --box: 40px; }
+.rj-locked { margin: 1px 0 0; color: var(--ink-soft); font-size: 0.85em; font-weight: 700; }
+.rj-locked .en { display: block; font-size: 0.9em; font-weight: 600; }
 
 .rj-done { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 0.88em; }
 .rj-chip { background: #e5f1e3; border: 2px solid var(--verde-dark); padding: 0 6px; }
@@ -438,8 +441,6 @@ html.px-ui .recado-done {
 .rj-hearts i { width: 14px; height: 13px; background: #e0d3c2; clip-path: polygon(0 20%, 15% 0, 40% 0, 50% 18%, 60% 0, 85% 0, 100% 20%, 100% 50%, 50% 100%, 0 50%); }
 .rj-hearts i.on { background: #c9382d; }
 .rj-hearts i.part { background: linear-gradient(90deg, #c9382d 45%, #e0d3c2 45%); }
-.rj-legend { margin: 6px 0 0; font-size: 0.8em; color: var(--ink-soft); }
-.rj-legend .en { display: block; }
 
 @media (max-width: 640px) {
   .offer-title { display: none !important; }
@@ -823,32 +824,6 @@ body:has(#hud-actions.open) .kg-card {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.rtrack-intro {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 5px 4px;
-  margin-bottom: 2px;
-  font-size: 0.8em;
-  line-height: 1.2;
-  background: #fff3c4;
-  border: 2px solid #3a2410;
-}
-
-.rtrack-intro .en {
-  display: block;
-  font-size: 0.92em;
-  color: var(--ink-soft);
-}
-
-.rtrack-intro-x {
-  margin-left: auto;
-  min-width: 24px;
-  min-height: 24px;
-  padding: 0;
-  font-size: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {
