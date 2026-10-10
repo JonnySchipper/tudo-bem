@@ -27647,6 +27647,11 @@
    "w": 16,
    "h": 16
   },
+  "ui/icon_look": {
+   "file": "ui/icon_look.png",
+   "w": 16,
+   "h": 16
+  },
   "ui/icon_friends": {
    "file": "ui/icon_friends.png",
    "w": 16,

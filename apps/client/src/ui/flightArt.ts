@@ -929,3 +929,253 @@ export function drawZzz(ctx: CanvasRenderingContext2D, x: number, y: number, t: 
   }
   ctx.globalAlpha = 1;
 }
+
+// ---------------------------------------------------------------- the seatbelt
+
+/** A belt across a seated passenger's lap, over the seat's front edge: the strap and its little latch (`k` 0-1: the latch's glint). */
+export function drawLapBelt(ctx: CanvasRenderingContext2D, x: number, seatY: number, k = 0) {
+  const y = Math.round(seatY + 1);
+  rect(ctx, x - 9, y, 18, 2, '#2a2233');
+  rect(ctx, x - 9, y, 18, 1, '#4b5170');
+  rect(ctx, x - 2, y - 1, 5, 4, '#2a2233');
+  rect(ctx, x - 1, y, 3, 2, k > 0 ? mix('#c9ced8', '#ffffff', k) : '#c9ced8');
+}
+
+/** What the seatbelt close-up shows: how far it is open, how far the straps have swung in, and the time since the click. */
+export interface BuckleShot {
+  /** The insert's size: 0 shut, 1 open (an overshoot pops it). */
+  open: number;
+  /** The straps: 0 apart, 1 latched. */
+  slide: number;
+  /** Seconds since the latch clicked (negative: not yet). */
+  since: number;
+  t: number;
+  /** The player's trousers (or skirt), under the belt, and their top above it. */
+  lap: string;
+  shirt: string;
+}
+
+/** Where the close-up sits on a `w` x `h` canvas, and how big it is when fully open. */
+export function buckleShotFrame(w: number, h: number): { cx: number; cy: number; r: number } {
+  return { cx: Math.round(w / 2), cy: Math.round(h * (h > w ? 0.36 : 0.42)), r: Math.max(24, Math.round(Math.min(w, h) * 0.34)) };
+}
+
+const BELT = { strap: '#3d4466', strapHi: '#5a628c', strapLo: '#2a2f4a', stitch: '#8d95c0', ink: '#1c1830', metal: '#c9ced8', metalHi: '#f5f7fb', metalLo: '#8b92a4', metalDark: '#5e6577' };
+
+/** One strap of webbing from `x0` to `x1` (y the top), woven, stitched along both edges. */
+function strap(ctx: CanvasRenderingContext2D, x0: number, x1: number, y: number, hgt: number) {
+  const a = Math.round(Math.min(x0, x1));
+  const b = Math.round(Math.max(x0, x1));
+  rect(ctx, a, y - 1, b - a, hgt + 2, BELT.ink);
+  rect(ctx, a, y, b - a, hgt, BELT.strap);
+  rect(ctx, a, y, b - a, 1, BELT.strapHi);
+  rect(ctx, a, y + hgt - 1, b - a, 1, BELT.strapLo);
+  // the weave: a faint diagonal twill, and a dashed stitch line inside each edge
+  ctx.fillStyle = BELT.strapLo;
+  for (let x = a; x < b; x++) for (let yy = y + 2; yy < y + hgt - 2; yy++) if ((x + yy) % 4 === 0) ctx.fillRect(x, yy, 1, 1);
+  ctx.fillStyle = BELT.stitch;
+  for (let x = a + 1; x < b; x += 3) {
+    ctx.fillRect(x, y + 1, 2, 1);
+    ctx.fillRect(x, y + hgt - 2, 2, 1);
+  }
+}
+
+/** A 4-point twinkle: white heart, gold arms. */
+function twinkle(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, alpha: number) {
+  if (alpha <= 0 || size < 1) return;
+  ctx.globalAlpha = Math.min(1, alpha);
+  const s = Math.round(size);
+  rect(ctx, x - s, y, s * 2 + 1, 1, '#ffd84a');
+  rect(ctx, x, y - s, 1, s * 2 + 1, '#ffd84a');
+  if (s > 1) {
+    rect(ctx, x - 1, y, 3, 1, '#fff6c8');
+    rect(ctx, x, y - 1, 1, 3, '#fff6c8');
+  }
+  rect(ctx, x, y, 1, 1, '#ffffff');
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * The seatbelt close-up: a round insert over the cabin (a comic panel), the player's lap in the seat, and the two halves of the belt
+ * swinging in from both sides. The tongue slides into the latch, the lever snaps flat, and the click lands with a flash, a ring, a
+ * burst of rays and twinkles, and a shine sweeping across the metal.
+ */
+export function drawBuckleShot(ctx: CanvasRenderingContext2D, w: number, h: number, s: BuckleShot) {
+  const open = Math.max(0, s.open);
+  if (open < 0.02) return;
+  const f = buckleShotFrame(w, h);
+  const { cx, cy } = f;
+  const since = s.since;
+  const bump = since >= 0 && since < 0.25 ? Math.sin((since / 0.25) * Math.PI) * 0.06 : 0;
+  const R = Math.round(f.r * open * (1 + bump));
+  // the cabin dims behind the insert
+  ctx.globalAlpha = Math.min(1, open) * 0.6;
+  rect(ctx, 0, 0, w, h, '#0b0820');
+  ctx.globalAlpha = 1;
+
+  // the click's rays, behind the panel: a sunburst of gold and cream
+  if (since >= 0 && since < 0.9) {
+    const k = since / 0.9;
+    const reach = R + 6 + k * Math.max(w, h) * 0.5;
+    ctx.save();
+    ctx.globalAlpha = (1 - k) * 0.9;
+    for (let i = 0; i < 16; i++) {
+      const a0 = (i / 16) * Math.PI * 2 + s.t * 0.4;
+      const a1 = a0 + Math.PI / 30;
+      ctx.fillStyle = i % 2 ? '#ffd84a' : '#fff1c9';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a0) * reach, cy + Math.sin(a0) * reach);
+      ctx.lineTo(cx + Math.cos(a1) * reach, cy + Math.sin(a1) * reach);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.clip();
+  // the seat's teal fabric
+  rect(ctx, cx - R, cy - R, R * 2, R * 2, '#2f7f7a');
+  ctx.fillStyle = '#286d69';
+  for (let y = cy - R; y < cy + R; y += 2) for (let x = cx - R + ((y >> 1) % 2) * 2; x < cx + R; x += 4) ctx.fillRect(x, y, 1, 1);
+  // the lap: two knees in the player's own trousers, lit from the window
+  const lapTop = Math.round(cy - R * 0.22);
+  rect(ctx, cx - R, lapTop - 1, R * 2, R * 2, BELT.ink);
+  rect(ctx, cx - R, lapTop, R * 2, R * 2, s.lap);
+  rect(ctx, cx - R, lapTop, R * 2, 2, mix(s.lap, '#ffffff', 0.28));
+  rect(ctx, cx - R, Math.round(cy + R * 0.42), R * 2, R, mix(s.lap, '#000000', 0.18));
+  rect(ctx, cx - 1, Math.round(cy + R * 0.3), 2, R, mix(s.lap, '#000000', 0.35));
+  // the top's hem over the waist, between the seat's wings
+  const sw = Math.round(R * 0.62);
+  const hem = Math.round(lapTop + R * 0.06);
+  rect(ctx, cx - sw - 1, cy - R, sw * 2 + 2, hem - (cy - R) + 1, BELT.ink);
+  rect(ctx, cx - sw, cy - R, sw * 2, hem - (cy - R), s.shirt);
+  rect(ctx, cx - sw, hem - 2, sw * 2, 2, mix(s.shirt, '#000000', 0.22));
+  rect(ctx, cx - sw, cy - R, 2, hem - (cy - R), mix(s.shirt, '#ffffff', 0.25));
+  ctx.fillStyle = mix(s.shirt, '#000000', 0.12);
+  for (let i = 1; i < 4; i++) ctx.fillRect(Math.round(cx - sw + (sw * 2 * i) / 4), Math.round(cy - R * 0.7), 1, Math.round(hem - (cy - R * 0.7) - 2));
+  // the armrests' edges at both sides
+  rect(ctx, cx - R, cy - R, Math.round(R * 0.16), R * 2, '#6b6b78');
+  rect(ctx, cx + R - Math.round(R * 0.16), cy - R, Math.round(R * 0.16), R * 2, '#6b6b78');
+
+  // the belt: the left half carries the tongue, the right half the latch; both swing in from below the frame
+  const e = Math.max(0, Math.min(1, s.slide));
+  const ease = e;
+  const sh = Math.max(6, Math.round(R * 0.24));
+  const by = Math.round(cy - sh / 2);
+  const J = Math.round(cx + R * 0.04);
+  const tw = Math.max(8, Math.round(R * 0.4));
+  const hw = Math.max(12, Math.round(R * 0.66));
+  const hh = sh + Math.max(4, Math.round(R * 0.14));
+  const tip = Math.round(J + tw * 0.55 - (1 - ease) * R * 0.75);
+  const hx = Math.round(J + (1 - ease) * R * 0.55);
+  const swing = (1 - ease) * 0.55;
+  // left: the strap and the tongue (a plate with a slot), swung down at the far end until it meets the latch
+  ctx.save();
+  ctx.translate(cx - R - 4, by + sh / 2);
+  ctx.rotate(swing);
+  ctx.translate(-(cx - R - 4), -(by + sh / 2));
+  strap(ctx, cx - R - 6, tip - tw, by, sh);
+  rect(ctx, tip - tw, by - 2, tw, sh + 4, BELT.ink);
+  rect(ctx, tip - tw + 1, by - 1, tw - 2, sh + 2, BELT.metal);
+  rect(ctx, tip - tw + 1, by - 1, tw - 2, 1, BELT.metalHi);
+  rect(ctx, tip - tw + 1, by + sh, tw - 2, 1, BELT.metalLo);
+  rect(ctx, tip - Math.round(tw * 0.55), by + Math.round(sh * 0.35), Math.max(2, Math.round(tw * 0.28)), Math.max(2, Math.round(sh * 0.3)), BELT.metalDark);
+  ctx.restore();
+  // right: the strap and the latch housing with its lever
+  ctx.save();
+  ctx.translate(cx + R + 4, by + sh / 2);
+  ctx.rotate(-swing * 0.9);
+  ctx.translate(-(cx + R + 4), -(by + sh / 2));
+  strap(ctx, hx + hw, cx + R + 6, by, sh);
+  const hy = Math.round(by - (hh - sh) / 2);
+  rect(ctx, hx - 1, hy - 1, hw + 2, hh + 2, BELT.ink);
+  rect(ctx, hx, hy, hw, hh, BELT.metalLo);
+  rect(ctx, hx, hy, hw, hh - 2, BELT.metal);
+  rect(ctx, hx, hy, hw, 1, BELT.metalHi);
+  // the lever: lifted until the click, then snapped flat (a shadow under it while it is up)
+  const up = since < 0 ? 2 : since < 0.08 ? 1 : 0;
+  const lx = hx + 2;
+  const lw = hw - 4;
+  const ly = hy + 2 - up;
+  const lh = hh - 6;
+  if (up) rect(ctx, lx + 1, ly + lh, lw, up + 1, 'rgba(28,24,48,0.45)');
+  rect(ctx, lx - 1, ly - 1, lw + 2, lh + 2, BELT.ink);
+  rect(ctx, lx, ly, lw, lh, BELT.metalHi);
+  rect(ctx, lx, ly + lh - 1, lw, 1, BELT.metal);
+  // the airline's mark on the lever: a green and gold stripe
+  const mw = Math.max(4, Math.round(lw * 0.5));
+  rect(ctx, lx + Math.round((lw - mw) / 2), ly + Math.round(lh / 2) - 1, mw, 1, '#2e9e5b');
+  rect(ctx, lx + Math.round((lw - mw) / 2), ly + Math.round(lh / 2), mw, 1, '#f5cf3f');
+  // the shine: a bright diagonal band sweeping over the metal after the click
+  if (since >= 0 && since < 0.7) {
+    const k = since / 0.7;
+    const sx = hx - tw + k * (hw + tw + 12);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(hx, hy, hw, hh);
+    ctx.clip();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(sx, hy + hh);
+    ctx.lineTo(sx + 3, hy + hh);
+    ctx.lineTo(sx + 3 + hh * 0.6, hy);
+    ctx.lineTo(sx + hh * 0.6, hy);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+  // the click's flash and its ring
+  if (since >= 0 && since < 0.18) {
+    ctx.globalAlpha = (1 - since / 0.18) * 0.75;
+    rect(ctx, cx - R, cy - R, R * 2, R * 2, '#fffbe8');
+    ctx.globalAlpha = 1;
+  }
+  if (since >= 0 && since < 0.7) {
+    const k = since / 0.7;
+    ctx.globalAlpha = 1 - k;
+    ctx.strokeStyle = '#fff3b0';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(J, cy, 3 + k * R * 1.4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // the lens: a soft vignette at the panel's edge
+  const g = ctx.createRadialGradient(cx, cy, R * 0.6, cx, cy, R);
+  g.addColorStop(0, 'rgba(11,8,32,0)');
+  g.addColorStop(1, 'rgba(11,8,32,0.35)');
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+  ctx.restore();
+
+  // the panel's rim: cream, inked, like a comic insert
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#fff8e9';
+  ctx.beginPath();
+  ctx.arc(cx, cy, R + 1.5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#2a2233';
+  ctx.beginPath();
+  ctx.arc(cx, cy, R + 3.5, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // twinkles burst out of the latch and drift, a few still glinting on the rim after
+  if (since >= 0) {
+    for (let i = 0; i < 18; i++) {
+      const life = 0.7 + (i % 5) * 0.12;
+      const k = (since - (i % 3) * 0.04) / life;
+      if (k < 0 || k > 1) continue;
+      const a = (i / 18) * Math.PI * 2 + ((i * 37) % 10) * 0.05;
+      const dist = (R * 0.35 + (i % 4) * R * 0.22) * (1 - (1 - k) ** 3);
+      const x = Math.round(J + Math.cos(a) * dist);
+      const y = Math.round(cy + Math.sin(a) * dist * 0.85 - k * 4);
+      twinkle(ctx, x, y, (i % 3 === 0 ? 3 : 2) * (1 - k * 0.6) * (Math.sin(s.t * 18 + i) > -0.3 ? 1 : 0.5), 1 - k * k);
+    }
+  }
+}

@@ -36,3 +36,38 @@ export function shouldPlayFlightIntro(o: {
   const age = o.now - (o.profile.createdAt ?? 0);
   return o.profile.desembarqueDone === false && age >= 0 && age < FLIGHT_FRESH_MS;
 }
+
+/**
+ * The cabin is laid out on at least this many art px of width: room for the whole row of passengers Lia's call can find you among.
+ * A narrower view (a phone) sees part of it and the camera pans along the row (`cabinCam`).
+ */
+export const CABIN_MIN_W = 280;
+
+/**
+ * The seats the player can pick, as offsets from the cabin layout's `mySeat` (art px), left to right: four on the window side, then
+ * (past the sleeper at +24 and the aisle) three on the far side. One per PASSENGER_LOOKS entry.
+ */
+export const CANDIDATE_SEATS = [-72, -48, -24, 0, 93, 117, 141] as const;
+
+/**
+ * Where the cabin's camera sits (the view's left edge, art px, within the `vw`-wide cabin) for a `w`-wide view. Before the pick it
+ * frames the whole row when it fits, else the passenger in focus (else the aisle, where Lia comes in). Once picked it frames the
+ * player and Lia in the aisle together, or the player alone when both don't fit.
+ */
+export function cabinCam(o: { w: number; vw: number; mySeat: number; aisle: number; focus: number | null; picked: number | null }): number {
+  const clamp = (x: number) => Math.round(Math.max(0, Math.min(o.vw - o.w, x)));
+  const seats = CANDIDATE_SEATS.map((d) => o.mySeat + d);
+  const frame = (lo: number, hi: number, fallback: number) => clamp(hi - lo <= o.w ? (lo + hi) / 2 - o.w / 2 : fallback - o.w / 2);
+  if (o.picked !== null) {
+    const seat = seats[o.picked] ?? o.mySeat;
+    return frame(Math.min(seat, o.aisle) - 18, Math.max(seat, o.aisle) + 18, seat);
+  }
+  const focus = o.focus === null ? o.aisle - o.w / 2 + 24 : seats[o.focus] ?? o.mySeat;
+  return frame(seats[0]! - 13, seats.at(-1)! + 13, focus);
+}
+
+/** The candidate seat under an art-px point (the passenger's body, head to lap), or -1. */
+export function candidateAt(x: number, y: number, mySeat: number, seatY: number): number {
+  if (y < seatY - 24 || y > seatY + 10) return -1;
+  return CANDIDATE_SEATS.findIndex((d) => Math.abs(x - (mySeat + d)) <= 11);
+}

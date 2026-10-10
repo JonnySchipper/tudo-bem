@@ -1,14 +1,36 @@
 /**
- * The flight in: the cutscene a brand-new account plays between "Entrar na Praça" (the avatar creator) and the arrivals hall.
+ * The flight in: the cutscene a brand-new account plays between "Embarcar" (the name card) and the arrivals hall.
  * Animal Crossing's train ride, in Tudo Bem's clothes: the backstory over a night sky (you have never been to Brazil, you have no
- * Portuguese yet, Júlia's letter), the plane over the Atlantic, the cabin (you, in a window seat, and Comissária Lia, who asks you a few
- * questions in Portuguese with replies to pick), the sunrise, the captain calling the descent, the seatbelt, then the descent through the
- * clouds over São Paulo's hills, the touchdown at Vila Ipê, and the title card. Then the arrivals hall, where Lia is waiting.
+ * Portuguese yet, Júlia's letter), the plane over the Atlantic, the cabin: a full row of passengers, and Comissária Lia walking the aisle
+ * calling your name. You click the passenger you are (that look becomes your avatar: `onPick`; it can be changed later from the HUD's
+ * Visual), you answer "Sou eu!", and Lia asks you a few questions in Portuguese with replies to pick. Then the sunrise, the captain
+ * calling the descent, the seatbelt (a close-up of the latch clicking shut), the descent through the clouds over São Paulo's hills, the
+ * touchdown at Vila Ipê, and the title card. Then the arrivals hall, where Lia is waiting.
  *
  * Everything is drawn by ui/flightArt.ts on one small canvas scaled up by a whole number; the characters are the game's own composed
  * sheets. The words live in @tudobem/shared (flightTalk.ts, voiced by `pnpm tts`). It can be skipped at any moment, and it saves nothing.
  */
-import { FLIGHT_CABIN, FLIGHT_CAPTION, FLIGHT_PROLOGUE, FLIGHT_PROLOGUE_AFTER, FLIGHT_SEATBELT, FLIGHT_TITLE, JULIA_LETTER, ROOMS, STARTER_OUTFITS, DEFAULT_APPEARANCE, cpuLook, letterGreeting, type Appearance, type FlightBeat, type FlightLine } from '@tudobem/shared';
+import {
+  CLOTH_COLORS,
+  DEFAULT_APPEARANCE,
+  FLIGHT_CABIN,
+  FLIGHT_CALL,
+  FLIGHT_CAPTION,
+  FLIGHT_PROLOGUE,
+  FLIGHT_PROLOGUE_AFTER,
+  FLIGHT_SEATBELT,
+  FLIGHT_TITLE,
+  JULIA_LETTER,
+  PASSENGER_LOOKS,
+  ROOMS,
+  STARTER_OUTFITS,
+  cpuLook,
+  letterGreeting,
+  withName,
+  type Appearance,
+  type FlightBeat,
+  type FlightLine,
+} from '@tudobem/shared';
 import { h } from './dom';
 import { ambience } from '../ambience';
 import { speak, stopSpeaking } from '../audio';
@@ -18,14 +40,17 @@ import { lookForAppearance, lookForNpc, type Look } from '../render/pixel/looks'
 import type { FlightSfx } from '../audio/flightSfx';
 import {
   BACK_ROW_RISE,
+  buckleShotFrame,
   cabinLayout,
   cabinRows,
   drawCabin,
+  drawBuckleShot,
   drawCabinLight,
   drawCloudLayer,
   drawCloudSea,
   drawCup,
   drawLand,
+  drawLapBelt,
   drawMoon,
   drawNewspaper,
   drawPlane,
@@ -43,11 +68,14 @@ import {
   makeStars,
   type Puff,
 } from './flightArt';
-import { flightScale, irisRadius } from './flightIntroLogic';
+import { CABIN_MIN_W, CANDIDATE_SEATS, cabinCam, candidateAt, flightScale, irisRadius } from './flightIntroLogic';
 
 export interface FlightIntroOpts {
   name: string;
+  /** The account's look now (a random passenger's until the pick): the close-up's lap if the pick never happens. */
   appearance: Appearance;
+  /** The player clicked who they are on the plane: save that look as theirs. */
+  onPick?: (a: Appearance) => void;
 }
 
 type Shot = 'prologue' | 'outside' | 'cabin';
@@ -77,7 +105,7 @@ function composeSheet(assets: CharAssets, look: Look): Sheet {
 }
 
 /** The sheet rows (manifest `sheet.anims`): idle 0-3, walk 4-7, sit 8-11 (S W E N), then the emotes facing S. */
-const ROW = { idleS: 0, idleW: 1, walkW: 5, walkE: 6, sitS: 8, sitW: 9, sitE: 10, rir: 14 } as const;
+const ROW = { idleS: 0, idleW: 1, idleE: 2, walkW: 5, walkE: 6, sitS: 8, sitW: 9, sitE: 10, rir: 14 } as const;
 
 /**
  * The other passengers: Praça neighbours' authored looks (varied bodies, skin, hair and clothes), without hats, bags or carts. Each seat
@@ -142,6 +170,21 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     hop: 0,
     starsAlpha: 1,
     title: 0,
+    /** the cabin's camera: the view's left edge in the (at least CABIN_MIN_W wide) cabin, eased toward cabinCam() every frame */
+    camX: -1,
+    /** the row of passengers: the one in focus while the player picks (-1 none), the one picked (-1 not yet), and whether the
+     * candidates have turned to look at Lia calling the name */
+    focus: -1,
+    picked: -1,
+    picking: false,
+    turned: false,
+    /** the seatbelt close-up: how open it is, how far the straps have come in, and when the latch clicked (performance.now, -1 not yet) */
+    belt: 0,
+    beltSlide: 0,
+    clickAt: -1,
+    /** the player's belt is on (and when, in scene seconds, for its glint); when the rest of the cabin starts buckling theirs */
+    buckled: -1,
+    allBuckled: -1,
   };
   const puffs: Puff[] = [];
   const stars = makeStars(140);
@@ -154,14 +197,15 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
   let terminalX = 1e9;
 
   // ---- characters
-  let me: Sheet | null = null;
   let lia: Sheet | null = null;
+  /** the passengers Lia's call can find you among (PASSENGER_LOOKS, in CANDIDATE_SEATS order); the picked one is the player */
+  let cands: Sheet[] = [];
   let sleeper: Sheet | null = null;
   let crowd: Sheet[] = [];
   const liaDef = ROOMS.desembarque.npcs.find((n) => n.id === 'comissaria');
   void sharedCharAssets()
     .then((assets) => {
-      me = composeSheet(assets, lookForAppearance(opts.appearance, { hat: null }));
+      cands = PASSENGER_LOOKS.map((a) => composeSheet(assets, lookForAppearance(a, { hat: null })));
       lia = composeSheet(assets, lookForNpc('comissaria', liaDef?.appearance));
       sleeper = composeSheet(assets, lookForAppearance({ ...DEFAULT_APPEARANCE, ...STARTER_OUTFITS[0]!.set, skin: 4, hair: 'cacheado', hairColor: 0, topColor: 1, face: 'maduro', extra: 'oculos' }));
       crowd = CROWD.map((name) => {
@@ -178,6 +222,8 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
   const tweens = new Map<Key, { from: number; to: number; t0: number; dur: number; ease: (k: number) => number; done: () => void }>();
   const easeInOut = (k: number) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
   const easeOut = (k: number) => 1 - (1 - k) ** 3;
+  /** a pop: past the mark and back */
+  const easeOutBack = (k: number) => 1 + 2.7 * (k - 1) ** 3 + 1.7 * (k - 1) ** 2;
   const linear = (k: number) => k;
   function tween(key: Key, to: number, ms: number, ease = easeInOut): Promise<void> {
     const from = S[key] as number;
@@ -289,8 +335,13 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const sh = reduced ? 0 : S.shake;
     if (sh > 0) ctx.translate(Math.round((Math.random() - 0.5) * 3 * sh), Math.round((Math.random() - 0.5) * 3 * sh));
-    if (S.shot === 'cabin') renderCabin(t);
+    if (S.shot === 'cabin') renderCabin(t, dt);
     else renderOutside(t);
+    // the seatbelt close-up, over the cabin
+    if (S.belt > 0.02) {
+      const lapLook = S.picked >= 0 ? PASSENGER_LOOKS[S.picked]! : opts.appearance;
+      drawBuckleShot(ctx, W, H, { open: S.belt, slide: S.beltSlide, since: S.clickAt < 0 ? -1 : (now - S.clickAt) / 1000, t, lap: CLOTH_COLORS[lapLook.bottomColor] ?? CLOTH_COLORS[2]!, shirt: CLOTH_COLORS[lapLook.topColor] ?? CLOTH_COLORS[0]! });
+    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // the white of a cloud swallowing the plane
     if (S.whiteout > 0.01) {
@@ -353,19 +404,39 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     }
   }
 
-  /** One passenger in a seat, with their own small idle (`seed` picks the look, the idle and its timing). Props only in the front row. */
-  function passenger(x: number, seatY: number, seed: number, t: number, front: boolean) {
-    const sheet = crowd.length ? crowd[seed % crowd.length]! : null;
-    const idle = IDLES[seed % IDLES.length]!;
+  /** The cabin's width (at least CABIN_MIN_W: a phone sees part of it) and its layout. */
+  const cabinView = () => {
+    const VW = Math.max(W, CABIN_MIN_W);
+    return { VW, L: cabinLayout(VW, H) };
+  };
+  /** Where the camera wants to be now. */
+  const camTarget = () => {
+    const { VW, L } = cabinView();
+    return cabinCam({ w: W, vw: VW, mySeat: L.mySeat, aisle: L.aisleX, focus: S.focus >= 0 ? S.focus : null, picked: S.picked >= 0 ? S.picked : null });
+  };
+  /** The picked seat's x in the cabin (the window seat until the pick). */
+  const seatX = () => cabinView().L.mySeat + (S.picked >= 0 ? CANDIDATE_SEATS[S.picked]! : 0);
+  const sceneT = () => (performance.now() - t0) / 1000;
+
+  /**
+   * One passenger in a seat, with their own small idle (`seed` picks the look, the idle and its timing). Props only in the front row.
+   * `sheet` overrides the crowd look (the candidates); `quiet` keeps them to breathing and looking (no newspaper hiding a face).
+   */
+  function passenger(x: number, seatY: number, seed: number, t: number, front: boolean, sheet?: Sheet | null, quiet = false, face?: number) {
+    const look = sheet !== undefined ? sheet : crowd.length ? crowd[seed % crowd.length]! : null;
+    const idle = quiet ? (seed % 2 ? 'look' : 'breathe') : IDLES[seed % IDLES.length]!;
     const ph = (seed * 2.37) % 9;
-    let row: number = ROW.sitS;
+    let row: number = face ?? ROW.sitS;
     let dy = Math.sin(t * 1.3 + ph) > 0.75 ? 1 : 0;
     // a look toward the windows and back, a couple of seconds every nine or so
-    if (idle === 'look' && (t + ph) % 9 < 2) row = seed % 2 ? ROW.sitW : ROW.sitE;
+    if (face === undefined && idle === 'look' && (t + ph) % 9 < 2) row = seed % 2 ? ROW.sitW : ROW.sitE;
     if (idle === 'doze') dy = 1 + (Math.sin(t * 0.9 + ph) > 0.4 ? 1 : 0);
-    drawFrame(ctx, sheet, row, 0, x, seatY + 2 + dy);
+    drawFrame(ctx, look, row, 0, x, seatY + 2 + dy);
     if (!front) return;
     drawSeatFront(ctx, x, seatY);
+    // once the player has buckled up, the rest of the row clicks theirs shut too, one after another
+    if (S.allBuckled >= 0 && t > S.allBuckled + (seed % 9) * 0.22) drawLapBelt(ctx, x, seatY, Math.max(0, 1 - (t - S.allBuckled - (seed % 9) * 0.22) / 0.5));
+    if (quiet) return;
     if (idle === 'read') drawNewspaper(ctx, x, seatY - 13, t, ph);
     else if (idle === 'coffee') {
       const sip = (t + ph) % 6;
@@ -373,37 +444,76 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     }
   }
 
-  function renderCabin(t: number) {
-    const L = cabinLayout(W, H);
-    drawCabin(ctx, W, H, L, { t, phase: S.phase, scroll: S.scroll, stars, clouds: windowClouds, sign: S.sign, shake: S.shake });
+  /** The passenger in focus while the player picks: a warm spotlight behind them and a bobbing arrow over their head. */
+  function spotlight(x: number, seatY: number, t: number) {
+    const pulse = 0.5 + Math.sin(t * 5) * 0.12;
+    const g = ctx.createRadialGradient(x, seatY - 14, 2, x, seatY - 14, 20);
+    g.addColorStop(0, `rgba(255,216,74,${pulse})`);
+    g.addColorStop(1, 'rgba(255,216,74,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - 22, seatY - 36, 44, 44);
+  }
+  function arrow(x: number, seatY: number, t: number) {
+    const y = Math.round(seatY - 23 + (Math.sin(t * 6) > 0 ? 0 : 1));
+    ctx.fillStyle = '#2a2233';
+    for (let i = 0; i < 5; i++) ctx.fillRect(Math.round(x) - 5 + i, y + i, 11 - i * 2, 1);
+    ctx.fillRect(Math.round(x) - 2, y - 3, 5, 3);
+    ctx.fillStyle = '#ffd84a';
+    for (let i = 0; i < 4; i++) ctx.fillRect(Math.round(x) - 4 + i, y + i, 9 - i * 2, 1);
+    ctx.fillRect(Math.round(x) - 1, y - 2, 3, 2);
+    ctx.fillStyle = '#fff6c8';
+    ctx.fillRect(Math.round(x) - 3, y, 2, 1);
+  }
+
+  function renderCabin(t: number, dt: number) {
+    const { VW, L } = cabinView();
+    // the camera eases along the row (a phone pans; a wide screen sees it all and never moves)
+    const want = camTarget();
+    S.camX = S.camX < 0 || reduced ? want : S.camX + (want - S.camX) * Math.min(1, dt * 5);
+    ctx.save();
+    ctx.translate(-Math.round(S.camX), 0);
+    drawCabin(ctx, VW, H, L, { t, phase: S.phase, scroll: S.scroll, stars, clouds: windowClouds, sign: S.sign, shake: S.shake });
     // a full plane: the row behind first (only heads and headrests show over the player's row), then the player's row across the cabin
-    const rows = cabinRows(L, W);
+    const rows = cabinRows(L, VW);
     const backY = L.seatY - BACK_ROW_RISE;
     // only what rises above the front row's seat backs is seen of the row behind (no slivers between the seats)
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 0, W, L.seatY - 21);
+    ctx.rect(0, 0, VW, L.seatY - 21);
     ctx.clip();
     for (const x of rows.back) drawSeatBack(ctx, x, backY);
     rows.back.forEach((x, i) => passenger(x, backY, i * 5 + 3, t, false));
     ctx.restore();
     for (const x of rows.front) drawSeatBack(ctx, x, L.seatY);
     rows.front.forEach((x, i) => {
-      if (x !== L.mySeat && x !== L.nextSeat) passenger(x, L.seatY, i * 3 + 1, t, true);
+      if (x === L.nextSeat) return;
+      const c = (CANDIDATE_SEATS as readonly number[]).indexOf(x - L.mySeat);
+      if (c < 0) return passenger(x, L.seatY, i * 3 + 1, t, true);
+      if (c === S.picked) return;
+      if (S.picking && c === S.focus) spotlight(x, L.seatY, t);
+      // while Lia calls the name, everyone in the row turns to look at her in the aisle
+      const face = S.turned ? (x < L.aisleX ? ROW.sitE : ROW.sitW) : S.picking ? ROW.sitS : undefined;
+      passenger(x, L.seatY, c * 3 + 2, t, true, cands[c] ?? null, true, face);
     });
-    // the player by the window, a sleeping neighbour beside them
+    // the sleeping neighbour by the window seat
     const breathe = Math.sin(t * 1.4) > 0.6 ? 1 : 0;
     drawFrame(ctx, sleeper, ROW.sitS, 0, L.nextSeat, L.seatY + 2 + breathe);
-    drawFrame(ctx, me, ROW.sitS, 0, L.mySeat, L.seatY + 2 - Math.round(S.hop));
-    drawSeatFront(ctx, L.mySeat, L.seatY);
     drawSeatFront(ctx, L.nextSeat, L.seatY);
+    if (S.allBuckled >= 0) drawLapBelt(ctx, L.nextSeat, L.seatY);
     drawZzz(ctx, L.nextSeat + 5, L.seatY - 20, t);
+    // the player, once picked: their seat, their little hop, their belt
+    if (S.picked >= 0) {
+      const x = seatX();
+      drawFrame(ctx, cands[S.picked] ?? null, ROW.sitS, 0, x, L.seatY + 2 - Math.round(S.hop));
+      drawSeatFront(ctx, x, L.seatY);
+      if (S.buckled >= 0) drawLapBelt(ctx, x, L.seatY, Math.max(0, 1 - (t - S.buckled) / 0.9));
+    }
+    if (S.picking && S.focus >= 0) arrow(L.mySeat + CANDIDATE_SEATS[S.focus]!, L.seatY, t);
     // Lia and her trolley in the aisle
     const lx = L.aisleX + S.liaOff;
     drawTrolley(ctx, lx + 8, L.floorY + 2);
     let row: number = ROW.idleS;
     let col = Math.floor(t * 5) % 6;
-    let flip = false;
     if (S.liaPose === 'walk') {
       row = ROW.walkW;
       col = Math.floor(t * 10) % 6;
@@ -418,12 +528,12 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
         col = Math.floor(k * 8) % 4;
       } else S.liaPose = 'idle';
     } else {
-      // turned to the player, a little to her right
-      row = ROW.idleW;
-      flip = false;
+      // turned to the player: toward the window seats, or across the aisle when the player sits there
+      row = S.picked >= 0 && seatX() > L.aisleX ? ROW.idleE : ROW.idleW;
     }
-    drawFrame(ctx, lia, row, col, lx, L.floorY + 2, flip);
-    drawCabinLight(ctx, W, H, L, S.phase, t);
+    drawFrame(ctx, lia, row, col, lx, L.floorY + 2);
+    drawCabinLight(ctx, VW, H, L, S.phase, t);
+    ctx.restore();
   }
 
   // ---- the talking
@@ -434,9 +544,9 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
   let bubbleOn = false;
   function placeBubble() {
     if (!bubbleOn || S.shot !== 'cabin') return;
-    const L = cabinLayout(W, H);
-    bubble.style.left = `${L.mySeat * scale}px`;
-    bubble.style.top = `${(L.seatY - 22) * scale}px`;
+    const { L } = cabinView();
+    bubble.style.left = `${(seatX() - Math.round(S.camX)) * scale}px`;
+    bubble.style.top = `${(L.seatY - 19) * scale}px`;
   }
 
   /**
@@ -479,7 +589,8 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
   }
 
   type Who = 'lia' | 'captain' | 'think' | 'narr';
-  async function say(who: Who, line: FlightLine | { en: string }, o: { wait?: boolean } = {}) {
+  /** `spoken`: what the voice says when the line on screen carries the player's name (one clip for every player). */
+  async function say(who: Who, line: FlightLine | { en: string }, o: { wait?: boolean; spoken?: string } = {}) {
     const pt = 'pt' in line ? line.pt : null;
     box.className = `fl-box fl-${who} is-on`;
     const name = who === 'lia' ? h('div', { class: 'fl-name' }, 'Lia', h('span', { class: 'fl-role' }, 'comissária · flight attendant')) : who === 'captain' ? h('div', { class: 'fl-name fl-name-pa' }, '📢 Comandante', h('span', { class: 'fl-role' }, 'captain')) : null;
@@ -488,7 +599,7 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     const next = h('div', { class: 'fl-next', 'aria-hidden': 'true' }, '▼');
     box.replaceChildren(...([name, ptEl, pt ? enEl : null, next].filter((x) => x !== null) as HTMLElement[]));
     if (pt) {
-      speak(pt, { speaker: who === 'captain' ? 'comandante' : 'comissaria' });
+      speak(o.spoken ?? pt, { speaker: who === 'captain' ? 'comandante' : 'comissaria' });
       await typeLine(ptEl, pt, false);
       enEl.textContent = line.en;
       enEl.classList.add('is-on');
@@ -543,6 +654,7 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
       box.classList.remove('is-on');
       // the player says it: a speech bubble over the seat, and a little hop
       bubble.replaceChildren(h('span', { lang: 'pt-BR' }, replies[i]!.pt));
+      placeBubble();
       bubbleOn = true;
       bubble.classList.add('is-on');
       void tween('hop', 2, 120, easeOut).then(() => tween('hop', 0, 180));
@@ -606,6 +718,105 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     };
   }
 
+  /** Lia's line with the player's name in it: on screen with the name, aloud without it. */
+  const sayNamed = (who: Who, line: { pt: string; en: string; spoken: string }, o: { wait?: boolean } = {}) =>
+    say(who, { pt: withName(line.pt, opts.name), en: withName(line.en, opts.name) }, { ...o, spoken: line.spoken });
+
+  /** The player says something from their seat: a speech bubble (Portuguese, the English under it) and a little hop. */
+  async function playerSays(line: FlightLine, ms = 1300) {
+    bubble.replaceChildren(h('span', { lang: 'pt-BR' }, line.pt), h('small', { class: 'fl-bubble-en' }, line.en));
+    bubbleOn = true;
+    placeBubble();
+    bubble.classList.add('is-on');
+    void tween('hop', 3, 120, easeOut).then(() => tween('hop', 0, 200));
+    await wait(ms);
+    bubble.classList.remove('is-on');
+    bubbleOn = false;
+  }
+
+  /**
+   * "Qual é você?": the row of passengers, the one in focus lit up with an arrow over them. Click one (or tap; or the arrow keys and
+   * Enter; or the ◀ ▶ buttons and "Sou eu!"), and that passenger is the player. Resolves with the index into PASSENGER_LOOKS.
+   */
+  async function pickSeat(): Promise<number> {
+    box.className = 'fl-box fl-think fl-pick is-on';
+    box.replaceChildren(h('p', { class: 'fl-pt', lang: 'pt-BR' }, FLIGHT_CALL.pick.pt), h('p', { class: 'fl-en is-on' }, FLIGHT_CALL.pick.en));
+    S.turned = false;
+    S.picking = true;
+    // start on whoever is nearest the middle of the view
+    const { L } = cabinView();
+    const mid = Math.round(S.camX) + W / 2;
+    const dist = CANDIDATE_SEATS.map((d) => Math.abs(L.mySeat + d - mid));
+    S.focus = dist.indexOf(Math.min(...dist));
+    const n = CANDIDATE_SEATS.length;
+    let resolvePick: (i: number) => void = () => {};
+    const move = (d: number) => {
+      S.focus = (S.focus + d + n) % n;
+      sfx('blip');
+    };
+    const prev = h('button', { class: 'fl-choice fl-pick-nav', type: 'button', 'aria-label': 'Anterior (previous passenger)', onclick: (e: Event) => (e.stopPropagation(), move(-1)) }, '◀');
+    const next = h('button', { class: 'fl-choice fl-pick-nav', type: 'button', 'aria-label': 'Próximo (next passenger)', onclick: (e: Event) => (e.stopPropagation(), move(1)) }, '▶');
+    const me = h(
+      'button',
+      { class: 'fl-choice fl-pick-me', type: 'button', onclick: (e: Event) => (e.stopPropagation(), resolvePick(S.focus)) },
+      h('span', { class: 'fl-choice-pt', lang: 'pt-BR' }, FLIGHT_CALL.me.pt),
+      h('span', { class: 'fl-choice-en' }, FLIGHT_CALL.me.en),
+    );
+    choices.replaceChildren(h('div', { class: 'fl-pickbar' }, prev, me, next));
+    choices.classList.add('is-on');
+    // the pointer: hovering a passenger focuses them, a click or tap picks them
+    const at = (e: PointerEvent) => {
+      const v = cabinView();
+      return candidateAt(e.clientX / scale + Math.round(S.camX), e.clientY / scale, v.L.mySeat, v.L.seatY);
+    };
+    const onMove = (e: PointerEvent) => {
+      const i = at(e);
+      canvas.style.cursor = i >= 0 ? 'pointer' : '';
+      if (i >= 0 && i !== S.focus && e.pointerType === 'mouse') S.focus = i;
+    };
+    const onDown = (e: PointerEvent) => {
+      if ((e.target as HTMLElement).closest('button')) return;
+      const i = at(e);
+      if (i >= 0) resolvePick(i);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') move(1);
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') move(-1);
+      else if (e.key === 'Enter' || e.key === ' ') resolvePick(S.focus);
+      else return;
+      e.preventDefault();
+    };
+    root.addEventListener('pointermove', onMove);
+    root.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey, true);
+    try {
+      const i = await new Promise<number>((resolve, reject) => {
+        resolvePick = resolve;
+        waiters.add((e) => reject(e));
+      });
+      sfx('pick');
+      return i;
+    } finally {
+      root.removeEventListener('pointermove', onMove);
+      root.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey, true);
+      canvas.style.cursor = '';
+      S.picking = false;
+      choices.classList.remove('is-on');
+      box.classList.remove('is-on');
+    }
+  }
+
+  /** "CLAC!": the click, written over the close-up. */
+  function clac() {
+    const f = buckleShotFrame(W, H);
+    const el = h('div', { class: 'fl-clac', 'aria-hidden': 'true' }, 'CLAC!');
+    el.style.left = `${f.cx * scale}px`;
+    el.style.top = `${(f.cy - f.r) * scale}px`;
+    stage.append(el);
+    window.setTimeout(() => el.remove(), 1400);
+  }
+
   async function seatbelt() {
     await say('lia', FLIGHT_SEATBELT.ask, { wait: false });
     box.classList.remove('is-done');
@@ -623,11 +834,28 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
       btn.addEventListener('click', (e) => (e.stopPropagation(), resolve()), { once: true });
       waiters.add((e) => reject(e));
     });
-    sfx('buckle');
     btn.classList.add('is-done');
-    void tween('hop', 1, 80).then(() => tween('hop', 0, 120));
-    await wait(500);
     choices.classList.remove('is-on');
+    box.classList.remove('is-on');
+    // the close-up: a round insert pops open on the player's lap, and the two halves of the belt swing in
+    S.beltSlide = 0;
+    S.clickAt = -1;
+    sfx('swish');
+    await play('belt', 1, 420, easeOutBack);
+    await play('beltSlide', 1, reduced ? 0 : 560, (k) => k * k);
+    // the latch: click, flash, ring, rays, twinkles, the shine across the metal
+    S.clickAt = performance.now();
+    S.buckled = sceneT();
+    sfx('buckle');
+    sfx('sparkle');
+    S.shake = 0.45;
+    clac();
+    await wait(reduced ? 500 : 1250);
+    await play('belt', 0, 320, (k) => k * k);
+    // back in the cabin, the belt is across the player's lap, and the rest of the row buckles up
+    S.allBuckled = sceneT();
+    void tween('hop', 1, 80).then(() => tween('hop', 0, 120));
+    await wait(reduced ? 200 : 700);
     S.liaPose = 'rir';
     S.liaPoseT = performance.now();
     await say('lia', FLIGHT_SEATBELT.done);
@@ -711,19 +939,29 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     S.liaOff = 150;
     S.liaPose = 'walk';
     fit();
-    const L = cabinLayout(W, H);
-    S.irisX = L.mySeat / W;
-    S.irisY = (L.seatY - 14) / H;
+    S.camX = camTarget();
+    S.irisX = 0.5;
+    S.irisY = (cabinView().L.seatY - 14) / H;
     await play('iris', 1, 1100, easeInOut);
 
-    // 3. the cabin
+    // 3. the cabin: Lia comes down the aisle with her passenger list, calling the player's name
     const walkIn = tween('liaOff', 0, reduced ? 0 : 3200, linear).then(() => {
       S.liaPose = 'idle';
     });
     await beat(FLIGHT_CABIN[0]!);
     await walkIn;
+    S.turned = true;
+    await sayNamed('lia', FLIGHT_CALL.call);
+    await sayNamed('lia', FLIGHT_CALL.where);
+    // the player says which passenger they are: that look is theirs from now on
+    const picked = await pickSeat();
+    S.picked = picked;
+    S.focus = -1;
+    opts.onPick?.({ ...PASSENGER_LOOKS[picked]! });
+    await playerSays(FLIGHT_CALL.me);
     S.liaPose = 'rir';
     S.liaPoseT = performance.now();
+    await say('lia', FLIGHT_CALL.met);
     for (const b of FLIGHT_CABIN.slice(1)) {
       if (b.kind === 'lia' && b.mood === 'wave') void tween('phase', 1, 6500, linear);
       if (b.kind === 'captain' && !S.sign) {
@@ -740,7 +978,7 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     await wait(300);
 
     // 4. down through the clouds, over the hills, onto the runway
-    S.irisX = cabinLayout(W, H).mySeat / W;
+    S.irisX = Math.max(0, Math.min(1, (seatX() - Math.round(S.camX)) / W));
     S.irisY = 0.4;
     await play('iris', 0, 900);
     S.shot = 'outside';

@@ -63,6 +63,8 @@ export interface HudActions {
   openCartela: () => void;
   openFriends: () => void;
   openWardrobe: () => void;
+  /** The look editor (body, skin, face, hair, starter outfit): what the new-account creator used to be. */
+  openLook: () => void;
   toggleDecor: () => void;
   parrotHint: () => void;
   toggleParrot: () => void;
@@ -229,6 +231,7 @@ export function buildHud(actions: HudActions) {
   // the Vila's own buttons wait for the Vila: the arrivals hall and the airport teach only what is on screen there
   const recadosBtn = btn('btn-recados', 'recados', 'Favores', 'Favors', actions.openRecados);
   const wardrobeBtn = btn('btn-wardrobe', 'hat', 'Chapéus', 'My hats', actions.openWardrobe);
+  const lookBtn = btn('btn-look', 'look', 'Visual', 'My look', actions.openLook);
   const friendsBtn = btn('btn-friends', 'friends', 'Amigos', 'Friends', actions.openFriends);
   cameraBtn.style.display = 'none';
   const actionsNav = h(
@@ -240,6 +243,7 @@ export function buildHud(actions: HudActions) {
     recadosBtn,
     btn('btn-caderno', 'caderno', 'Diário', 'Diary', actions.openCaderno),
     cameraBtn,
+    lookBtn,
     wardrobeBtn,
     friendsBtn,
     gearWrap,
@@ -451,7 +455,19 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       drawerPlateChip.style.display = shows.plate ? '' : 'none';
       cartelaPill.style.display = shows.cartela ? '' : 'none';
       cartelaPill.title = `${CARTELA_COPY.title.en}: ${CARTELA_RULE}`;
-      for (const b of [recadosBtn, wardrobeBtn, friendsBtn]) b.style.display = shows.vila ? '' : 'none';
+      for (const b of [recadosBtn, lookBtn, wardrobeBtn, friendsBtn]) b.style.display = shows.vila ? '' : 'none';
+      // the first time the Vila's menu opens up: the look picked on the plane can be changed now (once per profile)
+      if (shows.vila) {
+        const key = `tb_look_hint_${p.id}`;
+        try {
+          if (!localStorage.getItem(key)) {
+            localStorage.setItem(key, '1');
+            toast('info', 'Quer mudar o seu visual? Menu → Visual.', 'Want to change your look? Menu → Visual (body, skin, face, hair, outfit).');
+          }
+        } catch {
+          /* no storage: no hint */
+        }
+      }
       coins.textContent = String(p.coins);
       coins.title = `${p.coins} RV · reais virtuais (RV), the game’s play money`;
       const tier = p.nameplate ?? 'verde';
