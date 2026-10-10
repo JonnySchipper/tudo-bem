@@ -235,15 +235,9 @@ export const emblemIcon = (emblem: string, cls = 'jb-emblem'): SVGSVGElement => 
   return pixelSvg(a.rows, a.ink, cls);
 };
 
-/** A tiny photo icon for the Fotos tab and a notebook for the Caderno tab, in the same hand. */
-export const tabIcon = (kind: 'fotos' | 'caderno' | 'inicio', cls = 'jb-emblem'): SVGSVGElement => {
+/** A tiny photo icon for the Fotos tab and the book for the Início tab, in the same hand. */
+export const tabIcon = (kind: 'fotos' | 'inicio', cls = 'jb-emblem'): SVGSVGElement => {
   if (kind === 'fotos') return sourceIcon('camera', cls);
-  if (kind === 'caderno')
-    return pixelSvg(
-      ['.kkkkkkkk..', 'kwkwwwwwwk.', 'kwkwkkkkwk.', 'kwkwwwwwwk.', 'kwkwkkkwwk.', 'kwkwwwwwwk.', 'kwkwkkkkwk.', 'kwkwwwwwwk.', '.kkkkkkkk..'],
-      { k: K, w: '#fff3d6' },
-      cls,
-    );
   return pixelSvg(
     ['..kkkkkkk..', '.krrrrrrrk.', 'krrkkkkkrrk', 'krkyyyyykrk', 'krkykkkykrk', 'krkyyyyykrk', 'krrkkkkkrrk', 'krrrrrrrrrk', '.kkkkkkkkk.'],
     { k: K, r: '#8f3e15', y: '#ffe2b0' },

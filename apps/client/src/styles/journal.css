@@ -432,11 +432,6 @@ html.px-ui .backdrop > .panel.jb,
   animation-name: jb-leaf-back;
 }
 
-.jb-leaf.within {
-  animation-name: jb-leaf-flick;
-  animation-duration: 0.55s;
-}
-
 .jb-face {
   position: absolute;
   inset: 0;
@@ -1632,42 +1627,6 @@ html.px-ui .backdrop > .panel.jb,
   opacity: 0.6;
 }
 
-/* ================================================================ Caderno (the classic rows, on the book's paper) */
-
-.jb .cad-tabs {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-}
-
-.jb .cad-tab {
-  background: #fffaf0;
-  transition: transform 0.15s var(--dy-out);
-}
-
-.jb .cad-tab:hover {
-  transform: translateX(3px);
-}
-
-.jb .cad-tab.on {
-  background: #ffe9c2;
-  transform: translateX(6px);
-}
-
-.jb .cad-word {
-  background: rgba(255, 253, 246, 0.9);
-}
-
-.jb-spread.enter .cad-word {
-  animation: jb-row-in 0.34s var(--dy-out) backwards;
-  animation-delay: calc(var(--i, 0) * 22ms + 300ms);
-}
-
-.jb .cad-list {
-  max-height: none;
-  overflow: visible;
-}
-
 /* ================================================================ a word's card */
 
 .jb-detail-host {
@@ -2378,20 +2337,6 @@ html.px-ui .backdrop > .panel.jb,
   }
   to {
     transform: rotateY(180deg);
-  }
-}
-
-@keyframes jb-leaf-flick {
-  from {
-    transform: rotateY(0deg);
-    opacity: 1;
-  }
-  70% {
-    opacity: 1;
-  }
-  to {
-    transform: rotateY(-120deg);
-    opacity: 0;
   }
 }
 

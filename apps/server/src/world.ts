@@ -514,7 +514,7 @@ export class World {
       rng: () => this.rng(),
       pin: opts.feiraPin,
     });
-    this.caderno = new CadernoTracker({ now: () => this.now(), groupRv: () => this.config.get('cadernoGroupRv'), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
+    this.caderno = new CadernoTracker({ now: () => this.now(), store, pushProfile: (s) => this.pushProfile(s) });
     this.diary = new DiaryTracker({
       store,
       reward: (s, a, r) => this.reward(s, a, r),

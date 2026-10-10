@@ -479,7 +479,7 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
 function readHotspot(hs: HotspotDef) {
   closeDialogue();
   if (hs.room === 'desembarque') markDesembStep('placa');
-  const card = () => openHotspotCard(hs, { onSave: (cards) => openDiario({ cadernoGroup: cards[0]?.split('.')[1], highlight: cards }) });
+  const card = () => openHotspotCard(hs);
   if (!findOnSign(hs, (found) => found && hs.pt.includes('\n') && game.room?.room === hs.room && !document.querySelector('[data-modal]') && card())) card();
   net.send({ t: 'read', hotspotId: hs.id });
 }
@@ -1223,7 +1223,7 @@ net.on((m: ServerMsg) => {
       } else if (m.reason.pt.startsWith('Favor: ') || m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
       else {
         toast('reward', m.reason.pt, m.reason.en, m.amount);
-        ambience.sting(m.reason.pt.startsWith('Caderno completo') ? 'caderno' : 'coin');
+        ambience.sting('coin');
       }
       break;
     case 'scene':

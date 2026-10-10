@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CADERNO_GROUP_RV,
   CARDS,
   cadernoGroups,
   cardsInText,
@@ -105,10 +104,6 @@ describe('groups', () => {
     expect(p.complete).toBe(true);
     expect(completedGroups(c)).toEqual(['social']);
     expect(groupProgress(undefined).every((g) => g.learned === 0 && !g.complete)).toBe(true);
-  });
-
-  it('the payout constant is the HOWTO default', () => {
-    expect(CADERNO_GROUP_RV).toBe(15);
   });
 });
 

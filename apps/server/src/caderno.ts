@@ -1,25 +1,10 @@
-import {
-  CADERNO_GROUP_RV,
-  CADERNO_HEARD_MAX_IDS,
-  cadernoGroups,
-  cardById,
-  cardsInText,
-  completedGroups,
-  recordHeard,
-  recordSeen,
-  recordUsed,
-  type Bilingual,
-} from '@tudobem/shared';
+import { CADERNO_HEARD_MAX_IDS, cardById, cardsInText, recordHeard, recordSeen, recordUsed } from '@tudobem/shared';
 import type { ProfileStore } from './store.js';
 import type { Session } from './world.js';
 
 export interface CadernoDeps {
   now: () => number;
-  /** RV for one finished group (gameConfig.ts `cadernoGroupRv`). Omitted = the shipped CADERNO_GROUP_RV. */
-  groupRv?: () => number;
   store: ProfileStore;
-  /** Pays RV through the world's normal reward path (coins, `reward` message, profile push). */
-  reward: (s: Session, amount: number, reason: Bilingual) => void;
   pushProfile: (s: Session) => void;
 }
 
@@ -28,7 +13,9 @@ const HEARD_RATE = { max: 4, windowMs: 1000 };
 
 /**
  * Caderno de palavras events (HOWTO Phase 7). `world.ts` and the Conversa API report what the player saw,
- * heard and used; this class records it on the profile and pays each finished group once.
+ * heard and used; this class records it on the profile (the tatame bank weighs its cards by it, challenges.ts).
+ * A finished group pays nothing any more: the Diário is the one word home, and `cadernoPaid` only survives on
+ * old saves (docs/SIMPLIFICATION-REVIEW.md B2).
  */
 export class CadernoTracker {
   private readonly heardTimes = new WeakMap<Session, number[]>();
@@ -64,16 +51,7 @@ export class CadernoTracker {
     if (!p || !ids.length) return;
     const now = this.d.now();
     p.caderno = (kind === 'seen' ? recordSeen : kind === 'heard' ? recordHeard : recordUsed)(p.caderno, ids, now);
-    // A group pays once: mark it paid first, so a failure below can never pay twice.
-    const paid = (p.cadernoPaid ??= []);
-    const fresh = completedGroups(p.caderno).filter((g) => !paid.includes(g));
-    paid.push(...fresh);
     this.d.store.save(p.id);
     this.d.pushProfile(s);
-    for (const id of fresh) {
-      const label = cadernoGroups().find((g) => g.id === id)?.label ?? { pt: id, en: id };
-      // needs_br: true
-      this.d.reward(s, this.d.groupRv?.() ?? CADERNO_GROUP_RV, { pt: `Caderno completo: ${label.pt}!`, en: `Notebook complete: ${label.en}!` });
-    }
   }
 }

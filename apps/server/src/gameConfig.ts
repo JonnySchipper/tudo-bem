@@ -2,11 +2,11 @@
  * Tunable game variables (the admin dashboard's "Game variables" page). The one place the server reads these values from.
  * Overrides are stored in SQLite (`kv` key `gameConfig`) and apply live; a value without an override is the shipped default.
  *
- * Only values the server actually reads are listed, and each one is wired here (world.ts, caderno.ts). Player-facing copy
+ * Only values the server actually reads are listed, and each one is wired here (world.ts). Player-facing copy
  * (the how-to-play page, the kiosk badge) still shows the shipped default, so `playerCopy` warns the admin.
  * Browser-safe: solo mode runs World in the page.
  */
-import { BELT_LADDER, CADERNO_GROUP_RV, DEFAULT_ROOM_CAP, ECONOMY, IDLE_KICK_MS, MISSION_REWARD, PRAIA_PRICES } from '@tudobem/shared';
+import { BELT_LADDER, DEFAULT_ROOM_CAP, ECONOMY, IDLE_KICK_MS, MISSION_REWARD, PRAIA_PRICES } from '@tudobem/shared';
 import { ADMIN_MONEY_MAX } from './adminAuth.js';
 
 export interface TunableDef {
@@ -27,7 +27,6 @@ export const TUNABLES = [
   { key: 'tutorialBonus', group: 'Economy', label: 'Tutorial bonus', help: 'Paid once when every first-steps item is done.', default: ECONOMY.tutorialBonus, min: 0, max: 200, unit: 'RV', playerCopy: true },
   { key: 'kitnetGift', group: 'Economy', label: 'Kitnet welcome gift', help: 'Paid the first time a player walks into their own kitnet. Keep it at or above the cheapest chair (10).', default: ECONOMY.kitnetGift, min: 0, max: 100, unit: 'RV' },
   { key: 'missionReward', group: 'Economy', label: 'Daily mission reward', help: 'Paid when the three kiosk mission steps are done.', default: MISSION_REWARD, min: 0, max: 200, unit: 'RV', playerCopy: true },
-  { key: 'cadernoGroupRv', group: 'Economy', label: 'Caderno group bonus', help: 'Paid once per completed caderno group.', default: CADERNO_GROUP_RV, min: 0, max: 100, unit: 'RV', playerCopy: true },
   { key: 'parrotHintCooldownSec', group: 'Timers', label: 'Parrot hint cooldown', help: 'Wait between two parrot hints.', default: ECONOMY.parrotHintCooldownMs / 1000, min: 5, max: 600, unit: 's' },
   { key: 'idleKickMinutes', group: 'Timers', label: 'Idle kick', help: 'No real input for this long and the seat is freed. The warning comes a minute before.', default: IDLE_KICK_MS / 60_000, min: 2, max: 120, unit: 'min' },
   { key: 'roomCap', group: 'World', label: 'Room cap', help: 'Players per room instance before a new instance opens. 16 is the most the client draws.', default: DEFAULT_ROOM_CAP, min: 1, max: DEFAULT_ROOM_CAP, unit: 'players' },
