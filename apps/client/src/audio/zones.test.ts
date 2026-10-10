@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FLOOR_CHARS, ROOMS } from '@tudobem/shared';
 import { AMBIENT } from '../render/pixel/ambientData';
-import { FOOTSTEPS, FootstepClock, SILENT_MIX, STEP_PX, daylight, falloff, radioOn, stepPitch, trafficPresence, zoneMix } from './zones';
+import { FOOTSTEPS, FootstepClock, SILENT_MIX, STEP_PX, daylight, falloff, frogPresence, radioOn, stepPitch, trafficPresence, zoneMix } from './zones';
 
 // split areas: the traffic hum belongs to the rua, the fountain and the dog corner's radio to the praça, the feira has only the ambient birds
 const z = AMBIENT.rua.audio;
@@ -122,6 +122,24 @@ describe('zone mix', () => {
     expect(AMBIENT.praca.audio.streets).toEqual([]);
     expect(AMBIENT.feira.audio.streets).toEqual([]);
     expect(AMBIENT.rua.audio.streets).toHaveLength(1);
+  });
+});
+
+describe('the Lagoa’s frogs', () => {
+  const zg = AMBIENT.lagoa.audio;
+  const mix = (x: number, y: number, minute: number, rain = 0) => zoneMix(zg, { x: x * T, y: y * T, minute, rain });
+
+  it('sing in the reeds at night, a few by day, more in the rain, and fade toward the boardwalk', () => {
+    expect(mix(6, 12, 22 * 60).frogs).toBeGreaterThan(0.9);
+    expect(mix(6, 12, 12 * 60).frogs).toBeGreaterThan(0.1);
+    expect(mix(6, 12, 12 * 60).frogs).toBeLessThan(0.3);
+    expect(mix(6, 12, 12 * 60, 1).frogs).toBeGreaterThan(mix(6, 12, 12 * 60).frogs);
+    expect(mix(34, 13, 22 * 60).frogs).toBeLessThan(mix(6, 12, 22 * 60).frogs);
+    expect(frogPresence(22 * 60, 0)).toBeLessThanOrEqual(1);
+  });
+
+  it('are only at the lagoa', () => {
+    for (const id of ['praca', 'rua', 'feira', 'praia'] as const) expect(zoneMix(AMBIENT[id].audio, { x: 5 * T, y: 5 * T, minute: 22 * 60, rain: 0 }).frogs).toBe(0);
   });
 });
 

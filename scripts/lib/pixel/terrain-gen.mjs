@@ -128,11 +128,12 @@ export const SHORE_STYLE = { foam: '#f2faf6', foam2: '#d2efe6', lip: '#6cc5b8', 
 const SHORE_WOBBLE = [1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1];
 
 /**
- * `shore` terrains (the Praia's sea and lagoa): cut along the 8x8 quadrants like `flush` (so no hole opens where the water meets the pier's
+ * `shore` terrains (the Praia's sea, and the Lagoa's water with its own `style`: mud and shallows for foam): cut along the 8x8 quadrants like `flush` (so no hole opens where the water meets the pier's
  * deck or a boat), every water pixel opaque. Where the water ends inside the tile: a 1-2 px foam line, a softer foam pixel and a paler lip;
  * on the empty side a semi-transparent wet band (dark on the sand; the deck, drawn over it, hides it). Mask 15 is the untouched fill.
  */
 export function buildShoreTiles(fills, style = SHORE_STYLE) {
+  style ??= SHORE_STYLE;
   const tiles = [];
   const inShape = (mask, x, y) => quadrantFilled(mask, Math.min(15, Math.max(0, x)), Math.min(15, Math.max(0, y)));
   const STEPS = [[0, -1, 'N'], [0, 1, 'S'], [-1, 0, 'W'], [1, 0, 'E']];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGrid, FEIRA_SLOTS, floorAt, FLOOR_CHARS, isWalkable, key, propTiles, ROOMS, seatTiles, type RoomDef, type RoomGrid, type Tile } from './rooms.js';
+import { buildGrid, FEIRA_SLOTS, LAGOA_ISLAND, LAGOA_JETTY, LAGOA_ROW_SHIFT, PRAIA_LAGOA_ROWS, floorAt, FLOOR_CHARS, isWalkable, key, propTiles, ROOMS, seatTiles, type RoomDef, type RoomGrid, type Tile } from './rooms.js';
 import { SCHEDULES } from './schedules.js';
 import { findPath, pathDuration } from './path.js';
 
@@ -215,7 +215,7 @@ describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira
     const seen = new Set<string>(['praca']);
     const queue = ['praca'] as (keyof typeof ROOMS)[];
     while (queue.length) for (const p of ROOMS[queue.shift()!].portals) if (!seen.has(p.to)) (seen.add(p.to), queue.push(p.to));
-    expect([...seen].sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'petshop', 'praca', 'praia', 'rua', 'rua_leste']);
+    expect([...seen].sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'lagoa', 'padaria', 'petshop', 'praca', 'praia', 'rua', 'rua_leste']);
   });
 });
 
@@ -454,21 +454,20 @@ describe('the Praia (PRAIA-PLAN.md 1.3) and the party boat (5.1)', () => {
     expect(bare, 'empty 4 x 4 squares of sand at (top-left)').toEqual([]);
   });
 
-  it('closes the lagoa: a ring of sand round its water, a spot on its south bank', () => {
-    const water: Tile[] = [];
-    for (let y = 8; y <= 12; y++) for (let x = 1; x <= 6; x++) if (praia.floor[y][x] === 'o') water.push({ x, y });
-    expect(water.length).toBeGreaterThanOrEqual(9);
-    for (const w of water) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const ch = praia.floor[w.y + dy][w.x + dx];
-      expect(ch === 'o' || ch === 's', `lagoa edge ${w.x + dx},${w.y + dy}`).toBe(true);
+  it('has no water of its own but the sea: the lagoa is its own area now, through the gap in the west fence', () => {
+    for (const row of praia.floor) expect(row.includes('w')).toBe(false);
+    expect(praia.props.some((p) => p.kind === 'pesca_spot' && p.water === 'lagoa')).toBe(false);
+    const trail = praia.portals.filter((p) => p.edge && p.to === 'lagoa');
+    expect(trail.map((p) => p.y)).toEqual([...PRAIA_LAGOA_ROWS]);
+    for (const p of trail) {
+      expect(p.x).toBe(0);
+      expect(isWalkable(grid, p.x, p.y), `trail ${p.y}`).toBe(true);
+      expect(findPath(grid, praia.spawn, p), `walk to the trail ${p.y}`).not.toBeNull();
     }
-    const spot = praia.props.find((p) => p.kind === 'pesca_spot' && p.water === 'lagoa')!;
-    expect(spot).toBeDefined();
-    expect(water.some((w) => cheb(w, spot) === 1)).toBe(true);
   });
 
   it('every fishing spot looks onto its own water, and the boats sit on their decks', () => {
-    const spots = [...praia.props, ...ROOMS.barco_festa.props].filter((p) => p.kind === 'pesca_spot');
+    const spots = [...praia.props, ...ROOMS.lagoa.props, ...ROOMS.barco_festa.props].filter((p) => p.kind === 'pesca_spot');
     expect(new Set(spots.map((p) => p.water))).toEqual(new Set(['praia', 'lagoa', 'remo', 'pesca', 'alto_mar', 'festa']));
     for (const p of spots) {
       expect(p.action, p.id).toBe('pesca');
@@ -505,6 +504,97 @@ describe('the Praia (PRAIA-PLAN.md 1.3) and the party boat (5.1)', () => {
     expect(floorAt(praia, gangway.arrive.x, gangway.arrive.y)).toBe('deque');
     for (const p of deck.props.filter((q) => q.interact)) expect(findPath(g, deck.spawn, p.interact!), p.id).not.toBeNull();
     expect(findPath(g, deck.spawn, gangway)).not.toBeNull();
+  });
+});
+
+describe('the Lagoa do Jerivá (its own area, a trail west of the Praia)', () => {
+  const lagoa = ROOMS.lagoa;
+  const grid = buildGrid(lagoa);
+  const isWater = (x: number, y: number) => lagoa.floor[y]?.[x] === 'w';
+
+  it('is outdoor and public, every floor char known, its rows all as wide as the map', () => {
+    expect(lagoa.outdoor).toBe(true);
+    expect(lagoa.private).toBe(false);
+    expect(lagoa.floor).toHaveLength(lagoa.rows);
+    for (const row of lagoa.floor) expect(row).toHaveLength(lagoa.cols);
+    for (const ch of lagoa.floor.join('')) expect(FLOOR_CHARS[ch], `floor char ${ch}`).toBeDefined();
+    expect(floorAt(lagoa, 15, 12)).toBe('lagoa');
+    expect(isWalkable(grid, lagoa.spawn.x, lagoa.spawn.y)).toBe(true);
+  });
+
+  it('a real lake: lots of water, none of it walkable, the island cut off, the jetty and the mirante out over it', () => {
+    let n = 0;
+    for (let y = 0; y < lagoa.rows; y++) for (let x = 0; x < lagoa.cols; x++) if (isWater(x, y)) {
+      n++;
+      expect(isWalkable(grid, x, y), `water ${x},${y}`).toBe(false);
+    }
+    expect(n).toBeGreaterThan(200);
+    expect(findPath(grid, lagoa.spawn, { x: LAGOA_ISLAND.x0, y: LAGOA_ISLAND.y0 })).toBeNull();
+    // the jetty's platform has water on three sides
+    for (let y = LAGOA_JETTY.y0; y <= LAGOA_JETTY.y1; y++) expect(isWater(LAGOA_JETTY.x0 - 1, y), `west of the jetty ${y}`).toBe(true);
+    expect(floorAt(lagoa, LAGOA_JETTY.x0, LAGOA_JETTY.y0)).toBe('deque');
+  });
+
+  it('never opens onto void: every border tile is blocked, except the trail back to the beach', () => {
+    const edge = new Set(lagoa.portals.filter((p) => p.edge).map(edgeKey));
+    for (let x = 0; x < lagoa.cols; x++) for (const y of [0, lagoa.rows - 1]) expect(isWalkable(grid, x, y) && !edge.has(edgeKey({ x, y })), `open border ${x},${y}`).toBe(false);
+    for (let y = 0; y < lagoa.rows; y++) for (const x of [0, lagoa.cols - 1]) expect(isWalkable(grid, x, y) && !edge.has(edgeKey({ x, y })), `open border ${x},${y}`).toBe(false);
+  });
+
+  it('joins the Praia both ways: each trail tile arrives on the matching row of the other side, never on a portal, and leads home', () => {
+    const praia = ROOMS.praia;
+    const gp = buildGrid(praia);
+    for (const [from, to, gFrom, gTo] of [[praia, lagoa, gp, grid], [lagoa, praia, grid, gp]] as const) {
+      const ps = from.portals.filter((p) => p.edge && p.to === to.id);
+      expect(ps).toHaveLength(PRAIA_LAGOA_ROWS.length);
+      for (const p of ps) {
+        expect(isWalkable(gFrom, p.x, p.y), `${p.id} tile`).toBe(true);
+        expect(isWalkable(gTo, p.arrive.x, p.arrive.y), `${p.id} arrive`).toBe(true);
+        expect(to.portals.some((q) => q.edge && q.x === p.arrive.x && q.y === p.arrive.y)).toBe(false);
+        expect(findPath(gTo, p.arrive, to.portals.find((q) => q.edge && q.to === from.id)!), `${p.id} back`).not.toBeNull();
+      }
+    }
+    for (const p of lagoa.portals) expect(p.y - LAGOA_ROW_SHIFT).toBe(p.arrive.y);
+  });
+
+  it('reaches every fishing spot and seat from the entrance, the spots on a lane at least 2 tiles wide', () => {
+    const lane = reachableWide(grid, lagoa.spawn);
+    for (const t of targets(lagoa)) {
+      if (t.what.startsWith('sidewalk in front of')) continue;
+      expect(isWalkable(grid, t.tile.x, t.tile.y), `${t.what} is walkable`).toBe(true);
+      expect(findPath(grid, lagoa.spawn, t.tile), `path to ${t.what}`).not.toBeNull();
+      if (t.what.startsWith('seat')) continue;
+      expect([...lane].some((k) => cheb({ x: Number(k.split(',')[0]), y: Number(k.split(',')[1]) }, t.tile) <= 1), `${t.what} touches the wide lane`).toBe(true);
+    }
+  });
+
+  it('has four free fishing spots, each right next to the water', () => {
+    const spots = lagoa.props.filter((p) => p.kind === 'pesca_spot');
+    expect(spots).toHaveLength(4);
+    for (const p of spots) {
+      expect(p.water, p.id).toBe('lagoa');
+      expect(p.action, p.id).toBe('pesca');
+      const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => isWater(p.x + dx, p.y + dy));
+      expect(near, `${p.id} looks onto the water`).toBe(true);
+    }
+  });
+
+  it('leaves no empty 4 x 4 of grass or sand: the banks are dressed', () => {
+    const dressed = new Set<string>();
+    for (const p of lagoa.props) for (const t of propTiles(p)) dressed.add(`${t.x},${t.y}`);
+    const bare: string[] = [];
+    for (let y = 0; y + 4 <= lagoa.rows; y++) for (let x = 0; x + 4 <= lagoa.cols; x++) {
+      let empty = true;
+      for (let dy = 0; dy < 4 && empty; dy++) for (let dx = 0; dx < 4; dx++) {
+        const ch = lagoa.floor[y + dy][x + dx];
+        if ((ch !== 'g' && ch !== 's') || dressed.has(`${x + dx},${y + dy}`)) {
+          empty = false;
+          break;
+        }
+      }
+      if (empty) bare.push(`${x},${y}`);
+    }
+    expect(bare, 'empty 4 x 4 squares of ground at (top-left)').toEqual([]);
   });
 });
 

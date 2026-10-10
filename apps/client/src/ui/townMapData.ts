@@ -9,7 +9,7 @@
  * Praça's east path; the Aeroporto (its runway and terminal front) sits up the road the 875 bus takes from the rua leste.
  *
  * Every room in the shared room list has an entry in `ROOM_ON_MAP` (a new RoomId fails to compile until it is placed or routed through
- * another place). The Praia sits in the corner east of the Feira (the 875 bus goes on there); the Fazenda is drawn below it as "Em breve":
+ * another place). The Praia sits in the corner east of the Feira (the 875 bus goes on there), the Lagoa at the west end of that corner; the Fazenda is drawn below it as "Em breve":
  * tapping it shows a teaser, never travel. While the admin has the beach closed, the Praia is a teaser again (`mapSpots`).
  */
 import { ROOMS, ROOM_IDS, type RoomId } from '@tudobem/shared';
@@ -62,6 +62,9 @@ export interface MapSpot {
 
 const at = (area: MapArea, x: number, y: number, w: number, h: number): Box => [(AREA_AT[area][0] + x) * MAP_T, (AREA_AT[area][1] + y) * MAP_T, w * MAP_T, h * MAP_T];
 
+/** How wide (tiles) the Lagoa's end of the corner east of the Feira is; the Praia takes the other nine (its picture is nine wide). */
+const LAGOA_MAP_COLS = 6;
+
 /** Bilingual name of a room on the map (the room's own name and gloss). */
 const roomLabel = (id: RoomId) => ({ pt: ROOMS[id].name, en: ROOMS[id].gloss });
 
@@ -87,15 +90,25 @@ export const ROOM_ON_MAP: Record<RoomId, MapSpot | { via: RoomId }> = {
   // the beach, in the corner east of the Feira where it waited as a teaser (the picture does not move); the party deck is out at sea off it
   praia: place('praia', [praiaBox()]),
   barco_festa: { via: 'praia' },
+  // the lagoon, a short trail west of the beach: the west end of the same corner
+  lagoa: place('lagoa', [lagoaBox()]),
 };
 
-/** The corner east of the Feira, under the bus road: the Praia (top) and the Fazenda (bottom). */
-export const SOON_AT = { col: AREA_AT.feira[0] + ROOMS.feira.cols, praia: 20, fazenda: 30 } as const;
+/**
+ * The corner east of the Feira, under the bus road: the Lagoa (its west end, `lagoaCols` wide) and the Praia beside it (top), the Fazenda
+ * (bottom).
+ */
+export const SOON_AT = { col: AREA_AT.feira[0] + ROOMS.feira.cols, praia: 20, fazenda: 30, lagoaCols: LAGOA_MAP_COLS } as const;
 
-/** The Praia's corner of the map, in map pixels. */
+/** The Praia's part of the corner, in map pixels (east of the Lagoa). */
 function praiaBox(): Box {
-  const col = AREA_AT.feira[0] + ROOMS.feira.cols;
+  const col = AREA_AT.feira[0] + ROOMS.feira.cols + LAGOA_MAP_COLS;
   return [col * MAP_T, 20 * MAP_T, (MAP_COLS - col) * MAP_T, 10 * MAP_T];
+}
+
+/** The Lagoa's part of the corner, in map pixels: the west end, where the trail leaves the beach. */
+function lagoaBox(): Box {
+  return [(AREA_AT.feira[0] + ROOMS.feira.cols) * MAP_T, 20 * MAP_T, LAGOA_MAP_COLS * MAP_T, 10 * MAP_T];
 }
 
 /** The beach while the admin has it closed (PRAIA-PLAN.md 1.2): the old teaser, never travel. needs_br: true */
@@ -127,7 +140,9 @@ export const SOON_SPOTS: MapSpot[] = [
 export function mapSpots(o: { praiaOpen?: boolean } = {}): MapSpot[] {
   const rooms = ROOM_IDS.map((id) => ROOM_ON_MAP[id])
     .filter((s): s is MapSpot => 'hit' in s)
-    .map((s) => (s.id === 'praia' && o.praiaOpen === false ? PRAIA_SOON : s));
+    .map((s) => (s.id === 'praia' && o.praiaOpen === false ? PRAIA_SOON : s))
+    // the lagoon is only reached through the beach: closed with it, it is not a place on the map
+    .filter((s) => !(s.id === 'lagoa' && o.praiaOpen === false));
   return [...rooms, ...SOON_SPOTS];
 }
 

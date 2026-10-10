@@ -19,8 +19,8 @@ export const isCpuId = (id: string) => id.startsWith(CPU_ID_PREFIX);
  * each gets fewer CPUs than the old 56 x 40 map's 8 (Rua and Rua leste 2 each, Praça 4, Feira 3 at 0-1 humans); the more humans the fewer CPUs.
  */
 export function cpuTarget(humans: number, room: RoomId = 'academia'): number {
-  if (room === 'praca' || room === 'rua' || room === 'rua_leste' || room === 'feira' || room === 'praia') {
-    const max = room === 'praca' ? 4 : room === 'feira' || room === 'praia' ? 3 : 2; // each half of the street is half the old rua
+  if (room === 'praca' || room === 'rua' || room === 'rua_leste' || room === 'feira' || room === 'praia' || room === 'lagoa') {
+    const max = room === 'praca' ? 4 : room === 'feira' || room === 'praia' ? 3 : 2; // each half of the street is half the old rua; the lagoa is quiet
     if (humans <= 1) return max;
     if (humans === 2) return max - 1;
     if (humans <= 6) return Math.max(1, max - 2);
@@ -84,8 +84,19 @@ export const PRAIA_AMBIANCE: AmbMap = {
   entries: [{ x: 1, y: 4 }, { x: 33, y: 4 }],
 };
 
-/** Rooms where the CPUs never wave (the Praia's lock: no `oi` on the beach). */
-export const NO_WAVE_ROOMS: ReadonlySet<RoomId> = new Set<RoomId>(['praia', 'barco_festa']);
+/**
+ * Lagoa do Jerivá: a walk round the water, a look from the mirante and the jetty, a rest on the south bank. They come and go by the trail to
+ * the beach and never wave either (the Praia's lock holds a trail away).
+ */
+export const LAGOA_AMBIANCE: AmbMap = {
+  spots: [{ x: 8, y: 3 }, { x: 25, y: 6 }, { x: 28, y: 18 }, { x: 18, y: 22 }, { x: 2, y: 9 }, { x: 31, y: 17 }, { x: 24, y: 11 }, { x: 6, y: 20 }],
+  /** By the mirante's gazebo, beside (never on) its fishing spot. */
+  doorSpots: [{ x: 16, y: 5 }, { x: 17, y: 5 }, { x: 13, y: 6 }],
+  entries: [{ x: 34, y: 13 }, { x: 34, y: 14 }],
+};
+
+/** Rooms where the CPUs never wave (the Praia's lock: no `oi` on the beach, nor at the lagoa a trail away). */
+export const NO_WAVE_ROOMS: ReadonlySet<RoomId> = new Set<RoomId>(['praia', 'lagoa', 'barco_festa']);
 
 /**
  * Academia do Bairro idle and wander targets. Sidelines, the fila wall, and the wood
@@ -130,6 +141,7 @@ export const ROOM_AMBIANCE: Partial<Record<RoomId, { spots: Tile[]; doorSpots: T
   feira: FEIRA_AMBIANCE,
   academia: ACADEMIA_AMBIANCE,
   praia: PRAIA_AMBIANCE,
+  lagoa: LAGOA_AMBIANCE,
 };
 
 export const ambianceRoomIds = (): RoomId[] => Object.keys(ROOM_AMBIANCE) as RoomId[];

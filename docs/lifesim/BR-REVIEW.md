@@ -871,6 +871,18 @@ The pet shop on Rua dos Ipês (leste): Seu Dito (Benedito Alves, 62, from a sít
 | 641 | Mais raças no Pet Shop do Seu Dito, na Rua dos Ipês. · Meus pets ({n}) | More breeds at Seu Dito's pet shop… | `ui/support.ts` | Apoiar panel | |
 | 642 | A lojinha fica no Pet Shop do Seu Dito. · Chegue mais perto do balcão. · Chegue mais perto do cercadinho. · Você já tem esse. · Esse item não serve pra esse bichinho. · Adote um no Pet Shop do Seu Dito. | (server errors) | `apps/server/src/petShop.ts`, `world.ts` | | |
 
+## Z. Lagoa do Jerivá
+
+| # | Portuguese | English | Where | Notes | OK? |
+|---|---|---|---|---|---|
+| 643 | Lagoa do Jerivá · Praia | Jerivá Lagoon · Beach | `rooms.ts` (the room's name, the trail's edge labels) | | |
+| 644 | TRILHA DA LAGOA / Siga em frente, pelo oeste. | LAGOON TRAIL / Straight ahead, to the west. | `hotspots.ts` `praia_trilha` | spoken (ui) | |
+| 645 | LAGOA DO JERIVÁ / Água doce. Pesca livre no píer e na margem. | JERIVÁ LAGOON / Fresh water. Free fishing from the jetty and the bank. | `hotspots.ts` `lagoa_placa` | spoken (ui) | |
+| 646 | CUIDADO: CAPIVARAS / Não dê comida aos animais. | CAREFUL: CAPYBARAS / Don't feed the animals. | `hotspots.ts` `lagoa_capivara` | spoken (ui) | |
+| 647 | Pesca no píer da lagoa · Pesca no mirante · Pesca na areia da lagoa · Pesca na margem | Fishing from the lagoon jetty · from the lookout · from the lagoon sand · from the bank | `layouts/lagoa.json` spot labels | | |
+| 648 | capivara · trilha | capybara · trail | `diary-words.json` (reading words) | | |
+| 649 | Lagoa (admin Testes teleporter) | Lagoon | `adminTestes.ts` | | |
+
 ## Totals
 
-642 numbered strings in sections A to Q, S, T, U, V, W, X and Y, plus 9 proposed-card entries.
+649 numbered strings in sections A to Q, S, T, U, V, W, X, Y and Z, plus 9 proposed-card entries.

@@ -14,6 +14,7 @@ import { C, K, put, fillRect, h2 } from './paint.mjs';
 import { recolorRamp } from './kit.mjs';
 import { mat, MAT_BLUE } from './gym3.mjs';
 import { agua, deque } from './praia.mjs';
+import { lagoaAgua, LAGOA_SHORE } from './lagoa.mjs';
 
 const tile = () => blank(16, 16);
 
@@ -222,6 +223,8 @@ export const FLOORS = {
   // the Praia (custom/praia.mjs): the sea (a `shore` terrain: foam where it meets anything) and the pier's planks
   agua: { fn: agua, phasesX: 2, phasesY: 2 },
   deque: { fn: deque, phasesX: 2, phasesY: 1 },
+  // the Lagoa do Jerivá (custom/lagoa.mjs): still fresh water, its `shore` edge in mud and shallows instead of foam
+  lagoa: { fn: lagoaAgua, phasesX: 2, phasesY: 2, shore: LAGOA_SHORE },
 };
 
 export { C, clone };

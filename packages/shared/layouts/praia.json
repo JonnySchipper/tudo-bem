@@ -130,7 +130,17 @@
       "x": 0,
       "y": 2,
       "w": 1,
-      "h": 17,
+      "h": 7,
+      "blocks": true,
+      "art": "cerca_jardim"
+    },
+    {
+      "id": "cerca_oeste_sul",
+      "kind": "cerca",
+      "x": 0,
+      "y": 12,
+      "w": 1,
+      "h": 7,
       "blocks": true,
       "art": "cerca_jardim"
     },
@@ -399,62 +409,6 @@
       "h": 1,
       "blocks": true,
       "art": "praia/rede_secando"
-    },
-    {
-      "id": "pedras_lagoa_1",
-      "kind": "pedras",
-      "x": 2,
-      "y": 8,
-      "w": 2,
-      "h": 1,
-      "blocks": true,
-      "art": "praia/pedras_b"
-    },
-    {
-      "id": "pedras_lagoa_2",
-      "kind": "pedras",
-      "x": 5,
-      "y": 8,
-      "w": 1,
-      "h": 1,
-      "blocks": true,
-      "art": "praia/pedras_a"
-    },
-    {
-      "id": "taboa_1",
-      "kind": "sebe",
-      "x": 1,
-      "y": 10,
-      "w": 1,
-      "blocks": true,
-      "art": "praia/taboa"
-    },
-    {
-      "id": "taboa_2",
-      "kind": "sebe",
-      "x": 6,
-      "y": 9,
-      "w": 1,
-      "blocks": true,
-      "art": "praia/taboa"
-    },
-    {
-      "id": "pesca_lagoa",
-      "kind": "pesca_spot",
-      "x": 4,
-      "y": 12,
-      "blocks": false,
-      "action": "pesca",
-      "interact": {
-        "x": 4,
-        "y": 12
-      },
-      "label": {
-        "pt": "Pesca na lagoa",
-        "en": "Fishing at the lagoon"
-      },
-      "art": "praia/pesca_stake",
-      "water": "lagoa"
     },
     {
       "id": "castelo_2",
@@ -1608,6 +1562,64 @@
       "art": "praia/gaivota",
       "ox": -4,
       "z": 90
+    },
+    {
+      "id": "placa_trilha",
+      "kind": "lagoa_deco",
+      "x": 1,
+      "y": 12,
+      "blocks": true,
+      "art": "lagoa/placa_trilha",
+      "label": {
+        "pt": "Trilha da Lagoa",
+        "en": "Lagoon trail"
+      }
+    },
+    {
+      "id": "bromelia_trilha",
+      "kind": "sebe",
+      "x": 4,
+      "y": 12,
+      "blocks": true,
+      "art": "lagoa/bromelia"
+    },
+    {
+      "id": "heliconia_trilha",
+      "kind": "sebe",
+      "x": 5,
+      "y": 9,
+      "blocks": true,
+      "art": "lagoa/heliconia"
+    },
+    {
+      "id": "pegadas_trilha",
+      "kind": "cenario",
+      "x": 2,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pedras_trilha",
+      "kind": "pedras",
+      "x": 2,
+      "y": 8,
+      "w": 2,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/pedras_b"
+    },
+    {
+      "id": "concha_trilha",
+      "kind": "cenario",
+      "x": 5,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
     }
   ]
 }
