@@ -1,7 +1,7 @@
 /**
- * The Vila Ipê guide card (words in ui/vilaGuideData.ts). It opens by itself once, the first time a resident stands in the Vila, and
- * waits for a calm moment: never on top of a dialogue, a panel, a new-word card or another first-time card. Ajustes → Guia and Júlia
- * ("O que tem pra fazer aqui?") open it again.
+ * The Vila Ipê guide card (words in ui/vilaGuideData.ts). Ajustes → Guia, the open-world "?" and Júlia ("O que tem pra fazer aqui?")
+ * open it. It never opens by itself (`shouldShowVilaGuide`); if that gate ever opens, it waits for a calm moment: never on top of a
+ * dialogue, a panel, a new-word card or another first-time card.
  */
 import { game } from '../state';
 import { h, ui } from './dom';
@@ -76,6 +76,6 @@ export function maybeShowVilaGuide(room: string): void {
     }
     openVilaGuide();
   };
-  // let the room settle first (the welcome toast, the ways-out banner)
+  // let the room settle first (the welcome toast)
   waiting = window.setTimeout(tryOpen, 1800);
 }

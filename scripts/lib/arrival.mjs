@@ -60,8 +60,8 @@ export async function skipFlight(page) {
 }
 
 /**
- * The first-time cards a new player meets in the Vila (the Vila guide, and the "How it works" cards over panels such as Recados or the
- * Cartela) sit over the screen until "Got it". Play paths that are about something else mark them seen, as a returning player would have.
+ * The first-time "How it works" cards over panels such as Recados or the Cartela sit over the screen until "Got it" (the Vila guide
+ * never opens by itself). Play paths that are about something else mark them seen, as a returning player would have.
  * The minigames' "How to play" cards are left alone: their e2e reads them. Ids: apps/client/src/ui/howToPlayData.ts (kind: 'place').
  */
 export const PLACE_CARDS = ['balcao', 'papo', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira'];
@@ -69,7 +69,6 @@ export const PLACE_CARDS = ['balcao', 'papo', 'recados', 'diario', 'cartela', 'm
 export async function quietFirstTimeCards(page) {
   await page.evaluate((ids) => {
     const id = window.__tb.game.profile.id;
-    localStorage.setItem(`tb_vila_guia:${id}`, '1');
     for (const g of ids) localStorage.setItem(`tb_howto:${id}:${g}`, '1');
   }, PLACE_CARDS);
 }

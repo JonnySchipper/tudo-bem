@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS, ROOM_IDS } from '@tudobem/shared';
-import { doorTagsFor, exitLine } from './wayfinding';
+import { doorTagsFor } from './wayfinding';
 import { HOW_TO_PLAY } from './howToPlayData';
 import { shouldReveal } from './diaryWordQueue';
 
@@ -35,7 +35,7 @@ describe('wayfinding: every room says where its doors go', () => {
   it('names the arrivals hall’s door: on to the airport', () => {
     const [tag] = doorTagsFor(ROOMS.desembarque);
     expect(tag).toMatchObject({ to: 'aeroporto', en: 'On to the airport' });
-    expect(exitLine([tag!])).toContain('Siga para o aeroporto');
+    expect(tag!.pt).toContain('Siga para o aeroporto');
   });
 });
 
