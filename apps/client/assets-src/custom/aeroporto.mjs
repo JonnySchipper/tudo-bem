@@ -168,16 +168,15 @@ function aviao() {
   for (let x = 186; x < 196; x += 3) dot(img, x, 44, P.slate);
   // the airline's name over the windows
   text(img, 96, 37, 'TUDO BEM', P.green);
-  // the tail fin, swept back, green with a yellow band and the round flag
+  // the tail fin, swept back: the flag of Brazil (green field, yellow rhombus, blue disc with its white band; no red)
   const fin = inPoly([[15, 37], [52, 37], [26, 3], [12, 3]]);
   fill(img, fin, (x, y) => {
     const t = x - 12 - (37 - y) * 0.06;
-    if (Math.abs(x - 14 - (37 - y) * 0.35 - 14) < 2.2) return P.yellow;
+    const dx = x - 27, dy = y - 22;
+    if (dx * dx + dy * dy <= 20) return Math.abs(dy + 0.3 * dx + 0.5) < 1 ? P.white : dy < -2 ? P.blue : P.blueLo;
+    if (Math.abs(dx) / 10 + Math.abs(dy) / 7 <= 1) return dy < -3 ? P.yellowHi : P.yellow;
     return t < 6 ? P.greenHi : x > 40 - (37 - y) * 0.6 ? P.greenLo : P.green;
   });
-  // the flag disc on the fin
-  fill(img, (x, y) => (x - 24) ** 2 + (y - 17) ** 2 <= 22, (x, y) => ((x - 24) ** 2 + (y - 17) ** 2 <= 8 ? P.blueLo : P.yellow));
-  dot(img, 23, 16, P.white);
   // the near tailplane, toward the viewer
   const stab = inPoly([[20, 54], [50, 54], [32, 63], [10, 63]]);
   fill(img, stab, (x, y) => (y < 56 ? P.snow : P.lav4));
@@ -213,7 +212,7 @@ function aviao() {
     for (let i = 0; i < n; i++) fill(img, (x, y) => (x - (gx + 3 + i * 7)) ** 2 + (y - 70) ** 2 <= 9, (x, y) => (x + y < gx + 3 + i * 7 + 69 ? P.slate : P.navy2));
   }
   // a little light on the belly and one on the tail
-  dot(img, 120, 63, P.red);
+  dot(img, 120, 63, P.white);
   dot(img, 13, 40, P.white);
   outlineAround(img);
   return { img, anchor: [Math.floor(W / 2), 73] };
@@ -232,7 +231,9 @@ function aviaoPista() {
   for (let x = 82; x < 88; x++) dot(img, x, 18, P.navy2);
   const fin = inPoly([[7, 16], [22, 16], [12, 2], [5, 2]]);
   fill(img, fin, (x) => (x < 10 ? P.greenHi : P.green));
-  dot(img, 10, 8, P.yellow);
+  // the flag at runway distance: the rhombus and the disc
+  for (const [x, y] of [[10, 9], [11, 9], [12, 9], [13, 9], [14, 9], [11, 8], [12, 8], [13, 8], [11, 10], [12, 10], [13, 10]]) dot(img, x, y, P.yellow);
+  dot(img, 12, 9, P.blueLo);
   const wing = inPoly([[42, 24], [62, 24], [30, 33], [24, 33]]);
   fill(img, wing, (x, y) => (x > 62 - (y - 24) * 3.5 - 2 ? P.snow : P.lav4));
   fill(img, (x, y) => x > 44 && x < 58 && ((y - 27.5) / 3) ** 2 <= 1, (x, y) => (y < 27 ? P.white : P.lav2));
@@ -638,9 +639,15 @@ function faixa() {
   return { img, anchor: [48, 63] };
 }
 
-/** The baggage carousel: a stadium of rubber slats round a steel island, six bags going round. 15 frames loop the bags one spacing on. */
+/**
+ * The baggage carousel: a stadium of rubber slats round a steel island, six bags going round in two alternating colours. The loop is
+ * seamless: over its 30 frames every bag travels exactly two spacings, onto the place of the next bag of its own colour, while the slats
+ * move 2 px a frame (60 px, a whole number of 3 px slats). So the last frame runs into the first with nothing jumping.
+ */
+export const ESTEIRA_FRAMES = 30;
+export const ESTEIRA_COLORS = 2;
 function esteiraFrames() {
-  const W = 96, H = 40, N = 15;
+  const W = 96, H = 40, N = ESTEIRA_FRAMES;
   // the slat ring: straight runs at y 11 and 26 between x 16 and 80, half circles at the ends (radius 7.5 round the ring's middle line)
   const L = 64, R = 7.5, cyM = 18.5;
   const perim = 2 * L + 2 * Math.PI * R;
@@ -659,10 +666,10 @@ function esteiraFrames() {
     const cx = Math.max(16, Math.min(80, x));
     return (x - cx) ** 2 + (y - cyM) ** 2 <= r * r;
   };
-  const bags = [
-    [P.red, P.redHi, P.redLo], [P.blue, P.blueHi, P.blueLo], [P.yellow, P.yellowHi, P.yellowLo],
-    [P.green, P.greenHi, P.greenLo], ['#8a6bbf', '#a98be0', '#5e4a96'], [P.orange, '#f7b45a', '#b5541b'],
-  ];
+  const pair = [[P.blue, P.blueHi, P.blueLo], [P.yellow, P.yellowHi, P.yellowLo]];
+  const bags = Array.from({ length: 6 }, (_, i) => pair[i % ESTEIRA_COLORS]);
+  const spacing = perim / bags.length;
+  const step = (spacing * ESTEIRA_COLORS) / N;
   const frames = [];
   for (let f = 0; f < N; f++) {
     const img = blank(W, H);
@@ -683,7 +690,7 @@ function esteiraFrames() {
     fill(img, (x, y) => stadium(x, y, 4.5), (x, y) => (y < cyM - 2 ? P.lav4 : P.lav2));
     // the bags, each 9 x 6 seen from above with a handle
     bags.forEach(([b, hi, lo], i) => {
-      const [bx, by] = at(i * (perim / 6) + f * 2);
+      const [bx, by] = at(i * spacing + f * step);
       const x0 = Math.round(bx - 4), y0 = Math.round(by - 3);
       rect(img, x0, y0, 9, 6, b);
       rect(img, x0, y0, 9, 1, hi);

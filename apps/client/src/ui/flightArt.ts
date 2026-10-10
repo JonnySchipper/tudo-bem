@@ -331,9 +331,21 @@ export const PLANE_H = 30;
 
 const planeCache = new Map<string, HTMLCanvasElement>();
 
+/** Brazil's flag on the tail fin: a green field, the yellow rhombus, the blue disc with its white band. No red anywhere on the plane. */
+export const FLAG = { green: '#2e9e5b', greenLo: '#2a7a45', yellow: '#f5cf3f', blue: '#2b4fa8', white: '#ffffff' } as const;
+
+export function finColor(x: number, y: number): string {
+  const dx = x - 13;
+  const dy = y - 5;
+  // the band: a white stripe across the disc, rising to the right
+  if (dx * dx + dy * dy <= 5) return Math.round(dy + dx * 0.25) === 0 ? FLAG.white : FLAG.blue;
+  if (Math.abs(dx) / 5.5 + Math.abs(dy) / 3.6 <= 1) return FLAG.yellow;
+  return x <= 9 - (10 - y) * 0.6 + 1.5 ? FLAG.greenLo : FLAG.green;
+}
+
 /**
- * The airliner, side view, nose to the right: a white body with Brazil's green and yellow along it, a green tail with a yellow ipê
- * flower, windows lit warm at night.
+ * The airliner, side view, nose to the right: a white body with Brazil's green and yellow along it, the flag of Brazil on the tail,
+ * windows lit warm at night.
  */
 export function planeSprite(lit: boolean): HTMLCanvasElement {
   const key = lit ? 'lit' : 'day';
@@ -365,12 +377,7 @@ export function planeSprite(lit: boolean): HTMLCanvasElement {
         if (y <= top(x) + 0.8) return '#ffffff';
         return '#f3f0ea';
       }
-      if (inFin(x, y)) {
-        // the ipê: a yellow flower on the green tail
-        const d = (x - 13) ** 2 + (y - 5) ** 2;
-        if (d <= 3) return d === 0 ? '#e5572f' : '#f5cf3f';
-        return x <= 9 - (10 - y) * 0.6 + 1.5 ? '#2a7a45' : '#2e9e5b';
-      }
+      if (inFin(x, y)) return finColor(x, y);
       if (inTailplane(x, y)) return '#c3c0c9';
       return null;
     },
@@ -424,7 +431,8 @@ export function drawPlane(ctx: CanvasRenderingContext2D, p: PlanePose) {
   if (p.lights) {
     const blink = Math.sin(p.t * 6) > 0.6;
     const strobe = p.t % 1.4 < 0.08;
-    rect(ctx, ox + 33, oy + 27, 2, 1, blink ? '#ff4a4a' : '#8a2a2a');
+    // the wing tip's nav light (green: this is the starboard side)
+    rect(ctx, ox + 33, oy + 27, 2, 1, blink ? '#5dff8a' : '#1f7a45');
     if (strobe) {
       ctx.globalAlpha = 0.9;
       rect(ctx, ox + 2, oy + 0, 3, 3, '#ffffff');
@@ -433,7 +441,7 @@ export function drawPlane(ctx: CanvasRenderingContext2D, p: PlanePose) {
       ctx.globalAlpha = 1;
     }
     // the beacon on the belly
-    if (Math.sin(p.t * 3.2) > 0.3) rect(ctx, ox + 60, oy + 20, 2, 1, '#ff6b4a');
+    if (Math.sin(p.t * 3.2) > 0.3) rect(ctx, ox + 60, oy + 20, 2, 1, '#fff3c8');
   }
   ctx.restore();
 }
