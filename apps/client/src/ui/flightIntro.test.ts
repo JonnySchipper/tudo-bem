@@ -19,7 +19,7 @@ describe('the flight-in cutscene', () => {
 
   it('asks questions the player can answer, and Lia answers every reply', () => {
     const asks = FLIGHT_CABIN.filter((b) => b.kind === 'ask');
-    expect(asks.length).toBeGreaterThanOrEqual(3);
+    expect(asks).toHaveLength(3);
     for (const b of asks) {
       expect(b.replies.length).toBeGreaterThanOrEqual(2);
       for (const r of b.replies) expect(r.react.pt && r.react.en && r.pt && r.en).toBeTruthy();

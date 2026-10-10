@@ -95,7 +95,7 @@ async function toAvatarCreator(page, vp) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   if (SOLO) await page.click('#intro-guest');
   else {
     await page.click('#intro-tab-register');

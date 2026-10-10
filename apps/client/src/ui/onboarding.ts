@@ -76,8 +76,6 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
       { class: 'panel creator-panel name-card' },
       h('div', { class: 'name-card-ticket', 'aria-hidden': 'true' }, h('span', null, '✈'), h('b', null, 'GRU'), h('i', null, 'Vila Ipê · SP')),
       h('h2', null, 'Seu cartão de embarque'),
-      h('p', { class: 'creator-lead' }, 'Só o seu nome. Você escolhe quem você é lá no avião.'),
-      en('Just your name. You pick who you are on the plane, and you can change your look any time (Menu → Visual).'),
       h(
         'div',
         { class: 'creator-fields' },
@@ -85,9 +83,10 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
           'section',
           { class: 'cr-sec creator-who' },
           field('Como você se chama?', 'Display name (not your full real name)', h('div', null, name, nameErr)),
-          field('Como devemos te chamar?', 'How should NPCs address you? (grammar agreement)', pronounChips),
+          field('Como devemos te chamar?', 'How should NPCs address you?', pronounChips),
         ),
-        h('div', { class: 'rules' }, 'Regras da praça', en('Square rules — kind chat only; no personal info (phone, address, school, social handles); no dating, alcohol, slurs or politics. Chat is filtered.')),
+        // the square's rules live on the Terms page (Playing with other people)
+        h('div', { class: 'rules' }, h('a', { href: '/terms', target: '_blank', rel: 'noopener' }, 'Regras da praça', en(' Square rules', true))),
         h('div', { class: 'creator-cta' }, h('div', { class: 'row' }, h('span', { class: 'spacer' }), go)),
       ),
     ),

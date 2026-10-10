@@ -3,22 +3,10 @@ import type { Bilingual } from './types.js';
 /**
  * Júlia's tutorial Q&A (authored, client-only chips: no rewards, so no server authority). Spoken by the 'julia' voice.
  * `guide`: the answer also opens the Vila Ipê guide card (what there is to do). Needs_br: every PT line.
+ * Her menu is the Vila's orientation, so what a newcomer needs first leads it: favors (and the RV they pay), the padaria, what there is
+ * to do. Walking and chat, which the arrivals hall already taught, come last.
  */
 export const JULIA_TREE: { q: Bilingual; a: Bilingual; guide?: true }[] = [
-  {
-    q: { pt: 'O que tem pra fazer aqui?', en: 'What is there to do here?' },
-    a: { pt: 'Muita coisa! Dá uma olhada no guia da Vila.', en: 'Lots! Take a look at the Vila guide.' },
-    guide: true,
-  },
-  { q: { pt: 'Como eu ando?', en: 'How do I walk?' }, a: { pt: 'É só clicar no chão! Pra sentar, clique num banco.', en: 'Just click the floor! To sit, click a bench.' } },
-  {
-    q: { pt: 'Como eu falo com as pessoas?', en: 'How do I talk to people?' },
-    a: { pt: 'Escreva no chat lá embaixo e aperte Enter. O botão “Oi!” faz você acenar.', en: 'Type in the chat at the bottom and press Enter. The “Oi!” button makes you wave.' },
-  },
-  {
-    q: { pt: 'Onde fica a padaria?', en: 'Where is the bakery?' },
-    a: { pt: 'Na Rua dos Ipês, logo acima da praça! É a porta com o toldo vermelho.', en: 'On Rua dos Ipês, just north of the square! The door with the red awning.' },
-  },
   {
     q: { pt: 'Como ganho reais virtuais?', en: 'How do I earn reais virtuais (RV), the play money?' },
     a: {
@@ -26,6 +14,20 @@ export const JULIA_TREE: { q: Bilingual; a: Bilingual; guide?: true }[] = [
       en: 'Do favors (Favores) for the neighbours and play “Correria no Balcão” (Counter Rush) at the bakery. Then buy a hat from Nanda!',
     },
   },
+  {
+    q: { pt: 'Onde fica a padaria?', en: 'Where is the bakery?' },
+    a: { pt: 'Na Rua dos Ipês, logo acima da praça! É a porta com o toldo vermelho.', en: 'On Rua dos Ipês, just north of the square! The door with the red awning.' },
+  },
+  {
+    q: { pt: 'O que tem pra fazer aqui?', en: 'What is there to do here?' },
+    a: { pt: 'Muita coisa! Dá uma olhada no guia da Vila.', en: 'Lots! Take a look at the Vila guide.' },
+    guide: true,
+  },
+  {
+    q: { pt: 'Como eu falo com as pessoas?', en: 'How do I talk to people?' },
+    a: { pt: 'Escreva no chat lá embaixo e aperte Enter. O botão “Oi!” faz você acenar.', en: 'Type in the chat at the bottom and press Enter. The “Oi!” button makes you wave.' },
+  },
+  { q: { pt: 'Como eu ando?', en: 'How do I walk?' }, a: { pt: 'É só clicar no chão! Pra sentar, clique num banco.', en: 'Just click the floor! To sit, click a bench.' } },
 ];
 
 /** Her opener while the box has not met her yet (the client adds the player's name on screen; it is not spoken). */

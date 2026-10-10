@@ -41,7 +41,7 @@ async function enter(browser, name) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip');
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible' });
+  await page.waitForSelector('#intro-submit', { state: 'visible' });
   await page.click('#intro-tab-register');
   await page.fill('#intro-email', `${name.toLowerCase()}+${Date.now().toString(36)}@exemplo.com`);
   await page.fill('#intro-password', 'pao-de-queijo-2026');

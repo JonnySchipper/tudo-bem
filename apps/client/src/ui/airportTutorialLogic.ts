@@ -3,6 +3,7 @@
  * Needs_br: every Portuguese line here.
  */
 import { diaryWord, greetingFor, normalizeDiary, type PrivateProfile, type Pronoun } from '@tudobem/shared';
+import type { WordMoment } from './diaryWordQueue';
 
 /** A reply chip (the dialogue box's `BoxChip`). */
 export interface Chip {
@@ -11,11 +12,11 @@ export interface Chip {
 }
 
 /**
- * The airport comes after the arrivals hall (`desembarque`), which already taught walking, talking, the Diário, reading a sign, waving,
- * picking up and using things, money, the map and doors. So the airport only asks for what is new here: the camera from Célia and a first
- * photo, the passport check, a snack bought with RV, and the bus to the Vila.
+ * The airport comes after the arrivals hall (`desembarque`), which already taught walking, talking, reading a sign, saying hi and doors.
+ * So the airport only asks for what is new here: the camera from Célia, a first photo if the player wants one, and the bus to the Vila.
+ * Agente Paulo (the passport) and the café are still there to talk to and buy from; they are just not steps.
  */
-export type AirportStepId = 'celia' | 'foto' | 'passaporte' | 'lanche' | 'onibus';
+export type AirportStepId = 'celia' | 'foto' | 'onibus';
 
 export interface AirportGuide {
   kind: 'npc' | 'prop' | 'portal' | 'hotspot';
@@ -35,6 +36,8 @@ export interface AirportStep {
   guide: AirportGuide | null;
   /** The HUD button(s) the step needs (a selector): they pulse while the step is current. */
   hud?: string;
+  /** Nothing waits for it: the bus can be taken without it. */
+  optional?: true;
 }
 
 export const AIRPORT_STEPS: readonly AirportStep[] = [
@@ -42,30 +45,17 @@ export const AIRPORT_STEPS: readonly AirportStep[] = [
     id: 'celia',
     pt: 'Fale com a Célia',
     en: 'Get your camera from Célia',
-    how: { pt: 'Ela está no balcão de Informações. A Júlia deixou um pacote pra você!', en: 'She is at the information desk, to your right. Júlia left a package for you: a camera and a stamp card.' },
+    how: { pt: 'Ela está no balcão de Informações. A Júlia deixou um pacote pra você!', en: 'She is at the information desk, to your right. Júlia left a package for you: a camera.' },
     guide: { kind: 'npc', id: 'celia', label: 'Célia · Information', lift: 120 },
   },
   {
     id: 'foto',
     pt: 'Tire uma foto do avião',
-    en: 'Take a photo of the plane',
+    en: 'Take a photo of the plane (optional)',
     how: { pt: 'Chegue perto da janela, clique em Câmera e depois em qualquer parte do avião. Aqui no aeroporto as fotos são de graça.', en: 'Go up to the window, click Câmera, then any part of the plane: the wing, the tail, the nose, a wheel… Each part teaches its word. Photos are free here.' },
     guide: { kind: 'prop', id: 'aviao', label: 'Photograph · Fotografe', lift: 70 },
     hud: '#btn-camera, #btn-burger',
-  },
-  {
-    id: 'passaporte',
-    pt: 'Mostre o passaporte',
-    en: 'Show your passport',
-    how: { pt: 'Fale com o Agente Paulo no controle de passaporte. Cumprimente ele primeiro!', en: 'Talk to Agent Paulo at passport control, south of the gate. Greet him the right way for the time of day!' },
-    guide: { kind: 'npc', id: 'agente', label: 'Passport · Passaporte', lift: 120 },
-  },
-  {
-    id: 'lanche',
-    pt: 'Compre um pão de queijo',
-    en: 'Buy a pão de queijo',
-    how: { pt: 'Na lanchonete. Custa R$ 4 dos seus reais virtuais (RV): o saldo fica lá em cima.', en: 'At the café (lanchonete). It costs 4 of your RV: your balance is at the top right.' },
-    guide: { kind: 'prop', id: 'lanchonete_aero', label: 'Café · Lanchonete', lift: 70 },
+    optional: true,
   },
   {
     id: 'onibus',
@@ -77,7 +67,7 @@ export const AIRPORT_STEPS: readonly AirportStep[] = [
 ];
 
 /** The steps only this page knows about, per profile. */
-export type AirportFlags = Partial<Record<'passaporte' | 'lanche' | 'onibus', boolean>>;
+export type AirportFlags = Partial<Record<'onibus', boolean>>;
 
 type ProfileBits = Pick<PrivateProfile, 'arrivalIntroDone' | 'diary'>;
 
@@ -94,7 +84,7 @@ export function airportDone(p: ProfileBits | null | undefined, flags: AirportFla
   // an account from before the airport (no `arrivalIntroDone` on the save) already has its camera
   if (p.arrivalIntroDone !== false) done.add('celia');
   if (chegadaPhoto(p.diary)) done.add('foto');
-  for (const k of ['passaporte', 'lanche', 'onibus'] as const) if (flags[k]) done.add(k);
+  if (flags.onibus) done.add('onibus');
   return done;
 }
 
@@ -123,13 +113,16 @@ export function passportChips(minute: number): { chips: Chip[]; right: number } 
   };
 }
 
-/** The airport's "what next" card, shown once when you come out of the arrivals hall. */
-export const AIRPORT_NEXT = {
-  title: 'You’re in the airport!',
-  pt: 'Bem-vindo ao aeroporto!',
-  goals: [
-    'Get your camera from Célia at the information desk (follow the arrow).',
-    'Take a photo, show your passport and grab a snack if you like.',
-    'Then go out the glass doors at the bottom and take bus 875 to Vila Ipê, where Júlia is waiting.',
-  ],
-} as const;
+/**
+ * A photo at the gate (the plane: wing, engine, tail…) teaches its words on one "Nova palavra" card instead of one card per part. The
+ * words are joined in the order the server sent them; the area's progress is the last word's (where the shot left it).
+ */
+export function oneWordCard(words: readonly WordMoment[]): WordMoment {
+  const last = words.at(-1);
+  return {
+    pt: words.map((w) => w.pt).join(' · '),
+    en: words.map((w) => w.en).join(' · '),
+    ...(last?.areaPt ? { areaPt: last.areaPt } : {}),
+    ...(last?.progress ? { progress: last.progress } : {}),
+  };
+}

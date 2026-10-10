@@ -41,21 +41,19 @@
   right: max(12px, env(safe-area-inset-right));
   z-index: 3;
   padding: 6px 14px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.8);
   border-radius: 999px;
-  background: rgba(11, 8, 32, 0.45);
+  background: rgba(11, 8, 32, 0.75);
   color: #fff;
-  font: 700 14px/1 var(--font-body);
+  font: 700 15px/1 var(--font-body);
   cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s;
 }
 .fl-skip:hover,
 .fl-skip:focus-visible {
-  opacity: 1;
+  background: rgba(11, 8, 32, 0.95);
 }
 .fl-skip-en {
-  opacity: 0.7;
+  opacity: 0.8;
   font-weight: 500;
 }
 
