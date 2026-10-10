@@ -239,3 +239,107 @@ body.pesca-on #hotspot-cues {
   font-size: 12px;
   color: #1f5f5a;
 }
+
+/* ---------------------------------------------------------------- the party boat (ui/pesca/party.ts) */
+.pesca-card-bottle {
+  margin: 10px auto 0;
+  max-width: 280px;
+  padding: 8px 12px;
+  background: #fbf1e3;
+  border: 2px dashed #c9a46a;
+  border-radius: 8px;
+  font-size: 17px;
+  color: #573c2c;
+}
+.pesca-card-bottle .en {
+  display: block;
+  font-size: 13px;
+  color: #6b5a4a;
+}
+.party-pill {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  background: #fbf1e3;
+  border: 2px solid #1f5f5a;
+  border-radius: 999px;
+  color: #1f5f5a;
+  font-size: 14px;
+  pointer-events: auto;
+}
+.party-pill-boat,
+.party-invite-boat {
+  width: 24px;
+  height: 18px;
+  background: linear-gradient(#3fa9a0 0 40%, #f6f6f2 40% 70%, #c0392b 70%);
+  border-radius: 3px 3px 10px 10px;
+  flex: none;
+}
+.party-invite-boat {
+  width: 64px;
+  height: 40px;
+  margin: 0 auto 8px;
+}
+.party-pill-late {
+  color: #b5562b;
+  font-weight: 700;
+}
+.party-pill button {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.party-invite {
+  text-align: center;
+  max-width: 360px;
+}
+.party-summary {
+  max-width: 440px;
+}
+.party-sum-members {
+  font-weight: 700;
+  color: #1f5f5a;
+}
+.party-sum-fish {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.party-sum-catch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 72px;
+  padding: 6px;
+  background: #eef7f5;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.party-sum-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.party-sum-word {
+  padding: 3px 8px;
+  background: #fbf1e3;
+  border: 1px solid #c9a46a;
+  border-radius: 999px;
+}
+.party-sum-earned {
+  margin-top: 10px;
+}
+.party-sum-item {
+  padding: 4px 0;
+}
+@media (max-width: 640px) {
+  .party-pill {
+    top: 64px;
+    font-size: 12px;
+  }
+}

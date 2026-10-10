@@ -156,6 +156,7 @@ import {
   isPraiaMode,
   praiaAllows,
   PRAIA_CLOSED,
+  PRAIA_PARTY_PIER,
   PRAIA_DEFAULT,
   weatherAt,
   type FishId,
@@ -182,6 +183,7 @@ import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 import { PraiaStore, memoryPraia } from './praiaStore.js';
 import { PescaEngine, type PescaCastRun } from './pesca.js';
 import { BarcoEngine } from './barco.js';
+import { PartyBoats } from './partyBoat.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
@@ -410,6 +412,8 @@ export class World {
   private readonly pescaEngine: PescaEngine;
   /** Seu Bento's rentals (barco.ts). */
   private readonly barco: BarcoEngine;
+  /** The party boat's trips (partyBoat.ts). */
+  readonly parties: PartyBoats;
   private readonly githubToken?: string;
   private readonly githubFetch?: typeof fetch;
 
@@ -534,7 +538,8 @@ export class World {
       saleCap: () => this.config.get('pescaSaleCapRv'),
       pinned: opts.pescaPin ?? readEnv('TB_TEST_PESCA') === '1',
       aboardParty: (s) => this.aboardParty(s as Session),
-      onPartyCatch: (s, fish) => this.onPartyCatch(s as Session, fish),
+      onPartyCatch: (s, fish) => this.parties.onCatch(s as Session, fish),
+      onBottle: () => this.parties.countBottle(),
     });
     this.barco = new BarcoEngine({
       now: () => this.now(),
@@ -549,6 +554,38 @@ export class World {
       partyBoat: () => this.praia.config().partyBoat,
       dropCast: (s) => this.pescaEngine.dropCast(s),
       sessionOf: (id) => this.sessionByProfile(id),
+    });
+    const pescaPinned = opts.pescaPin ?? readEnv('TB_TEST_PESCA') === '1';
+    this.parties = new PartyBoats({
+      now: () => this.now(),
+      schedule: (fn, ms) => this.schedule(fn, ms),
+      profile: (id) => this.store.get(id),
+      save: (...ids) => this.store.save(...ids),
+      sessionOf: (id) => this.sessionByProfile(id),
+      pushProfile: (s) => this.pushProfile(s as Session),
+      err: (s, code, pt, en) => this.err(s as Session, code, pt, en),
+      teach: (s, words) => this.diary.teachPesca(s as Session, words),
+      board: (s, tripId) => {
+        this.join(s as Session, 'barco_festa', { instanceId: tripId });
+        return s.instance?.id === tripId;
+      },
+      ashore: (s) => {
+        const sess = s as Session;
+        if (this.praiaOpenFor(sess)) this.join(sess, 'praia', {}, { tile: { ...PRAIA_PARTY_PIER }, dir: 'SW' });
+        else this.join(sess, 'rua_leste', {}, { tile: { x: 5, y: 13 }, dir: 'SW' });
+      },
+      nearBoat: (s) => this.barco.nearShack(s as Session),
+      busy: (s) => {
+        const sess = s as Session;
+        return !!sess.bout || !!sess.feiraGame || !!this.correria.shiftOf(sess);
+      },
+      enabled: () => this.praia.config().partyBoat,
+      price: () => this.config.get('boatFestaRv'),
+      cap: () => this.config.get('partyBoatCap'),
+      tripMs: () => this.config.get('partyTripMinutes') * 60_000,
+      companyMs: () => (pescaPinned ? 5_000 : 5 * 60_000),
+      minute: () => gameMinutes(this.clockNow()),
+      avatarChanged: (s) => this.broadcastAvatar(s as Session),
     });
     this.escola = new EscolaTracker({
       store,
@@ -669,6 +706,7 @@ export class World {
         s.send({ t: 'idleWarning', msLeft, ...idleWarningCopy(warnWindow) });
       }
     }
+    this.parties.sweep();
     this.pruneMemory();
   }
 
@@ -757,6 +795,8 @@ export class World {
         return this.pescaEngine.handle(s, msg);
       case 'barco':
         return this.barco.handle(s, msg);
+      case 'party':
+        return this.parties.handle(s, msg);
       case 'padaria':
         return this.buyCounter(s, msg.itemId);
       case 'carry':
@@ -1245,6 +1285,20 @@ export class World {
 
   private instanceFor(room: RoomId, s: Session, opts: { instanceId?: string; ownerId?: string; academyId?: string; padariaId?: string }): Instance | { error: Bilingual } {
     const def = ROOMS[room];
+    // the party deck: only the trip's roster, never a public shard, a full boat is a hard refusal
+    if (def.id === 'barco_festa') {
+      const id = s.profile!.id;
+      const trip = this.parties.tripOf(id);
+      const inst = trip ? this.instances.get(trip.id) : undefined;
+      const ok = this.parties.admit(id, opts.instanceId, inst?.members.size ?? 0);
+      if ('error' in ok) return ok;
+      let deck = inst;
+      if (!deck) {
+        deck = new Instance(ok.trip.id, def, `${def.name} · ${this.store.get(ok.trip.hostId)?.name ?? ''}`.trim(), null);
+        this.instances.set(deck.id, deck);
+      }
+      return deck;
+    }
     if (def.id === 'andar') {
       const academyId = opts.academyId ?? academyIdFromInstance(opts.instanceId);
       const academy = academyId ? this.academies.get(academyId) : undefined;
@@ -1670,16 +1724,9 @@ export class World {
     return this.adminFeiraCart(s);
   }
 
-  /** Aboard a party boat trip right now (the `festa` water). Step E fills this in. */
+  /** Aboard a party boat trip right now (the `festa` water): a member of the trip, on its deck. */
   private aboardParty(s: Session): boolean {
-    void s;
-    return false;
-  }
-
-  /** A catch aboard the party boat, shared with everyone aboard. Step E fills this in. */
-  private onPartyCatch(s: Session, fish: FishId): void {
-    void s;
-    void fish;
+    return this.parties.aboard(s);
   }
 
   /** May this session's player be on the beach now (open, or preview with a subscriber's early access)? */
@@ -1698,7 +1745,9 @@ export class World {
    */
   setPraia(patch: Partial<PraiaConfig>): PraiaConfig {
     const cfg = this.praia.set(patch);
-    for (const sess of this.sessions.values()) {
+    // the party boat switched off: every trip sails back to the pier now
+    if (!cfg.partyBoat) this.parties.endAll('off');
+    for (const sess of [...this.sessions.values()]) {
       if (!sess.profile) continue;
       sess.send(this.praiaMsg(sess));
       const here = sess.instance?.def.id;
@@ -1901,6 +1950,8 @@ export class World {
       inst.crowd?.stop();
       this.instances.delete(inst.id);
     } else inst.crowd?.sync();
+    // off the party deck (the gangway, another room, a disconnect): a guest leaves the trip, the host ends it
+    if (inst.def.id === 'barco_festa' && s.profile) this.parties.onLeftDeck(s.profile.id, inst.id);
   }
 
   private makeCrowd(inst: Instance) {
@@ -2224,6 +2275,7 @@ export class World {
     this.store.save(p.id, target.id);
     this.pushProfile(s);
     this.sendFriends(s);
+    this.parties.onBlock(p.id, target.id);
     s.send({ t: 'notice', level: 'info', pt: `Você bloqueou ${target.name}.`, en: `You blocked ${target.name}.` });
   }
 

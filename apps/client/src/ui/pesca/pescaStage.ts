@@ -138,7 +138,7 @@ export class PescaStage {
   /** The server's verdict: the card. */
   onResult(m: Extract<ServerMsg, { t: 'pesca'; phase: 'result' }>) {
     if (m.line) speak(m.line.pt, { speaker: m.line.speaker });
-    this.showCard(m.outcome, m.newSpecies, m.record);
+    this.showCard(m.outcome, m.newSpecies, m.record, m.bottle);
   }
 
   private cues(list: PescaCue[]) {
@@ -181,7 +181,7 @@ export class PescaStage {
     if (!reduced()) this.shake = px;
   }
 
-  private showCard(o: PescaOutcome, isNew: boolean, record: boolean) {
+  private showCard(o: PescaOutcome, isNew: boolean, record: boolean, bottle?: Bilingual) {
     const body: (HTMLElement | null)[] = [];
     if (o.kind === 'caught') {
       const d = FISH[o.fish];
@@ -199,6 +199,11 @@ export class PescaStage {
       const j = JUNK[o.junk];
       speak(j.pt, { speaker: 'ui' });
       body.push(foodIcon(o.junk === 'garrafa' ? 'garrafa_mensagem' : o.junk, 6, j.pt, 'pesca-card-fish'), h('div', { class: 'pesca-card-name' }, j.pt), h('div', { class: 'pesca-card-en' }, j.en));
+      // the party boat's bottle: the message inside, read aloud once the card lands
+      if (bottle) {
+        body.push(h('div', { class: 'pesca-card-bottle' }, h('i', null, `“${bottle.pt}”`), h('span', { class: 'en' }, bottle.en)));
+        window.setTimeout(() => speak(bottle.pt, { speaker: 'ui' }), 1400);
+      }
     } else if (o.kind === 'released') {
       body.push(foodIcon('peixe_baiacu', 6, 'baiacu', 'pesca-card-fish pesca-puff'), h('div', { class: 'pesca-card-name' }, PESCA_STAGE.baiacu.pt), h('div', { class: 'pesca-card-en' }, PESCA_STAGE.devolve.pt, ' ', h('span', { class: 'en' }, PESCA_STAGE.devolve.en)));
       this.say(PESCA_STAGE.baiacu);

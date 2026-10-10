@@ -111,6 +111,7 @@ import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty 
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { askTray, bindPesca, onPescaMsg, onPescaRefused, openCaderneta, openPescaSpot } from './ui/pesca';
 import { askBarcos, bindBarco, onBarcoMsg, returnBarco } from './ui/pesca/barcoMenu';
+import { aboardMyParty, bindParty, createParty, hostingParty, inviteToBoat, onAboardCatch, onPartyMsg, sendAshore } from './ui/pesca/party';
 import './styles/pesca.css';
 import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
@@ -713,12 +714,13 @@ function praiaAction(action: 'pesca' | 'fish_sell' | 'boat_rental' | 'party_boat
   if (action === 'pesca' && propId) openPescaSpot(propId);
   else if (action === 'fish_sell') askTray();
   else if (action === 'caderneta') openCaderneta();
-  else if (action === 'boat_rental') askBarcos();
-  else toast('info', 'Em breve.', 'Coming soon.');
+  // the party boat's gangway on the pier: Bento's menu (his boats are moored there), whose festa chip starts a trip
+  else if (action === 'boat_rental' || action === 'party_boat') askBarcos();
 }
 
 bindPesca((m) => net.send(m), () => returnBarco());
-bindBarco({ send: (m) => net.send(m) });
+bindBarco({ send: (m) => net.send(m), party: () => createParty() });
+bindParty((m) => net.send(m));
 
 function startMinigame() {
   closeDialogue();
@@ -1008,10 +1010,14 @@ net.on((m: ServerMsg) => {
       onFeiraGameMsg(m);
       break;
     case 'pesca':
-      onPescaMsg(m);
+      if (m.phase === 'aboard') onAboardCatch(m);
+      else onPescaMsg(m);
       break;
     case 'barco':
       onBarcoMsg(m);
+      break;
+    case 'party':
+      onPartyMsg(m);
       break;
     case 'praia':
       // the admin switch: the map shows the beach as a teaser again while it is closed to this player
@@ -1400,6 +1406,7 @@ function startGame() {
         hop: (room, instanceId, ownerId) => joinRoom(room, instanceId ?? undefined, ownerId),
         refresh: () => net.send({ t: 'friends' }),
         unblock: (id) => net.send({ t: 'block', action: 'unblock', targetId: id }),
+        boat: { hosting: hostingParty, invite: inviteToBoat },
       }),
     openWardrobe: () => openHatShop('wardrobe', { buy: () => {}, equip: (id) => net.send({ t: 'equipHat', hatId: id }) }),
     toggleDecor: () => {
@@ -1578,6 +1585,7 @@ function handleClickInner(hit: Hit | null) {
           report: (id, reason) => net.send({ t: 'report', targetId: id, reason }),
           block: (id, on) => net.send({ t: 'block', action: on ? 'block' : 'unblock', targetId: id }),
           wave: () => net.send({ t: 'emote', kind: 'oi' }),
+          ...(aboardMyParty(a.pub.id) ? { ashore: (id: string) => sendAshore(id) } : {}),
         });
       break;
     }

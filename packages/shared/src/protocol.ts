@@ -169,6 +169,16 @@ export type ClientMsg =
   | { t: 'barco'; action: 'menu' }
   | { t: 'barco'; action: 'rent'; tier: BoatTier }
   | { t: 'barco'; action: 'return' }
+  /**
+   * The party boat (PRAIA-PLAN.md 5.3): the host `create`s a trip at Bento's (pays the festa price) and invites online friends; a guest
+   * `accept`s from anywhere in the Vila (fast travel) or `decline`s; anyone aboard may `leave`; the host may `remove` a guest or `end` it.
+   */
+  | { t: 'party'; action: 'create' }
+  | { t: 'party'; action: 'invite'; targetId: string }
+  | { t: 'party'; action: 'accept' | 'decline'; tripId: string }
+  | { t: 'party'; action: 'leave' }
+  | { t: 'party'; action: 'remove'; targetId: string }
+  | { t: 'party'; action: 'end' }
   /** Subscriber list for the Assinaturas section. */
   | { t: 'admin'; action: 'subscribers' }
   /** Dev/test subscription (no payment). Admin socket only. */
@@ -677,7 +687,9 @@ export type ServerMsg =
   /** The cast is on: the seed the client rolls the same fish from (`pinned`: a test roll), and everything the roll depends on. */
   | { t: 'pesca'; phase: 'cast'; seq: number; seed: number; water: WaterId; weather: Weather; minute: number; power: number; firstCatches: number; pinned?: PescaRoll }
   /** What the server judged: the outcome, a first of a species, a new record, the words it taught and a line from Dona Neide. */
-  | { t: 'pesca'; phase: 'result'; seq: number; outcome: PescaOutcome; newSpecies: boolean; record: boolean; words: Bilingual[]; line?: Bilingual & { speaker: NpcId } }
+  | { t: 'pesca'; phase: 'result'; seq: number; outcome: PescaOutcome; newSpecies: boolean; record: boolean; words: Bilingual[]; line?: Bilingual & { speaker: NpcId }; bottle?: Bilingual }
+  /** Someone else aboard the party boat landed a fish: everyone hears its name (and learns it). `by` is a display name. */
+  | { t: 'pesca'; phase: 'aboard'; by: string; fish: FishId; pt: string; en: string }
   /** Jô's tray: the fish in your bucket and what she pays for each, and how much more RV she can pay you today. */
   | { t: 'pesca'; phase: 'tray'; fish: PescaTrayRow[]; capLeft: number }
   | { t: 'pesca'; phase: 'sold'; rv: number; coins: number; fish: PescaTrayRow[]; capLeft: number }
@@ -686,7 +698,27 @@ export type ServerMsg =
   /** A trip started (or is still running); `until` is server time. */
   | { t: 'barco'; phase: 'trip'; tier: BoatTier; until: number }
   /** The boat went back to Bento: handed back, the time ran out, or you left the beach. */
-  | { t: 'barco'; phase: 'ended'; tier: BoatTier; why: 'returned' | 'time' | 'left' };
+  | { t: 'barco'; phase: 'ended'; tier: BoatTier; why: 'returned' | 'time' | 'left' }
+  /** A friend asks you aboard their party boat (90 s to answer). */
+  | { t: 'party'; phase: 'invite'; tripId: string; fromId: string; fromName: string; expiresAt: number }
+  /** The trip you are on, sent to every member on any change. `endsAt` is server time; the HUD shows it as words, never a countdown. */
+  | { t: 'party'; phase: 'state'; tripId: string; hostId: string; members: { id: string; name: string }[]; endsAt: number; cap: number; music: boolean }
+  /**
+   * Your trip is over for you: the time ran out, the host ended it (or left), you left, the host sent you ashore, or the boat was switched
+   * off. `summary` is the trip's card (display names only); none when you were sent ashore.
+   */
+  | { t: 'party'; phase: 'ended'; why: PartyEndWhy; summary?: PartySummary };
+
+export type PartyEndWhy = 'time' | 'host' | 'left' | 'removed' | 'off';
+
+/** The party boat's trip card: what was caught aboard and by whom, the words everyone shared, who sailed, what this player earned. */
+export interface PartySummary {
+  fish: { fish: FishId; by: string }[];
+  words: Bilingual[];
+  members: string[];
+  /** earned items (hat and furniture ids) granted to this player at the end of this trip */
+  earned: string[];
+}
 
 /** One chip of Bento's rental menu. */
 export interface BarcoTierRow {

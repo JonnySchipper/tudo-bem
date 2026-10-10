@@ -52,7 +52,7 @@ export class BarcoEngine {
     if (msg.action === 'return') return this.end(s, 'returned');
   }
 
-  /** Near Bento's shack (its door, or Bento himself). */
+  /** Near Bento's shack (its door, or Bento himself), or on the pier by the party boat's gangway (his boats are moored there). */
   nearShack(s: PescaSession): boolean {
     const def = s.instance?.def;
     if (def?.id !== 'praia') return false;
@@ -60,6 +60,8 @@ export class BarcoEngine {
     const marks: Tile[] = [];
     const shack = def.props.find((p) => p.id === 'galpao_barcos');
     if (shack) marks.push(shack.interact ?? { x: shack.x, y: shack.y + (shack.h ?? 1) });
+    const festa = def.props.find((p) => p.action === 'party_boat');
+    if (festa?.interact) marks.push(festa.interact);
     const bento = def.npcs.find((n) => n.id === 'bento');
     if (bento) marks.push(bento.interact);
     return marks.some((t) => cheb(here, t) <= SHACK_RANGE);

@@ -529,7 +529,17 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
 
 // ---------------------------------------------------------------- friends
 
-export function openFriends(actions: { request: (id: string) => void; accept: (id: string) => void; decline: (id: string) => void; remove: (id: string) => void; hop: (roomId: RoomId, instanceId: string | null, ownerId?: string) => void; refresh: () => void; unblock: (id: string) => void }) {
+export function openFriends(actions: {
+  request: (id: string) => void;
+  accept: (id: string) => void;
+  decline: (id: string) => void;
+  remove: (id: string) => void;
+  hop: (roomId: RoomId, instanceId: string | null, ownerId?: string) => void;
+  refresh: () => void;
+  unblock: (id: string) => void;
+  /** the party boat: while you host a trip, each online friend row gets "Convidar pro barco" */
+  boat?: { hosting: () => boolean; invite: (id: string) => void };
+}) {
   const body = h('div');
   const render = () => {
     const others = [...game.avatars.values()].filter((a) => a.pub.id !== game.room?.selfId && !a.pub.cpu && !a.pub.npc);
@@ -556,7 +566,11 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
             tierChip(f.nameplate ?? 'verde'),
             h('span', { style: 'color:var(--ink-soft);font-weight:700;font-size:.85em' }, f.online ? (f.roomName ?? 'online') : 'offline'),
             h('span', { class: 'spacer' }),
-            f.online && f.room && f.room !== 'kitnet' ? h('button', { class: 'green', onclick: () => (actions.hop(f.room!, f.instanceId), close()) }, bi('Ir até', 'Join')) : '',
+            // a party deck is invite-only: no "Ir até" there
+            f.online && f.room && f.room !== 'kitnet' && f.room !== 'barco_festa' ? h('button', { class: 'green', onclick: () => (actions.hop(f.room!, f.instanceId), close()) }, bi('Ir até', 'Join')) : '',
+            f.online && f.room !== 'barco_festa' && actions.boat?.hosting()
+              ? h('button', { class: 'green', 'data-invite': f.id, onclick: () => actions.boat!.invite(f.id) }, bi('Convidar pro barco', 'Invite aboard'))
+              : '',
             h('button', { onclick: () => (actions.hop('kitnet', null, f.id), close()) }, bi('Visitar kitnet', 'Visit apt')),
             h('button', { class: 'ghost', onclick: () => actions.remove(f.id) }, bi('Remover', 'Remove')),
           ),
@@ -594,7 +608,7 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
 
 export function openProfileCard(
   a: PublicAvatar,
-  actions: { request: (id: string) => void; report: (id: string, reason: ReportReason) => void; block: (id: string, on: boolean) => void; wave: () => void },
+  actions: { request: (id: string) => void; report: (id: string, reason: ReportReason) => void; block: (id: string, on: boolean) => void; wave: () => void; ashore?: (id: string) => void },
 ) {
   const canvas = h('canvas', { style: 'width:168px;height:216px;image-rendering:pixelated' });
   const preview = mountCharPreview(canvas, () => ({ appearance: a.appearance, hat: a.hat, parrot: a.parrot }));
@@ -628,6 +642,8 @@ export function openProfileCard(
         isFriend ? h('span', { class: 'feedback' }, 'Amigo') : h('button', { class: 'green', onclick: () => (actions.request(a.id), close()), id: 'btn-add-friend' }, bi('Adicionar amigo', 'Add friend')),
         h('button', { class: 'ghost', id: 'btn-report', onclick: () => (reasons.style.display = reasons.style.display === 'none' ? 'flex' : 'none') }, bi('Denunciar', 'Report')),
         h('button', { class: 'ghost', id: 'btn-block', onclick: () => (actions.block(a.id, !isBlocked), close()) }, isBlocked ? bi('Desbloquear', 'Unblock') : bi('Bloquear', 'Block')),
+        // the party boat's host can send one guest ashore (a neutral notice to them, nothing to the others)
+        actions.ashore ? h('button', { class: 'ghost', id: 'btn-party-ashore', onclick: () => (actions.ashore!(a.id), close()) }, bi('Desembarcar', 'Send ashore')) : null,
       ),
       reasons,
     ),

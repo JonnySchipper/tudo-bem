@@ -5,6 +5,7 @@
  * fish pays nothing until Jô buys it (`sell`, under the day's cap, through the one credit path). Injected deps, the FeiraGamesEngine shape.
  */
 import {
+  BOTTLE_MESSAGES,
   FISH,
   JO_SELL,
   NEIDE_COACH,
@@ -76,6 +77,8 @@ export interface PescaDeps {
   aboardParty(s: PescaSession): boolean;
   /** A catch aboard the party boat: share it (`partyBoat.ts`). */
   onPartyCatch?(s: PescaSession, fish: FishId): void;
+  /** A message in a bottle came up (the dashboard counts them). */
+  onBottle?(): void;
 }
 
 /** Earned kitnet furniture: a first garoupa, a first dourado, the party boat's bottle (PRAIA-PLAN.md 7.3, 5.5). */
@@ -190,6 +193,7 @@ export class PescaEngine {
     let newSpecies = false;
     let record = false;
     let line: (Bilingual & { speaker: NpcId }) | undefined;
+    let bottle: Bilingual | undefined;
     const coach = (key: keyof typeof NEIDE_COACH) => {
       if (pr.coached.includes(key)) return;
       pr.coached.push(key);
@@ -209,6 +213,9 @@ export class PescaEngine {
     if (outcome.kind === 'junk' && outcome.junk === 'garrafa') {
       moments.push('message_bottle');
       this.giveFurniture(p, 'garrafa_mensagem');
+      // the message is the server's pick (from the seed), never the client's
+      bottle = BOTTLE_MESSAGES[run.cast.seed % BOTTLE_MESSAGES.length];
+      this.d.onBottle?.();
     }
     if (outcome.kind === 'caught') {
       const f = outcome.fish;
@@ -229,7 +236,7 @@ export class PescaEngine {
     if (outcome.kind === 'rejected') console.warn(`[pesca] rejected result from ${p.id}: ${outcome.reason ?? '?'}`);
     this.d.save(p);
     const taught = this.d.teach(s, [...words, ...moments.map((m) => momentWord(water, m))]);
-    s.send({ t: 'pesca', phase: 'result', seq: run.seq, outcome, newSpecies, record, words: taught.map((w) => ({ pt: w.pt, en: w.en })), ...(line ? { line } : {}) });
+    s.send({ t: 'pesca', phase: 'result', seq: run.seq, outcome, newSpecies, record, words: taught.map((w) => ({ pt: w.pt, en: w.en })), ...(line ? { line } : {}), ...(bottle ? { bottle } : {}) });
     this.d.pushProfile(s);
   }
 

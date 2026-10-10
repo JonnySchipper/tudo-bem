@@ -92,7 +92,12 @@ describe('every catalog word can be earned from its own source', () => {
     let room: RoomId | null = null;
     const goRoom = async (to: RoomId) => {
       if (room === to) return;
-      await a.send({ t: 'join', room: to });
+      if (to === 'barco_festa') {
+        // the party deck is never a public shard: rent a trip at Bento's to stand on it
+        world.join(a.s, 'praia', {}, { tile: ROOMS.praia.npcs.find((n) => n.id === 'bento')!.interact, dir: 'SW' });
+        a.s.profile!.coins += 500;
+        await a.send({ t: 'party', action: 'create' });
+      } else await a.send({ t: 'join', room: to });
       expect(a.last('roomState')?.room).toBe(to);
       room = to;
     };

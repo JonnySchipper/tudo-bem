@@ -46,9 +46,42 @@ export const BENTO_LINES = {
   back: { pt: 'O barco voltou. Como foi lá fora?', en: 'The boat is back. How was it out there?' },
 } as const satisfies Record<string, Bilingual>;
 
+/** The party boat's own lines (PRAIA-PLAN.md 5.2, 5.3), spoken by `ui`. The summary and the aboard toasts carry names: shown, not spoken. */
+export const PARTY_LINES = {
+  bora: { pt: 'Bora pro barco de festa?', en: 'Coming to the party boat?' },
+  voltou: { pt: 'O barco voltou pro píer.', en: 'The boat is back at the pier.' },
+  encerrar: { pt: 'Encerrar a festa? Todo mundo volta pro píer.', en: 'End the party? Everyone goes back to the pier.' },
+  desembarcou: { pt: 'Você desembarcou no píer.', en: 'You went ashore at the pier.' },
+  quaseAcabando: { pt: 'quase acabando', en: 'almost over' },
+} as const satisfies Record<string, Bilingual>;
+
+/** The party pill's time left as words: "quase acabando" in the last two minutes, nothing before (never a countdown). */
+export function partyTimeWords(endsAt: number, now: number): Bilingual | null {
+  return endsAt - now <= 2 * 60_000 ? PARTY_LINES.quaseAcabando : null;
+}
+
+/**
+ * The messages in the party boat's bottle (PRAIA-PLAN.md 5.5): short, kind, no names, no contact details. `pescaWords.test.ts` runs each
+ * through `classifyChat`. needs_br: true
+ */
+export const BOTTLE_MESSAGES: readonly Bilingual[] = [
+  { pt: 'Quem lê isso, me manda um “oi” da praia!', en: 'Whoever reads this, send me a “hi” from the beach!' },
+  { pt: 'Hoje o mar estava calmo e eu estava feliz.', en: 'Today the sea was calm and I was happy.' },
+  { pt: 'Se você achou esta garrafa, faça um pedido.', en: 'If you found this bottle, make a wish.' },
+  { pt: 'Aprendi uma palavra nova hoje: saudade.', en: 'I learned a new word today: saudade.' },
+  { pt: 'O pôr do sol daqui é o mais bonito do mundo.', en: 'The sunset here is the most beautiful in the world.' },
+  { pt: 'Não esqueça o protetor solar!', en: 'Don’t forget the sunscreen!' },
+  { pt: 'Um dia eu volto pra essa praia.', en: 'One day I’ll come back to this beach.' },
+  { pt: 'Peixe grande gosta de gente paciente.', en: 'Big fish like patient people.' },
+  { pt: 'Boa sorte na pescaria, amigo!', en: 'Good luck fishing, friend!' },
+  { pt: 'Obrigado por ler até aqui. Tenha um bom dia!', en: 'Thanks for reading this far. Have a good day!' },
+];
+
 /** Every runtime line of the Praia, with who says it. */
 export function pescaSpokenLines(): { speaker: 'ui' | NpcId; text: string }[] {
   const out: { speaker: 'ui' | NpcId; text: string }[] = [];
+  for (const l of Object.values(PARTY_LINES)) out.push({ speaker: 'ui', text: l.pt });
+  for (const l of BOTTLE_MESSAGES) out.push({ speaker: 'ui', text: l.pt });
   for (const l of Object.values(PESCA_STAGE)) out.push({ speaker: 'ui', text: l.pt });
   for (const l of Object.values(SIZE_WORDS)) out.push({ speaker: 'ui', text: l.pt });
   for (const l of Object.values(JUNK)) out.push({ speaker: 'ui', text: l.pt });
