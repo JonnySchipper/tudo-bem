@@ -16,7 +16,6 @@ import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 import { goArea } from './lib/areas.mjs';
 import { DAY_MIN, offsetMinFor } from './lib/clock-pin.mjs';
 import { finishArrival } from './lib/arrival.mjs';
-import { passIdle } from './lib/npc.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173/';
 const SHOTS = process.env.SHOTS_DIR ?? 'docs/lifesim/shots/visual-polish';
@@ -119,7 +118,6 @@ try {
   // ---------------------------------------------------------------- regular up close (Júlia: ponytail and tote, the portrait matches)
   await page.evaluate(() => window.__tb.interact({ npc: 'julia' }));
   await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
-  await passIdle(page);
   await sleep(2600);
   await shot('10-regular-julia');
   await page.keyboard.press('Escape');
@@ -157,7 +155,6 @@ try {
     const ok = await page.evaluate((npc) => window.__tb.interact({ npc }), npc);
     if (!ok) continue;
     await page.waitForSelector('#dialogue-box', { timeout: 25_000 }).catch(() => {});
-    await passIdle(page);
     await sleep(2600);
     await shot(`16-regular-${npc}`);
     await page.keyboard.press('Escape');
@@ -198,7 +195,6 @@ try {
   await shot2('22-padaria-scale');
   await p2.evaluate(() => window.__tb.interact({ npc: 'carlos' }));
   await p2.waitForSelector('#dialogue-box', { timeout: 25_000 }).catch(() => {});
-  await passIdle(p2);
   await sleep(2600);
   await shot2('23-regular-carlos');
   await p2.context().close();

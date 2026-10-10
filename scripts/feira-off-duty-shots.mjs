@@ -107,12 +107,8 @@ async function run(view) {
     await sleep(600);
     log(view, 'praça 15:00:', key, '|', await boxLine(page));
     await shot(page, `${view}_praca_1500`);
-    // the next box: past the idle line (before), or the buy question (after)
-    if (key === 'vendor-off-duty') {
-      await page.click('#dialogue-box [data-chip="0"]');
-    } else if (key?.startsWith('idle-')) {
-      await page.click('#dialogue-box [data-chip="0"]');
-    }
+    // the next box: the buy question
+    if (key === 'vendor-off-duty') await page.click('#dialogue-box [data-chip="0"]');
     await sleep(800);
     key = await boxKey(page).catch(() => null);
     if (key) {
@@ -128,10 +124,6 @@ async function run(view) {
     await day.evaluate(() => window.__tb.walkTo(7, 6, false));
     await sleep(2500);
     key = await talkToTiaLu(day);
-    if (key?.startsWith('idle-')) {
-      await day.click('#dialogue-box [data-chip="0"]');
-      await day.waitForSelector('#dialogue-box[data-dialogue="feira"]', { timeout: 8000 });
-    }
     await sleep(600);
     log(view, 'stall 08:40:', await boxKey(day), '|', await boxLine(day));
     await shot(day, `${view}_stall_0840`);

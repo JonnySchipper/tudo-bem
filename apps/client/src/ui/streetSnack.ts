@@ -1,5 +1,6 @@
 import { snackAddon, snacksAt, type StreetSnackDef } from '@tudobem/shared';
 import { showDialogue, closeDialogue } from './panels';
+import { MAX_CONTENT_CHIPS } from './dialogueLogic';
 import { h, rvPriceNote } from './dom';
 import { foodIcon } from './pixelArt';
 
@@ -79,11 +80,12 @@ export function openStreetSnack(propId: string, buy: (itemId: string) => void): 
     speaker: call.speaker,
     line: call.line,
     extras: look ? cartBoard(look, menu.map((s, i) => ({ icon: s.icon, pt: s.pt, en: s.en, price: s.price, chip: i, id: s.id })), choose) : rvPriceNote(),
+    // 3 snack chips and "Agora não" (keys 1-4); a longer menu is all on the cart's board
     chips: [
-      ...menu.map((s) => ({ pt: `${s.pt} · ${s.price} RV`, en: `${s.en} · ${s.price} RV` })),
+      ...menu.slice(0, MAX_CONTENT_CHIPS).map((s) => ({ pt: `${s.pt} · ${s.price} RV`, en: `${s.en} · ${s.price} RV` })),
       { pt: 'Agora não', en: 'Not now' },
     ],
-    onChoose: choose,
+    onChoose: (i) => choose(i < MAX_CONTENT_CHIPS ? i : -1),
     key: 'street-snack',
     onClose: closeDialogue,
   });

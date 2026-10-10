@@ -218,8 +218,7 @@ try {
       await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
       const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
       if (key === 'counter-carlos') break;
-      if (key?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]');
-      else if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
+      if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(400);
     }
     await page.evaluate(() => document.querySelector('.toasts')?.replaceChildren());

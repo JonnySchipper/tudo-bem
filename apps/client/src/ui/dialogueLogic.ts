@@ -67,6 +67,83 @@ export interface DialogueKeyCtx {
 /** Chips are numbered 1-4. */
 export const MAX_CHIP_KEYS = 4;
 
+/** A box shows at most 3 content chips and one way out ("Tchau", "Agora não"): 4 in all, so keys 1-4 reach every one. */
+export const MAX_CONTENT_CHIPS = 3;
+export const MAX_CHIPS = MAX_CONTENT_CHIPS + 1;
+
+/** At most `n` of `items`, the wanted ones first (each group keeps its order). For a menu longer than the box has room for. */
+export function firstChoices<T>(items: readonly T[], wanted: (item: T) => boolean, n = MAX_CONTENT_CHIPS): T[] {
+  return [...items.filter(wanted), ...items.filter((x) => !wanted(x))].slice(0, Math.max(0, n));
+}
+
+// ---------------------------------------------------------------- one click, one box
+
+interface LeadLine {
+  pt: string;
+  en?: string;
+}
+
+/**
+ * The idle line a click on an NPC opens with, waiting for the first box that click opens for that NPC (a hand-over, an errand, the
+ * greeting, the counter): it is said first in that box's bubble. A re-render of that beat keeps it; the next line, another key or another
+ * NPC does not.
+ */
+export class LeadSlot {
+  private pending: { npcId: string; line: LeadLine } | null = null;
+  private led: { key: string; line: string; lead: LeadLine } | null = null;
+
+  /** Wait for `npcId`'s next box. The returned check drops the lead if no box took it and says whether one did. */
+  set(npcId: string, line: LeadLine): () => boolean {
+    const mine = { npcId, line };
+    this.pending = mine;
+    return () => {
+      if (this.pending !== mine) return true;
+      this.pending = null;
+      return false;
+    };
+  }
+
+  /** The lead for this beat of the box, or null. */
+  apply(beat: { key: string; npcId: string | null; line: { pt: string } | null; thinking?: boolean }): LeadLine | null {
+    if (this.pending && beat.npcId === this.pending.npcId && beat.line && !beat.thinking) {
+      this.led = { key: beat.key, line: beat.line.pt, lead: this.pending.line };
+      this.pending = null;
+    }
+    if (this.led && this.led.key === beat.key && beat.line?.pt === this.led.line) return this.led.lead;
+    this.led = null;
+    return null;
+  }
+
+  /** The box closed. */
+  closed(): void {
+    this.led = null;
+  }
+}
+
+/** The lead and the line as one bubble's text. */
+export const joinLead = (lead: string | undefined, line: string): string => (lead ? `${lead} ${line}` : line);
+
+// ---------------------------------------------------------------- what the box shows once it is earned
+
+/** Friendship hearts in the header: only once this NPC has at least one bond point (the profile's `bond`, 0-100). */
+export const showsHearts = (bondPoints: number | undefined): boolean => (bondPoints ?? 0) >= 1;
+
+/**
+ * "Vamos bater um papo?" (and the counter's "Bater papo"): once the player has ordered from Seu Carlos (`tutorial.carlos`) and has at least one
+ * bond point with this NPC (a greeting talked through pays one), and only when the NPC has a bate-papo to start.
+ */
+export const offersPapo = (o: { bondPoints: number | undefined; carlosDone: boolean | undefined; hasPapo: boolean }): boolean => o.carlosDone === true && showsHearts(o.bondPoints) && o.hasPapo;
+
+/**
+ * The padaria counter's menu chips (3 content chips at most). Until the first order (`tutorial.carlos`) the cheapest come first; after, the
+ * menu in its order. What an errand wants is always kept, and the bate-papo chip only joins when the whole menu fits beside it.
+ */
+export function counterChoices<T extends string>(menu: readonly T[], o: { price: (id: T) => number; always: readonly T[]; carlosDone: boolean | undefined; papo: boolean }): { items: T[]; papo: boolean } {
+  const ordered = o.carlosDone === true ? [...menu] : [...menu].sort((a, b) => o.price(a) - o.price(b));
+  const keep = firstChoices(ordered, (id) => !o.always.includes(id));
+  return { items: ordered.filter((id) => keep.includes(id)), papo: o.papo && menu.length < MAX_CONTENT_CHIPS };
+}
+
 /**
  * What a key does in the dialogue box: 1-4 pick a reply chip (not while typing in the text field), Space finishes the typing line (not in the
  * field), Escape closes (always). Everything else is left alone.

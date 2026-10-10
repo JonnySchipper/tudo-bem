@@ -46,11 +46,6 @@ async function dismissPrelude() {
       await sleep(400);
       continue;
     }
-    if (key.startsWith('idle-')) {
-      await page.click('#dialogue-box [data-chip="0"]');
-      await sleep(400);
-      continue;
-    }
     await sleep(250);
   }
 }

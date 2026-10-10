@@ -164,7 +164,7 @@ async function run(browser, vp) {
         await talk(page, 'carlos');
         continue;
       }
-      await page.click(`#dialogue-box [data-chip="${k.startsWith('idle-') ? '0' : '1'}"]`);
+      await page.click('#dialogue-box [data-chip="1"]');
       await sleep(500);
     }
     const k = await key(page);
@@ -201,8 +201,7 @@ async function run(browser, vp) {
       await dismissCards(page);
       const k = await key(page);
       console.log('    nanda box:', k);
-      if (k?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]');
-      else if (k?.startsWith('offer-')) await page.click('#dialogue-box [data-chip="1"]');
+      if (k?.startsWith('offer-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(400);
     }
     await typed(page);
@@ -224,8 +223,7 @@ async function run(browser, vp) {
       await page.waitForSelector('#dialogue-box', { timeout: 8000 });
       const k = await key(page);
       if (k === 'feira') break;
-      if (k?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]');
-      else if (k?.startsWith('offer-') || k?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
+      if (k?.startsWith('offer-') || k?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(350);
     }
     await page.waitForSelector('#dialogue-box[data-dialogue="feira"]', { timeout: 8000 });

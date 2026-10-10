@@ -19,6 +19,7 @@ import {
   parseQty,
   priceFor,
   qtyChip,
+  recadoById,
   scoreAsk,
   totalLine,
   type Bilingual,
@@ -33,6 +34,7 @@ import { clock } from '../gameClock';
 import { speak } from '../audio';
 import { h } from './dom';
 import { closeDialogueBox, showDialogueBox, type BoxChip } from './dialogue';
+import { firstChoices } from './dialogueLogic';
 import { foodIcon, type Expression } from './pixelArt';
 import { noteHeard } from './heard';
 
@@ -138,7 +140,9 @@ function render() {
   let extras: HTMLElement | null = null;
 
   if (s.phase === 'ask') {
-    const goods = v.goods.map((id) => goodById(id)!);
+    // 3 goods on chips (what an errand wants first) and "Só estou olhando"; any other is asked by typing
+    const wanted = new Set((game.profile?.recados?.active ?? []).map((a) => recadoById(a.id)?.steps[a.step]).flatMap((st) => (st?.kind === 'pedir' ? [st.itemId] : [])));
+    const goods = firstChoices(v.goods, (id) => wanted.has(id)).map((id) => goodById(id)!);
     chips = [...goods.map((x) => ({ pt: askChip(x).pt, en: askChip(x).en })), { pt: `Só estou olhando, ${obrigad()}.`, en: 'I’m just looking, thanks.' }];
     onChip = (i) => (i < goods.length ? ask(askChip(goods[i]!).pt) : endNow());
     input = { id: 'feira-input', placeholder: 'Pergunte o preço em português… (Ask the price in Portuguese)', send: 'Perguntar (Ask)', onSend: (text, el) => ((el.value = ''), ask(text)), disabled: s.waiting };

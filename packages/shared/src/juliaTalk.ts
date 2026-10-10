@@ -4,7 +4,7 @@ import type { Bilingual } from './types.js';
  * Júlia's tutorial Q&A (authored, client-only chips: no rewards, so no server authority). Spoken by the 'julia' voice.
  * `guide`: the answer also opens the Vila Ipê guide card (what there is to do). Needs_br: every PT line.
  * Her menu is the Vila's orientation, so what a newcomer needs first leads it: favors (and the RV they pay), the padaria, what there is
- * to do. Walking and chat, which the arrivals hall already taught, come last.
+ * to do. Chat, which the arrivals hall already taught, comes last. Four questions: the box shows 4 chips (keys 1-4); walking is taught by doing.
  */
 export const JULIA_TREE: { q: Bilingual; a: Bilingual; guide?: true }[] = [
   {
@@ -27,7 +27,6 @@ export const JULIA_TREE: { q: Bilingual; a: Bilingual; guide?: true }[] = [
     q: { pt: 'Como eu falo com as pessoas?', en: 'How do I talk to people?' },
     a: { pt: 'Escreva no chat lá embaixo e aperte Enter. O botão “Oi!” faz você acenar.', en: 'Type in the chat at the bottom and press Enter. The “Oi!” button makes you wave.' },
   },
-  { q: { pt: 'Como eu ando?', en: 'How do I walk?' }, a: { pt: 'É só clicar no chão! Pra sentar, clique num banco.', en: 'Just click the floor! To sit, click a bench.' } },
 ];
 
 /** Her opener while the box has not met her yet (the client adds the player's name on screen; it is not spoken). */

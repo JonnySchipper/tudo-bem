@@ -40,14 +40,7 @@ async function interact(page, target) {
 const waitRoom = (page, id) => page.waitForFunction((id) => window.__tb.game.room?.room === id, id, { timeout: 20_000 });
 const box = async (page, key) => {
   const sel = `#dialogue-box[data-dialogue="${key}"]`;
-  for (let i = 0; i < 4; i++) {
-    await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
-    if (await page.$(sel)) return;
-    const cur = await page.getAttribute('#dialogue-box', 'data-dialogue');
-    if (!cur?.startsWith('idle-')) break;
-    await page.click('#dialogue-box [data-chip="0"]'); // Continuar — the learned line, then the talk
-    await sleep(350);
-  }
+  // one click, one box: a learned idle line leads the talk's first line, never a box of its own
   await page.waitForSelector(sel, { timeout: 25_000 });
 };
 const typed = (page) => page.waitForFunction(() => !document.querySelector('#dialogue-box .tw-rest')?.textContent, null, { timeout: 15_000 }).catch(() => {});
@@ -111,7 +104,10 @@ async function run(browser, vp) {
   await sleep(500);
   assert((await page.textContent('#dialogue-box')).includes('Pode deixar!'), 'offer chip: Pode deixar!');
   assert((await page.textContent('#dialogue-box')).includes('Agora não'), 'offer chip: Agora não');
-  assert(await page.$('#dialogue-box .dbx-hearts'), 'hearts next to the name tag');
+  // hearts and item rewards are found out on the done card: the offer shows the RV, the header the hearts only once there is a bond point
+  assert(!(await page.$('#dialogue-box .offer-reward .rd-heart')), 'the offer shows the RV reward only');
+  const bakerBond = await page.evaluate((b) => window.__tb.game.profile.bond?.[b] ?? 0, baker);
+  assert(!!(await page.$('#dialogue-box .dbx-hearts')) === bakerBond >= 1, 'hearts next to the name tag once there is a bond point');
   await shot(page, vp, 'offer_dialogue');
   await page.click('#dialogue-box [data-chip="0"]');
   await page.waitForSelector('#recado-tracker [data-recado="carlos_cafe_pra_nanda"]', { timeout: 8000 });
@@ -127,17 +123,10 @@ async function run(browser, vp) {
   await page.keyboard.press('Escape');
   await sleep(300);
 
-  // 4. order café com leite through Pedido rápido (the recado's first step); it lands in the bag
+  // 4. order café com leite at the counter (the recado's first step); it lands in the bag
   await interact(page, { npc: baker });
-  await box(page, 'conversa');
-  await page.click('[data-action="pedido-rapido"]');
-  await box(page, 'pedido');
-  for (const chip of [0, 1, 3, 0, 0]) {
-    const before = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
-    await sleep(500);
-    await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${chip}"]`);
-    await page.waitForFunction((b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before, { timeout: 8000 });
-  }
+  await box(page, `counter-${baker}`);
+  await page.click('#dialogue-box .dbx-chip:has-text("café com leite")');
   await page.waitForFunction(() => (window.__tb.game.profile.bag?.cafe_com_leite ?? 0) >= 1, null, { timeout: 8000 });
   await page.keyboard.press('Escape');
   await sleep(400);
@@ -182,7 +171,7 @@ async function run(browser, vp) {
     const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
     console.log('    nanda box:', key);
     if (key === 'talk-nanda') break;
-    await page.click(`#dialogue-box [data-chip="${key?.startsWith('idle-') ? '0' : '1'}"]`);
+    await page.click('#dialogue-box [data-chip="1"]');
     await sleep(400);
   }
   assert((await page.getAttribute('#dialogue-box', 'data-dialogue')) === 'talk-nanda', 'Nanda greets after the offers are declined');

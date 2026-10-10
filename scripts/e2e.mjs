@@ -81,8 +81,8 @@ const walkTo = (page, x, y, sit = false) => page.evaluate(([x, y, sit]) => windo
 const clickTileHit = (page, x, y) => page.evaluate(([x, y]) => window.__tb.clickHit({ kind: 'tile', tile: { x, y } }), [x, y]);
 
 /**
- * Open an NPC's dialogue. A learned idle line opens the talk ("Continuar"), then Phase 8a may offer an errand (Pode deixar! / Agora não) or a
- * hand-over (Entregar …) before the usual box (`finalKey`, the `data-dialogue` of the box we want). `offer: 'accept'` takes the errand and returns
+ * Open an NPC's dialogue. One click opens one box (a learned idle line leads its first line); Phase 8a may open with an errand (Pode deixar! /
+ * Agora não) or a hand-over (Trouxe … pra você!) in place of the usual box (`finalKey`, the `data-dialogue` of the box we want). `offer: 'accept'` takes the errand and returns
  * 'accepted'; `give: true` hands the item over and returns 'gave'; otherwise offers are declined ("Agora não" / "Só conversar") until the usual box
  * is open ('open').
  */
@@ -92,9 +92,7 @@ async function openNpc(page, npc, finalKey, { offer = 'decline', give = false } 
     await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
     const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
     if (key === finalKey) return 'open';
-    if (key?.startsWith('idle-')) {
-      await page.click('#dialogue-box [data-chip="0"]'); // Continuar
-    } else if (key?.startsWith('offer-')) {
+    if (key?.startsWith('offer-')) {
       if (offer === 'accept') {
         await page.click('#dialogue-box [data-chip="0"]');
         return 'accepted';
@@ -569,7 +567,13 @@ async function main() {
     await sleep(500);
   }
   log('opening Nanda talk'); await openNpc(page, 'nanda', 'talk-nanda'); log('Nanda talk open');
-  assert(await page.$('#btn-ver-chapeus'), 'Nanda offers Ver chapéus');
+  // "Ver chapéus" waits for her last line: the greeting, "Agora não", then the goodbye with the button
+  assert(!(await page.$('#btn-ver-chapeus')), 'Ver chapéus is not on the first line');
+  await page.click('#dialogue-box [data-chip="0"]');
+  await page.waitForFunction(() => document.querySelectorAll('#dialogue-box .dbx-chip').length === 2 && document.querySelector('#dialogue-box')?.textContent?.includes('Agora não'), null, { timeout: 5000 });
+  await page.click('#dialogue-box [data-chip="1"]');
+  await page.waitForSelector('#btn-ver-chapeus', { timeout: 5000 });
+  assert(await page.$('#btn-ver-chapeus'), 'Nanda offers Ver chapéus on her last line');
   await waitFor(page, () => (window.__tb.game.profile.bond?.nanda ?? 0) >= 2, null, 5000, 'talk bond with Nanda');
   await shot(page, '08c_nanda_dialogue');
   await page.keyboard.press('Escape');

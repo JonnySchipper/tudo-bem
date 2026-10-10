@@ -2338,6 +2338,8 @@ export class World {
   }
 
   // ---------- Seu Carlos scene ----------
+  // Test-only: no client sends `scene` (the Pedido rápido UI was deleted). Kept because the server tests (world, caderno, npcs, recados)
+  // drive the Carlos scene through it to check accept-list grading, the safety gate on typed replies, payouts and `pedir` steps.
 
   private async scene(s: Session, m: Extract<ClientMsg, { t: 'scene' }>) {
     const p = s.profile!;

@@ -50,6 +50,7 @@ export type ClientMsg =
   /** Hide a player's chat, emotes and friend requests from you (and undo it). Persisted on your profile. */
   | { t: 'block'; action: 'block' | 'unblock'; targetId: string }
   | { t: 'portal'; portalId: string }
+  /** Test-only: no client sends `scene` any more (the Pedido rápido UI is gone). Server tests drive the Carlos scene through it for accept-list grading. */
   | { t: 'scene'; action: 'start'; npc: NpcId }
   | { t: 'scene'; action: 'choose'; chip: number }
   | { t: 'scene'; action: 'type'; text: string }
@@ -580,13 +581,14 @@ export type ServerMsg =
   | { t: 'reward'; amount: number; coins: number; reason: Bilingual }
   /** Cartela stamp earned or card paid out (HUD toast / banner). */
   | { t: 'cartela'; stamps: number; todayCount: number; activity: CartelaActivity; paid: boolean }
+  /** Test-only reply to `scene` (see the client message): no client renders it. */
   | {
       t: 'scene';
       view: SceneView;
       lastScore?: 0 | 1 | 2 | 3;
       feedback?: Bilingual;
       said?: Bilingual;
-      /** False when Gate A warned — echo only, do not slot-parse into the Pedido ticket. */
+      /** False when Gate A warned (echo only). */
       fillTicket?: boolean;
       /** Gate A backstop toast when the client did not already show one. */
       notice?: { level: 'warn' | 'block'; pt: string; en: string };

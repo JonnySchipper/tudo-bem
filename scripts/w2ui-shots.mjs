@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { findChrome } from './lib/chrome.mjs';
 import { requirePinnedClock } from './lib/clock-pin.mjs';
-import { openNpc, passIdle } from './lib/npc.mjs';
+import { openNpc } from './lib/npc.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
 
@@ -215,7 +215,6 @@ async function sectionHud(browser, vp) {
   await sleep(3500);
   await interact(page, { npc: 'carlos' });
   await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
-  await passIdle(page);
   let key = await page.getAttribute('#dialogue-box', 'data-dialogue');
   if (key === 'offer-carlos') {
     await sleep(1000);
@@ -249,10 +248,7 @@ async function sectionPanels(browser, vp) {
   await sleep(3500);
   await openNpc(page, 'carlos', 'conversa');
   await sleep(1200);
-  await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
-  await sleep(900);
-  await snap(page, vp, 'dialogue_pedido');
+  await snap(page, vp, 'dialogue_conversa');
   console.log('  dbx', vp.name, JSON.stringify(await page.evaluate(() => { const b = document.querySelector('#dialogue-box'); const r = b.getBoundingClientRect(); const bad = [...b.querySelectorAll('*')].filter((e) => { const q = e.getBoundingClientRect(); return q.width && (q.bottom > innerHeight + 0.5 || q.right > innerWidth + 0.5 || q.left < -0.5); }).map((e) => e.className || e.tagName); return { top: r.top, bottom: r.bottom, h: innerHeight, scroll: [b.scrollHeight, b.clientHeight], bad: bad.slice(0, 8) }; })));
   await close(page);
   await page.evaluate(() => window.__tb.net.send({ t: 'mg', action: 'start' }));
