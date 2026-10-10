@@ -68,6 +68,7 @@ export * from './feiraCaldo.js';
 export * from './feiraStall.js';
 export * from './leaderboards.js';
 export * from './layout.js';
+export * from './layoutCheck.js';
 export * from './roomLayoutFiles.js';
 export * from './adminTestes.js';
 export * from './speechChunks.js';

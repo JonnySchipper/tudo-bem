@@ -158,16 +158,6 @@ export type ClientMsg =
   | { t: 'admin'; action: 'grantSub'; targetId: string }
   | { t: 'admin'; action: 'revokeSub'; targetId: string }
   /**
-   * Design mode. `layoutGet` reports whether this room has a saved override.
-   * `layoutSave` validates and stores it for everyone. `layoutRevert` drops the override.
-   * `layoutPublish` opens a GitHub pull request (or tells the client to download the file).
-   * The server ignores all of these until this socket has passed the admin password.
-   */
-  | { t: 'admin'; action: 'layoutGet'; room: string }
-  | { t: 'admin'; action: 'layoutSave'; room: string; objects: unknown }
-  | { t: 'admin'; action: 'layoutRevert'; room: string }
-  | { t: 'admin'; action: 'layoutPublish'; room: string; objects: unknown }
-  /**
    * Testes (admin socket only). `username` omitted means the signed-in admin.
    * Each action is refused until the admin password has unlocked this socket.
    */
@@ -586,11 +576,7 @@ export type ServerMsg =
   | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
   /** Feira cart switches. `featured` is today's playable game, or null when the cart is closed. */
   | { t: 'admin'; phase: 'feiraCart'; day: string; featured: FeiraGameId | null; games: FeiraCartAdminGame[] }
-  /** Design mode: whether this room is using a saved override or the layout in the repo. */
-  | { t: 'admin'; phase: 'layout'; room: RoomId; source: 'override' | 'code' }
-  /** Design mode: pull request opened, or the client should download the JSON because no token is configured. */
-  | { t: 'admin'; phase: 'layoutPublished'; room: RoomId; url?: string; fallback: boolean; pt: string; en: string }
-  /** Live layout. `objects: null` means this room is back to the layout shipped in the repo. */
+  /** Live layout (design mode publishes through `/api/admin/design/*`, see designOps.ts). `objects: null` means this room is back to the layout shipped in the repo. */
   | { t: 'layout'; room: RoomId; objects: PropDef[] | null }
   | { t: 'avatarJoined'; avatar: PublicAvatar }
   | { t: 'avatarLeft'; id: string }

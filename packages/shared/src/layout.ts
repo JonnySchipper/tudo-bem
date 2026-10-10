@@ -12,25 +12,27 @@ const MAX_SPAN = 32;
 const MAX_NUDGE = 256;
 const MAX_TEXT = 160;
 const MAX_GAPS = 64;
+/** Largest draw-order bias design mode may give a prop, in world px either way. */
+export const LAYOUT_MAX_Z = 256;
 
-const KINDS: readonly PropKind[] = [
+export const LAYOUT_KINDS: readonly PropKind[] = [
   'ipe', 'banco', 'poste', 'banca', 'barraca_chapeus', 'quiosque', 'poleiro', 'canteiro', 'lixeira', 'bicicletario', 'balcao', 'vitrine',
   'banqueta', 'mesa', 'cadeira_padaria', 'trilho_pedidos', 'vaso', 'cama', 'cozinha', 'caixa', 'orelhao', 'placa_rua', 'estufa', 'mesa_cafe',
   'jornais', 'saco_lixo', 'floreira', 'tatame', 'parede_faixas', 'quadro_fila', 'banco_espectador', 'vestiario', 'quadro_foto', 'fachada',
   'cenario', 'fonte', 'cerca', 'sebe', 'ponto_onibus', 'arvore', 'feira', 'hortifruti',
 ];
-const ACTIONS: readonly PropAction[] = [
+export const LAYOUT_ACTIONS: readonly PropAction[] = [
   'shop_hats', 'minigame', 'kiosk', 'parrot_perch', 'catalog', 'bjj_roll', 'feira_stall', 'street_snack', 'checkers', 'buy_gi', 'escola',
   'academy_elevator', 'academy_board', 'padaria_door', 'padaria_counter', 'feira_cart', 'feira_sign', 'leaderboard',
 ];
-const DIRS: readonly Dir[] = ['SE', 'SW', 'NE', 'NW'];
-const VENDORS = ['tia_lu', 'ze', 'chico', 'rosa', 'banca'] as const;
-const KEY_ORDER = ['id', 'kind', 'x', 'y', 'w', 'h', 'blocks', 'seat', 'action', 'interact', 'label', 'hero', 'art', 'vendor', 'gaps', 'lightAtNight', 'ox', 'oy'] as const;
+export const LAYOUT_DIRS: readonly Dir[] = ['SE', 'SW', 'NE', 'NW'];
+export const LAYOUT_VENDORS = ['tia_lu', 'ze', 'chico', 'rosa', 'banca'] as const;
+const KEY_ORDER = ['id', 'kind', 'x', 'y', 'w', 'h', 'blocks', 'seat', 'action', 'interact', 'label', 'hero', 'art', 'vendor', 'gaps', 'lightAtNight', 'ox', 'oy', 'flip', 'z'] as const;
 
-const kindSet = new Set<string>(KINDS);
-const actionSet = new Set<string>(ACTIONS);
-const dirSet = new Set<string>(DIRS);
-const vendorSet = new Set<string>(VENDORS);
+const kindSet = new Set<string>(LAYOUT_KINDS);
+const actionSet = new Set<string>(LAYOUT_ACTIONS);
+const dirSet = new Set<string>(LAYOUT_DIRS);
+const vendorSet = new Set<string>(LAYOUT_VENDORS);
 
 export interface LayoutFailure {
   ok: false;
@@ -150,6 +152,14 @@ export function validateRoomLayout(roomId: string, objects: unknown): LayoutSucc
       if (!intIn(o.oy, -MAX_NUDGE, MAX_NUDGE)) return fail(`Deslocamento inválido: ${o.id}.`, `Invalid nudge: ${o.id}.`);
       if (o.oy !== 0) prop.oy = o.oy;
     }
+    if (o.flip !== undefined) {
+      if (o.flip !== true && o.flip !== false) return fail(`Espelho inválido: ${o.id}.`, `Invalid flip: ${o.id}.`);
+      if (o.flip) prop.flip = true;
+    }
+    if (o.z !== undefined) {
+      if (!intIn(o.z, -LAYOUT_MAX_Z, LAYOUT_MAX_Z)) return fail(`Ordem inválida: ${o.id}.`, `Invalid draw order: ${o.id}.`);
+      if (o.z !== 0) prop.z = o.z;
+    }
     out.push(prop);
   }
   return { ok: true, room: roomId, objects: out };
@@ -218,6 +228,36 @@ function ordered(p: PropDef): Record<string, unknown> {
 /** The file design mode commits: `{ room, objects }`, stable key order. */
 export function serializeLayout(room: RoomId, objects: PropDef[]): string {
   return JSON.stringify({ room, objects: objects.map(ordered) }, null, 2) + '\n';
+}
+
+export interface LayoutDiff {
+  added: string[];
+  removed: string[];
+  /** Same id, different fields: which fields changed. */
+  changed: { id: string; fields: string[] }[];
+}
+
+/** What changed from `before` to `after`, by prop id. */
+export function layoutDiff(before: readonly PropDef[], after: readonly PropDef[]): LayoutDiff {
+  const old = new Map(before.map((p) => [p.id, ordered(p)]));
+  const now = new Map(after.map((p) => [p.id, ordered(p)]));
+  const out: LayoutDiff = { added: [], removed: [], changed: [] };
+  for (const [id, p] of now) {
+    const q = old.get(id);
+    if (!q) {
+      out.added.push(id);
+      continue;
+    }
+    const fields = KEY_ORDER.filter((k) => JSON.stringify(p[k]) !== JSON.stringify(q[k]));
+    if (fields.length) out.changed.push({ id, fields });
+  }
+  for (const id of old.keys()) if (!now.has(id)) out.removed.push(id);
+  return out;
+}
+
+/** One line for an audit row or a status: `+2 -1 ~3`. */
+export function layoutDiffSummary(d: LayoutDiff): string {
+  return `+${d.added.length} -${d.removed.length} ~${d.changed.length}`;
 }
 
 /** Repo path of a room layout, relative to the repository root. */

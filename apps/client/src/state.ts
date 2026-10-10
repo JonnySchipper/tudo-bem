@@ -79,6 +79,8 @@ class Game {
   designMode = false;
   /** Extra camera offset (world px) while designing, so a phone can pan props out from under the panel. */
   designPan = { x: 0, y: 0 };
+  /** Design mode zoom, in whole steps above (or below) the normal zoom. */
+  designZoom = 0;
   /** Bumped when a room's props change so the scene and walk grid rebuild. */
   layoutEpoch = 0;
   /** Last layout pushed by the server (the design editor listens). */

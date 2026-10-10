@@ -80,6 +80,10 @@ export interface PropDef {
   ox?: number;
   /** Pixel view: nudge down in px. Design mode's free placement uses this; bundled layouts leave it unset. */
   oy?: number;
+  /** Pixel view: the sprite is drawn mirrored left to right (design mode's flip). The server ignores it. */
+  flip?: boolean;
+  /** Pixel view: draw-order bias in world px (design mode's bring forward / send back). The server ignores it. */
+  z?: number;
 }
 
 export type WallSide = 'left' | 'right';

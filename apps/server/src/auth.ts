@@ -514,13 +514,14 @@ export function defaultLimiters(now: () => number = Date.now, signupMax = 10): A
 
 const MAX_BODY = 8 * 1024;
 
-export function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
+/** `max`: body cap in bytes (8 KB unless a route needs more, like design mode's layouts). */
+export function readJson(req: IncomingMessage, max = MAX_BODY): Promise<Record<string, unknown> | null> {
   return new Promise((resolve) => {
     let size = 0;
     const chunks: Buffer[] = [];
     req.on('data', (c: Buffer) => {
       size += c.length;
-      if (size > MAX_BODY) {
+      if (size > max) {
         resolve(null);
         req.destroy();
         return;
