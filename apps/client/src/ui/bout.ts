@@ -1075,7 +1075,7 @@ export class BoutUI {
     if (m.bond > 0) lines.push(h('p', { class: 'bout-bond' }, '♥ ', ...this.bi('Professora Bia gostou do treino.', 'Professora Bia enjoyed the match.')));
     const word =
       m.word && m.winner === 'you'
-        ? h('div', { class: 'cr-end-words bout-diary', id: 'bout-word' }, h('b', null, 'Palavra nova no Caderno'), en('New word in the Diary'), h('span', { class: 'cr-chip' }, m.word.pt, h('span', { class: 'en' }, m.word.en)))
+        ? h('div', { class: 'cr-end-words bout-diary', id: 'bout-word' }, h('b', null, 'Palavra nova no Diário'), en('New word in the Diary'), h('span', { class: 'cr-chip' }, m.word.pt, h('span', { class: 'en' }, m.word.en)))
         : null;
     // needs_br: true — Palavras de hoje (the commands you used), Comandos perfeitos (how many you tapped Perfeito)
     const words =
