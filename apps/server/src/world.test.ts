@@ -322,8 +322,11 @@ describe('World', () => {
 
     // Back to praça, buy + equip a hat
     await a.send({ t: 'join', room: 'praca' });
+    const noticesBeforeHat = a.all('notice').length;
     await a.send({ t: 'buy', kind: 'hat', itemId: 'boina_vermelha' });
     expect(a.s.profile!.hat).toBe('boina_vermelha');
+    // one signal per purchase: the stall's card stamps the hat, so the server sends no "bought" notice
+    expect(a.all('notice').slice(noticesBeforeHat).some((n) => n.level === 'reward')).toBe(false);
 
     // Kitnet: the first visit pays the gift, which buys the chair (nothing is free), then place it
     expect(a.s.profile!.furniture.cadeira_madeira ?? 0).toBe(0);
@@ -333,6 +336,8 @@ describe('World', () => {
     expect(a.s.profile!.coins).toBe(before + ECONOMY.kitnetGift);
     await a.send({ t: 'buy', kind: 'furniture', itemId: 'cadeira_madeira' });
     expect(a.s.profile!.furniture.cadeira_madeira).toBe(1);
+    // furniture has no stall stamp: its notice stays
+    expect(a.last('notice')!.pt).toMatch(/^Comprou: /);
     await a.send({ t: 'furniture', action: 'place', itemId: 'cadeira_madeira', x: 3, y: 4, rot: 0 });
     expect(a.last('furnitureState')!.furniture).toHaveLength(1);
 
