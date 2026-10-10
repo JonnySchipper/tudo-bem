@@ -646,7 +646,8 @@ function faixa() {
  */
 export const ESTEIRA_FRAMES = 30;
 export const ESTEIRA_COLORS = 2;
-function esteiraFrames() {
+/** `count` frames of the loop (more than ESTEIRA_FRAMES only for the test, which checks that frame 30 is frame 0 again). */
+export function esteiraFrames(count = ESTEIRA_FRAMES) {
   const W = 96, H = 40, N = ESTEIRA_FRAMES;
   // the slat ring: straight runs at y 11 and 26 between x 16 and 80, half circles at the ends (radius 7.5 round the ring's middle line)
   const L = 64, R = 7.5, cyM = 18.5;
@@ -671,7 +672,7 @@ function esteiraFrames() {
   const spacing = perim / bags.length;
   const step = (spacing * ESTEIRA_COLORS) / N;
   const frames = [];
-  for (let f = 0; f < N; f++) {
+  for (let f = 0; f < count; f++) {
     const img = blank(W, H);
     // the body: the stainless rim and its front face
     fill(img, (x, y) => stadium(x, y, 15.5) || (y > cyM && y < 38 && x > 16 - 15.5 * Math.sqrt(Math.max(0, 1 - ((y - cyM) / 30) ** 2)) - 0.5 && stadium(x, cyM + Math.min(y - cyM, 0), 15.5)), (x, y) => (y > 32 ? P.mist2 : P.lav3));
