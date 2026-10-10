@@ -48,8 +48,10 @@ async function waitIdleAt(page, x, y) {
 
 async function main() {
   assert(CHROME, 'set CHROME_PATH');
+  // the hour keeps running (1 game minute per 2 real seconds) while the browser signs up and arrives, ~40 s on a cold CI runner: pin early
+  // enough that the page still reads the window when it gets there (phase a then jumps to 21:00 itself)
   const WINDOW = PHASE === 'a'
-    ? { min: 20 * 60, max: 20 * 60 + 58, target: 20 * 60 + 40, label: 'just before 21:00' }
+    ? { min: 20 * 60, max: 20 * 60 + 58, target: 20 * 60 + 15, label: 'before 21:00' }
     : { min: 21 * 60 + 40, max: 22 * 60 + 28, target: 22 * 60 + 5, label: 'just before 22:30' };
   await requirePinnedClock(BASE, WINDOW);
   const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
