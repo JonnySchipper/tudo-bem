@@ -5,8 +5,12 @@ import {
   PASTEL_DURATION_MS,
   PASTEL_FRY,
   PASTEL_FRY_COMBO,
+  PASTEL_PARTS,
   PASTEL_RECIPE,
+  PASTEL_SIMPLE,
   pastelComboTurn,
+  pastelParts,
+  pastelRules,
   pastelDoneness,
   pastelFromParts,
   pastelOrders,
@@ -139,5 +143,39 @@ describe('pastel scoring', () => {
     const possible = pastelOrders(seed).filter((o) => o.at <= 20_000).length;
     expect(judged.served).toBeLessThanOrEqual(possible);
     expect(judged.served).toBe(1);
+  });
+});
+
+describe('pastel staged by the player\'s runs', () => {
+  it('has no combos before the 3rd run, and no charcoal block or fire in the 1st', () => {
+    expect(pastelRules(0)).toEqual({ combos: false, fire: false });
+    expect(pastelRules(1)).toEqual({ combos: false, fire: true });
+    expect(pastelRules(2)).toEqual({ combos: true, fire: true });
+    expect(pastelRules(40)).toEqual({ combos: true, fire: true });
+    // an older caller (no run count) gets the full game
+    expect(pastelRules()).toEqual({ combos: true, fire: true });
+    for (const seed of [1, 7, 99, 12345]) {
+      for (const runs of [0, 1]) {
+        expect(pastelOrders(seed, runs).every((o) => !PASTEL_RECIPE[o.filling].combo), `seed ${seed} run ${runs + 1}`).toBe(true);
+      }
+      expect(pastelOrders(seed, 2)).toEqual(pastelOrders(seed));
+    }
+    // the trays on the counter follow: five one-word fillings until combos arrive
+    expect(pastelParts(pastelRules(0))).toEqual(PASTEL_SIMPLE);
+    expect(pastelParts(pastelRules(2))).toEqual(PASTEL_PARTS);
+    // a forgotten pastel in the 1st run stops at black
+    const first = pastelRules(0);
+    expect(pastelDoneness(PASTEL_FRY.fireAt + 10_000, false, first)).toBe('black');
+    expect(pastelDoneness(PASTEL_FRY_COMBO.blockAt + 1, true, first)).toBe('black');
+    expect(pastelDoneness(PASTEL_FRY.goldenAt, false, first)).toBe('golden');
+    expect(pastelDoneness(PASTEL_FRY.fireAt, false, pastelRules(1))).toBe('fire');
+  });
+
+  it('keeps arrivals and patience on the seed alone, so the server scores a first run the same way', () => {
+    for (const seed of [3, 7, 2026]) {
+      const shape = (runs?: number) => pastelOrders(seed, runs).map((o) => [o.at, o.patienceMs, o.who]);
+      expect(shape(0)).toEqual(shape());
+      expect(shape(1)).toEqual(shape());
+    }
   });
 });

@@ -201,7 +201,8 @@ body.fst-on #world-labels {
 
 .fst-hud-title,
 .fst-hud-clock,
-.fst-hud-score,
+.fst-hud-faces,
+.fst-hud-practice,
 .fst-quit {
   display: inline-flex;
   align-items: center;
@@ -223,52 +224,161 @@ body.fst-on #world-labels {
   color: var(--fst-gold);
 }
 
-.fst-clock-icon {
+/* the clock: the sun rises on the left of a little sky and sets on the right when the feira closes (no digits) */
+.fst-sun {
+  position: relative;
+  width: 58px;
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(#9fd4f2, #cfeefa 70%, #e9c98f 70%);
+}
+
+.fst-sun-arc {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  top: 5px;
+  height: 40px;
+  border: 2px dashed rgba(42, 34, 51, 0.35);
+  border-radius: 50%;
+}
+
+.fst-sun-arm {
+  position: absolute;
+  left: 50%;
+  top: 25px;
+  width: 0;
+  height: 0;
+  transform: rotate(calc(-90deg + var(--k, 0) * 180deg));
+}
+
+.fst-sun-dot {
+  position: absolute;
+  left: -6px;
+  top: -26px;
   width: 12px;
   height: 12px;
   border: 2px solid var(--fst-ink);
   border-radius: 50%;
-  background:
-    linear-gradient(var(--fst-ink), var(--fst-ink)) 50% 2px / 2px 4px no-repeat,
-    linear-gradient(var(--fst-ink), var(--fst-ink)) 4px 50% / 3px 2px no-repeat;
+  background: var(--fst-gold);
+  box-shadow: 0 0 0 2px rgba(255, 245, 154, 0.8);
 }
 
-.fst-clock {
-  min-width: 2.4em;
-  font-weight: 400;
+.fst-sun.fst-late {
+  background: linear-gradient(#f2a06a, #f7c98a 70%, #e9c98f 70%);
 }
 
-.fst-clock.fst-late {
-  color: var(--fst-red);
+.fst-sun.fst-late .fst-sun-dot {
+  background: #ed7a2c;
   animation: fst-pulse 1s steps(2) infinite;
 }
 
-.fst-hud-score {
+/* the score: one face per customer, how it went; a streak of perfects makes the strip glow */
+.fst-hud-faces {
+  margin-left: auto;
+  gap: 1px;
+  min-width: 34px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 16px;
+  transition: box-shadow 0.25s, background 0.25s;
+}
+
+.fst-hud-faces:empty::before {
+  content: '·';
+  opacity: 0.4;
+}
+
+.fst-face {
+  font-style: normal;
+  animation: fst-bump 0.35s ease-out;
+}
+
+.fst-hud-faces[data-glow='1'] {
+  background: #fff7c2;
+  box-shadow: 0 3px 0 rgba(42, 34, 51, 0.45), 0 0 8px 2px rgba(242, 194, 48, 0.7);
+}
+
+.fst-hud-faces[data-glow='2'] {
+  background: #fff1a0;
+  box-shadow: 0 3px 0 rgba(42, 34, 51, 0.45), 0 0 14px 4px rgba(242, 194, 48, 0.85);
+}
+
+.fst-hud-faces[data-glow='3'] {
+  background: #ffe873;
+  box-shadow: 0 3px 0 rgba(42, 34, 51, 0.45), 0 0 20px 7px rgba(255, 216, 74, 0.95);
+  animation: fst-glow 0.9s ease-in-out infinite;
+}
+
+/* the practice: Treino where the sun and the faces would be, and Pular */
+.fst-hud-practice {
+  background: var(--fst-gold);
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+}
+
+.fst-hud-practice .en {
+  font-size: 9px;
+}
+
+.fst-skip {
   margin-left: auto;
 }
 
-.fst-score {
+/* the coach mark: a small bubble pinned over (or under) what to use next, with a tail pointing at it (Correria's) */
+.fst-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 7;
+  max-width: min(300px, calc(100vw - 12px));
+  padding: 5px 10px 6px;
+  background: var(--fst-ink);
+  color: #fff6dc;
+  border: 2px solid #14101a;
+  box-shadow: inset 0 0 0 2px var(--fst-gold), 0 4px 0 rgba(20, 16, 26, 0.4);
+  font-size: 15px;
+  line-height: 1.2;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.fst-mark.on {
+  opacity: 1;
+  visibility: visible;
+}
+
+.fst-mark b {
+  margin-right: 6px;
+  color: var(--fst-gold);
+  font-family: var(--font-pixel);
   font-weight: 400;
-  min-width: 1.6em;
-  text-align: right;
 }
 
-.fst-score.fst-bump {
-  animation: fst-bump 0.35s ease-out;
+.fst-mark::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--fst-mark-arrow, 50%) - 7px);
+  border: 7px solid transparent;
 }
 
-.fst-hud-score small {
-  font-size: 10px;
-  opacity: 0.7;
+.fst-mark[data-side='above']::after {
+  top: 100%;
+  border-top-color: var(--fst-gold);
 }
 
-.fst-combo {
-  padding: 2px 5px;
-  border-radius: 4px;
-  background: var(--fst-red);
-  color: #fff;
-  font-size: 12px;
-  animation: fst-bump 0.35s ease-out;
+.fst-mark[data-side='below']::after {
+  bottom: 100%;
+  border-bottom-color: var(--fst-gold);
+}
+
+.fst-hit.fst-coach-lit {
+  outline: 3px solid #ffd84a;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(255, 216, 74, 0.35), 0 0 22px 8px rgba(255, 216, 74, 0.55);
+  animation: fst-glow 0.9s ease-in-out infinite;
 }
 
 .fst-quit {
@@ -448,8 +558,8 @@ body.fst-on #world-labels {
   display: none;
 }
 
-.fst-portrait .fst-hud-clock,
-.fst-portrait .fst-hud-score,
+.fst-portrait .fst-hud-faces,
+.fst-portrait .fst-hud-practice,
 .fst-portrait .fst-quit {
   padding: 0 6px;
   font-size: 13px;
@@ -806,6 +916,12 @@ body.fst-on #world-labels {
   }
 }
 
+@keyframes fst-glow {
+  50% {
+    filter: brightness(1.12);
+  }
+}
+
 @keyframes fst-banner {
   0% {
     transform: translate(-50%, -50%) scale(0.3);
@@ -823,11 +939,58 @@ body.fst-on #world-labels {
   .fst-pop,
   .fst-float,
   .fst-banner-in,
-  .fst-score.fst-bump,
-  .fst-combo,
-  .fst-clock.fst-late,
+  .fst-face,
+  .fst-hud-faces[data-glow='3'],
+  .fst-hit.fst-coach-lit,
+  .fst-sun.fst-late .fst-sun-dot,
   .fst-label.fst-label-hot {
     animation-duration: 0.01s;
     animation-iteration-count: 1;
   }
+}
+
+/* ---------------------------------------------------------------- the Tapioca practice: one line, then Começar */
+
+.fst-practice-done {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  z-index: 8;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 18px 14px;
+  border: 3px solid var(--fst-ink);
+  border-radius: 10px;
+  background: var(--fst-paper);
+  box-shadow: 0 5px 0 rgba(42, 34, 51, 0.5);
+  text-align: center;
+  animation: fst-bubble-in 0.22s ease-out;
+}
+
+.fst-practice-done p {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 18px;
+}
+
+.fst-practice-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.fst-practice-actions button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 44px;
+}
+
+.fst-practice-actions .en {
+  font-size: 11px;
 }

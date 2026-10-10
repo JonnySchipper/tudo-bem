@@ -15,6 +15,9 @@
  *      Drag it out onto the rack while it is golden. Tap a fire to put it out, then drag the brick to the bin.
  *   4. Drag it from the rack to the customer.
  *
+ * Staged by runs on the profile (shared `pastelRules`): the first two runs have no combos (only the five one-word
+ * trays), and in the first run a forgotten pastel stops at black (no brick, no fire).
+ *
  * Burnt is a soft fail and a wrong filling is a miss; nothing ends the run early. The keyboard keeps the old
  * one-key shortcuts (Enter on a piece does its step).
  *
@@ -22,7 +25,8 @@
  */
 import {
   PASTEL_DURATION_MS,
-  PASTEL_PARTS,
+  pastelParts,
+  pastelRules,
   PASTEL_PART_LABEL,
   PASTEL_POP,
   PASTEL_RACK,
@@ -38,6 +42,7 @@ import {
   type PastelFilling,
   type PastelOrder,
   type PastelPart,
+  type PastelRules,
 } from '@tudobem/shared';
 import { stallEndCard, type StallEnd } from './feiraStall';
 import { C, FeiraStage, blit, fill, inEllipse, paint, type Ctx, type DragPayload, type StageCustomer, type StageLayout } from './feiraStage';
@@ -292,16 +297,21 @@ export class PastelView {
   private top: HTMLCanvasElement | null = null;
   private topKey = '';
   private bubbleAt = 0;
+  /** No combos before the 3rd run, no charcoal block or fire in the 1st (shared `pastelRules`). */
+  private readonly rules: PastelRules;
 
   constructor(
     seed: number,
     private readonly hooks: PastelHooks,
+    /** Pastel runs on the profile before this one (`feiraRuns.pastel`). Omitted: the full game. */
+    runs?: number,
   ) {
+    this.rules = pastelRules(runs);
     this.stage = new FeiraStage<PastelOrder>({
       game: 'pastel',
       prefix: 'pastel',
       title: 'Pastel',
-      orders: pastelOrders(seed),
+      orders: pastelOrders(seed, runs),
       durationMs: PASTEL_DURATION_MS,
       palette: { awningA: '#f2c230', awningB: '#cb2a2a', plaque: '#c48a14' },
       icons: (o) => [pastelSprite('golden'), ...PASTEL_RECIPE[o.filling].parts.map(partIcon)],
@@ -342,9 +352,10 @@ export class PastelView {
       this.fork = { x: Math.round(W / 2) + 34, y: rowY };
       this.bin = { x: W - 16, y: rowY + 2 };
       const ty = rowY + 40;
-      const per = 6;
+      const parts = pastelParts(this.rules);
+      const per = Math.min(6, parts.length);
       const cw = (W - 8) / per;
-      this.trays = PASTEL_PARTS.map((part, i) => ({ part, x: Math.round(4 + cw * (i % per) + cw / 2), y: ty + Math.floor(i / per) * 42 }));
+      this.trays = parts.map((part, i) => ({ part, x: Math.round(4 + cw * (i % per) + cw / 2), y: ty + Math.floor(i / per) * 42 }));
     } else {
       const y0 = work.y + 6;
       const leftW = Math.round(W * 0.46);
@@ -354,10 +365,11 @@ export class PastelView {
       this.bin = { x: leftW - 8, y: y0 + 22 };
       this.fryer = { x: leftW + 6, y: y0, w: Math.round(W * 0.36), h: Math.min(52, Math.max(40, work.h - 58)) };
       this.rackAt = { x: this.fryer.x + this.fryer.w + 8, y: y0 + 2, w: W - (this.fryer.x + this.fryer.w) - 14, h: this.fryer.h - 10 };
-      const per = 11;
+      const parts = pastelParts(this.rules);
+      const per = parts.length;
       const cw = (W - 8) / per;
       const rowsY = Math.max(this.fryer.y + this.fryer.h + 16, work.y + work.h - 32);
-      this.trays = PASTEL_PARTS.map((part, i) => ({ part, x: Math.round(4 + cw * i + cw / 2), y: rowsY }));
+      this.trays = parts.map((part, i) => ({ part, x: Math.round(4 + cw * i + cw / 2), y: rowsY }));
     }
     const n = 3;
     this.fry.forEach((f, i) => {
@@ -407,7 +419,7 @@ export class PastelView {
 
   /** How done a pastel in the oil is now. A fire you put out stays a charcoal brick. */
   private doneOf(f: Fry, t = this.stage.t): PastelDoneness {
-    return f.out ? 'block' : pastelDoneness(t - f.at, f.combo);
+    return f.out ? 'block' : pastelDoneness(t - f.at, f.combo, this.rules);
   }
 
   private takeDough(): boolean {

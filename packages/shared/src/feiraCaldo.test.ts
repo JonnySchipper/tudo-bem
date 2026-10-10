@@ -10,7 +10,7 @@ import {
   rotationSlot,
   withFeiraCartMode,
 } from './feiraGames.js';
-import { CALDO_CRANK, CALDO_FLAVORS, caldoFill, caldoOrders, caldoServeQuality } from './feiraCaldo.js';
+import { CALDO_CRANK, CALDO_FIRST_FLAVORS, CALDO_FLAVORS, caldoFill, caldoFlavors, caldoOrders, caldoServeQuality } from './feiraCaldo.js';
 
 describe('caldo de cana orders and score', () => {
   it('deals seeded orders in Portuguese with an English hint, gelo or puro', () => {
@@ -113,5 +113,19 @@ describe('caldo press: fill to the line', () => {
     // one cane is more than one cup, but not two
     expect(CALDO_CRANK.canePerCup).toBeGreaterThan(1);
     expect(CALDO_CRANK.canePerCup).toBeLessThan(2);
+  });
+});
+
+describe('caldo staged by the player\'s runs', () => {
+  it('asks for three flavours in the 1st run, all seven after, with the same arrivals', () => {
+    expect(caldoFlavors(0)).toEqual(CALDO_FIRST_FLAVORS);
+    expect(caldoFlavors(1)).toEqual(CALDO_FLAVORS);
+    expect(caldoFlavors()).toEqual(CALDO_FLAVORS);
+    for (const seed of [1, 7, 99]) {
+      const first = caldoOrders(seed, 0);
+      expect(first.every((o) => (CALDO_FIRST_FLAVORS as readonly string[]).includes(o.flavor))).toBe(true);
+      expect(first.map((o) => [o.at, o.patienceMs, o.ice])).toEqual(caldoOrders(seed).map((o) => [o.at, o.patienceMs, o.ice]));
+      expect(caldoOrders(seed, 3)).toEqual(caldoOrders(seed));
+    }
   });
 });

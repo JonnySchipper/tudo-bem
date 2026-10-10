@@ -34,10 +34,21 @@ export async function hold(page, sel, ms) {
   await page.mouse.up();
 }
 
-/** Close the first-time how-to card so the 3-2-1 can run (`howto` shoots it first). */
+/** Skip the first-time practice, and (when `howto` shoots it) open the "?" card and close it again so the 3-2-1 can run. */
 export async function startRun(page, root, howto) {
   await page.waitForSelector(root, { timeout: 15_000 });
   await sleep(700);
+  // a new profile's first Tapioca is the one-customer practice: Pular goes on to the real run
+  if (await page.$('#tapioca-skip')) {
+    await page.click('#tapioca-skip');
+    await page.waitForSelector('#tapioca-hud #tapioca-sun', { timeout: 15_000 });
+    await sleep(700);
+  }
+  // the cart games' cards wait for the "?" now: open it for the shot
+  if (howto && !(await page.$('#howto-ok')) && (await page.$('#howto-help'))) {
+    await page.click('#howto-help');
+    await sleep(300);
+  }
   if (await page.$('#howto-ok')) {
     if (howto) await howto();
     await page.click('#howto-ok');

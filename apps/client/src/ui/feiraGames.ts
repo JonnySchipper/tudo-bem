@@ -4,6 +4,10 @@
  * The server owns the run (`feiraGame` messages). This file only opens the right view — Tapioca, Pastel
  * or Caldo — and the placar panel. Adding another game is one branch in `openGame`.
  *
+ * Tapioca teaches by doing: the first Jogar on a profile with no Tapioca run opens a one-customer practice in the
+ * client (feiraTapiocaPractice.ts) before asking the server for a real run. Pastel and Caldo stage their rules on the
+ * profile's run count (`feiraRuns`, shared feiraPastel.ts / feiraCaldo.ts).
+ *
  * needs_br: true
  */
 import {
@@ -19,6 +23,8 @@ import { closeModal, modalId, openModal } from './modal';
 import { TapiocaView, type TapiocaEnd } from './feiraTapioca';
 import { PastelView } from './feiraPastel';
 import { CaldoView } from './feiraCaldo';
+import { TapiocaPractice } from './feiraTapiocaPractice';
+import { TAPIOCA_PRACTICE_KEY, tapiocaPracticeNeeded } from './feiraTapiocaPracticeLogic';
 
 type FeiraGameMsg = Extract<ServerMsg, { t: 'feiraGame' }>;
 
@@ -34,13 +40,44 @@ type PlayView = { destroy(): void; showEnd(end: TapiocaEnd): void };
 let hooks: FeiraGameHooks | null = null;
 let view: PlayView | null = null;
 let closeOffer: (() => void) | null = null;
+let practice: TapiocaPractice | null = null;
+
+/** Runs the server has accepted for this game on the player's profile (0 for a new player). */
+function runsOf(gameId: FeiraGameId): number {
+  return game.profile?.feiraRuns?.[gameId] ?? 0;
+}
+
+function storedPractice(): string | null {
+  try {
+    return localStorage.getItem(TAPIOCA_PRACTICE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Jogar: the first Tapioca on this profile is the practice; everything else asks the server for today's run. */
+function play(gameId: FeiraGameId) {
+  if (gameId === 'tapioca' && !practice && !view && tapiocaPracticeNeeded(storedPractice(), runsOf('tapioca'))) {
+    practice = new TapiocaPractice({
+      start: () => {
+        practice = null;
+        hooks?.sendStart();
+      },
+      closed: () => {
+        practice = null;
+      },
+    });
+    return;
+  }
+  hooks?.sendStart();
+}
 
 export function bindFeiraGames(hks: FeiraGameHooks) {
   hooks = hks;
 }
 
 export function feiraGameOpen(): boolean {
-  return !!view;
+  return !!view || !!practice;
 }
 
 /** Cart hotspot: today's game and a Jogar button. A game that is off has no cart, so there is no closed panel. */
@@ -63,7 +100,7 @@ export function openFeiraCart(gameId: FeiraGameId) {
         id: 'feira-cart-play',
         onclick: () => {
           close();
-          hooks?.sendStart();
+          play(gameId);
         },
       }, 'Jogar', en('Play')),
     ),
@@ -81,6 +118,8 @@ function medalMark(kind: 'gold' | 'silver' | 'bronze'): string {
 }
 
 function dismissCartUi() {
+  practice?.destroy();
+  practice = null;
   if (view) {
     view.destroy();
     view = null;
@@ -139,6 +178,8 @@ function paintBoard(m: Extract<FeiraGameMsg, { phase: 'board' }>, alsoCart: bool
 }
 
 function openGame(m: Extract<FeiraGameMsg, { phase: 'start' }>) {
+  practice?.destroy();
+  practice = null;
   view?.destroy();
   closeOffer?.();
   closeOffer = null;
@@ -160,11 +201,11 @@ function openGame(m: Extract<FeiraGameMsg, { phase: 'start' }>) {
     return;
   }
   if (m.game === 'pastel') {
-    view = new PastelView(m.seed, hooksFor);
+    view = new PastelView(m.seed, hooksFor, runsOf('pastel'));
     return;
   }
   if (m.game === 'caldo') {
-    view = new CaldoView(m.seed, hooksFor);
+    view = new CaldoView(m.seed, hooksFor, runsOf('caldo'));
     return;
   }
   // Unimplemented games never start: the server only deals a registered module.
@@ -213,6 +254,8 @@ export function onFeiraGameMsg(m: FeiraGameMsg) {
 }
 
 export function closeFeiraGame() {
+  practice?.destroy();
+  practice = null;
   view?.destroy();
   view = null;
 }

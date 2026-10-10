@@ -93,6 +93,14 @@ export function tapiocaOrders(seed: number): TapiocaOrder[] {
   return out;
 }
 
+/**
+ * The first-time practice: one regular, one cheese tapioca, all the time in the world. Played in the client only (it never
+ * reaches the server, pays nothing and scores nothing), on one pan, before a profile's first real run.
+ */
+export function tapiocaPracticeOrder(): TapiocaOrder {
+  return { at: 600, patienceMs: TAPIOCA_PATIENCE_MS, who: 'nanda', name: 'Nanda', filling: 'queijo', line: lineFor('queijo', true) };
+}
+
 /** Orders whose arrival is at or before `elapsedMs`. */
 export function tapiocaOrdersBy(seed: number, elapsedMs: number): TapiocaOrder[] {
   return tapiocaOrders(seed).filter((o) => o.at <= elapsedMs);

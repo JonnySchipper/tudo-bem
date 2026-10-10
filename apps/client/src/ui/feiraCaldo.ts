@@ -20,7 +20,7 @@
 import {
   CALDO_CRANK,
   CALDO_DURATION_MS,
-  CALDO_FLAVORS,
+  caldoFlavors,
   CALDO_FLAVOR_LABEL,
   CALDO_LINE,
   CALDO_NO_CANE,
@@ -368,16 +368,21 @@ export class CaldoView {
   private fruits: { f: CaldoFlavor; x: number; y: number }[] = [];
   private top: HTMLCanvasElement | null = null;
   private topKey = '';
+  /** The bottles on the counter: three in the 1st run, all seven after (shared `caldoFlavors`). */
+  private readonly flavors: readonly CaldoFlavor[];
 
   constructor(
     seed: number,
     private readonly hooks: CaldoHooks,
+    /** Caldo runs on the profile before this one (`feiraRuns.caldo`). Omitted: the full game. */
+    runs?: number,
   ) {
+    this.flavors = caldoFlavors(runs);
     this.stage = new FeiraStage<CaldoOrder>({
       game: 'caldo',
       prefix: 'caldo',
       title: 'Caldo de cana',
-      orders: caldoOrders(seed),
+      orders: caldoOrders(seed, runs),
       durationMs: CALDO_DURATION_MS,
       palette: { awningA: '#3d9a4a', awningB: '#f2c230', plaque: '#2f7a45' },
       icons: (o) => [cupSprite(o.flavor, o.ice === 'gelo'), fruitSprite(o.flavor), iceSprite(o.ice === 'gelo')],
@@ -421,7 +426,7 @@ export class CaldoView {
       const fy = base + 26;
       const per = 4;
       const cw = (W - 12) / per;
-      this.fruits = CALDO_FLAVORS.map((f, i) => ({ f, x: Math.round(6 + cw * (i % per) + cw / 2), y: fy + Math.floor(i / per) * 34 }));
+      this.fruits = this.flavors.map((f, i) => ({ f, x: Math.round(6 + cw * (i % per) + cw / 2), y: fy + Math.floor(i / per) * 34 }));
     } else {
       const y0 = work.y + 6;
       this.crate = { x: 22, y: y0 + 32 };
@@ -434,7 +439,7 @@ export class CaldoView {
       const fx0 = 212;
       const per = 4;
       const cw = (W - fx0 - 4) / per;
-      this.fruits = CALDO_FLAVORS.map((f, i) => ({ f, x: Math.round(fx0 + cw * (i % per) + cw / 2), y: y0 + 14 + Math.floor(i / per) * 34 }));
+      this.fruits = this.flavors.map((f, i) => ({ f, x: Math.round(fx0 + cw * (i % per) + cw / 2), y: y0 + 14 + Math.floor(i / per) * 34 }));
       this.bucket = { x: Math.round(fx0 + cw * 3 + cw / 2), y: y0 + 14 + 34 };
     }
     this.top = null;

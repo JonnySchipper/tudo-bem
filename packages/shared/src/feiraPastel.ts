@@ -131,19 +131,43 @@ function lineFor(filling: PastelFilling, polite: boolean): Bilingual {
   };
 }
 
-/** True when this arrival index is a two-part order. */
-export function pastelComboTurn(index: number): boolean {
-  return index >= PASTEL_COMBO_FROM && index % 2 === 1;
+/**
+ * The rules staged on how many Pastel runs the player already had (`PrivateProfile.feiraRuns.pastel`, before this one):
+ * no two-part combos before their 3rd run, and in their 1st run a forgotten pastel stops at black (no charcoal block,
+ * no fire). `runs` undefined is the full game (a veteran, and every older caller).
+ */
+export const PASTEL_COMBO_RUN = 2;
+export interface PastelRules {
+  combos: boolean;
+  fire: boolean;
+}
+export function pastelRules(runs?: number): PastelRules {
+  if (runs === undefined || !Number.isFinite(runs)) return { combos: true, fire: true };
+  return { combos: runs >= PASTEL_COMBO_RUN, fire: runs >= 1 };
 }
 
-/** Every order a seed deals, in arrival order. Pure. */
-export function pastelOrders(seed: number): PastelOrder[] {
+/** The bowls on the counter: only the one-word fillings while combos are off. */
+export function pastelParts(rules: PastelRules = pastelRules()): readonly PastelPart[] {
+  return rules.combos ? PASTEL_PARTS : PASTEL_SIMPLE;
+}
+
+/** True when this arrival index is a two-part order. */
+export function pastelComboTurn(index: number, rules: PastelRules = pastelRules()): boolean {
+  return rules.combos && index >= PASTEL_COMBO_FROM && index % 2 === 1;
+}
+
+/**
+ * Every order a seed deals, in arrival order. Pure. `runs` (see `pastelRules`) only changes which fillings are asked
+ * for: arrival times and patience come from the seed alone, so the server scores the same run without it.
+ */
+export function pastelOrders(seed: number, runs?: number): PastelOrder[] {
+  const rules = pastelRules(runs);
   const rng = mulberry32(seed >>> 0);
   const out: PastelOrder[] = [];
   let at = FIRST_AT;
   const recent: string[] = [];
   for (let i = 0; i < PASTEL_CUSTOMERS; i++) {
-    const pool = pastelComboTurn(i) ? PASTEL_COMBO : PASTEL_SIMPLE;
+    const pool = pastelComboTurn(i, rules) ? PASTEL_COMBO : PASTEL_SIMPLE;
     const filling = pool[Math.floor(rng() * pool.length)]!;
     const who = feiraFreshFace(FEIRA_REGULARS[Math.floor(rng() * FEIRA_REGULARS.length)]!, recent);
     const polite = rng() < 0.65;
@@ -248,11 +272,11 @@ export function pastelFry(combo: boolean): {
   return combo ? PASTEL_FRY_COMBO : PASTEL_FRY;
 }
 
-/** `ageMs` is how long this pastel has been in the oil. */
-export function pastelDoneness(ageMs: number, combo = false): PastelDoneness {
+/** `ageMs` is how long this pastel has been in the oil. With `rules.fire` off (a 1st run) it stops at black. */
+export function pastelDoneness(ageMs: number, combo = false, rules: PastelRules = pastelRules()): PastelDoneness {
   const fry = pastelFry(combo);
-  if (ageMs >= fry.fireAt) return 'fire';
-  if (ageMs >= fry.blockAt) return 'block';
+  if (rules.fire && ageMs >= fry.fireAt) return 'fire';
+  if (rules.fire && ageMs >= fry.blockAt) return 'block';
   if (ageMs >= fry.blackAt) return 'black';
   if (ageMs >= fry.darkAt) return 'dark';
   if (ageMs >= fry.goldenAt) return 'golden';

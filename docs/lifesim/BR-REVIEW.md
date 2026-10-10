@@ -36,6 +36,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [X. Praia: the beach, fishing, boats and the party boat](#x-praia) (33)
 - [Z. Chat hints](#z-chat-hints) (2)
 - [AA. Tatame staging](#aa-tatame-staging) (2)
+- [AB. Tapioca practice](#ab-tapioca-practice) (4)
 
 ## A. Time of day, weekdays and weather
 
@@ -896,6 +897,21 @@ sem parar, rápido."). **needs_br.**
 | 645 | Mais parceiros | More partners | `apps/client/src/ui/bout.ts` lobby | the fold that reveals the other partners | |
 | 646 | Agora ele também ataca. O aviso diz o que vem. | Now they attack too. The warning says what is coming. | `apps/client/src/ui/boutLogic.ts` `PAD_COACH_NOTES.pick` | coach note at the first pick of the first match with the defense pad (wins 3) | |
 
+
+## AB. Tapioca practice
+
+<a id="ab-tapioca-practice"></a>
+The Feira cart's one-customer Tapioca practice and its coach marks (C2, `ui/feiraTapiocaPracticeLogic.ts`, `ui/feiraTapiocaPractice.ts`,
+`ui/feiraStage.ts`, shared `tapiocaPracticeOrder`). Each coach mark is a short English line with one Portuguese word beside it, and every
+one of those words is already on the stage (pan labels, the bowls, the lixeira). Nothing here is spoken (no TTS). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 647 | Segura · Vira! · Recheio · Dobra · Pronta! · Lixeira · queijo · coco · chocolate · goiabada | (the coach marks' words) | `feiraTapiocaPracticeLogic.ts` | reused from the stage labels; the filling word is the one the customer asked for | |
+| 648 | Uma tapioca de queijo, por favor. | A cheese tapioca, please. | `feiraTapioca.ts` `tapiocaPracticeOrder` | Nanda's practice order; the line every polite order already uses | |
+| 649 | Treino · Pular ▶ · Começar ▶ · De novo · Boa! 🎉 Agora é pra valer. | Practice · Skip · Start · Again · Nice! Now for real. | `feiraStage.ts` HUD, `feiraTapiocaPractice.ts` | Correria's practice words (Começar o turno ▶ shortened to Começar ▶) | |
+| 650 | ●●● na fila | (the line of people) | `feiraStage.ts` queue chip | dots instead of a number, no digits on the stage | |
+
 ## Totals
 
-646 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z and AA, plus 9 proposed-card entries.
+650 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z, AA and AB, plus 9 proposed-card entries.

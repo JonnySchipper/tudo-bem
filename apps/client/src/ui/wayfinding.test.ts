@@ -77,7 +77,10 @@ describe('how to play', () => {
     expect(pesca.selector).toBe('#pesca-root');
     expect(pesca.goal).toMatch(/Segura pra lançar, solta\. Fisgou\? Toca\. Segura pra puxar, solta quando ele corre\./);
     expect([pesca.goal, ...pesca.steps].join(' ')).not.toMatch(/\d/);
-    for (const g of HOW_TO_PLAY) if (g.id !== 'pesca' && g.id !== 'petshop') expect(g.autoOpen, g.id).toBeUndefined();
+    // the cart games teach by doing too (C2): their cards wait for the "?"; the pet shop card is a command sheet behind the "?"
+    const quiet = ['pesca', 'tapioca', 'pastel', 'caldo', 'petshop'];
+    for (const id of quiet) expect(HOW_TO_PLAY.find((g) => g.id === id)!.autoOpen, id).toBe(false);
+    for (const g of HOW_TO_PLAY) if (!quiet.includes(g.id)) expect(g.autoOpen, g.id).toBeUndefined();
   });
 
   it('the pet shop card is only the "?" command sheet: five short lines, never opens by itself', () => {
