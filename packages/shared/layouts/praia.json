@@ -886,6 +886,36 @@
       "art": "praia/madeira_mar"
     },
     {
+      "id": "concha_13",
+      "kind": "cenario",
+      "x": 32,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "pegadas_9",
+      "kind": "cenario",
+      "x": 31,
+      "y": 14,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "concha_14",
+      "kind": "cenario",
+      "x": 30,
+      "y": 16,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
       "id": "banco_neide",
       "kind": "banco",
       "x": 25,

@@ -386,6 +386,24 @@ describe('the Praia (PRAIA-PLAN.md 1.3) and the party boat (5.1)', () => {
     }
   });
 
+  it('leaves no empty 4 x 4 of sand: every such square has a prop, a decal or the water in it (the HOWTO beauty checklist)', () => {
+    const dressed = new Set<string>();
+    for (const p of praia.props) for (const t of propTiles(p)) dressed.add(`${t.x},${t.y}`);
+    for (const n of praia.npcs) dressed.add(`${n.x},${n.y}`);
+    const bare: string[] = [];
+    for (let y = 0; y + 4 <= praia.rows; y++) for (let x = 0; x + 4 <= praia.cols; x++) {
+      let empty = true;
+      for (let dy = 0; dy < 4 && empty; dy++) for (let dx = 0; dx < 4; dx++) {
+        if (praia.floor[y + dy][x + dx] !== 's' || dressed.has(`${x + dx},${y + dy}`)) {
+          empty = false;
+          break;
+        }
+      }
+      if (empty) bare.push(`${x},${y}`);
+    }
+    expect(bare, 'empty 4 x 4 squares of sand at (top-left)').toEqual([]);
+  });
+
   it('closes the lagoa: a ring of sand round its water, a spot on its south bank', () => {
     const water: Tile[] = [];
     for (let y = 8; y <= 12; y++) for (let x = 1; x <= 6; x++) if (praia.floor[y][x] === 'o') water.push({ x, y });
