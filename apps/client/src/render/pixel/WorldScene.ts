@@ -515,7 +515,7 @@ export class WorldScene extends Phaser.Scene {
       const a = propAnchor(p);
       arts.push({ key, rect: spriteRect(Math.round(a.wx), Math.round(a.wy), d) });
     }
-    for (const hs of hotspotsInRoom(def.id)) {
+    for (const hs of def.noHotspots ? [] : hotspotsInRoom(def.id)) {
       const word = wordForSign(hs.id);
       if (!word) continue;
       const b = hotspotBox(hs);
@@ -820,9 +820,8 @@ export class WorldScene extends Phaser.Scene {
     for (const p of sur?.props ?? []) this.buildProp(p, true);
 
     // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
-    for (const hs of hotspotsInRoom(def.id)) {
-      // Seu Carlos's own shelf sign does not hang in a player-owned padaria
-      if (game.room?.padaria && hs.id === 'padaria_prateleira') continue;
+    // (a player's padaria is its own room: Seu Carlos's signs and words do not hang there)
+    for (const hs of def.noHotspots ? [] : hotspotsInRoom(def.id)) {
       if (!diaryVisible(def.id, hs.id, this.diaryDay)) continue;
       const b = hotspotBox(hs);
       this.staticHits.push({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T, hit: { kind: 'hotspot', hotspot: hs }, depth: b.y1 * T - 0.25 });
@@ -855,7 +854,7 @@ export class WorldScene extends Phaser.Scene {
 
   /** North band (3 tiles) and west strip from wall tiles; a missing tile key falls back to a flat fill in the room's wall color. */
   private buildWalls(def: RoomDef): void {
-    const style = WALL_STYLE[def.id] ?? 'padaria';
+    const style = def.wallStyle ?? WALL_STYLE[def.id] ?? 'padaria';
     const band = northBandRect(def);
     const strip = westStripRect(def);
     const has = (k: string) => !!this.m.sprites[k];

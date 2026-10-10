@@ -68,6 +68,31 @@ describe('player-owned padaria', () => {
     expect(row.sweets.brigadeiro).toBeUndefined();
   });
 
+  it('an owned padaria is its own room: small at the Balcão (Correria with café and pão only), bigger after the Padaria upgrade', async () => {
+    const padarias = new PadariaStore(null);
+    const world = makeWorld(padarias);
+    const p = await player(world, 'Gil', fundarCostRv() + 1500);
+    await p.send({ t: 'padariaOwn', action: 'found', name: 'Padaria do Gil' });
+    const small = p.s.instance!.def;
+    expect([small.cols, small.rows]).toEqual([8, 7]);
+    expect(small.npcs).toEqual([]);
+    expect(small.props.some((q) => q.id === 'padaria_porta_fundar')).toBe(false);
+    await p.send({ t: 'mg', action: 'start' });
+    const st = p.last('mg');
+    expect(st?.phase === 'state' && [...st.snap.menu].sort()).toEqual(['cafe', 'pao']);
+    await p.send({ t: 'mg', action: 'quit' });
+    // a guest inside moves into the bigger room with the owner
+    const guest = await player(world, 'Ana', 0);
+    await guest.send({ t: 'padariaOwn', action: 'visit', id: padarias.ownedBy(p.s.profile!.id)!.id });
+    await p.send({ t: 'padariaOwn', action: 'upgrade', kind: 'size2' });
+    for (const who of [p, guest]) {
+      expect([who.s.instance!.def.cols, who.s.instance!.def.rows]).toEqual([10, 9]);
+      expect(who.last('roomState')?.padaria?.size).toBe(2);
+    }
+    expect(p.s.instance).toBe(guest.s.instance);
+    expect(p.s.instance!.members.size).toBe(2);
+  });
+
   it('the profile carries the owned padaria so the client can take the owner home', async () => {
     const world = makeWorld();
     const p = await player(world, 'Rui', fundarCostRv());

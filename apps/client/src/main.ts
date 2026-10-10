@@ -655,6 +655,7 @@ bindPadariaOwn({
   },
   upgrade: (kind) => net.send({ t: 'padariaOwn', action: 'upgrade', kind }),
   buy: (itemId) => net.send({ t: 'padaria', action: 'buy', itemId }),
+  play: () => startMinigame(),
 });
 
 wireParrotShop({
@@ -785,13 +786,9 @@ function updateGuides() {
     if (r.academy.owner) add(guideAt('prop', 'andar_brasao', 30, 'Brasão e kimono', 'Crest and kimono'));
     else if (!r.academy.member) add(guideAt('prop', 'andar_brasao', 30, 'Entrar na equipe', 'Join the team'));
   } else if (r.room === 'padaria' && r.padaria) {
-    // a player-owned padaria: no baker on duty, the owner works the counter
-    if (r.padaria.owner) {
-      add(playSpot('Play the bakery · your counter'));
-      // on the vaso itself (its interact tile is where you stand, so an arrow there points at your own head)
-      const vaso = game.roomDef?.props.find((q) => q.id === 'padaria_porta_fundar');
-      if (vaso) add({ x: vaso.x, y: vaso.y, lift: 60, label: 'Melhorias', en: 'Upgrades' });
-    } else {
+    // a player-owned padaria: no baker on duty, the owner works the counter (the upgrades are on the "Minha padaria" button, not in the room)
+    if (r.padaria.owner) add(playSpot('Play the bakery · your counter'));
+    else {
       add(guideAt('prop', 'balcao', 60, 'Balcão da casa', 'The house counter'));
       add(guideAt('portal', 'padaria_praca', 110, '← Rua', '← Street'));
     }

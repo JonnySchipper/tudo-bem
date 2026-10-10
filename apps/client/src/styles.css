@@ -2044,6 +2044,52 @@ select {
 .padaria-book > button {
   margin-top: 8px;
 }
+.padaria-book > .pad-play {
+  width: 100%;
+  margin: 4px 0 2px;
+}
+/* the owner menu's button: in your own padaria, always on screen (left side, under the room plate) */
+.pad-owner-btn {
+  position: fixed;
+  left: calc(12px + var(--safe-left, 0px));
+  top: calc(140px + var(--safe-top, 0px));
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
+  background: #fff3d6;
+  color: var(--ink, #2a2233);
+  border: 3px solid #2a2233;
+  border-radius: 12px;
+  box-shadow: 0 4px 0 rgba(42, 34, 51, 0.35);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.pad-owner-btn b,
+.pad-owner-btn small {
+  display: block;
+  line-height: 1.1;
+}
+.pad-owner-btn small {
+  font-style: italic;
+  opacity: 0.75;
+}
+.pad-owner-ico {
+  font-size: 24px;
+}
+body.cr-on .pad-owner-btn {
+  display: none;
+}
+@media (max-width: 640px) {
+  .pad-owner-btn {
+    top: auto;
+    bottom: calc(150px + var(--safe-bottom, 0px));
+    padding: 4px 10px 4px 6px;
+  }
+}
 @media (max-width: 520px) {
   .pad-tiers {
     grid-template-columns: 1fr;

@@ -489,6 +489,8 @@ export class CounterStage {
   private start(): void {
     this.build();
     this.epoch = correriaFeed.epoch;
+    // a new shift lays its board out again (the feed dropped the last camera frame, even when the menu is the same)
+    this.layoutSig = '';
     this.clearCustomers();
     this.clearParticles();
     this.lastTray = [];

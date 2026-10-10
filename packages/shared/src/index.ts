@@ -28,6 +28,7 @@ export * from './playerAcademy.js';
 export * from './padariaEconomy.js';
 export * from './padariaOwnedItems.js';
 export * from './playerPadaria.js';
+export * from './padariaCasa.js';
 export * from './matFight.js';
 export * from './challenges.js';
 export * from './bout.js';

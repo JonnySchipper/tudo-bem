@@ -23,6 +23,7 @@ body.cr-on .hud-scrim,
 body.cr-on .rtrack,
 body.cr-on .hud-solo,
 body.cr-on .mission-banner,
+body.cr-on .room-intro,
 body.cr-on .hover-label {
   display: none !important;
 }

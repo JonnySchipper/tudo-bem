@@ -138,6 +138,8 @@ import {
   padariaDoorState,
   isPadariaDoorRoom,
   padariaIdFromInstance,
+  padariaCasaRoom,
+  isWalkable,
   padariaInstanceId,
   validatePadariaName,
   PADARIA_FOUNDER_HAT,
@@ -935,10 +937,25 @@ export class World {
     this.padarias.save();
     this.store.save(p.id);
     this.pushProfile(s);
-    this.pushPadariaFloor(row.id);
+    // a new size is a bigger room: everyone inside walks into it (the join carries the new card); a sweet only updates the floor
+    if (kind === 'size2' || kind === 'size3') this.regrowPadaria(row.id);
+    else this.pushPadariaFloor(row.id);
     if (kind === 'size2' || kind === 'size3')
       s.send({ t: 'notice', level: 'reward', pt: `${row.name} cresceu: agora é ${check.label.pt}!`, en: `${row.name} grew: now a ${check.label.en.toLowerCase()}!` });
     else s.send({ t: 'notice', level: 'reward', pt: `${check.label.pt} na vitrine!`, en: `${check.label.en} in the case!` });
+  }
+
+  /** The padaria grew: whoever is in it moves into the bigger room, where they stood if that tile is still free, else at the door. */
+  private regrowPadaria(padariaId: string) {
+    const inst = this.instances.get(padariaInstanceId(padariaId));
+    const row = this.padarias.get(padariaId);
+    if (!inst || !row) return;
+    const grid = buildGrid(padariaCasaRoom(row.size));
+    for (const m of [...inst.members.values()]) {
+      const here = m.avatar ? this.currentTile(m) : null;
+      const stay = here && isWalkable(grid, here.tile.x, here.tile.y) ? { tile: here.tile, dir: here.dir } : undefined;
+      this.join(m, 'padaria', { padariaId }, stay);
+    }
   }
 
   private pushPadariaFloor(padariaId: string) {
@@ -1181,9 +1198,12 @@ export class World {
         const row = this.padarias.get(pid);
         if (!row) return { error: { pt: 'Essa padaria não existe.', en: 'That bakery does not exist.' } };
         const id = padariaInstanceId(row.id);
+        // a player's padaria is its own room, sized by what the owner bought (not a copy of Seu Carlos's)
+        const casa = padariaCasaRoom(row.size);
         let inst = this.instances.get(id);
-        if (!inst) {
-          inst = new Instance(id, def, row.name, row.ownerId);
+        // a padaria that grew is a new room: a fresh instance (whoever is inside walks into it, `regrowPadaria`)
+        if (!inst || inst.def !== casa) {
+          inst = new Instance(id, casa, row.name, row.ownerId);
           this.instances.set(id, inst);
         }
         if (inst.members.size >= this.cap) return { error: { pt: 'A padaria está lotada!', en: 'The bakery is full!' } };
@@ -1795,8 +1815,9 @@ export class World {
     inst.members.delete(s.id);
     s.instance = undefined;
     if (s.profile) this.broadcast(inst, { t: 'avatarLeft', id: s.profile.id });
-    // Idle overflow instances sleep (are dropped); the first public instance always stays.
-    if (inst.members.size === 0 && !inst.id.endsWith('#1')) {
+    // Idle overflow instances sleep (are dropped); the first public instance always stays. A padaria that grew has a new instance under
+    // the same id by now: only the old one goes.
+    if (inst.members.size === 0 && !inst.id.endsWith('#1') && this.instances.get(inst.id) === inst) {
       inst.crowd?.stop();
       this.instances.delete(inst.id);
     } else inst.crowd?.sync();

@@ -172,6 +172,10 @@ export interface RoomDef {
   npcs: NpcDef[];
   /** Private rooms (kitnet) are instanced per owner. */
   private: boolean;
+  /** Pixel view: the wall tiles to draw (default: the room id's own style). A player's padaria has its own walls. */
+  wallStyle?: string;
+  /** A room built for one instance (a player's padaria): the room id's signs and reading words belong to the shared room, not here. */
+  noHotspots?: boolean;
 }
 
 export const FLOOR_CHARS: Record<string, FloorKind> = {
