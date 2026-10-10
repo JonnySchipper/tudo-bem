@@ -14,7 +14,12 @@ import {
   handCartela,
   normalizeArrival,
   normalizeDiary,
+  PHOTO_KEEP,
   PHOTO_MAX_CHARS,
+  addPhoto,
+  normalizePhotos,
+  photoForWord,
+  photoWordIds,
   pickPhotoUrl,
   objectAnchorExists,
   practiceCorrect,
@@ -101,6 +106,36 @@ describe('language diary catalog', () => {
     expect(pickPhotoUrl([big])).toBeUndefined();
     expect(pickPhotoUrl(['data:image/png;base64,AAAA', small])).toBe(small);
     expect(pickPhotoUrl([small, big])).toBe(small);
+  });
+
+  it('keeps one image for a shot of several words, and shows it for each of them', () => {
+    const img = 'data:image/jpeg;base64,AAAA';
+    const [fonte, banco, telhado] = [...wordsForPhoto('fonte'), ...wordsForPhoto('banco_1'), ...wordsForPhoto('coreto')].map((w) => w.id);
+    const older = addPhoto([], { id: 'a', at: 1, image: 'data:image/jpeg;base64,BBBB', wordIds: [] });
+    const photos = addPhoto(older, { id: 'b', at: 2, image: img, wordIds: [fonte!, banco!, telhado!, fonte!, 'nada'] });
+    expect(photos.map((p) => p.id)).toEqual(['b', 'a']);
+    // stored once, linked from every word the shot taught (in order, no repeats, no unknown ids); `wordId` stays the first for old clients
+    expect(photos[0]).toEqual({ id: 'b', at: 2, image: img, wordId: fonte, wordIds: [fonte, banco, telhado] });
+    expect(photos[1]).toEqual({ id: 'a', at: 1, image: 'data:image/jpeg;base64,BBBB' });
+    for (const id of [fonte!, banco!, telhado!]) expect(photoForWord(photos, id)?.id).toBe('b');
+    expect(photoForWord(photos, 'nada')).toBeUndefined();
+    // a newer shot of the same thing is the one shown
+    const again = addPhoto(photos, { id: 'c', at: 3, image: img, wordIds: [banco!] });
+    expect(photoForWord(again, banco!)?.id).toBe('c');
+    expect(photoForWord(again, fonte!)?.id).toBe('b');
+    // the kept photos stay capped
+    let many = again;
+    for (let i = 0; i < PHOTO_KEEP + 3; i++) many = addPhoto(many, { id: `x${i}`, at: 10 + i, image: img, wordIds: [] });
+    expect(many).toHaveLength(PHOTO_KEEP);
+  });
+
+  it('reads an old save’s one-word photo as the photo of that word', () => {
+    const fonte = wordsForPhoto('fonte')[0]!.id;
+    const [old] = normalizePhotos([{ id: 'o', at: 5, image: 'data:image/jpeg;base64,AAAA', wordId: fonte }]);
+    expect(old).toEqual({ id: 'o', at: 5, image: 'data:image/jpeg;base64,AAAA', wordId: fonte, wordIds: [fonte] });
+    expect(photoWordIds({ wordId: fonte })).toEqual([fonte]);
+    expect(photoWordIds({ wordIds: 'nope', wordId: 'nada' })).toEqual([]);
+    expect(normalizePhotos([{ id: 'n', at: 1, image: 'data:image/jpeg;base64,AAAA' }])[0]).toEqual({ id: 'n', at: 1, image: 'data:image/jpeg;base64,AAAA' });
   });
 
   it('hands the cartela over with the camera, and treats a missing arrival flag as already home', () => {

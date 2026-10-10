@@ -99,9 +99,10 @@ export type ClientMsg =
   /**
    * Take a photo. `anchors` are the camera objects inside the viewfinder (props, wall spots, placed furniture); every camera word they
    * teach is given, in the order named. `image` is a small jpeg of the frame. Every shot spends one film, except in the airport (the
-   * arrival tutorial's first photos are free).
+   * arrival tutorial's first photos are free). `frame` is the viewfinder in world px (photoFrame.ts): with it the server checks each object
+   * against the frame the player aimed, not against a fixed radius around the player.
    */
-  | { t: 'diary'; action: 'photo'; anchor?: string; anchors?: string[]; image?: string }
+  | { t: 'diary'; action: 'photo'; anchor?: string; anchors?: string[]; image?: string; frame?: import('./photoFrame.js').PhotoFrame }
   /** Buy a pack of film from Júlia. Virtual RV only. */
   | { t: 'diary'; action: 'buyFilm' }
   /** Heard an NPC line (`npc.node`) that can teach a conversation word. */

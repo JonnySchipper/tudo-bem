@@ -1596,6 +1596,9 @@ html.px-ui .backdrop > .panel.jb,
 }
 
 .jb-print-cap {
+  /* a shot of several things names every word it taught */
+  max-width: 148px;
+  overflow-wrap: anywhere;
   font-weight: 900;
   text-align: center;
   min-height: 1.2em;

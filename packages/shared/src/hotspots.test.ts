@@ -28,7 +28,8 @@ describe('hotspot data', () => {
       const hh = h.h ?? 1;
       expect(h.x >= 0 && h.y >= 0 && h.x + w <= r.cols && h.y + hh <= r.rows, `${h.id} in bounds`).toBe(true);
       expect(Number.isInteger(h.x) && Number.isInteger(h.y), h.id).toBe(true);
-      if (h.up !== undefined) expect(!r.outdoor && h.up >= 1 && h.up <= 3, `${h.id}: up only on interior walls`).toBe(true);
+      // up: a sign painted on an interior's north wall (above row 0), or a standing sign board whose art rises over its footprint
+      if (h.up !== undefined) expect(h.up >= 1 && h.up <= 3 && (!r.outdoor || h.y - h.up >= 0), `${h.id}: up stays in the room`).toBe(true);
     }
   });
 

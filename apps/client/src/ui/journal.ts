@@ -8,7 +8,7 @@
  *
  * The view-model is journalView.ts (pure, tested); the art is journalArt.ts; the Caderno spread is caderno.ts.
  */
-import { FEIRA_GAME_LABEL, ESCOLA_MAX_BOX, diaryWord, normalizeDiary } from '@tudobem/shared';
+import { FEIRA_GAME_LABEL, ESCOLA_MAX_BOX, diaryWord, normalizeDiary, photoWordIds } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal } from './modal';
@@ -478,7 +478,10 @@ export function openDiario(opts: DiarioOpen = {}): void {
     const photos = game.photos;
     const film = game.profile?.film ?? 0;
     const print = (p: (typeof photos)[number], i: number) => {
-      const word = p.wordId ? diaryWord(p.wordId) : undefined;
+      // every word the shot taught, under the one print
+      const words = photoWordIds(p)
+        .map((id) => diaryWord(id)?.pt)
+        .filter((pt): pt is string => !!pt);
       return h(
         'button',
         {
@@ -486,12 +489,12 @@ export function openDiario(opts: DiarioOpen = {}): void {
           class: 'jb-print',
           style: `--r:${((i * 53) % 9) - 4}deg;--i:${i}`,
           'data-photo': p.id,
-          'aria-label': word ? `Foto: ${word.pt}` : 'Foto',
+          'aria-label': words.length ? `Foto: ${words.join(', ')}` : 'Foto',
           onclick: (e: Event) => openPhoto(p, e.currentTarget as HTMLElement),
         },
         h('i', { class: 'tape', 'aria-hidden': 'true' }),
         h('img', { class: 'jb-photo', src: p.image, alt: '', draggable: false }),
-        h('span', { class: 'jb-print-cap', lang: 'pt-BR' }, word?.pt ?? ' '),
+        h('span', { class: 'jb-print-cap', lang: 'pt-BR' }, words.length ? words.join(' · ') : ' '),
       );
     };
     const half = Math.ceil(photos.length / 2);
@@ -851,18 +854,25 @@ export function openDiario(opts: DiarioOpen = {}): void {
     if (id) panel.querySelector<HTMLElement>(`.jb-spread [data-word="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
   }
 
-  function openPhoto(p: { image: string; wordId?: string; at: number }, from: HTMLElement) {
+  function openPhoto(p: { image: string; wordId?: string; wordIds?: string[]; at: number }, from: HTMLElement) {
     closeDetail(true);
-    const word = p.wordId ? model.chapters.flatMap((c) => c.words).find((w) => w.id === p.wordId) : undefined;
+    // the stickers of every word this shot taught (one picture, several words)
+    const all = model.chapters.flatMap((c) => c.words);
+    const words = photoWordIds(p)
+      .map((id) => all.find((w) => w.id === id))
+      .filter((w): w is (typeof all)[number] => !!w);
+    const word = words[0];
     const when = new Date(p.at);
     const card = h(
       'div',
       { class: 'jb-card photo-card', role: 'dialog', 'aria-label': 'Foto' },
       h('button', { type: 'button', class: 'jbc-close', 'aria-label': 'Fechar · Close', onclick: () => closeDetail() }, '✕'),
-      h('figure', { class: 'jbc-big-photo' }, h('img', { src: p.image, alt: word ? word.pt : '' }), h('i', { class: 'tape', 'aria-hidden': 'true' })),
-      word ? h('p', { class: 'jbc-photo-word' }, h('b', { lang: 'pt-BR' }, word.pt), en(word.en)) : h('p', { class: 'jbc-photo-word' }, en('A photo of Vila Ipê')),
+      h('figure', { class: 'jbc-big-photo' }, h('img', { src: p.image, alt: words.map((w) => w.pt).join(', ') }), h('i', { class: 'tape', 'aria-hidden': 'true' })),
+      words.length
+        ? h('p', { class: 'jbc-photo-word' }, h('b', { lang: 'pt-BR' }, words.map((w) => w.pt).join(' · ')), en(words.map((w) => w.en).join(' · ')))
+        : h('p', { class: 'jbc-photo-word' }, en('A photo of Vila Ipê')),
       h('p', { class: 'jbc-photo-date' }, when.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })),
-      word ? h('button', { type: 'button', class: 'primary jbc-see', onclick: () => openDetail([word], 0, null) }, bi('Ver figurinha', 'See the sticker')) : null,
+      word ? h('button', { type: 'button', class: 'primary jbc-see', onclick: () => openDetail(words, 0, null) }, words.length > 1 ? bi('Ver figurinhas', 'See the stickers') : bi('Ver figurinha', 'See the sticker')) : null,
     );
     const el = h('div', { class: 'jb-detail' }, h('div', { class: 'jb-shade', onclick: () => closeDetail() }), card);
     detailHost.append(el);

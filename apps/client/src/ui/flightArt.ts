@@ -665,7 +665,7 @@ export function cabinLayout(w: number, h: number): CabinLayout {
 /** Seat pitch along a row, art px. */
 export const SEAT_PITCH = 24;
 /** How far up the row behind sits: only its headrests and its passengers' heads show over the row in front. */
-export const BACK_ROW_RISE = 18;
+export const BACK_ROW_RISE = 25;
 
 /**
  * A full cabin: the player's row runs across the screen (seats on the window side of the aisle, the player's and the sleeper's among
@@ -675,8 +675,10 @@ export function cabinRows(L: CabinLayout, w: number): { front: number[]; back: n
   const front: number[] = [];
   for (let x = L.mySeat - SEAT_PITCH * Math.ceil((L.mySeat + 12) / SEAT_PITCH); x <= L.nextSeat; x += SEAT_PITCH) front.push(x);
   for (let x = L.aisleX + 36; x < w + 12; x += SEAT_PITCH) front.push(x);
-  // the row behind sits half a seat over, so its heads show between the headrests in front
-  const back = front.map((x) => x + SEAT_PITCH / 2).filter((x) => Math.abs(x - L.aisleX) > 18);
+  // the row behind sits half a seat over, so its heads show between the headrests in front; only where a seat in front stands on both
+  // sides (a seat behind half over the aisle would show a passenger cut off over bare wall)
+  const has = (x: number) => front.includes(x);
+  const back = front.filter((x) => has(x + SEAT_PITCH)).map((x) => x + SEAT_PITCH / 2);
   return { front, back };
 }
 

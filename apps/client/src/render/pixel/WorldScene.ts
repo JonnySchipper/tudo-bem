@@ -313,6 +313,8 @@ export class WorldScene extends Phaser.Scene {
   private glintHave = new Set<string>();
   private roomMap: Phaser.Tilemaps.Tilemap | null = null;
   private staticHits: HitBox[] = [];
+  /** World rects of what is drawn for each of the room's own props, by prop id: what the camera's viewfinder sees of it (photoArt). */
+  private propArt = new Map<string, Rect[]>();
   private placeholders: { key: string; rect: Rect }[] = [];
   private stall: StallView | null = null;
   /** Lixeiras in this room (tile, sprite, the y of the open mouth): where a Jogar fora lands, and what bounces when it does. */
@@ -679,6 +681,7 @@ export class WorldScene extends Phaser.Scene {
     this.roomMap?.destroy();
     this.roomMap = null;
     this.staticHits = [];
+    this.propArt.clear();
     this.glints = [];
     this.claimedGlints.clear();
     this.runway = null;
@@ -926,9 +929,12 @@ export class WorldScene extends Phaser.Scene {
     const m = this.m;
     if (p.kind === 'cerca') {
       this.buildFence(p);
+      if (!scenery) this.propArt.set(p.id, [footprintRect(p)]);
       return;
     }
     const a = propAnchor(p);
+    // what the camera sees of this prop: its sprites (a canopy too), or the placeholder box
+    const art: Rect[] = [];
     const flat = p.kind === 'tatame';
     // `z`: design mode's bring forward / send back, in world px of draw order
     const depth = (flat ? DEPTH.groundDecal + 10 : propDepth(p, a.wy)) + (p.z ?? 0);
@@ -946,7 +952,12 @@ export class WorldScene extends Phaser.Scene {
         if (sd) {
           this.sprite(s.key, wx, wy, depth, !scenery);
           visual = unionRect(visual, spriteRect(Math.round(wx), Math.round(wy), sd));
-        } else this.placeholder(`${s.key}#${p.id}`, { x0: s.x * T, y0: s.y * T, x1: (s.x + 1) * T, y1: (s.y + 1) * T }, depth);
+          art.push(spriteRect(Math.round(wx), Math.round(wy), sd));
+        } else {
+          const box = { x0: s.x * T, y0: s.y * T, x1: (s.x + 1) * T, y1: (s.y + 1) * T };
+          this.placeholder(`${s.key}#${p.id}`, box, depth);
+          art.push(box);
+        }
       }
     } else if (artKey && d) {
       const main = this.sprite(artKey, a.wx, a.wy, depth, !scenery);
@@ -968,6 +979,7 @@ export class WorldScene extends Phaser.Scene {
         this.rig.litOverlays.push(this.reg(this.add.image(Math.round(a.wx), Math.round(a.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(depth + 0.01).setAlpha(0).setData('delay', lightDelay(a.wx, a.wy)));
       }
       visual = unionRect(foot, spriteRect(Math.round(a.wx), Math.round(a.wy), d));
+      art.push(spriteRect(Math.round(a.wx), Math.round(a.wy), d));
       // lit windows of a building front: light pools on the sidewalk at night
       if (!scenery) for (const [wx, wy, ww, wh] of d.windows ?? []) {
         this.rig.lights.push({ x: Math.round(a.wx) - d.ax + wx + ww / 2, y: Math.round(a.wy) - d.ay + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window' });
@@ -977,6 +989,7 @@ export class WorldScene extends Phaser.Scene {
         const x = Math.round(a.wx);
         const y = Math.round(a.wy);
         const spr = this.reg(this.add.sprite(x, y, od.atlas, od.frame)).setOrigin(...originOf(od)).setDepth(DEPTH.overhead + y / 1000);
+        art.push(spriteRect(x, y, od));
         if (od.anim) spr.play({ key: ensureAnim(this, d.overhead, od), startFrame: Math.floor(hash01(x * 7 + y) * 4) });
         if (!scenery && p.kind === 'barraca_chapeus' && this.stall) this.stall.canopy = spr;
         feiraEntry?.open.push(spr);
@@ -1010,7 +1023,9 @@ export class WorldScene extends Phaser.Scene {
       }
     } else {
       this.placeholder(`${propPlaceholderKey(p)}#${p.id}`, foot, depth);
+      art.push(foot);
     }
+    if (!scenery) this.propArt.set(p.id, art.length ? art : [foot]);
 
     const click = propClickKind(p);
     if (click === 'prop') {
@@ -2174,6 +2189,23 @@ export class WorldScene extends Phaser.Scene {
     const s = sd.shadow ? this.m.sprites[sd.shadow] : null;
     const shadow = s ? this.reg(this.add.image(wx, wy - 1, s.atlas, s.frame)).setOrigin(...originOf(s)).setDepth(DEPTH.shadowContact) : null;
     return { obj, shadow };
+  }
+
+  /** What the camera sees of a prop of this room (world rects of its drawn art), or null for a prop that is not drawn here. */
+  photoArt(propId: string): Rect[] | null {
+    return this.propArt.get(propId) ?? null;
+  }
+
+  /** What the camera sees of a placed piece: its sprite, or the placeholder box when the art is missing. */
+  furnitureArt(f: PlacedFurniture): Rect {
+    const sd = this.m.sprites[furnitureArtKey(f.itemId, f.rot)];
+    return sd ? spriteRect(Math.round(f.x * T + T / 2), (f.y + 1) * T, sd) : { x0: f.x * T + 1, y0: f.y * T + 1, x1: (f.x + 1) * T - 1, y1: (f.y + 1) * T - 1 };
+  }
+
+  /** The main camera as it was last drawn (every nudge and pan included), for the viewfinder's client px -> world px. */
+  drawnView(): { cx: number; cy: number; zoom: number; w: number; h: number } {
+    const cam = this.cameras.main;
+    return { cx: cam.scrollX + cam.width / 2, cy: cam.scrollY + cam.height / 2, zoom: cam.zoom, w: cam.width, h: cam.height };
   }
 
   /** World rect of a placed piece: its tile plus its sprite (what the selection outline hugs). */

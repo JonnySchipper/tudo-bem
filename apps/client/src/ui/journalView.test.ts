@@ -70,6 +70,16 @@ describe('the Diário as a sticker album', () => {
     expect(words.find((w) => w.id === 'diary.chegada.torre')!.photo).toBeUndefined();
   });
 
+  it('puts one shot of several things on the sticker of every word it taught', () => {
+    const ids = ['diary.chegada.mala', 'diary.chegada.esteira', 'diary.chegada.etiqueta'];
+    const photos = [
+      { id: 'old', at: 1, image: 'data:image/jpeg;old', wordId: 'diary.chegada.esteira' },
+      { id: 'shot', at: 2, image: 'data:image/jpeg;shot', wordId: ids[0], wordIds: ids },
+    ];
+    const words = chapter(model(ids, { photos }), 'chegada').words;
+    for (const id of ids) expect(words.find((w) => w.id === id)!.photo).toBe('data:image/jpeg;shot');
+  });
+
   it('says how an earned word was found, with its line or sign, and how to find one still missing without giving it away', () => {
     const m = model(['diary.padaria.cafezinho', 'diary.praca.wifi', 'diary.padaria.bolo']);
     const p = chapter(m, 'padaria');
