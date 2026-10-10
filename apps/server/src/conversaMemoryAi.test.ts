@@ -118,7 +118,7 @@ describe('NPC memory with AI on (mocked xAI)', () => {
     expect(turnPrompts()[3]).not.toContain('Você lembra');
 
     // Another player has none, whatever their bond.
-    const b = await worldWithPlayer(a.store);
+    const b = await worldWithPlayer(a.store, 'Bia');
     expect(b.id).not.toBe(a.id);
     b.store.get(b.id)!.bond = { carlos: 100 };
     await api!.post(startBody(b.id));

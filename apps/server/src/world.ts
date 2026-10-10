@@ -1065,6 +1065,7 @@ export class World {
     }
     const nameCheck = validateName(String(m.name ?? ''));
     if (!nameCheck.ok) return this.err(s, 'name', nameCheck.reason.pt, nameCheck.reason.en);
+    if (this.store.nameTaken(nameCheck.name)) return this.err(s, 'name', 'Esse nome já é de outra pessoa. Escolha outro.', 'That name is already taken. Please choose another.');
     const appearance = sanitizeAppearance(m.appearance);
     const pronoun = m.pronoun === 'ele' || m.pronoun === 'ela' ? m.pronoun : 'nome';
     const tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
