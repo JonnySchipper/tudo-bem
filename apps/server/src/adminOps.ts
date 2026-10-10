@@ -54,13 +54,14 @@ import {
   type FeiraCartMode,
   type PraiaConfig,
   type TutorialStep,
+  profileDay,
 } from '@tudobem/shared';
 import type { Account, AccountStore } from './auth.js';
 import type { AcademyStore } from './academyStore.js';
 import type { PadariaStore } from './padariaStore.js';
 import type { FeedbackRow, FeedbackStore } from './feedbackStore.js';
 import type { FeiraGamesStore } from './feiraGames.js';
-import { normalizeProfile, today, type ProfileStore, type StoredProfile } from './store.js';
+import { normalizeProfile, type ProfileStore, type StoredProfile } from './store.js';
 import type { AdminWorldHost } from './adminWorld.js';
 import type { GameConfig } from './gameConfig.js';
 import { redact, isFeedbackStatus, type AdminAudit, type BillingEventLog, type FeedbackTriage } from './adminStores.js';
@@ -567,7 +568,8 @@ export function pescaSummary(p: StoredProfile) {
     balde: pr.balde,
     rentals: pr.rentals,
     trip: pr.trip,
-    salesToday: pr.sales,
+    // the stored day is the player's own; a stale key means nothing was sold today
+    salesToday: pr.sales.date === profileDay(p, Date.now()) ? pr.sales : { date: profileDay(p, Date.now()), rv: 0 },
     party: pr.party,
   };
 }
@@ -603,7 +605,9 @@ export function wipeProgress(p: StoredProfile, startingCoins: number, padarias: 
   p.bjj = normalizeBjj(null);
   p.giOwned = false;
   p.diary = [];
-  p.escola = freshEscola();
+  // the browser's offset is not progress: every cap keeps counting the player's own day (playerDay.ts)
+  const tz = p.escola?.tz;
+  p.escola = tz === undefined ? freshEscola() : { ...freshEscola(), tz };
   p.verdeMode = false;
   p.nameplate = 'verde';
   p.correria = undefined;
@@ -614,7 +618,8 @@ export function wipeProgress(p: StoredProfile, startingCoins: number, padarias: 
   p.bondGifts = [];
   p.caderno = {};
   p.cadernoPaid = [];
-  p.mission = freshMission(today());
+  p.testDayOffset = undefined;
+  p.mission = freshMission(profileDay(p, Date.now()));
   p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
   p.tutorialRewarded = false;
   p.kitnetGiftPaid = false;
@@ -627,13 +632,12 @@ export function wipeProgress(p: StoredProfile, startingCoins: number, padarias: 
   p.parrotEquipped = false;
   p.parrotColors = [];
   p.parrotColor = null;
-  p.daily = { date: today(), sceneClears: {} };
+  p.daily = { date: profileDay(p, Date.now()), sceneClears: {} };
   p.cartela = freshCartela();
   p.feiraMedals = [];
   p.papos = [];
-  p.testDayOffset = undefined;
   p.testClockOffsetMs = undefined;
-  p.testFeiraPaid = undefined;
+  p.feiraPaid = undefined;
   const owned = padarias.ownedBy(p.id);
   if (owned) padarias.remove(owned.id);
   normalizeProfile(p);

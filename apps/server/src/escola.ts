@@ -21,13 +21,13 @@ import {
   bumpStreak,
   checkExercise,
   checkPair,
-  clampTz,
   dealExercise,
   diaryArea,
   diaryGamesIn,
   earnedTier,
   hotspotDistance,
   localDay,
+  acceptTz,
   normalizeEscola,
   payRv,
   pickMission,
@@ -156,7 +156,7 @@ export class EscolaTracker {
     if (!at) return s.send({ t: 'escola', phase: 'closed', line: { pt: 'Chegue mais perto da Dona Lúcia.', en: 'Walk closer to Dona Lúcia.' } });
     this.drop(s);
     const st = escolaOf(p);
-    if (typeof tz === 'number') st.tz = clampTz(tz);
+    st.tz = acceptTz(this.d.now(), st.tz, tz);
     const unit = typeof area === 'string' && diaryArea(area) ? area : undefined;
     const plan = planLesson(st, p.diary, this.d.now(), this.d.rng, unit);
     if (!plan) return s.send({ t: 'escola', phase: 'closed', line: LUCIA_LINES.greetEmpty });
@@ -289,7 +289,7 @@ export class EscolaTracker {
     if (!p || !(ESCOLA_GOALS as readonly number[]).includes(goal as number)) return;
     const st = escolaOf(p);
     st.goal = goal as EscolaGoal;
-    if (typeof tz === 'number') st.tz = clampTz(tz);
+    st.tz = acceptTz(this.d.now(), st.tz, tz);
     this.d.store.save(p.id);
     this.d.pushProfile(s);
   }

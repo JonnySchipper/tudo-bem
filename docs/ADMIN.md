@@ -64,7 +64,7 @@ Every value is read by the server through `apps/server/src/gameConfig.ts`. Overr
 | `boatPescaRv` | 40 RV | 1–500 | one fishing boat trip |
 | `boatAltoMarRv` | 90 RV | 1–500 | one deep-sea boat trip |
 | `boatFestaRv` | 150 RV | 1–500 | one party boat trip, paid once by the host |
-| `pescaSaleCapRv` | 60 RV | 0–500 | most RV a player gets selling fish to Jô in one São Paulo day |
+| `pescaSaleCapRv` | 60 RV | 0–500 | most RV a player gets selling fish to Jô in one day (the player's own calendar day) |
 | `tripMinutes` | 12 min | 2–60 | a rented boat's trip (it also ends on return or on leaving the beach) |
 | `partyTripMinutes` | 15 min | 5–60 | a party boat trip |
 | `partyBoatCap` | 6 | 2–16 | people aboard a party boat, the host included (pending invites count) |

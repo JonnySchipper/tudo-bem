@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_APPEARANCE, ROOMS, caldoOrders, todayEastern, type ServerMsg } from '@tudobem/shared';
+import { DEFAULT_APPEARANCE, ROOMS, caldoOrders, feiraBoardDay, type ServerMsg } from '@tudobem/shared';
 import { type Session } from './world.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 import { FeiraGamesEngine, memoryFeiraGames, type FeiraGamesDeps } from './feiraGames.js';
@@ -98,11 +98,11 @@ describe('caldo de cana on the server', () => {
     expect(engine.cartView().games.find((g) => g.id === 'caldo')?.mode).toBe('on');
   });
 
-  it('keeps the caldo switch on when the ET day rolls', () => {
+  it('keeps the caldo switch on when the board day rolls', () => {
     let now = Date.parse('2026-10-08T20:00:00.000Z');
     const store = new ProfileStore(null);
     const games = memoryFeiraGames(() => now);
-    games.state.day = todayEastern(now);
+    games.state.day = feiraBoardDay(now);
     const engine = new FeiraGamesEngine({
       now: () => now,
       store,

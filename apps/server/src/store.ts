@@ -1,6 +1,7 @@
 import { applyPets, isBubbleStyle, isPetId,isSubscriptionStatus, normalizeFounderFlag, normalizePetNames, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
 import {
   freshMission,
+  profileDay,
   normalizeCartela,
   normalizeBag,
   normalizeBjj,
@@ -29,7 +30,7 @@ export interface StoredProfile extends PrivateProfile {
   daily: {
     date: string;
     sceneClears: Record<string, number>;
-    /** Pedido rápido RV already paid: npcId -> America/Sao_Paulo date. Once per calendar day. */
+    /** Pedido rápido RV already paid: npcId -> player day (playerDay.ts). Once per day. */
     pedidoRvGranted?: Record<string, string>;
   };
   lastSeen: number;
@@ -43,12 +44,8 @@ export interface StoredProfile extends PrivateProfile {
   friendRequestsIn?: string[];
 }
 
+/** The real UTC day. Not a cap's day: caps key on the player's own day (`profileDay`, playerDay.ts). */
 export const today = () => new Date().toISOString().slice(0, 10);
-
-/** Get today's date in America/São_Paulo timezone (YYYY-MM-DD). */
-export function todaySaoPaulo(): string {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-}
 
 /** Where profiles persist. Node: SQLite. Browser solo mode: localStorage. Tests: none. */
 export interface PersistenceAdapter {
@@ -291,7 +288,7 @@ function optClockOffset(raw: unknown): number | undefined {
   return Math.max(-cap, Math.min(cap, n));
 }
 
-function normalizeTestFeiraPaid(raw: unknown): StoredProfile['testFeiraPaid'] {
+function normalizeFeiraPaid(raw: unknown): StoredProfile['feiraPaid'] {
   const r = raw as { day?: unknown; n?: unknown } | undefined;
   if (!r || typeof r.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(r.day)) return undefined;
   const n = typeof r.n === 'number' && Number.isFinite(r.n) ? Math.max(0, Math.min(99, Math.floor(r.n))) : 0;
@@ -329,7 +326,10 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.testUser = p.testUser === true;
   p.testDayOffset = optDayOffset(p.testDayOffset);
   p.testClockOffsetMs = optClockOffset(p.testClockOffsetMs);
-  p.testFeiraPaid = normalizeTestFeiraPaid(p.testFeiraPaid);
+  // test profiles counted cart paid runs here before every profile did (`testFeiraPaid`); the key moves once
+  const legacyPaid = p as StoredProfile & { testFeiraPaid?: unknown };
+  p.feiraPaid = normalizeFeiraPaid(p.feiraPaid ?? legacyPaid.testFeiraPaid);
+  delete legacyPaid.testFeiraPaid;
   p.verdeMode = p.verdeMode === true;
   p.nameplate = p.verdeMode ? 'verde' : earnedTier(p.escola, p.diary);
   p.film = normalizeFilm(p.film);
@@ -371,7 +371,7 @@ function normalizeSubscription(raw: unknown): PlayerSubscription | undefined {
   return { status: r.status, currentPeriodEnd: end, portalUrl: portal, providerSubscriptionId: subId, provider };
 }
 
-export function toPrivate(p: StoredProfile, day = today()): PrivateProfile {
+export function toPrivate(p: StoredProfile, day = profileDay(p, Date.now())): PrivateProfile {
   // photos travel in their own `photos` message (World.pushPhotos), only when they change
   const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, photos: _ph, billingEventIds: _ev, mutedUntil: _m, banned: _b, friendRequestsIn: _fr, ...rest } = p;
   const mission = p.mission?.date === day ? p.mission : freshMission(day);

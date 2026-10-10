@@ -1,7 +1,7 @@
 /**
  * Padaria ownership RV prices (MASTER PLAN, locked 2026-10-05).
  *
- * Baseline: a 2★ paid Correria shift = 20 RV (inside the 3-per-day UTC cap).
+ * Baseline: a 2★ paid Correria shift = 20 RV (inside the 3-per-day cap, counted on the player's own day).
  */
 
 /** Paid Correria shift payout by star grade (uses a daily cap slot even at 1★). */

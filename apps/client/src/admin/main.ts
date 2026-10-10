@@ -905,7 +905,7 @@ async function viewWorld(): Promise<Node[]> {
           h('dd', null, counts(praia.tripsNow)),
           h('dt', null, 'Aboard party boats'),
           h('dd', null, String(praia.aboardParty)),
-          h('dt', null, `Rentals today (${praia.today.day})`),
+          h('dt', null, `Rentals today (${praia.today.day}, UTC)`),
           h('dd', null, counts(praia.today.rentals)),
           h('dt', null, 'Catches today'),
           h('dd', null, counts(praia.today.catches)),
@@ -918,7 +918,7 @@ async function viewWorld(): Promise<Node[]> {
       ),
       card(
         'Feira carts',
-        h('p', { class: 'small muted' }, `Carts ship off. Today (${cart.day}): ${cart.featured ? `${cart.featured} is open` : 'every cart is closed'}.`),
+        h('p', { class: 'small muted' }, `Carts ship off. Today (${cart.day}, UTC; each player's paid runs reset at their own midnight): ${cart.featured ? `${cart.featured} is open` : 'every cart is closed'}.`),
         table(
           ['Game', 'Built', 'Mode', ''],
           (cart.games as Json[]).map((g) => [

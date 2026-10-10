@@ -54,7 +54,8 @@ try {
   await page.keyboard.press('Escape');
 
   await page.evaluate(() => {
-    const day = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/New_York' });
+    // the player's own day (packages/shared/src/playerDay.ts), the browser's calendar date
+    const day = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
     window.__tb.game.profile.cartela = { stamps: 3, activityDay: { tatame: day, balcao: day, feira: day } };
     window.__tb.game.emit('profile');
   });
@@ -65,7 +66,8 @@ try {
 
   await page.evaluate(() => {
     window.__tb.cartelaBanner(7);
-    const day = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/New_York' });
+    // the player's own day (packages/shared/src/playerDay.ts), the browser's calendar date
+    const day = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
     window.__tb.game.profile.cartela = { stamps: 0, activityDay: { tatame: day, balcao: day, feira: day, conversa: day } };
     window.__tb.game.emit('profile');
   });

@@ -6,8 +6,9 @@
  * per-order outcomes; the score is recomputed here and hard-capped. Forged rows are clamped, never trusted.
  *
  * The live board and the medal tally persist as one top-level blob (`feiraGames` on the profile file's
- * sibling, see `FeiraGamesStore`). Midnight ET is lazy: any read or write, and a timer, finalizes the
- * previous day before serving today.
+ * sibling, see `FeiraGamesStore`). The board is shared, so it rolls on the board day (UTC, `feiraBoardDay`); the roll is
+ * lazy: any read or write, and a timer, finalizes the previous day before serving today. Paid runs are each player's own
+ * cap and count on their own day (`profileDay`, playerDay.ts), on the profile (`feiraPaid`).
  */
 import {
   FEIRA_CART_CLOSED_LINE,
@@ -23,15 +24,15 @@ import {
   feiraPayout,
   feiraTop,
   isFeiraGameId,
-  addCalendarDays,
+  feiraBoardDay,
   judgeFeiraResult,
   medalTallies,
   medalsForDay,
   normalizeFeiraGames,
   parseFeiraOutcomes,
   placeOf,
+  profileDay,
   rankFeiraDay,
-  todayEastern,
   type Bilingual,
   type FeiraCartMode,
   type FeiraCartSchedule,
@@ -94,17 +95,17 @@ export class FeiraGamesStore {
     private readonly save: (state: FeiraGamesState) => void,
     private readonly now: () => number,
   ) {
-    this.state = normalizeFeiraGames(load(), todayEastern(now()));
+    this.state = normalizeFeiraGames(load(), feiraBoardDay(now()));
   }
 
-  /** Current ET day, finalizing yesterday first when the key rolled. */
-  ensure(day = todayEastern(this.now())): FeiraGamesState {
+  /** Current board day, finalizing yesterday first when the key rolled (an older New York key rolls like any other). */
+  ensure(day = feiraBoardDay(this.now())): FeiraGamesState {
     if (this.state.day !== day) this.roll(day);
     return this.state;
   }
 
   /**
-   * Midnight ET: medals for 1st/2nd/3rd go onto the tally (permanent), the board and the paid-run
+   * Board day roll: medals for 1st/2nd/3rd go onto the tally (permanent), the board and any legacy paid-run
    * counts clear, and the crown is gone because today's scores start empty.
    * A day nobody played (no positive score) mints nothing — the cart being off is that case.
    * Returns the awards so the caller can copy them onto profiles.
@@ -151,8 +152,9 @@ export class FeiraGamesEngine {
     }
   }
 
+  /** The shared board's day (UTC). Not a player's cap day: paid runs use `profileDay`. */
   private calendarDay(): string {
-    return todayEastern(this.d.now());
+    return feiraBoardDay(this.d.now());
   }
 
   private isTest(id: string): boolean {
@@ -190,22 +192,17 @@ export class FeiraGamesEngine {
     return out;
   }
 
-  private paidDay(p: StoredProfile, publicDay: string): string {
-    return addCalendarDays(publicDay, p.testDayOffset ?? 0);
+  /**
+   * Paid runs this player has had today, on their own day. Before the count moved onto the profile the board kept it
+   * (`paid`): that count still holds while the board's day is the player's day, so the switch never pays a run twice.
+   */
+  private paidCount(p: StoredProfile, board: FeiraGamesState): number {
+    const day = profileDay(p, this.d.now());
+    if (p.feiraPaid) return p.feiraPaid.day === day ? p.feiraPaid.n : 0;
+    return board.day === day ? (board.paid[p.id] ?? 0) : 0;
   }
 
-  private testPaidCount(p: StoredProfile, publicDay: string): number {
-    const day = this.paidDay(p, publicDay);
-    return p.testFeiraPaid?.day === day ? p.testFeiraPaid.n : 0;
-  }
-
-  private bumpTestPaid(p: StoredProfile, publicDay: string): void {
-    const day = this.paidDay(p, publicDay);
-    const n = p.testFeiraPaid?.day === day ? p.testFeiraPaid.n : 0;
-    p.testFeiraPaid = { day, n: n + 1 };
-  }
-
-  /** Drop today's paid-run count for one player. Public scores stay. A test profile's counter is personal. */
+  /** Drop today's paid-run count for one player. Public scores stay. */
   clearPaid(playerId: string): void {
     this.scrubPublicBoard();
     const st = this.d.games.ensure(this.calendarDay());
@@ -214,10 +211,10 @@ export class FeiraGamesEngine {
       this.d.games.persist();
     }
     const p = this.d.store.get(playerId);
-    if (p?.testFeiraPaid) p.testFeiraPaid = { day: p.testFeiraPaid.day, n: 0 };
+    if (p?.feiraPaid) p.feiraPaid = { day: p.feiraPaid.day, n: 0 };
   }
 
-  /** Close the ET day the board is on and open `day` (medals, then a fresh paid-run count). */
+  /** Close the board day and open `day` (medals, then a fresh board). */
   rollBoard(day: string): void {
     this.d.games.roll(day);
   }
@@ -357,14 +354,13 @@ export class FeiraGamesEngine {
     const score = judged.score;
     const wouldPay = rejected ? 0 : feiraPayout(score, judged.served);
     const test = p.testUser === true;
-    const paidSoFar = test ? this.testPaidCount(p, day) : (st.paid[p.id] ?? 0);
+    const paidSoFar = this.paidCount(p, st);
     let coins = 0;
     let dailyBlocked = false;
     if (wouldPay > 0) {
       if (paidSoFar < FEIRA_DAILY_PAID_RUNS) {
         coins = wouldPay;
-        if (test) this.bumpTestPaid(p, day);
-        else st.paid[p.id] = paidSoFar + 1;
+        p.feiraPaid = { day: profileDay(p, this.d.now()), n: paidSoFar + 1 };
       } else dailyBlocked = true;
     }
     let bestToday = score;

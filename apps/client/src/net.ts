@@ -37,6 +37,15 @@ export function reconnectDelay(attempt: number, random: () => number = Math.rand
   return Math.round(step / 2 + (step / 2) * Math.min(1, Math.max(0, random())));
 }
 
+/**
+ * The hello carries the browser's offset (minutes east of UTC), the same one Escola actions send, so the server counts
+ * every cap on the player's own calendar day (packages/shared/src/playerDay.ts).
+ */
+export function withTz(m: ClientMsg, offsetMin = -new Date().getTimezoneOffset()): ClientMsg {
+  if (m.t !== 'hello' || typeof m.tz === 'number') return m;
+  return { ...m, tz: offsetMin || 0 };
+}
+
 const WS_CONNECTING = 0;
 const WS_OPEN = 1;
 
@@ -285,7 +294,7 @@ export class Net implements NetLike {
   }
 
   send(m: ClientMsg) {
-    if (this.ws?.readyState === WS_OPEN) this.ws.send(JSON.stringify(m));
+    if (this.ws?.readyState === WS_OPEN) this.ws.send(JSON.stringify(withTz(m)));
     else if (m.t !== 'ping' && m.t !== 'hello' && m.t !== 'active') this.queue.push(m);
   }
 

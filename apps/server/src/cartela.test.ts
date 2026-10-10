@@ -100,6 +100,20 @@ describe('CartelaTracker (server)', () => {
     expect(s.profile!.cartela!.stamps).toBe(2);
   });
 
+  it('counts the player day from the profile offset; a New York key from an older save rolls over and keeps the card (D1)', () => {
+    const store = new ProfileStore(null);
+    const p = profile('tokyo');
+    // Tokyo (UTC+9): at 2026-10-03 16:00 UTC it is already 10-04 there, still 10-03 in New York
+    p.escola = { words: {}, xp: 0, lessons: 0, perfect: 0, goal: 10, dayXp: 0, streak: 0, best: 0, freezes: 0, tier: 'verde', tz: 540 };
+    p.cartela = { stamps: 2, activityDay: { tatame: DAY, feira: DAY } };
+    store.add(p);
+    const s = { id: 'c2', profile: store.get('tokyo'), send: () => {}, close: () => {}, lastActiveAt: 0, idleWarned: false, chatTimes: [], lastHintAt: 0, carry: null } as Session;
+    const tracker = new CartelaTracker({ now: () => Date.parse('2026-10-03T16:00:00.000Z'), store, reward: () => {}, pushProfile: () => {} });
+    expect(tracker.tryStamp(s, 'tatame')).toBe(true);
+    expect(s.profile!.cartela).toEqual({ stamps: 3, activityDay: { tatame: NEXT, feira: DAY } });
+    expect(tracker.tryStamp(s, 'tatame')).toBe(false);
+  });
+
   it('persists on the profile across a new store load', () => {
     const adapter = {
       rows: [] as StoredProfile[],

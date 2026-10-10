@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CLOSE_RESTART, NET_CONNECT_TIMEOUT_MS, NET_MAX_RETRIES, NET_RETRY_MAX_MS, Net, reconnectDelay, type NetSocket, type NetStatus } from './net';
+import { CLOSE_RESTART, NET_CONNECT_TIMEOUT_MS, NET_MAX_RETRIES, NET_RETRY_MAX_MS, Net, reconnectDelay, withTz, type NetSocket, type NetStatus } from './net';
 
 class FakeSocket implements NetSocket {
   readyState = 0;
@@ -41,6 +41,17 @@ describe('Net reconnect', () => {
     net.onOpen = () => net.send({ t: 'hello', token: 'tok' });
     return { net, sockets, statuses };
   }
+
+  it('the hello carries the browser offset, so the server counts caps on the player day (D1)', () => {
+    const { net, sockets } = harness();
+    net.connect();
+    sockets[0]!.open();
+    const hello = JSON.parse(sockets[0]!.sent[0]!);
+    expect(hello).toEqual({ t: 'hello', token: 'tok', tz: -new Date().getTimezoneOffset() || 0 });
+    expect(withTz({ t: 'hello' }, -180)).toEqual({ t: 'hello', tz: -180 });
+    expect(withTz({ t: 'hello', tz: 60 }, -180)).toEqual({ t: 'hello', tz: 60 });
+    expect(withTz({ t: 'ping' }, -180)).toEqual({ t: 'ping' });
+  });
 
   it('ignores a stale close so a live socket is not stuck on Reconectando', () => {
     const { net, sockets, statuses } = harness();

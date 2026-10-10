@@ -68,7 +68,7 @@ export interface PescaDeps {
   teach(s: PescaSession, words: readonly (DiaryWord | undefined)[]): DiaryWord[];
   weather(): Weather;
   minute(): number;
-  /** today, São Paulo calendar, with the player's test day offset */
+  /** today: the player day (playerDay.ts `profileDay`), with the Testes day offset */
   day(p: StoredProfile): string;
   saleCap(): number;
   /** TB_TEST_PESCA / ?pescatest: rolls are pinned short */

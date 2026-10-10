@@ -4,6 +4,7 @@ import {
   REGULAR_NPCS,
   UNLOCKS,
   addCalendarDays,
+  profileDay,
   cardById,
   frontOf,
   hearts,
@@ -30,7 +31,7 @@ import {
   type ShiftSummary,
 } from '@tudobem/shared';
 import type { Session } from './world.js';
-import { today, type ProfileStore } from './store.js';
+import type { ProfileStore } from './store.js';
 
 /** A shift in progress on a session. The pure rules are `@tudobem/shared` `correria.ts`; this owns the clock, the sockets and the profile. */
 export interface CorreriaRun {
@@ -43,7 +44,7 @@ export interface CorreriaRun {
 
 export interface CorreriaDeps {
   now: () => number;
-  /** UTC day (YYYY-MM-DD) the paid-shift cap uses. Defaults to the real UTC date. */
+  /** Test override of the day (YYYY-MM-DD) the paid-shift cap counts on; the Testes day offset is added on top. Default: `profileDay`. */
   today?: () => string;
   schedule: (fn: () => void, ms: number) => void;
   store: ProfileStore;
@@ -236,7 +237,8 @@ export class CorreriaEngine {
     const cp = (p.correria = normalizeCorreria(p.correria));
     const before = cp.stars;
     const shiftsBefore = cp.shifts;
-    const day = addCalendarDays(this.d.today?.() ?? today(), p.testDayOffset ?? 0);
+    // the player's own day (playerDay.ts); a stored key that is not today's (older saves kept UTC keys) rolls over
+    const day = this.d.today ? addCalendarDays(this.d.today(), p.testDayOffset ?? 0) : profileDay(p, this.d.now());
     if (cp.date !== day) {
       cp.date = day;
       cp.paid = 0;

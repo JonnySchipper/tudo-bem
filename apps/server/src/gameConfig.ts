@@ -37,7 +37,7 @@ export const TUNABLES = [
   { key: 'boatPescaRv', group: 'Praia', label: 'Fishing boat rental', help: 'One trip on the barco de pesca.', default: PRAIA_PRICES.pesca, min: 1, max: 500, unit: 'RV' },
   { key: 'boatAltoMarRv', group: 'Praia', label: 'Deep-sea boat rental', help: 'One trip on the barco de alto-mar.', default: PRAIA_PRICES.alto_mar, min: 1, max: 500, unit: 'RV' },
   { key: 'boatFestaRv', group: 'Praia', label: 'Party boat', help: 'Paid once by the host of a party boat trip; guests pay nothing.', default: PRAIA_PRICES.festa, min: 1, max: 500, unit: 'RV' },
-  { key: 'pescaSaleCapRv', group: 'Praia', label: 'Fish sales cap', help: 'Most RV a player gets selling fish to Jô in one day (São Paulo day).', default: PRAIA_PRICES.saleCap, min: 0, max: 500, unit: 'RV' },
+  { key: 'pescaSaleCapRv', group: 'Praia', label: 'Fish sales cap', help: 'Most RV a player gets selling fish to Jô in one day (the player\'s own calendar day).', default: PRAIA_PRICES.saleCap, min: 0, max: 500, unit: 'RV' },
   { key: 'tripMinutes', group: 'Praia', label: 'Boat trip length', help: 'Real minutes a rented boat stays yours (it also ends when you leave the beach).', default: PRAIA_PRICES.tripMinutes, min: 2, max: 60, unit: 'min' },
   { key: 'partyTripMinutes', group: 'Praia', label: 'Party boat trip length', help: 'Real minutes a party boat trip lasts.', default: PRAIA_PRICES.partyMinutes, min: 5, max: 60, unit: 'min' },
   { key: 'partyBoatCap', group: 'Praia', label: 'Party boat cap', help: 'People aboard a party boat, the host included.', default: PRAIA_PRICES.partyCap, min: 2, max: 16, unit: 'players' },

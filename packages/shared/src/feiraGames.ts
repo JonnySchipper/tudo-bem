@@ -14,11 +14,13 @@
  * they rotate by day). `featuredGame` is the calendar helper (unimplemented slots still fall back)
  * and does not read the switch.
  *
- * Rotation is deterministic from the America/New_York calendar date (ET), not the game clock.
+ * Rotation is deterministic from the board day, not the game clock. The board, its medals and the rotation are shared by
+ * everyone, so their day is the UTC day (`feiraBoardDay`, the shared-job fallback in playerDay.ts). Each player's paid runs
+ * count on that player's own day (`profileDay`), like every other cap.
  * Scoring is recomputed from compact per-order outcomes; the client never names the score.
  */
 import { ECONOMY } from './constants.js';
-import { todayEastern } from './cartela.js';
+import { playerDay } from './playerDay.js';
 import type { Bilingual } from './types.js';
 
 // ---------------------------------------------------------------- rotation
@@ -37,8 +39,11 @@ export const isFeiraGameId = (v: unknown): v is FeiraGameId =>
 export const isRotationId = (v: unknown): v is FeiraRotationId =>
   typeof v === 'string' && (FEIRA_ROTATION_ORDER as readonly string[]).includes(v);
 
-/** Whole ET calendar days since 1970-01-01. DST-safe: the date string is already the ET day. */
-export function daysSinceEpochET(day: string): number {
+/** The day key of the shared Feira board, its medals and the game rotation: the UTC day (no single player's zone applies). */
+export const feiraBoardDay = (nowMs: number): string => playerDay(nowMs, 0);
+
+/** Whole calendar days since 1970-01-01 for a `YYYY-MM-DD` key. */
+export function daysSinceEpochDay(day: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
   if (!m) return 0;
   return Math.floor(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) / 86_400_000);
@@ -46,17 +51,17 @@ export function daysSinceEpochET(day: string): number {
 
 /**
  * The slot the calendar would pick, even if that game is not built yet.
- * `daysSinceEpoch(ET date) mod rotation.length` over `FEIRA_ROTATION_ORDER`.
+ * `daysSinceEpoch(board day) mod rotation.length` over `FEIRA_ROTATION_ORDER`.
  */
 export function rotationSlot(day: string, order: readonly string[] = FEIRA_ROTATION_ORDER): string {
   if (!order.length) return 'tapioca';
-  const n = daysSinceEpochET(day);
+  const n = daysSinceEpochDay(day);
   const i = ((n % order.length) + order.length) % order.length;
   return order[i]!;
 }
 
 /**
- * Featured game for an ET date (`YYYY-MM-DD`). Unimplemented slots fall back to the nearest
+ * Featured game for a board day (`YYYY-MM-DD`). Unimplemented slots fall back to the nearest
  * earlier implemented game in the cycle (wrapping), so a 1-game build always features tapioca
  * and a 3-game build is the real cycle. `implemented` is injectable so tests can prove the fallback
  * and so the server can pass only the games an admin has switched on.
@@ -79,14 +84,14 @@ export function featuredGame(
   return pool[0] as FeiraGameId;
 }
 
-/** Featured game for a wall-clock instant, using the America/New_York calendar date. Ignores the on/off switch. */
+/** Featured game for a wall-clock instant, using the board day (UTC). Ignores the on/off switch. */
 export function featuredGameAt(nowMs: number, implemented?: readonly string[]): FeiraGameId {
-  return featuredGame(todayEastern(nowMs), implemented);
+  return featuredGame(feiraBoardDay(nowMs), implemented);
 }
 
 /**
  * Today's playable game among `enabled` ids. Empty → null (the cart is closed).
- * One id → that game every day. Several → `daysSinceEpoch(ET) mod n` over those ids in rotation order.
+ * One id → that game every day. Several → `daysSinceEpoch(board day) mod n` over those ids in rotation order.
  * An enabled id that is not implemented yet is skipped, so turning Pastel on before its module lands
  * does not feature it.
  */
@@ -102,8 +107,8 @@ export function featuredEnabled(
   return rotationSlot(day, pool);
 }
 
-/** Weekday of an ET `YYYY-MM-DD` (0 = Sunday … 6 = Saturday). The date string is already the ET day. */
-export function weekdayOfEtDay(day: string): number {
+/** Weekday of a `YYYY-MM-DD` board day (0 = Sunday … 6 = Saturday). */
+export function weekdayOfDay(day: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
   if (!m) return 0;
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).getUTCDay();
@@ -119,11 +124,11 @@ export type FeiraCartMode = 'off' | 'on' | 'rotation';
  * Absent schedule (mode still `rotation`) means not scheduled yet, so the game stays off.
  */
 export interface FeiraCartSchedule {
-  /** Inclusive ET date `YYYY-MM-DD`. */
+  /** Inclusive board day `YYYY-MM-DD` (UTC). */
   from?: string;
-  /** Exclusive ET date `YYYY-MM-DD`. */
+  /** Exclusive board day `YYYY-MM-DD` (UTC). */
   until?: string;
-  /** 0 = Sunday … 6 = Saturday, ET. Empty or omitted = every weekday. */
+  /** 0 = Sunday … 6 = Saturday, of the board day (UTC). Empty or omitted = every weekday. */
   weekdays?: number[];
 }
 
@@ -166,12 +171,12 @@ export function readFeiraCartSchedule(raw: unknown): FeiraCartSchedule | null {
   return out;
 }
 
-/** True when a rotation-mode window includes this ET day. No schedule → false. */
+/** True when a rotation-mode window includes this board day. No schedule → false. */
 export function scheduleCovers(schedule: FeiraCartSchedule | null | undefined, day: string): boolean {
   if (!schedule) return false;
   if (schedule.from && day < schedule.from) return false;
   if (schedule.until && day >= schedule.until) return false;
-  if (schedule.weekdays?.length && !schedule.weekdays.includes(weekdayOfEtDay(day))) return false;
+  if (schedule.weekdays?.length && !schedule.weekdays.includes(weekdayOfDay(day))) return false;
   return true;
 }
 
@@ -379,7 +384,7 @@ export const FEIRA_GAME_MAX_SCORE = 500;
 /** A run must last at least this long before a result is accepted (a 90s game cannot finish in a blink). */
 export const FEIRA_MIN_ELAPSED_MS = 8_000;
 
-/** First N runs per ET day pay RV. Later runs still count for the board. Mirrors Correria's DAILY_PAID_SHIFTS. */
+/** First N runs per player day (`profileDay`) pay RV. Later runs still count for the board. Mirrors Correria's DAILY_PAID_SHIFTS. */
 export const FEIRA_DAILY_PAID_RUNS = 3;
 
 /**
@@ -419,12 +424,15 @@ export interface FeiraDayScore {
 }
 
 export interface FeiraGamesState {
-  /** ET day key (`YYYY-MM-DD`) the live board belongs to. */
+  /** Board day key (`YYYY-MM-DD`, UTC: `feiraBoardDay`) the live board belongs to. */
   day: string;
   scores: Record<string, FeiraDayScore>;
   /** Permanent medals, keyed by player id. Never cleared at midnight. */
   medals: Record<string, FeiraMedalAward[]>;
-  /** Paid runs already counted today, per player. Reset with the ET day. */
+  /**
+   * Legacy: paid runs per player from before paid runs moved onto the profile (`feiraPaid`, the player's own day).
+   * Read once as today's count when the profile has none and the board day is the player's day; never written. Cleared on the roll.
+   */
   paid: Record<string, number>;
 }
 
@@ -446,7 +454,7 @@ export function crownHolder(scores: Record<string, FeiraDayScore>): string | nul
 }
 
 /**
- * Finalize an ET day: 1st/2nd/3rd earn a permanent medal (ties: earlier achiever already won the rank).
+ * Finalize a board day: 1st/2nd/3rd earn a permanent medal (ties: earlier achiever already won the rank).
  * Returns the awards to append. Does not mutate.
  */
 export function medalsForDay(day: string, scores: Record<string, FeiraDayScore>): { id: string; award: FeiraMedalAward }[] {

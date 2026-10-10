@@ -35,7 +35,11 @@ import type { AdminBannedRow, ModerationRow, ReportReason } from './moderation.j
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
-  | { t: 'hello'; token?: string }
+  /**
+   * First message on a socket. `tz`: minutes east of UTC (`-getTimezoneOffset()`), the same offset Escola actions carry.
+   * The server keeps it on the profile so every cap counts the player's own calendar day (playerDay.ts).
+   */
+  | { t: 'hello'; token?: string; tz?: number }
   | { t: 'createProfile'; name: string; pronoun: Pronoun; appearance: Appearance }
   /** Real player input (pointer / key / touch) since the last report. Resets the server idle clock; `ping` never does. */
   | { t: 'active' }

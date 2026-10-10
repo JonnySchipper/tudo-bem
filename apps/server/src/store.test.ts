@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fileAdapter } from './fileStore.js';
 import { closeDatabase, openDatabase } from './sqliteDb.js';
-import { ProfileStore, STORE_RETRY_BASE_MS, STORE_SAVE_DEBOUNCE_MS, type PersistenceAdapter, type StoredProfile } from './store.js';
+import { ProfileStore, STORE_RETRY_BASE_MS, STORE_SAVE_DEBOUNCE_MS, normalizeProfile, type PersistenceAdapter, type StoredProfile } from './store.js';
 
 const profile = (id: string) => ({ id, name: id, token: `t-${id}`, ageGate18: true, coins: 0 }) as unknown as StoredProfile;
 
@@ -188,5 +188,29 @@ describe('ProfileStore on SQLite', () => {
     store.flush();
     expect(db.prepare('SELECT profile_id FROM photos WHERE profile_id = ?').get('a')).toBeUndefined();
     expect(new ProfileStore(fileAdapter(dir)).count()).toBe(0);
+  });
+});
+
+describe('normalizeProfile: the player day (D1)', () => {
+  const base = () =>
+    ({ id: 'd', name: 'd', token: 't-d', ageGate18: true, coins: 0, daily: { date: '2026-10-08', sceneClears: {} }, lastSeen: 0 }) as unknown as StoredProfile;
+
+  it('moves a test profile’s cart paid-run count onto the one field every profile uses, once', () => {
+    const p = base() as StoredProfile & { testFeiraPaid?: unknown };
+    p.testFeiraPaid = { day: '2026-10-08', n: 2 };
+    normalizeProfile(p);
+    expect(p.feiraPaid).toEqual({ day: '2026-10-08', n: 2 });
+    expect('testFeiraPaid' in p).toBe(false);
+  });
+
+  it('keeps the stored offset and every day key as they were (a stale key rolls over on use, never on load)', () => {
+    const p = base();
+    p.escola = { words: {}, xp: 0, lessons: 0, perfect: 0, goal: 10, dayXp: 0, streak: 3, best: 3, freezes: 0, tier: 'verde', lastDay: '2026-10-07', tz: -180 };
+    p.correria = { stars: 4, shifts: 2, best: 30, date: '2026-10-09', paid: 3 };
+    p.cartela = { stamps: 5, activityDay: { tatame: '2026-10-08' } };
+    normalizeProfile(p);
+    expect(p.escola).toMatchObject({ tz: -180, streak: 3, lastDay: '2026-10-07' });
+    expect(p.correria).toMatchObject({ stars: 4, shifts: 2, date: '2026-10-09', paid: 3 });
+    expect(p.cartela).toEqual({ stamps: 5, activityDay: { tatame: '2026-10-08' } });
   });
 });

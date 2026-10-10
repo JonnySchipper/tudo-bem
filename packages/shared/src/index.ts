@@ -62,6 +62,7 @@ export * from './diaryWorld.js';
 export * from './diaryDaily.js';
 export * from './feedback.js';
 export * from './escola.js';
+export * from './playerDay.js';
 export * from './escolaCopy.js';
 export * from './feiraGames.js';
 export * from './feiraTapioca.js';
