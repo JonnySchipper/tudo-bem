@@ -177,11 +177,13 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
   await page.fill('#avatar-name', name);
   const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
   assert(labels.includes('Visual inicial'), `visual inicial preset (${labels.join(' | ')})`);
-  assert(labels.includes('Corpo') && labels.includes('Rosto') && labels.includes('Cabelo'), `body, face and hair stay (${labels.join(' | ')})`);
-  for (const gone of ['Detalhe', 'Blusa', 'Cor da blusa', 'Parte de baixo', 'Tênis']) {
+  assert(labels.includes('Corpo') && labels.includes('Rosto') && labels.includes('Cabelo') && labels.includes('Detalhe'), `body, face, hair and detail (${labels.join(' | ')})`);
+  // Clothing is two whole starter outfits (tee + jeans, blouse + skirt), not separate blouse / bottom / shoe pickers.
+  for (const gone of ['Blusa', 'Cor da blusa', 'Parte de baixo', 'Tênis']) {
     assert(!labels.includes(gone), `create no longer asks for ${gone}`);
   }
-  assert((await page.$$('[data-outfit]')).length === 1 && (await page.$('[data-outfit="visual_inicial"]')), 'one Visual inicial clothing preset');
+  const outfits = await page.$$eval('[data-outfit]', (els) => els.map((e) => e.getAttribute('data-outfit')));
+  assert(outfits.includes('visual_inicial') && outfits.includes('visual_saia') && outfits.length === 2, `two starter outfits (${outfits.join(', ')})`);
   const label = { ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' }[pronoun];
   await page.click(`button:has-text("${label}")`);
   assert(!(await page.$('#confirm-18')), 'the avatar creator asks no age question');
@@ -250,7 +252,7 @@ async function main() {
   assert(!(await page.$('#checklist')), 'the old checklist is gone');
   assert(((await page.textContent('#recado-tracker')) ?? '').includes('Bem-vindo à Vila Ipê'), 'the tracker shows the welcome chain');
   assert(start.appearance.top === 'camiseta' && start.appearance.bottom === 'calca' && start.appearance.shoes === 0, 'starter outfit is tee + jeans');
-  assert(start.appearance.extra === 'nenhum', 'create does not pick glasses/beard/earrings');
+  assert(start.appearance.extra === 'nenhum', 'ele keeps the default extra (none); ela would pick earrings');
   assert(/Música/.test((await page.textContent('#btn-music')) ?? ''), 'room music toggle on the praça bar');
   assert(/Voz/.test((await page.textContent('#btn-sound')) ?? ''), 'voice toggle on the praça bar');
 

@@ -113,7 +113,8 @@ describe('leaderboards server', () => {
     );
     const viewer = profile({ id: 'v', name: 'Voce', diary: [] });
     store.add(viewer);
-    const always = new Leaderboards(store, () => 0);
+    // Ana's last lesson is 2026-10-08. Pin that calendar day: currentStreak lapses once the real date moves on.
+    const always = new Leaderboards(store, () => 0, () => '2026-10-08');
     const s = { profile: viewer, send: () => {} } as never;
     const line = always.maybeMentionStreak(s as never, 'carlos');
     expect(line?.pt).toContain('Ana');
