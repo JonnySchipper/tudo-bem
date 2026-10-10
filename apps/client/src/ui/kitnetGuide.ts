@@ -185,8 +185,8 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
       if (el.closest('.decor')) el.scrollIntoView({ block: 'nearest' });
     }
     const cs = getComputedStyle(document.documentElement);
-    const aw = parseFloat(cs.getPropertyValue('--wl-arrow-w')) || 32;
-    const ah = parseFloat(cs.getPropertyValue('--wl-arrow-h')) || 40;
+    const aw = parseFloat(cs.getPropertyValue('--wl-arrow-w')) || 48;
+    const ah = parseFloat(cs.getPropertyValue('--wl-arrow-h')) || 60;
     const r = el.getBoundingClientRect();
     const p = pointerFor(r, { w: window.innerWidth, h: window.innerHeight }, ah);
     pointer.hidden = false;

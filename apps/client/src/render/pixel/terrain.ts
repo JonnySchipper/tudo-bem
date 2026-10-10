@@ -12,7 +12,7 @@
 export const TILE = 16;
 
 /** Draw order, low to high (HOWTO §5.6). Characters not listed here are drawn as their own layer on top. */
-export const TERRAIN_PRIORITY = ['a', 'p', 's', 'c', 'o', 'w', 't', 'd', 'g', 'l', 'm', 'k', 'j', 'z', 'b'] as const;
+export const TERRAIN_PRIORITY = ['a', 'p', 's', 'c', 'o', 'w', 't', 'd', 'g', 'l', 'm', 'k', 'j', 'z', 'v', 'b'] as const;
 
 export const MASK_TL = 8;
 export const MASK_TR = 4;

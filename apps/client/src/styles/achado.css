@@ -575,3 +575,117 @@
     animation: ach-fade-in 0.3s ease-out both;
   }
 }
+
+/* ---------------------------------------------------------------- Na foto! A word bursting out of a photo's print (ui/photoFind.ts) */
+
+.photo-find,
+#photo-celebrate.photo-find {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  display: block;
+  overflow: hidden;
+  background: none;
+  pointer-events: none;
+  animation: none;
+}
+
+.photo-find > i,
+.photo-find > div {
+  position: fixed;
+}
+
+/* the print sits over the light behind it; the word, the sparks and the flash fly over the print */
+.photo-find > .photo-print {
+  z-index: 10;
+}
+
+.photo-find > .ach-lockup,
+.photo-find > .ach-spark,
+.photo-find > .ach-flash,
+.photo-find > .ach-shock,
+.photo-find > .pf-ring {
+  z-index: 20;
+}
+
+.pf-dim {
+  background: radial-gradient(circle at var(--x) var(--y), rgba(255, 226, 140, 0.22) 0, transparent 130px, rgba(12, 8, 28, 0.55) 340px);
+}
+
+/* a warm light behind the print while it is held up */
+.pf-glow {
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: radial-gradient(circle, rgba(255, 230, 140, 0.7), rgba(255, 200, 80, 0.22) 40%, transparent 68%);
+  animation:
+    ach-halo 0.5s ease-out both,
+    pf-breathe 1.6s ease-in-out 0.5s infinite;
+}
+
+@keyframes pf-breathe {
+  50% {
+    scale: 1.08;
+    opacity: 0.8;
+  }
+}
+
+/* rings of light drawing in onto the picture */
+.pf-ring {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 243, 192, 0.95);
+  box-shadow:
+    0 0 14px rgba(255, 214, 102, 0.9),
+    inset 0 0 14px rgba(255, 214, 102, 0.7);
+  translate: -50% -50%;
+  animation: pf-implode 0.5s cubic-bezier(0.5, 0, 0.9, 0.6) both;
+}
+
+.pf-ring.two {
+  width: 420px;
+  height: 420px;
+  border-width: 2px;
+  animation-delay: 0.08s;
+}
+
+@keyframes pf-implode {
+  from {
+    scale: 1.5;
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    scale: 0.08;
+    opacity: 0;
+  }
+}
+
+.pf-rays {
+  width: 640px;
+  height: 640px;
+  animation-duration: 2.6s;
+}
+
+.pf-flash {
+  width: 260px;
+  height: 260px;
+}
+
+.pf-lockup .ach-kicker {
+  background: rgba(14, 38, 30, 0.85);
+  box-shadow:
+    0 0 0 2px #3fbf7f,
+    0 0 14px rgba(63, 191, 127, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-glow,
+  .pf-ring {
+    animation: none;
+  }
+}

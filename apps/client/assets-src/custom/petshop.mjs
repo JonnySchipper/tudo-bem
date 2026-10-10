@@ -5,9 +5,12 @@
 //                   mustard, the PET SHOP · DO SEU DITO marquee on the wall panel, an sp-green scalloped awning, an ABERTO board over
 //                   the door, a bone sign, a paw decal, a sleeping dog in the
 //                   left pane and a cat loaf on a shelf in the right one. props/placa_petshop (the ADOTE sandwich board), props/tigela_calcada
-//   the interior    props/cercadinho, gatil, arranhador, prateleira_racao, cesto_brinquedos, caminha_xadrez / _azul / _cesta, pote_duplo,
+//   the interior    props/balcao_pet_<i>_of_5 (Seu Dito's wooden counter), props/cercadinho + _frente and gatil + _frente (each pen a floor
+//                   decal and a standing front rail, so the day's animals show inside), expositor (the display island), tapete_pata (the
+//                   paw rug, a decal), piso_banho (the grooming corner's tiles, a decal), cercadinho_venda, arranhador, prateleira_racao, cesto_brinquedos, caminha_xadrez / _azul / _cesta, pote_duplo,
 //                   saco_racao, balanca_pet, mesa_tosa, banheira_tosa (2 frames), secador, toalha_pet, aquario (2 frames)
-//   the walls       walls/quadro_racas (the breed chart), walls/poster_adocao, walls/placa_banho_tosa, walls/placa_vet
+//   the walls       walls/quadro_racas (the breed chart), walls/poster_adocao, walls/placa_banho_tosa, walls/placa_vet, walls/varal_patas
+//                   (paw bunting); the wall style `petshop` (walls.mjs) and the `v` vinílico floor (floors.mjs) are the room's own
 //   fx              fx/carinho (three frames of two hearts rising), fx/ossinho and fx/pelucia (the toys a resting pet holds)
 //
 // Light from the upper left, a 1 px navy outline where a shape meets empty space, LimeZu palette plus the brand colours, no gradients.
@@ -275,71 +278,111 @@ function tigelaCalcada() {
 }
 
 // ------------------------------------------------------------------ interior props
-/** The dog pen (48 x 40, 3 x 2 tiles): a blanket on the floor, a white picket fence along the back and the sides, a low rail in front. */
+/**
+ * The dog pen (3 x 2 tiles), in two parts so the day's dogs stand inside it (#234 visual pass). `props/cercadinho` is the floor and the back:
+ * light wooden planks, a blue fleece blanket in one corner with a chew bone, a water bowl, the white picket fence along the back wall. It is a
+ * decal (it lies under walkers), so the dogs drawn on its tiles show. `props/cercadinho_frente` is the low front rail and the side posts, a
+ * standing piece on the pen's south edge: the dogs stand behind it.
+ */
+// the back fence rises up the wall above row 0 (sprite rows 0..10), the floor covers rows 0-1 and a little of row 2 (the rail's base)
+const PEN_W = 48, PEN_H = 49, PEN_AY = 43;
 function cercadinho() {
-  const W = 48, H = 41;
+  const W = PEN_W, H = PEN_H;
   const img = blank(W, H);
-  const floorTop = 9, floorBot = H - 3;
-  // the blanket (a red / cream check) over the whole floor of the pen
+  const floorTop = 11, floorBot = H - 4;
+  // the floor: pale planks, 6 px courses, staggered joints
   for (let y = floorTop; y < floorBot; y++) for (let x = 2; x < W - 2; x++) {
-    const check = (Math.floor(x / 4) + Math.floor(y / 4)) % 2 === 0;
-    put(img, x, y, check ? P.red2 : P.cream);
-    if (h2(x, y, 4) < 0.05) put(img, x, y, check ? P.red1 : P.cream2);
+    const course = Math.floor((y - floorTop) / 6), ry = (y - floorTop) % 6;
+    const joint = (x + course * 11) % 23 === 0;
+    put(img, x, y, ry === 5 || joint ? P.wood4 : ry === 0 ? P.wood6 : h2(x, y, 11) < 0.06 ? P.wood4 : P.wood5);
   }
-  hline(img, 2, floorBot - 1, W - 4, P.red0);
-  // the back fence: pickets 3 px wide, 2 px apart, rails across
-  const pickets = (y0, h, x0, x1) => {
-    for (let x = x0; x < x1; x += 5) {
-      rect(img, x, y0 + 1, 3, h - 1, P.white);
-      put(img, x + 1, y0, P.white);
-      vline(img, x + 2, y0 + 1, h - 1, P.lav);
-    }
-  };
-  pickets(1, 11, 1, W - 1);
-  hline(img, 1, 3, W - 2, P.lav4); hline(img, 1, 8, W - 2, P.lav4);
-  hline(img, 1, 4, W - 2, P.lav); hline(img, 1, 9, W - 2, P.lav);
-  // side posts (seen end on) down both sides
-  for (const x of [1, W - 3]) { rect(img, x, 10, 2, H - 13, P.white); vline(img, x + 1, 10, H - 13, P.lav); }
-  // the low front rail with two posts at the corners and a little gate in the middle
-  rect(img, 1, H - 6, W - 2, 2, P.white); hline(img, 1, H - 5, W - 2, P.lav);
-  for (const x of [1, W - 3, 21, 26]) { rect(img, x, H - 9, 2, 7, P.white); vline(img, x + 1, H - 9, 7, P.lav); }
-  put(img, 24, H - 7, P.mu2); // the gate latch
-  // a water bowl in the corner of the blanket and a chew bone
-  shape(img, ell(40, 30, 3, 1.6), [39, 29, 3, 2], [P.blue0, P.blue1, P.blue2, P.blue3]);
-  put(img, 39, 29, P.blue4);
-  bone(img, 7, 27, 7, P.cream, P.cream3);
+  // a fleece blanket in the back-left corner, a soft blue with a cream check
+  for (let y = floorTop + 2; y < floorTop + 15; y++) for (let x = 4; x < 21; x++) {
+    const edge = y === floorTop + 14 || x === 20;
+    const check = (Math.floor((x - 4) / 4) + Math.floor((y - floorTop) / 4)) % 2 === 0;
+    put(img, x, y, edge ? P.blue1 : check ? P.blue3 : mix(P.blue3, P.white, 0.45));
+  }
+  bone(img, 9, floorTop + 6, 7, P.cream, P.cream3);
+  // the water bowl, front right
+  shape(img, ell(39, floorBot - 6, 3.4, 1.8), [38, floorBot - 7, 3, 2], [P.grey0, P.grey1, P.grey2, P.white]);
+  flat(img, ell(39, floorBot - 6.2, 2, 0.8), P.blue2, { outline: false });
+  put(img, 38, floorBot - 7, P.blue5);
+  // the back fence against the wall: white pickets with two rails
+  for (let x = 2; x < W - 2; x += 5) {
+    rect(img, x, 2, 3, 9, P.white);
+    put(img, x + 1, 1, P.white);
+    vline(img, x + 2, 2, 9, P.lav4);
+  }
+  hline(img, 1, 4, W - 2, P.lav4); hline(img, 1, 5, W - 2, P.lav);
+  hline(img, 1, 8, W - 2, P.lav4); hline(img, 1, 9, W - 2, P.lav);
+  hline(img, 2, floorTop + 1, W - 4, mix(P.wood4, NAVY, 0.25)); // the fence's shadow on the floor
   outlineAround(img);
-  return { img, anchor: [24, 32] };
+  return { img, anchor: [W / 2, PEN_AY] };
 }
 
-/** The cat pen (32 x 44, 2 x 2 tiles): a cushion floor, a wall shelf with a cubby, and a cat tree with two platforms on the right. */
-function gatil() {
-  const W = 34, H = 45;
+/** The pen's front rail (48 x 41, on the same anchor as the floor): the two side posts and rails, the low front fence with its little gate. */
+function cercadinhoFrente() {
+  const W = PEN_W, H = PEN_H;
   const img = blank(W, H);
-  // the cushion floor (sp-green)
-  rect(img, 1, 14, W - 2, H - 16, P.sp2);
-  for (let y = 14; y < H - 2; y++) for (let x = 1; x < W - 1; x++) if ((x + y) % 6 === 0) put(img, x, y, P.sp3);
-  hline(img, 1, H - 3, W - 2, P.sp1);
-  // the back: a mesh panel (white frame, grey wire) behind the floor
-  rect(img, 1, 1, W - 2, 14, P.white);
-  for (let y = 3; y < 13; y++) for (let x = 3; x < W - 3; x++) put(img, x, y, (x + y) % 3 === 0 ? P.grey1 : P.grey2);
-  vline(img, 1, 1, 14, P.lav4); vline(img, W - 2, 1, 14, P.lav);
-  // a wooden cubby box on the left (a cat hides in the hole)
-  rect(img, 3, 16, 12, 10, P.wood4); hline(img, 3, 16, 12, P.wood5); vline(img, 14, 16, 10, P.wood2); hline(img, 3, 25, 12, P.wood2);
-  flat(img, ell(9, 21.5, 3, 3), P.wood0, { outline: false });
-  // the cat tree on the right: sisal post and two carpeted platforms
-  rect(img, 25, 6, 3, H - 12, P.cream2);
-  for (let y = 6; y < H - 6; y += 2) hline(img, 25, y, 3, P.cream3);
-  for (const [py, pw] of [[6, 10], [22, 8]]) {
+  // side posts and their top rail, seen from above: they run from the back fence to the front
+  for (const x of [1, W - 3]) { rect(img, x, 11, 2, H - 15, P.white); vline(img, x + 1, 11, H - 15, P.lav); }
+  // the front fence: short pickets between two rails
+  for (let x = 3; x < W - 3; x += 4) { rect(img, x, H - 11, 2, 7, P.white); put(img, x + 1, H - 11, P.lav4); vline(img, x + 1, H - 10, 6, P.lav4); }
+  rect(img, 1, H - 9, W - 2, 2, P.white); hline(img, 1, H - 8, W - 2, P.lav);
+  rect(img, 1, H - 6, W - 2, 2, P.white); hline(img, 1, H - 5, W - 2, P.lav);
+  // the gate in the middle: a slightly warmer frame and the brass latch
+  for (const x of [20, 27]) { rect(img, x, H - 13, 2, 9, P.cream1); vline(img, x + 1, H - 13, 9, P.cream2); }
+  put(img, 23, H - 8, P.mu2); put(img, 24, H - 8, P.mu4);
+  outlineAround(img);
+  return { img, anchor: [W / 2, PEN_AY] };
+}
+
+/** The cat pen (2 x 2 tiles), floor and front like the dog pen: a sage cushion floor, the mesh back with a cubby box and the cat tree. */
+const GATIL_W = 34, GATIL_H = 50, GATIL_AY = 45;
+function gatil() {
+  const W = GATIL_W, H = GATIL_H;
+  const img = blank(W, H);
+  const top = 13;
+  // the cushion floor (sage), quilted in a diamond stitch
+  rect(img, 2, top, W - 4, H - top - 4, P.sp3);
+  for (let y = top; y < H - 4; y++) for (let x = 2; x < W - 2; x++) if ((x + y) % 6 === 0 || (x - y + 60) % 6 === 0) put(img, x, y, P.sp4);
+  // the back: a mesh panel (white frame, grey wire)
+  rect(img, 1, 1, W - 2, top, P.white);
+  for (let y = 3; y < top - 1; y++) for (let x = 3; x < W - 3; x++) put(img, x, y, (x + y) % 3 === 0 ? P.grey1 : P.grey2);
+  vline(img, 1, 1, top, P.lav4); vline(img, W - 2, 1, top, P.lav);
+  hline(img, 2, top, W - 4, mix(P.sp3, NAVY, 0.3));
+  // a wooden cubby on the left against the mesh (a cat hides in the hole)
+  rect(img, 3, top - 3, 12, 10, P.wood4); hline(img, 3, top - 3, 12, P.wood6); vline(img, 14, top - 3, 10, P.wood2); hline(img, 3, top + 6, 12, P.wood2);
+  flat(img, ell(9, top + 2.5, 3, 3), P.wood0, { outline: false });
+  // the cat tree on the right: sisal post, two carpeted platforms, a dangling mouse
+  rect(img, 25, 4, 3, H - 12, P.cream2);
+  for (let y = 4; y < H - 8; y += 2) hline(img, 25, y, 3, P.cream3);
+  for (const [py, pw] of [[4, 10], [20, 8]]) {
     rect(img, 30 - pw, py, pw + 2, 3, P.pink1); hline(img, 30 - pw, py, pw + 2, P.pink2); hline(img, 30 - pw, py + 2, pw + 2, P.pink0);
   }
-  // a dangling mouse toy on a string under the top platform
-  vline(img, 22, 9, 5, P.slate);
-  put(img, 21, 14, P.grey1); put(img, 22, 14, P.grey1); put(img, 23, 14, P.grey2); put(img, 22, 15, P.pink1);
-  // the base of the tree
-  rect(img, 22, H - 6, 10, 3, P.pink1); hline(img, 22, H - 6, 10, P.pink2);
+  vline(img, 22, 7, 4, P.slate);
+  put(img, 21, 11, P.grey1); put(img, 22, 11, P.grey1); put(img, 23, 11, P.grey2); put(img, 22, 12, P.pink1);
+  rect(img, 22, H - 8, 10, 3, P.pink1); hline(img, 22, H - 8, 10, P.pink2);
+  // a little food dish front left
+  shape(img, ell(7, H - 9, 3, 1.6), [6, H - 10, 3, 2], [P.pink0, P.pink1, P.pink2, P.pink2]);
+  put(img, 6, H - 10, P.wood2); put(img, 8, H - 10, P.wood3);
   outlineAround(img);
-  return { img, anchor: [17, 44] };
+  return { img, anchor: [W / 2, GATIL_AY] };
+}
+
+/** The cat pen's front: a low clear acrylic panel (pale blue, a glint) in a white frame, posts down both sides. */
+function gatilFrente() {
+  const W = GATIL_W, H = GATIL_H;
+  const img = blank(W, H);
+  for (const x of [1, W - 3]) { rect(img, x, 13, 2, H - 17, P.white); vline(img, x + 1, 13, H - 17, P.lav); }
+  rect(img, 1, H - 11, W - 2, 8, P.white);
+  for (let y = H - 10; y < H - 4; y++) for (let x = 3; x < W - 3; x++) put(img, x, y, mix(P.blue4, P.white, 0.35));
+  for (let i = 0; i < 4; i++) put(img, 6 + i, H - 5 - i, P.white); // the glint
+  for (let i = 0; i < 3; i++) put(img, 11 + i, H - 5 - i, P.blue5);
+  hline(img, 1, H - 11, W - 2, P.lav4);
+  hline(img, 1, H - 4, W - 2, P.lav);
+  outlineAround(img);
+  return { img, anchor: [W / 2, GATIL_AY] };
 }
 
 /** A scratching post (16 x 36): carpet base, sisal post, a platform on top with a ball on a string. */
@@ -539,6 +582,161 @@ function aquario(frame) {
   paste(out, img, 0, 1);
   outlineAround(out);
   return out;
+}
+
+// ------------------------------------------------------------------ the counter, the display, the rugs (#234 visual pass)
+/**
+ * Seu Dito's counter, 5 slices of 16 x 32 (`props/balcao_pet_<i>_of_5`, anchor (8, 30) like the padaria's): a wooden top seen from above
+ * (rows 12..20, deep enough for the register, the fish tank and the fish bowl that sit on it), an sp-green front with framed panels, a
+ * mustard kick plate. The middle slice carries the shop's paw roundel, the second one a jar of petiscos (the first is in front of Seu Dito).
+ */
+function balcaoPet(i, n) {
+  const img = blank(16, 32);
+  const left = i === 0, right = i === n - 1;
+  const x0 = left ? 1 : 0, x1 = right ? 15 : 16;
+  // the top: planks along the counter, lit at the back, a rounded front edge
+  for (let y = 12; y < 21; y++) for (let x = x0; x < x1; x++) {
+    const plank = (y - 12) % 3 === 2;
+    put(img, x, y, y === 12 ? P.wood6 : plank ? P.wood4 : h2(x + i * 16, y, 5) < 0.07 ? P.wood4 : P.wood5);
+  }
+  hline(img, x0, 20, x1 - x0, P.wood3);
+  // the front: sp-green with a framed panel per slice
+  for (let y = 21; y < 27; y++) for (let x = x0; x < x1; x++) put(img, x, y, P.sp1);
+  hline(img, x0, 21, x1 - x0, P.sp0);
+  const px0 = x0 + 2, px1 = x1 - 2;
+  hline(img, px0, 22, px1 - px0, P.sp3); vline(img, px0, 22, 4, P.sp3);
+  hline(img, px0, 25, px1 - px0, P.sp0); vline(img, px1 - 1, 22, 4, P.sp0);
+  rect(img, px0 + 1, 23, px1 - px0 - 2, 2, P.sp2);
+  // the kick plate
+  for (let x = x0; x < x1; x++) { put(img, x, 27, P.mu3); put(img, x, 28, P.mu1); put(img, x, 29, P.mu0); }
+  // the paw roundel on the middle slice
+  if (i === Math.floor(n / 2)) {
+    flat(img, ell(8, 23.5, 4.5, 3.2), P.cream, { outline: false });
+    hline(img, 5, 21, 6, P.cream); // it rises over the top edge
+    for (const [dx, dy] of [[0, 1], [1, 0], [3, 0], [4, 1], [1, 3], [2, 3], [3, 3], [2, 2]]) put(img, 6 + dx, 21 + dy, P.sp1);
+    put(img, 4, 23, P.mu2); put(img, 12, 23, P.mu2);
+  }
+  // on top, beside Seu Dito: a jar of petiscos (glass, a red lid, bone biscuits)
+  if (i === 1) {
+    rect(img, 4, 5, 8, 11, mix(P.blue5, P.white, 0.4));
+    vline(img, 4, 6, 9, P.white); vline(img, 11, 6, 9, P.blue4);
+    for (const [bx, by] of [[5, 12], [7, 10], [5, 8], [8, 13]]) { rect(img, bx, by, 3, 1, P.wood5); put(img, bx, by + 1, P.wood4); put(img, bx + 2, by + 1, P.wood4); }
+    rect(img, 4, 3, 8, 2, P.red1); hline(img, 4, 3, 8, P.red3); put(img, 7, 2, P.red0); put(img, 8, 2, P.red0);
+    hline(img, 4, 16, 8, P.blue4);
+  }
+  // the outline: the sides of the end slices, top and bottom everywhere (but not between slices)
+  const ol = blank(16, 32);
+  paste(ol, img, 0, 0);
+  outlineAround(ol);
+  if (!left) for (let y = 0; y < 32; y++) if (px(img, 0, y)?.[3]) put(ol, 0, y, hexAt(img, 0, y));
+  if (!right) for (let y = 0; y < 32; y++) if (px(img, 15, y)?.[3]) put(ol, 15, y, hexAt(img, 15, y));
+  return { img: ol, anchor: [8, 30] };
+}
+const hexAt = (img, x, y) => { const p = px(img, x, y); return '#' + [0, 1, 2].map((c) => p[c].toString(16).padStart(2, '0')).join(''); };
+
+/**
+ * The display island (2 x 1 tiles, 32 x 30): a low two-sided gondola in the middle of the shop. Collars hang from a top rail over a shelf of
+ * toys (balls, a plush, a rope bone) and ração bags on the bottom shelf; mustard ends with the paw sign.
+ */
+function expositor() {
+  const W = 34, H = 31;
+  const img = blank(W, H);
+  // the body: cream shelves between two sp-green ends
+  rect(img, 3, 9, W - 6, 19, P.cream1);
+  for (const x of [1, W - 4]) { rect(img, x, 7, 3, 21, P.sp1); vline(img, x, 7, 21, P.sp3); vline(img, x + 2, 7, 21, P.sp0); }
+  // the top rail with the hanging collars
+  hline(img, 2, 3, W - 4, P.grey1); hline(img, 2, 4, W - 4, P.slate);
+  [P.red2, P.blue2, P.green2, P.pink1, P.mu3, P.blue1].forEach((c, k) => {
+    const x = 5 + k * 4;
+    vline(img, x, 5, 4, c); vline(img, x + 1, 5, 4, mix(c, P.white, 0.3)); put(img, x, 9, c); put(img, x + 1, 9, P.mu4);
+  });
+  // the shelves
+  for (const sy of [17, 26]) { hline(img, 3, sy, W - 6, P.wood4); hline(img, 3, sy + 1, W - 6, P.wood2); }
+  // the toys on the upper shelf
+  shape(img, ell(8, 14.5, 2.4, 2.4), [7, 13, 2, 2], [P.red0, P.red1, P.red2, P.red3]);
+  shape(img, ell(13, 14.5, 2.4, 2.4), [12, 13, 2, 2], [P.blue0, P.blue1, P.blue2, P.blue3]);
+  shape(img, or(ell(19, 14.5, 2.4, 2.2), ell(19, 12, 1.8, 1.6)), [19, 13, 2, 2], [P.wood2, P.wood3, P.wood4, P.wood5]);
+  put(img, 18, 12, NAVY); put(img, 20, 12, NAVY);
+  bone(img, 23, 13, 7, P.cream, P.cream3);
+  // ração bags on the bottom shelf
+  [[P.red0, P.red1, P.red3], [P.sp0, P.sp2, P.sp4], [P.mu0, P.mu2, P.mu4]].forEach((c, k) => {
+    const x = 5 + k * 8;
+    rect(img, x, 19, 7, 7, c[1]); vline(img, x, 19, 7, c[2]); vline(img, x + 6, 19, 7, c[0]); hline(img, x, 19, 7, c[0]);
+    rect(img, x + 1, 21, 5, 2, P.cream);
+  });
+  // the base
+  hline(img, 1, 28, W - 2, P.sp0);
+  outlineAround(img);
+  return { img, anchor: [17, 29] };
+}
+
+/** A round rug (3 x 2 tiles, 48 x 30, a decal): cream with a mustard border and a big sp-green paw in the middle. */
+function tapetePata() {
+  const W = 48, H = 30;
+  const img = blank(W, H);
+  const rugP = ell(24, 15, 22.5, 13.5);
+  shape(img, rugP, [24, 15, 22, 13], [P.mu1, P.mu2, P.mu3, P.mu3], { flat: true });
+  flat(img, ell(24, 15, 20, 11.3), P.cream1, { outline: false });
+  flat(img, ell(24, 15, 18.5, 10), P.cream, { outline: false });
+  // the paw: four toes and the pad
+  for (const [cx, cy] of [[17, 9], [22, 6.5], [27, 6.5], [32, 9]]) flat(img, ell(cx, cy, 2.2, 2), P.sp2, { outline: false });
+  flat(img, or(ell(24.5, 16.5, 6.5, 4.5), ell(21, 18.5, 3.5, 3), ell(28, 18.5, 3.5, 3)), P.sp2, { outline: false });
+  for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if (h2(x, y, 31) < 0.03 && rugP(x + 0.5, y + 0.5) && ell(24, 15, 18.5, 10)(x + 0.5, y + 0.5)) {
+    const p = px(img, x, y);
+    if (p?.[3]) put(img, x, y, mix(hexAt(img, x, y), P.wood4, 0.25));
+  }
+  return { img, anchor: [24, 30] };
+}
+
+/** The grooming corner's floor (3 x 3 tiles, 48 x 48, a decal): small white tiles with a grey grout and a drain, a blue non-slip mat. */
+function pisoBanho() {
+  const W = 48, H = 48;
+  const img = blank(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const grout = x % 8 === 7 || y % 8 === 7;
+    put(img, x, y, grout ? P.grey2 : (x % 8 === 0 || y % 8 === 0) ? P.white : h2(x, y, 41) < 0.05 ? P.lav4 : '#f2f0f4');
+  }
+  // the edge: a steel strip where the tiles meet the vinyl, in the navy outline
+  for (let i = 1; i < W - 1; i++) { put(img, i, 1, P.grey1); put(img, i, H - 2, P.grey0); }
+  for (let i = 1; i < H - 1; i++) { put(img, 1, i, P.grey1); put(img, W - 2, i, P.grey0); }
+  for (let i = 0; i < W; i++) { put(img, i, 0, NAVY); put(img, i, H - 1, NAVY); }
+  for (let i = 0; i < H; i++) { put(img, 0, i, NAVY); put(img, W - 1, i, NAVY); }
+  // the drain under the tub, and the blue mat in front of the table
+  flat(img, ell(40, 20, 3, 2), P.grey1, { outline: false });
+  for (const dx of [-1, 1]) for (const dy of [-1, 0, 1]) put(img, 40 + dx * 1, 20 + dy, P.slate);
+  for (let y = 30; y < 42; y++) for (let x = 8; x < 30; x++) put(img, x, y, (x + y) % 3 === 0 ? P.blue2 : P.blue3);
+  hline(img, 8, 30, 22, P.blue4); hline(img, 8, 41, 22, P.blue1);
+  return { img, anchor: [24, 48] };
+}
+
+/** A folded play-pen for sale, leaning on the wall (16 x 22): four white fence panels, a price tag on a string. */
+function cercadinhoVenda() {
+  const img = blank(18, 23);
+  for (let k = 0; k < 3; k++) {
+    const x = 2 + k * 2, y = 2 + k;
+    rect(img, x, y, 10, 17, k === 2 ? P.white : P.lav4);
+    for (let px_ = x + 2; px_ < x + 9; px_ += 3) vline(img, px_, y + 2, 13, k === 2 ? P.lav : P.lav);
+    hline(img, x, y + 2, 10, k === 2 ? P.grey2 : P.lav); hline(img, x, y + 14, 10, k === 2 ? P.grey2 : P.lav);
+  }
+  // the tag
+  vline(img, 13, 6, 3, P.slate);
+  rect(img, 12, 9, 4, 5, P.mu3); hline(img, 12, 9, 4, P.mu4); put(img, 13, 11, P.wood0); put(img, 14, 11, P.wood0);
+  outlineAround(img);
+  return { img, anchor: [9, 22] };
+}
+
+/** Paw-print bunting (16 x 12 per tile, tiled along the wall): a string sagging between nails with alternating mustard / green / red flags. */
+function varalPatas() {
+  const img = blank(16, 12);
+  const sag = (x) => Math.round(1 + 2 * Math.sin((x / 16) * Math.PI));
+  for (let x = 0; x < 16; x++) put(img, x, sag(x), P.slate);
+  const flags = [[1, P.mu3, P.mu1], [9, P.sp2, P.sp0]];
+  for (const [fx, c, lo] of flags) {
+    const top = sag(fx) + 1;
+    for (let y = 0; y < 7; y++) { const half = Math.max(0, 3 - Math.floor(y / 2)); for (let x = -half; x <= half; x++) put(img, fx + 2 + x, top + y, y === 0 ? lo : c); }
+    put(img, fx + 2, top + 2, P.cream); put(img, fx + 1, top + 1, P.cream); put(img, fx + 3, top + 1, P.cream);
+  }
+  return { img, anchor: [0, 12] };
 }
 
 // ------------------------------------------------------------------ the north wall
@@ -750,8 +948,17 @@ export async function petshopSet(ctx) {
   add('props/placa_petshop', placaPetshop(), solid([1, 1], 'fx/shadow_10'));
   add('props/tigela_calcada', tigelaCalcada(), flatMeta());
   // the interior
-  add('props/cercadinho', cercadinho(), solid([3, 2], null, false));
-  add('props/gatil', gatil(), solid([2, 2], null, false));
+  // the pens: the floor and back are decals (the animals stand on them), the front rails stand on the pens' south edge
+  add('props/cercadinho', cercadinho(), { footprint: [3, 2], shadow: null, decal: true });
+  add('props/cercadinho_frente', cercadinhoFrente(), solid([3, 2], null, false));
+  add('props/gatil', gatil(), { footprint: [2, 2], shadow: null, decal: true });
+  add('props/gatil_frente', gatilFrente(), solid([2, 2], null, false));
+  // the counter, the display island, the rugs and the grooming tiles, the play-pen for sale
+  for (let i = 0; i < 5; i++) add(`props/balcao_pet_${i}_of_5`, balcaoPet(i, 5), { footprint: [1, 1], shadow: null });
+  add('props/expositor', expositor(), solid([2, 1]));
+  add('props/tapete_pata', tapetePata(), { footprint: [3, 2], shadow: null, decal: true });
+  add('props/piso_banho', pisoBanho(), { footprint: [3, 3], shadow: null, decal: true });
+  add('props/cercadinho_venda', cercadinhoVenda(), solid([1, 1], 'fx/shadow_10'));
   add('props/arranhador', arranhador(), solid([1, 1], 'fx/shadow_10'));
   add('props/prateleira_racao', prateleiraRacao(), solid([1, 1]));
   add('props/cesto_brinquedos', cestoBrinquedos(), solid([1, 1], 'fx/shadow_10'));
@@ -777,6 +984,7 @@ export async function petshopSet(ctx) {
   add('walls/poster_adocao', posterAdocao(), { shadow: null });
   add('walls/placa_banho_tosa', placaDupla(32, 'BANHO', 'E TOSA'), { shadow: null });
   add('walls/placa_vet', placaDupla(48, 'VETERINÁRIO', 'TER E QUI'), { shadow: null });
+  add('walls/varal_patas', varalPatas(), { shadow: null });
   // fx
   parts.push({ key: 'fx/carinho', frames: carinhoFrames(), fps: 6, anchor: [8, 15], meta: { shadow: null } });
   add('fx/ossinho', ossinhoFx(), { shadow: null });

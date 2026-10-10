@@ -272,7 +272,7 @@ If the base pack has no frames for an emote, reuse `idle` S for it and bounce th
 Unit-test the ramp generator (monotonic luminance) and the key-color replacement (on a tiny 2×2 test canvas, using `@napi-rs/canvas` or a plain `Uint8ClampedArray` function that doesn't need a DOM).
 
 **NPCs** (Carlos: white apron over a warm shirt; Júlia: blouse with jeans; Nanda: mustard top with jeans and a straw hat) use the same pipeline. Their unique pieces (apron, Nanda's straw hat) are extra layers.
-**The avatar creator** (`ui/onboarding.ts`) must show the composed pixel character at an integer zoom (6× or 8×) with CSS `image-rendering: pixelated`.
+**The look editor** (`ui/lookEditor.ts`, Menu → Visual; it used to be the avatar creator in `ui/onboarding.ts`, which is now a name-only card: new players pick a passenger on the plane) must show the composed pixel character at an integer zoom (6× or 8×) with CSS `image-rendering: pixelated`.
 
 ### 5.6 Terrain: ASCII + dual-grid autotiling
 

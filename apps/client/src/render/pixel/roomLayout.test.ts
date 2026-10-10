@@ -107,8 +107,8 @@ describe('art track 3 wall art and props', () => {
     expect(kinds('praca')).toEqual([]); // open-air: no wall band, building fronts are props
   });
 
-  it('pixelWalls stay on the wall (columns -1..cols) and only overlap on purpose (awning over shelves, wainscot, sign on the building)', () => {
-    const layers = new Set(['azulejos', 'toldo', 'metro']);
+  it('pixelWalls stay on the wall (columns -1..cols) and only overlap on purpose (awning over shelves, wainscot, sign on the building, bunting over the signs)', () => {
+    const layers = new Set(['azulejos', 'toldo', 'metro', 'varal_patas']);
     for (const r of Object.values(ROOMS)) {
       const flat = northDecor(r).filter((d) => !layers.has(d.kind) && d.kind !== 'fachada_padaria');
       for (const d of northDecor(r)) {

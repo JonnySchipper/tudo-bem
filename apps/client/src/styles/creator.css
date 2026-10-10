@@ -589,3 +589,134 @@
   color: inherit;
   opacity: 0.8;
 }
+
+/* ---------------------------------------------------------------- the boarding pass (the new account's one quick step) */
+
+.onboarding .creator-panel.name-card {
+  position: relative;
+  width: min(520px, 100%);
+  padding: 16px 22px 14px;
+}
+
+.name-card .cr-sec {
+  grid-template-columns: 1fr;
+}
+
+.name-card .rules {
+  padding: 8px 10px 10px;
+  background: #f4e4c8;
+  font-weight: 800;
+  font-size: 0.82rem;
+  box-shadow: inset 3px 0 0 0 var(--mustard);
+}
+
+.name-card .rules .en {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* the ticket stub in the corner: the flight this name boards */
+.name-card-ticket {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 0 6px;
+  padding: 4px 10px 5px;
+  background: #fff8ec;
+  border: 2px dashed rgba(87, 60, 44, 0.45);
+  color: var(--terracota-dark);
+  font-family: var(--font-pixel);
+  transform: rotate(3deg);
+}
+
+.name-card-ticket span {
+  grid-row: span 2;
+  font-size: 1.4rem;
+}
+
+.name-card-ticket b {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.name-card-ticket i {
+  font-style: normal;
+  font-size: 0.62rem;
+  opacity: 0.8;
+}
+
+@media (max-width: 760px) {
+  .name-card-ticket {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- the look editor (Menu → Visual), the old creator in a modal */
+
+.creator-panel.look-editor {
+  position: relative;
+  width: min(1000px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 12px 22px 14px;
+  background: var(--hud-paper, #fbf1e3);
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    0 -3px 0 0 var(--hud-ink, #573c2c),
+    0 3px 0 0 var(--hud-ink, #573c2c),
+    -3px 0 0 0 var(--hud-ink, #573c2c),
+    3px 0 0 0 var(--hud-ink, #573c2c),
+    inset 0 3px 0 0 var(--hud-paper-hi, #fffaf0),
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8),
+    0 9px 0 0 rgba(20, 10, 6, 0.4);
+}
+
+.look-editor .look-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--hud-ink, #573c2c);
+  font-size: 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.look-editor .creator-cta .stage-btn {
+  min-height: 46px;
+}
+
+@media (max-width: 760px) {
+  .creator-panel.look-editor {
+    width: 100vw;
+    max-height: 100dvh;
+    padding: 12px 14px 14px;
+  }
+
+  /* Undo and Save side by side: one short bar, not two rows over the fields */
+  .look-editor .creator-cta .row {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .look-editor .creator-cta .spacer {
+    display: none;
+  }
+
+  .look-editor .creator-cta .stage-btn {
+    flex: 0 0 auto;
+    padding: 0 12px;
+  }
+
+  .look-editor .creator-cta .primary {
+    flex: 1;
+    width: auto;
+  }
+}

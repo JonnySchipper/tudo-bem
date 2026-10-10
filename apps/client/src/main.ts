@@ -115,6 +115,7 @@ import { askTray, bindPesca, onPescaMsg, onPescaRefused, openCaderneta, openPesc
 import { askBarcos, bindBarco, onBarcoMsg, returnBarco } from './ui/pesca/barcoMenu';
 import { aboardMyParty, bindParty, createParty, hostingParty, inviteToBoat, onAboardCatch, onPartyMsg, onPartyRoomChanged, sendAshore } from './ui/pesca/party';
 import './styles/pesca.css';
+import './styles/hotspotCard.css';
 import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
@@ -126,6 +127,7 @@ import { desembGateHint, desembGuide, inDesembarque, markDesembStep, mountDesemb
 import { firstRoom } from './ui/desembarqueLogic';
 import { designLinkRoom, watchDesignLink } from './ui/designLink';
 import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
+import { openLookEditor } from './ui/lookEditor';
 import { shouldPlayFlightIntro } from './ui/flightIntroLogic';
 import { thanksFor } from './ui/airportTutorialLogic';
 import { installHowToPlay } from './ui/howToPlay';
@@ -134,6 +136,7 @@ import { doorTagsFor, showRoomIntro } from './ui/wayfinding';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
 import { startAchado, claimReadingWord } from './ui/achado';
+import { setPhotoFindInsets } from './ui/photoFind';
 import { roomTally } from './ui/achadoLogic';
 import { wantsReveal } from './ui/journalReveal';
 import { framedIds, cameraFrameAt } from './ui/viewfinder';
@@ -205,6 +208,7 @@ let correriaUi: CorreriaUI | null = null;
 let boutUi: BoutUI | null = null;
 // a word found during a game is celebrated when that game's screen closes
 setWordGate(() => !!boutUi?.open || !!correriaUi?.open || escolaPracticeOpen() || modalId() === 'checkers');
+setPhotoFindInsets(() => renderer.hudInsets?.() ?? { top: 64, bottom: 110 });
 let started = false;
 
 /** Correria no Balcão: the overlay and the world's counter open when the first shift state arrives. */
@@ -996,7 +1000,8 @@ net.on((m: ServerMsg) => {
         // a brand-new account flies in first (the cutscene), and lands in the arrivals hall
         localStorage.setItem(seenKey, '1');
         renderer.hold?.(true);
-        void playFlightIntro({ name: m.profile.name, appearance: m.profile.appearance }).then(() => {
+        // the passenger the player clicks on the plane is who they are from now on
+        void playFlightIntro({ name: m.profile.name, appearance: m.profile.appearance, onPick: (appearance) => net.send({ t: 'updateAppearance', appearance }) }).then(() => {
           renderer.hold?.(false);
           joinRoom(firstRoom(game.profile ?? m.profile) ?? 'desembarque');
         });
@@ -1452,6 +1457,10 @@ function startGame() {
         boat: { hosting: hostingParty, invite: inviteToBoat },
       }),
     openWardrobe: () => openHatShop('wardrobe', { buy: () => {}, equip: (id) => net.send({ t: 'equipHat', hatId: id }) }),
+    openLook: () => {
+      const p = game.profile;
+      if (p) openLookEditor({ appearance: p.appearance, hat: p.hat, onSave: (appearance) => net.send({ t: 'updateAppearance', appearance }) });
+    },
     toggleDecor: () => {
       game.editMode = !game.editMode;
       game.placing = null;

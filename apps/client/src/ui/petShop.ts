@@ -14,6 +14,7 @@ import { bi, en, h } from './dom';
 import { closeModal, openModal } from './modal.js';
 import { openPetName } from './petName';
 import { petCanvas } from './petSprite';
+import { npcPortrait } from './pixelArt';
 import { equipOptions, petShopView, type LitterCard, type MyPetRow, type PetShopTab, type PetShopView } from './petShopLogic';
 
 export interface PetShopActions {
@@ -105,13 +106,38 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
     );
   };
 
+  // each animal on its pen's floor: the dogs on the cercadinho's planks, the cats on the gatil's sage cushion
   const litterCard = (c: LitterCard) =>
     h(
       'button',
-      { type: 'button', class: `item-card petshop-animal${c.br ? ' br' : ''}`, 'data-pen': c.penId, 'data-slot': String(c.slot), 'data-breed': c.breed, onclick: () => ((meet = { ...c, pen: { penId: c.penId, slot: c.slot } }), ditoSays('adopt_pick'), paint()) },
-      petCanvas(c.look, { scale: 4, frames: [12, 13], fps: 2 }),
+      { type: 'button', class: `item-card petshop-animal ${c.species}${c.br ? ' br' : ''}`, 'data-pen': c.penId, 'data-slot': String(c.slot), 'data-breed': c.breed, onclick: () => ((meet = { ...c, pen: { penId: c.penId, slot: c.slot } }), ditoSays('adopt_pick'), paint()) },
+      h('div', { class: 'petshop-animal-pen' }, petCanvas(c.look, { scale: 4, frames: [12, 13], fps: 2 })),
       h('div', { class: 'name' }, c.pt),
       en(`${c.en} · ${c.coatPt}`),
+    );
+
+  const SPECIES_TITLE: Record<PetSpecies, [string, string]> = { dog: ['Cachorros', 'Dogs'], cat: ['Gatos', 'Cats'] };
+  const breedRow = (g: PetShopView['catalog'][number]) =>
+    h(
+      'div',
+      { class: `petshop-breed${g.br ? ' br' : ''}`, 'data-species': g.species },
+      h('div', { class: 'petshop-breed-name' }, g.br ? h('span', { class: 'petshop-br', title: 'Raça ou tipo brasileiro · Brazilian breed or type' }, 'BR') : null, h('b', null, g.pt), en(g.en, true)),
+      h(
+        'div',
+        { class: 'petshop-coats' },
+        ...g.coats.map((c) =>
+          h('button', {
+            type: 'button',
+            class: 'ghost petshop-swatch',
+            'data-breed': c.breed,
+            'data-coat': c.coat,
+            title: `${c.pt} · ${c.en}`,
+            'aria-label': `${g.pt}: ${c.pt} (${c.en})`,
+            style: `--coat:${c.color}`,
+            onclick: () => ((meet = { look: c.look, breed: c.breed, coat: c.coat, pt: g.pt, en: g.en, coatPt: c.pt, coatEn: c.en, species: g.species }), paint()),
+          }),
+        ),
+      ),
     );
 
   const adotar = (v: PetShopView) => {
@@ -127,27 +153,13 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
       h(
         'section',
         { class: 'stall-shelf petshop-catalog', 'data-shelf': 'catalog' },
-        h('div', { class: 'stall-shelf-title' }, h('b', null, 'Catálogo de raças'), en('Breed catalog', true)),
-        ...v.catalog.map((g) =>
+        h('div', { class: 'stall-shelf-title' }, h('b', null, 'Catálogo de raças'), en('Breed catalog: pick a coat to meet one', true)),
+        ...(['dog', 'cat'] as const).map((sp) =>
           h(
             'div',
-            { class: `petshop-breed${g.br ? ' br' : ''}`, 'data-species': g.species },
-            h('div', { class: 'petshop-breed-name' }, g.br ? h('span', { class: 'petshop-br', title: 'Raça ou tipo brasileiro · Brazilian breed or type' }, 'BR') : null, h('b', null, g.pt), en(g.en, true)),
-            h(
-              'div',
-              { class: 'petshop-coats' },
-              ...g.coats.map((c) =>
-                h('button', {
-                  type: 'button',
-                  class: 'petshop-swatch',
-                  'data-breed': c.breed,
-                  'data-coat': c.coat,
-                  title: `${c.pt} · ${c.en}`,
-                  style: `--coat:${c.color}`,
-                  onclick: () => ((meet = { look: c.look, breed: c.breed, coat: c.coat, pt: g.pt, en: g.en, coatPt: c.pt, coatEn: c.en, species: g.species }), paint()),
-                }),
-              ),
-            ),
+            { class: `petshop-catalog-group ${sp}`, 'data-group': sp },
+            h('h4', null, SPECIES_TITLE[sp][0], en(SPECIES_TITLE[sp][1], true)),
+            ...v.catalog.filter((g) => g.species === sp).map(breedRow),
           ),
         ),
       ),
@@ -180,7 +192,7 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
       h(
         'div',
         { class: 'petshop-meet', id: 'petshop-meet', 'data-breed': m.breed, 'data-coat': m.coat },
-        h('div', { class: 'petshop-stage' }, petCanvas(m.look, { scale: 6, frames: [0, 1, 2, 3], fps: 8 }), petCanvas(m.look, { scale: 6, frames: [4, 5, 6, 7], fps: 8 }), hearts),
+        h('div', { class: `petshop-stage ${m.species}` }, petCanvas(m.look, { scale: 6, frames: [0, 1, 2, 3], fps: 8 }), petCanvas(m.look, { scale: 6, frames: [4, 5, 6, 7], fps: 8 }), hearts),
         h('h3', null, m.pt, en(`${m.en} · ${m.coatPt} (${m.coatEn})`, true)),
         h('p', { class: 'petshop-says' }, `Seu Dito: “${PETSHOP_LINES.adopt_pick.pt}”`, en(PETSHOP_LINES.adopt_pick.en, true)),
         v.full ? h('p', { class: 'petshop-note', id: 'petshop-full' }, PETSHOP_LINES.adopt_full.pt, en(PETSHOP_LINES.adopt_full.en, true)) : null,
@@ -227,8 +239,8 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
     };
     return h(
       'div',
-      { class: `petshop-pet${r.active ? ' active' : ''}`, 'data-pet': r.id },
-      petCanvas(r.look, { scale: 3, frame: r.active ? 12 : 18 }),
+      { class: `petshop-pet ${r.species}${r.active ? ' active' : ''}`, 'data-pet': r.id },
+      h('div', { class: 'petshop-pet-pic' }, petCanvas(r.look, { scale: 3, frame: r.active ? 12 : 18 })),
       h('div', { class: 'petshop-pet-info' }, h('b', null, r.name ?? 'Sem nome'), en(`${r.breedPt} · ${r.breedEn}`, true), r.active ? h('span', { class: 'stall-tag using' }, 'Passeando · Out') : null),
       h(
         'div',
@@ -294,8 +306,12 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
     const body = current === 'adotar' ? adotar(v) : current === 'meus' ? meus(v) : [lojinha(v)];
     root.replaceChildren(
       h('button', { class: 'close ghost', onclick: () => closeModal(), 'aria-label': 'Fechar (Close)' }, '✕'),
-      h('h2', { id: 'petshop-title' }, 'Pet Shop do Seu Dito'),
-      en('Seu Dito’s pet shop'),
+      h(
+        'div',
+        { class: 'petshop-head' },
+        npcPortrait('dito', current === 'adotar' ? 'feliz' : 'neutro', 'petshop-portrait'),
+        h('div', { class: 'petshop-head-title' }, h('h2', { id: 'petshop-title' }, 'Pet Shop do Seu Dito'), en('Seu Dito’s pet shop')),
+      ),
       h('div', { class: 'petshop-tabs', role: 'tablist' }, tabButton('adotar', 'Adotar', 'Adopt'), tabButton('meus', 'Meus pets', 'My pets'), tabButton('lojinha', 'Lojinha', 'Little shop')),
       h('div', { class: 'petshop-body', 'data-tab': current }, ...[body].flat().filter((n): n is HTMLElement => n != null)),
     );

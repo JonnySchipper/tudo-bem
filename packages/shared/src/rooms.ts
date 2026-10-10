@@ -137,7 +137,7 @@ export interface PropDef {
 export type WallSide = 'left' | 'right';
 
 export interface WallDecor {
-  kind: 'fachada_padaria' | 'mural' | 'predio' | 'metro' | 'janela_rua' | 'prateleira_paes' | 'lousa' | 'relogio' | 'azulejos' | 'poster' | 'janela' | 'placa' | 'cobogo' | 'tv' | 'toldo' | 'foto' | 'quadro_racas';
+  kind: 'fachada_padaria' | 'mural' | 'predio' | 'metro' | 'janela_rua' | 'prateleira_paes' | 'lousa' | 'relogio' | 'azulejos' | 'poster' | 'janela' | 'placa' | 'cobogo' | 'tv' | 'toldo' | 'foto' | 'quadro_racas' | 'varal_patas';
   wall: WallSide;
   /** Start and end along the wall in tile units. */
   from: number;
@@ -189,7 +189,7 @@ export interface NpcDef {
   idleLines: Bilingual[];
 }
 
-export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame' | 'paralelepipedo' | 'granilite' | 'areia' | 'agua' | 'deque' | 'lagoa';
+export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame' | 'paralelepipedo' | 'granilite' | 'vinilico' | 'areia' | 'agua' | 'deque' | 'lagoa';
 
 export interface RoomDef {
   id: RoomId;
@@ -241,6 +241,8 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
   j: 'tatame',
   p: 'paralelepipedo',
   z: 'granilite',
+  // the pet shop: mint and cream vinyl tiles
+  v: 'vinilico',
   // the Praia: sand, the sea (never walkable: `buildGrid` blocks it), the wooden deck of the pier and every boat
   s: 'areia',
   o: 'agua',
@@ -1038,12 +1040,15 @@ const DITO: NpcDef = {
   ],
 };
 
-// The four pieces fill the north wall (poster 40 px, chart 62, vet plaque 48, banho e tosa 32), centred on these spans. Each is a readable
-// sign (hotspots.ts), so each hangs over a row-0 tile that is not a pen: the dog and cat pens (x6-10) keep their click.
+// The four signs fill the north wall (poster 40 px, chart 62, vet plaque 48, banho e tosa 32), centred on these spans. Each is a readable
+// sign (hotspots.ts), so each hangs over a row-0 tile that is not a pen: the dog and cat pens (x6-10) keep their click. Paw bunting runs
+// along the top of the wall over the pens, and a clock fills the gap between the vet plaque and banho e tosa (#234 visual pass).
 const PETSHOP_WALLS: WallDecor[] = [
+  { kind: 'varal_patas', wall: 'right', from: 5, to: 12 },
   { kind: 'poster', wall: 'right', from: -1, to: 1.5, text: 'ADOÇÃO' },
   { kind: 'quadro_racas', wall: 'right', from: 2, to: 5 },
   { kind: 'placa', wall: 'right', from: 5.5, to: 8.5, text: 'VETERINÁRIO' },
+  { kind: 'relogio', wall: 'right', from: 8.5, to: 9.5 },
   { kind: 'placa', wall: 'right', from: 10, to: 12, text: 'BANHO E TOSA' },
 ];
 
@@ -1053,10 +1058,11 @@ const petshop: RoomDef = {
   gloss: 'Seu Dito’s pet shop',
   cols: 12,
   rows: 9,
-  floor: Array.from({ length: 9 }, () => 'l'.repeat(12)),
+  // mint and cream vinyl tiles (`v`), the walls mint over a sage wainscot (pixel view style `petshop`)
+  floor: Array.from({ length: 9 }, () => 'v'.repeat(12)),
   wallHeight: 140,
-  wallColor: '#F5E6D3',
-  wallTrim: '#8B5E3C',
+  wallColor: '#E3EEE3',
+  wallTrim: '#2F5D50',
   lighting: 'manha',
   spawn: { x: 1, y: 6 },
   props: bundledObjects('petshop'),

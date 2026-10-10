@@ -175,15 +175,12 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
   await page.waitForSelector('#avatar-name', { timeout: 12_000 });
   assert(!(await page.$('#birth-month')), 'avatar creator has no birth-date step');
   await page.fill('#avatar-name', name);
+  // A new account only names itself: the look is picked on the plane (a passenger) and changed later in Menu → Visual.
   const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
-  assert(labels.includes('Visual inicial'), `visual inicial preset (${labels.join(' | ')})`);
-  assert(labels.includes('Corpo') && labels.includes('Rosto') && labels.includes('Cabelo') && labels.includes('Detalhe'), `body, face, hair and detail (${labels.join(' | ')})`);
-  // Clothing is two whole starter outfits (tee + jeans, blouse + skirt), not separate blouse / bottom / shoe pickers.
-  for (const gone of ['Blusa', 'Cor da blusa', 'Parte de baixo', 'Tênis']) {
-    assert(!labels.includes(gone), `create no longer asks for ${gone}`);
+  for (const gone of ['Corpo', 'Rosto', 'Cabelo', 'Detalhe', 'Visual inicial', 'Tom de pele']) {
+    assert(!labels.includes(gone), `the name card no longer asks for ${gone} (${labels.join(' | ')})`);
   }
-  const outfits = await page.$$eval('[data-outfit]', (els) => els.map((e) => e.getAttribute('data-outfit')));
-  assert(outfits.includes('visual_inicial') && outfits.includes('visual_saia') && outfits.length === 2, `two starter outfits (${outfits.join(', ')})`);
+  assert(!(await page.$('#avatar-preview')), 'no avatar preview before the flight');
   const label = { ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' }[pronoun];
   await page.click(`button:has-text("${label}")`);
   assert(!(await page.$('#confirm-18')), 'the avatar creator asks no age question');
@@ -251,8 +248,23 @@ async function main() {
   // Phase 8a: the old checklist is Júlia's welcome chain in the recado tracker (also on phones)
   assert(!(await page.$('#checklist')), 'the old checklist is gone');
   assert(((await page.textContent('#recado-tracker')) ?? '').includes('Bem-vindo à Vila Ipê'), 'the tracker shows the welcome chain');
-  assert(start.appearance.top === 'camiseta' && start.appearance.bottom === 'calca' && start.appearance.shoes === 0, 'starter outfit is tee + jeans');
-  assert(start.appearance.extra === 'nenhum', 'ele keeps the default extra (none); ela would pick earrings');
+  // skipping the flight keeps the random passenger the account was made with: a starter outfit
+  assert(['camiseta', 'blusa'].includes(start.appearance.top) && ['calca', 'saia'].includes(start.appearance.bottom), 'a passenger look in a starter outfit');
+  // Menu → Visual: the look editor (what the creator used to be) changes the look any time
+  await page.evaluate(() => document.getElementById('btn-look').click());
+  await page.waitForSelector('.look-editor #avatar-preview', { timeout: 5_000 });
+  const lookLabels = await page.$$eval('.look-editor .field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
+  assert(['Corpo', 'Rosto', 'Cabelo', 'Detalhe', 'Visual inicial', 'Tom de pele'].every((l) => lookLabels.includes(l)), `the look editor has body, face, hair, detail, skin and outfit (${lookLabels.join(' | ')})`);
+  // Clothing is two whole starter outfits (tee + jeans, blouse + skirt), not separate blouse / bottom / shoe pickers.
+  for (const gone of ['Blusa', 'Cor da blusa', 'Parte de baixo', 'Tênis']) assert(!lookLabels.includes(gone), `the look editor does not ask for ${gone}`);
+  const outfits = await page.$$eval('.look-editor [data-outfit]', (els) => els.map((e) => e.getAttribute('data-outfit')));
+  assert(outfits.includes('visual_inicial') && outfits.includes('visual_saia') && outfits.length === 2, `two starter outfits (${outfits.join(', ')})`);
+  await page.click('.look-editor [data-outfit="visual_inicial"]');
+  await page.click('.look-editor .cr-wide:has(label:has-text("Detalhe")) button:has-text("Nenhum")');
+  await page.click('#look-save');
+  await waitFor(page, () => window.__tb.game.profile.appearance.top === 'camiseta' && window.__tb.game.profile.appearance.bottom === 'calca' && window.__tb.game.profile.appearance.extra === 'nenhum', null, 5_000, 'the saved look');
+  assert(!(await page.$('.look-editor')), 'the look editor closes on save');
+  log('look editor: tee + jeans, no extra, saved');
   assert(/Música/.test((await page.textContent('#btn-music')) ?? ''), 'room music toggle on the praça bar');
   assert(/Voz/.test((await page.textContent('#btn-sound')) ?? ''), 'voice toggle on the praça bar');
 

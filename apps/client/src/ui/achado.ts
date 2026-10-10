@@ -5,7 +5,8 @@
  *            server to grant the word; nothing granted in time and the star fizzles back into the world)
  *   burst    a bell (pitched up the pentatonic by the streak of finds), a flash, two shockwaves, slow rays, sparks in the colours of
  *            the Vila; the word's letters shoot out of the star on their own arcs and land one by one above it, each with a glassy note
- *   hold     a shimmer runs across the word, it is spoken, the English slides in under it, and the room's tally fills a pip
+ *   hold     (about 3 s, long enough to read the word and its English) a shimmer runs across the word, it is spoken, the English
+ *            slides in under it, and the room's tally fills a pip
  *            ("Rua dos Ipês · 4/9"); the room's last word sets off the finale (every sign of the room pings, confetti, a music-box run)
  *   collect  the letters gather into one chip that flies on an arc, sparkling, into the Diário, which bumps
  *
@@ -37,7 +38,7 @@ export interface AchadoOpts {
 }
 
 /** Beats, in ms. Exported for the screenshot script, which pauses on them. */
-export const ACHADO_MS = { charge: 460, wait: 3500, letterGap: 55, letterFly: 640, hold: 1500, finale: 1500, gather: 260 } as const;
+export const ACHADO_MS = { charge: 460, wait: 3500, letterGap: 55, letterFly: 640, hold: 3200, finale: 1500, gather: 260 } as const;
 
 const SPARK_COLORS = ['#fff6cf', '#f2c230', '#ffd75e', '#3fbf7f', '#4f8ff0', '#ff9f43', '#fff6cf', '#f2c230'];
 /** The notes the letters land on: up the major arpeggio. */
@@ -243,7 +244,7 @@ class Achado {
     speak(this.o.word.pt);
     const complete = this.o.tally.found >= this.o.tally.total && this.o.tally.total > 1;
     if (complete) this.later(() => this.finale(), 420);
-    this.later(() => this.collect(), (this.still ? 2200 : ACHADO_MS.hold) + (complete ? ACHADO_MS.finale : 0));
+    this.later(() => this.collect(), (this.still ? 3600 : ACHADO_MS.hold) + (complete ? ACHADO_MS.finale : 0));
   }
 
   /** The room's last hidden word: every sign of the room pings in turn, confetti falls, a music-box run. */

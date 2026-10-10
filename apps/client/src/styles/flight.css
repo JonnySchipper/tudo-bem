@@ -553,6 +553,93 @@
   opacity: 1;
 }
 
+/* ---- "Qual é você?": the pick bar under the row (◀ Sou eu! ▶), and the player's answer */
+.fl-pickbar {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.fl-pickbar .fl-choice {
+  min-width: 0;
+}
+.fl-pick-nav {
+  justify-content: center;
+  align-items: center;
+  width: 56px;
+  padding: 10px 0;
+  font: 800 20px/1 var(--font-body);
+  color: #e5572f;
+}
+.fl-pick-nav::before,
+.fl-pick-me::before {
+  display: none;
+}
+.fl-pick-me {
+  align-items: center;
+  min-width: 170px;
+  padding: 10px 26px;
+  background: #ffcf4a;
+  box-shadow: 0 0 0 3px #d79b17, 0 5px 0 #a5740c;
+  text-align: center;
+}
+.fl-pick-me .fl-choice-en {
+  color: #6b4a0e;
+}
+.fl-pickbar .fl-choice:hover,
+.fl-pickbar .fl-choice:focus-visible {
+  transform: translateY(-2px);
+}
+.fl-pick .fl-pt {
+  font-size: 1.35em;
+}
+.fl-bubble .fl-bubble-en {
+  display: block;
+  margin-top: 2px;
+  color: #6c8a76;
+  font: italic 600 12px/1.1 var(--font-body);
+  text-align: center;
+}
+
+/* ---- the seatbelt close-up's "CLAC!": a comic sound word that pops over the insert and floats off */
+.fl-clac {
+  position: absolute;
+  z-index: 2;
+  color: #ffd84a;
+  font: 700 clamp(28px, 6vw, 56px)/1 var(--font-pixel);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  text-shadow:
+    3px 0 0 #2a2233,
+    -3px 0 0 #2a2233,
+    0 3px 0 #2a2233,
+    0 -3px 0 #2a2233,
+    0 7px 0 #e5572f,
+    0 10px 0 rgba(42, 34, 51, 0.5);
+  transform: translate(-50%, -50%) rotate(-8deg) scale(0);
+  animation: fl-clac 1.3s cubic-bezier(0.2, 1.6, 0.4, 1) forwards;
+}
+@keyframes fl-clac {
+  0% {
+    transform: translate(-50%, -30%) rotate(-14deg) scale(0.2);
+    opacity: 0;
+  }
+  18% {
+    transform: translate(-50%, -60%) rotate(-6deg) scale(1.25);
+    opacity: 1;
+  }
+  32% {
+    transform: translate(-50%, -60%) rotate(-8deg) scale(1);
+  }
+  75% {
+    transform: translate(-50%, -75%) rotate(-8deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -95%) rotate(-8deg) scale(0.9);
+    opacity: 0;
+  }
+}
+
 @media (max-width: 560px) {
   .fl-box {
     min-height: 104px;
@@ -569,6 +656,9 @@
   .fl-belt {
     min-width: 0;
   }
+  .fl-pick-me {
+    flex: 1;
+  }
   .fl-letter {
     width: 92vw;
   }
@@ -584,6 +674,7 @@
     transition-duration: 0.01s;
   }
   .fl-belt,
+  .fl-clac,
   .fl-tap,
   .fl-box.is-done .fl-next {
     animation: none;
@@ -591,5 +682,11 @@
   .fl-title.is-on .fl-title-big span {
     animation-duration: 0.01s;
     animation-delay: 0s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-clac {
+    transform: translate(-50%, -60%) rotate(-8deg);
   }
 }
