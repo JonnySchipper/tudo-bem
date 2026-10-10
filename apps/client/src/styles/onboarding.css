@@ -923,23 +923,63 @@ body.in-desembarque #aero-tut {
 
 /* ---------------------------------------------------------------- the Vila Ipê guide (ui/vilaGuide.ts): what there is to do, once */
 
+/* sized to read comfortably: body text 17 px on a computer, never under 15 px on a phone */
 .vila-guide {
-  width: min(480px, calc(100vw - 24px));
+  width: min(600px, calc(100vw - 24px));
+  padding: 18px 22px;
+}
+
+.vila-guide h3 {
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.vila-guide h3 .en {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-body, inherit);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-soft, #5e5550);
+}
+
+.vila-guide .howto-kicker {
+  font-size: 13px;
+}
+
+.vila-guide .howto-goal {
+  font-size: 17px;
+  line-height: 1.45;
 }
 
 .vila-guide .vila-guide-list {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 6px 12px;
-  margin: 0 0 10px;
-  font-size: 14px;
-  line-height: 1.35;
+  gap: 10px 14px;
+  margin: 0 0 12px;
+  font-size: 17px;
+  line-height: 1.45;
 }
 
 .vila-guide .vila-guide-list dt {
-  font-family: var(--font-pixel, var(--font-title));
-  color: var(--terracota-dark, #8f3e15);
+  display: flex;
+  flex-direction: column;
   white-space: nowrap;
+}
+
+.vila-guide .vila-guide-list dt b {
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--terracota-dark, #8f3e15);
+}
+
+.vila-guide .vila-guide-list dt small {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft, #5e5550);
 }
 
 .vila-guide .vila-guide-list dd {
@@ -947,12 +987,50 @@ body.in-desembarque #aero-tut {
 }
 
 .vila-guide .vila-guide-tip {
-  margin: 0 0 10px;
-  padding: 8px 10px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
   background: #fff8e4;
   border: 2px solid var(--px-ink, #573c2c);
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.vila-guide .howto-foot button {
+  font-size: 18px;
+  padding: 10px 18px;
+}
+
+/* a phone: the name goes over its line (one column), the text stays at 15-16 px and the card scrolls if it must */
+@media (max-width: 560px) {
+  .vila-guide {
+    padding: 14px 14px;
+    max-height: calc(100dvh - 24px);
+  }
+
+  .vila-guide h3 {
+    font-size: 24px;
+  }
+
+  .vila-guide .howto-goal,
+  .vila-guide .vila-guide-list {
+    font-size: 16px;
+  }
+
+  .vila-guide .vila-guide-list {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .vila-guide .vila-guide-list dt {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .vila-guide .vila-guide-tip {
+    font-size: 15px;
+  }
 }
 
 /* a top-bar stat that explains itself on a click (ui/hudNotes.ts) */

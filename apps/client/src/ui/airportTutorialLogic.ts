@@ -49,7 +49,7 @@ export const AIRPORT_STEPS: readonly AirportStep[] = [
     id: 'foto',
     pt: 'Tire uma foto do avião',
     en: 'Take a photo of the plane',
-    how: { pt: 'Chegue perto da janela, clique em Câmera e depois no avião. Aqui no aeroporto as fotos são de graça.', en: 'Go up to the window, click Câmera, then the plane. Each thing you photograph teaches its word. Photos are free here.' },
+    how: { pt: 'Chegue perto da janela, clique em Câmera e depois em qualquer parte do avião. Aqui no aeroporto as fotos são de graça.', en: 'Go up to the window, click Câmera, then any part of the plane: the wing, the tail, the nose, a wheel… Each part teaches its word. Photos are free here.' },
     guide: { kind: 'prop', id: 'aviao', label: 'Photograph · Fotografe', lift: 70 },
     hud: '#btn-camera, #btn-burger',
   },

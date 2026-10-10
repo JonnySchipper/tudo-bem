@@ -7,18 +7,18 @@ const P = (y0, rows, x0 = 0) => ({ y0, rows, x0 });
 
 // ---- eyes (wave 3): authored per face style, 2 px wide (the pack's were one lash pixel over one iris pixel), head anchored. Front: the
 // left eye is x 5-6, the right 9-10, the iris on the outer side and the white on the inner side (the pack's layout, so the portraits still
-// find them). Side: x 10-11, the iris in front. suave: a soft 2x2; doce: a tall 2x3; marcante: a long lash flicking outward; maduro: 2x2
-// with its amber iris. The blink frame closes them to a lid line one row down.
+// find them). Side: x 10-11, the iris in front. suave: a soft 2x2; doce: a tall 2x3 with lashes flicking outward (the face that reads as
+// a girl's); marcante: a long lash flicking outward; maduro: 2x2 with its amber iris. The blink frame closes them to a lid line one row down.
 const EYES = (iris, { tall = false, flick = false } = {}) => ({
   S: tall
-    ? P(9, [T(5, 'oo..oo'), T(5, `${iris}N..N${iris}`), T(5, `${iris}N..N${iris}`)])
+    ? P(9, [flick ? T(4, 'ooo..ooo') : T(5, 'oo..oo'), T(5, `${iris}N..N${iris}`), T(5, `${iris}N..N${iris}`)])
     : P(10, [flick ? T(4, 'ooo..ooo') : T(5, 'oo..oo'), T(5, `${iris}N..N${iris}`)]),
-  E: tall ? P(9, [T(10, 'oo'), T(10, `N${iris}`), T(10, `N${iris}`)]) : P(10, [T(10, flick ? 'ooo' : 'oo'), T(10, `N${iris}`)]),
+  E: tall ? P(9, [T(10, flick ? 'ooo' : 'oo'), T(10, `N${iris}`), T(10, `N${iris}`)]) : P(10, [T(10, flick ? 'ooo' : 'oo'), T(10, `N${iris}`)]),
 });
 export const EYE_ART = {
   suave: EYES('D'),
   marcante: EYES('S', { flick: true }),
-  doce: EYES('H', { tall: true }),
+  doce: EYES('H', { tall: true, flick: true }),
   maduro: EYES('A'),
 };
 /** closed eyes, one idle frame in six */
@@ -37,10 +37,10 @@ export const FACE_ART = {
     S: P(8, [T(4, 'hhi..ihh'), E16, E16, T(8, 'q'), T(7, 'MM')]),
     E: P(8, [T(10, 'hhi'), E16, E16, T(12, 'q'), T(11, 'M')]),
   },
-  // sweet: short raised brows, blush, a small mouth
+  // sweet: short raised brows, a soft blush on the cheeks beside the eyes (not on the jaw, where it read as stubble), a small rosy mouth
   doce: {
-    S: P(8, [T(5, 'j....j'), E16, E16, E16, T(3, 'PP..MM..PP'), T(3, 'PP......PP')]),
-    E: P(8, [T(11, 'j'), E16, E16, E16, T(9, 'PPM'), T(9, 'PP')]),
+    S: P(8, [T(5, 'j....j'), E16, E16, T(3, 'P........P'), T(7, 'MM')]),
+    E: P(8, [T(11, 'j'), E16, E16, T(9, 'P'), T(11, 'M')]),
   },
   // mature: thin brows, a nose shadow, smile lines beside the mouth
   maduro: {
@@ -64,6 +64,31 @@ export const EXTRA_ART = {
 
 // ---- hair add-ons over the short bob (hair ramp letters h i j k)
 export const HAIR_ADDON = {
+  // long hair: from the jaw it falls over both shoulders to the chest (front), in one sheet down the back (N), and down behind the neck
+  // (sides). Without it the pack's long style stops at the chin and reads as short hair from the front.
+  longo: {
+    S: P(10, [
+      T(1, 'oio' + '.'.repeat(6) + 'oio'),
+      T(0, 'oiio' + '.'.repeat(8) + 'oiio'),
+      T(0, 'oijo' + '.'.repeat(8) + 'ojio'),
+      T(0, 'ojjo' + '.'.repeat(8) + 'ojjo'),
+      T(0, 'ojko' + '.'.repeat(8) + 'okjo'),
+      T(0, 'ojko' + '.'.repeat(8) + 'okjo'),
+      T(0, 'okko' + '.'.repeat(8) + 'okko'),
+      T(1, 'oo' + '.'.repeat(10) + 'oo'),
+    ].map((r) => r.slice(0, 16))),
+    N: P(10, [
+      T(1, 'oiiiiiiiiiiiio'),
+      T(1, 'oijjiiiiiijjio'),
+      T(1, 'oijjjiiiijjjio'),
+      T(1, 'ojjjjjjjjjjjjo'),
+      T(1, 'ojkjjjjjjjjkjo'),
+      T(2, 'ojkjjjjjjjkjo'),
+      T(2, 'okkkjjjjjkkko'),
+      T(3, 'ooooooooooo'),
+    ]),
+    E: P(10, [T(2, 'oiio'), T(2, 'oiio'), T(2, 'ojjo'), T(2, 'ojko'), T(2, 'ojko'), T(2, 'okko'), T(2, 'okko'), T(3, 'oo')]),
+  },
   coque: {
     S: P(-5, [T(5, 'oooooo'), T(4, 'ojjkkjo'), T(4, 'ojkkjjo'), T(4, 'oijjiio'), T(5, 'oiiiio')]),
     E: P(-5, [T(3, 'oooooo'), T(2, 'ojjkkjo'), T(2, 'ojkkjjo'), T(2, 'oijjiio'), T(3, 'oiiiio')]),

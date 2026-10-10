@@ -727,7 +727,7 @@ const academia: RoomDef = {
       y: 4,
       dir: 'NW',
       interact: { x: 8, y: 5 },
-      appearance: { body: 'forte', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'nenhum', idle: 'bracos' },
+      appearance: { body: 'forte', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'brincos', idle: 'bracos' },
       hat: null,
       // needs_br: true (new lines)
       idleLines: [

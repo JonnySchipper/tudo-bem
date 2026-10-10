@@ -82,6 +82,6 @@ describe('what the camera and the readers can reach', () => {
 
   it('teaches nothing from objects that are not in the catalog', () => {
     expect(wordsForPhoto('sebe_n_0')).toEqual([]);
-    expect(DIARY_WORDS.filter((w) => w.source === 'camera' && w.origin === 'added').length).toBe(295);
+    expect(DIARY_WORDS.filter((w) => w.source === 'camera' && w.origin === 'added').length).toBe(301);
   });
 });
