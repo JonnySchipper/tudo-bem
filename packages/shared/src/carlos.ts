@@ -58,6 +58,9 @@ export interface SceneView {
 }
 
 const obrigad = (c: SceneCtx) => (c.pronoun === 'ela' ? 'obrigada' : 'obrigado');
+/** Seu Carlos's counter greeting; also what the padaria door answers while the player is far from owning anything. */
+export const CARLOS_POIS_NAO: Bilingual = { pt: 'Pois não. O que vai ser hoje?', en: 'Yes? What’ll it be today?' };
+
 const fixed = (pt: string, en: string) => ({ pt: () => pt, en: () => en });
 
 export const PRICES: Record<string, number> = {
@@ -121,7 +124,7 @@ const NODES: Record<string, NodeDef> = {
   },
   pedido: {
     cards: ['lex.padaria.pois_nao', 'lex.padaria.o_que_vai_ser', 'lex.padaria.me_ve', 'lex.padaria.por_favor', 'lex.padaria.pao_na_chapa', 'lex.padaria.cafe_com_leite'],
-    line: () => ({ pt: 'Pois não. O que vai ser hoje?', en: 'Yes? What’ll it be today?' }),
+    line: () => CARLOS_POIS_NAO,
     chips: [
       { ...fixed('Me vê um pão na chapa, por favor.', 'I’ll take a pão na chapa (grilled buttered bread), please.'), score: 3, next: 'bebida', set: { food: 'pao_na_chapa' } },
       { ...fixed('Um café com leite, por favor.', 'A coffee with milk, please.'), score: 3, next: 'comida', set: { drink: 'cafe_com_leite' }, accepts: ['me ve um cafe com leite'] },

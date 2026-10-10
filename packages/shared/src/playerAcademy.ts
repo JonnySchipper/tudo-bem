@@ -15,6 +15,8 @@
  */
 import type { BjjProgress, Belt } from './academia.js';
 import { normalizeBjj } from './academia.js';
+import { beltIndex } from './matFight.js';
+import { BETA_HIDE, type BetaHide } from './padariaEconomy.js';
 import { validateName } from './safety.js';
 import type { Appearance, Bilingual } from './types.js';
 
@@ -117,6 +119,16 @@ export function isGiColorId(v: unknown): v is GiColorId {
 /** Brown belt or further, from the wins already stored on the profile. */
 export function canFoundAcademy(bjj?: Partial<BjjProgress> | null): boolean {
   return FOUNDER_BELTS.includes(normalizeBjj(bjj).belt);
+}
+
+/** The Fundar block of the elevator appears from purple belt (the rule to found still needs brown). */
+export function showsFundarAcademy(bjj?: Partial<BjjProgress> | null): boolean {
+  return beltIndex(normalizeBjj(bjj).belt) >= beltIndex('roxa');
+}
+
+/** Does an academy's owner get the crest and gi editor? Hidden in the beta build (BETA_HIDE.academyLook). */
+export function showsAcademyLookEditor(hide: BetaHide = BETA_HIDE): boolean {
+  return !hide.academyLook;
 }
 
 export function academyNameKey(name: string): string {
