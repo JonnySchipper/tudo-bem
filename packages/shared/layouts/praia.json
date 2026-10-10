@@ -457,205 +457,6 @@
       "water": "lagoa"
     },
     {
-      "id": "guarda_sol_1",
-      "kind": "guarda_sol",
-      "x": 9,
-      "y": 9,
-      "blocks": true,
-      "art": "praia/guarda_sol_a"
-    },
-    {
-      "id": "toalha_1",
-      "kind": "cenario",
-      "x": 10,
-      "y": 9,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "decals/toalha_azul"
-    },
-    {
-      "id": "cadeira_1",
-      "kind": "cadeira_praia",
-      "x": 8,
-      "y": 9,
-      "blocks": false,
-      "seat": "SW",
-      "art": "praia/cadeira_praia"
-    },
-    {
-      "id": "guarda_sol_2",
-      "kind": "guarda_sol",
-      "x": 14,
-      "y": 8,
-      "blocks": true,
-      "art": "praia/guarda_sol_b"
-    },
-    {
-      "id": "toalha_2",
-      "kind": "cenario",
-      "x": 15,
-      "y": 8,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "decals/toalha_amarela"
-    },
-    {
-      "id": "cadeira_2",
-      "kind": "cadeira_praia",
-      "x": 13,
-      "y": 8,
-      "blocks": false,
-      "seat": "SW",
-      "art": "praia/cadeira_praia_b"
-    },
-    {
-      "id": "guarda_sol_3",
-      "kind": "guarda_sol",
-      "x": 19,
-      "y": 10,
-      "blocks": true,
-      "art": "praia/guarda_sol_c"
-    },
-    {
-      "id": "toalha_3",
-      "kind": "cenario",
-      "x": 20,
-      "y": 10,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "decals/toalha_azul"
-    },
-    {
-      "id": "cadeira_3",
-      "kind": "cadeira_praia",
-      "x": 18,
-      "y": 10,
-      "blocks": false,
-      "seat": "SW",
-      "art": "praia/cadeira_praia"
-    },
-    {
-      "id": "guarda_sol_4",
-      "kind": "guarda_sol",
-      "x": 12,
-      "y": 13,
-      "blocks": true,
-      "art": "praia/guarda_sol_c"
-    },
-    {
-      "id": "toalha_4",
-      "kind": "cenario",
-      "x": 13,
-      "y": 13,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "decals/toalha_amarela"
-    },
-    {
-      "id": "cadeira_4",
-      "kind": "cadeira_praia",
-      "x": 11,
-      "y": 13,
-      "blocks": false,
-      "seat": "SW",
-      "art": "praia/cadeira_praia_b"
-    },
-    {
-      "id": "guarda_sol_5",
-      "kind": "guarda_sol",
-      "x": 17,
-      "y": 15,
-      "blocks": true,
-      "art": "praia/guarda_sol_a"
-    },
-    {
-      "id": "toalha_5",
-      "kind": "cenario",
-      "x": 18,
-      "y": 15,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "decals/toalha_azul"
-    },
-    {
-      "id": "cadeira_5",
-      "kind": "cadeira_praia",
-      "x": 16,
-      "y": 15,
-      "blocks": false,
-      "seat": "SW",
-      "art": "praia/cadeira_praia"
-    },
-    {
-      "id": "guarda_sol_6",
-      "kind": "guarda_sol",
-      "x": 22,
-      "y": 13,
-      "blocks": true,
-      "art": "praia/guarda_sol_b"
-    },
-    {
-      "id": "toalha_6",
-      "kind": "cenario",
-      "x": 23,
-      "y": 13,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "decals/toalha_amarela"
-    },
-    {
-      "id": "cadeira_6",
-      "kind": "cadeira_praia",
-      "x": 21,
-      "y": 13,
-      "blocks": false,
-      "seat": "SW",
-      "art": "praia/cadeira_praia_b"
-    },
-    {
-      "id": "guarda_sol_7",
-      "kind": "guarda_sol",
-      "x": 8,
-      "y": 15,
-      "blocks": true,
-      "art": "praia/guarda_sol_b"
-    },
-    {
-      "id": "toalha_7",
-      "kind": "cenario",
-      "x": 9,
-      "y": 15,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "decals/toalha_azul"
-    },
-    {
-      "id": "cadeira_7",
-      "kind": "cadeira_praia",
-      "x": 7,
-      "y": 15,
-      "blocks": false,
-      "seat": "SW",
-      "art": "praia/cadeira_praia"
-    },
-    {
-      "id": "castelo_1",
-      "kind": "cenario",
-      "x": 15,
-      "y": 11,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "praia/castelo_areia"
-    },
-    {
       "id": "castelo_2",
       "kind": "cenario",
       "x": 6,
@@ -716,16 +517,6 @@
       "art": "praia/concha_a"
     },
     {
-      "id": "concha_6",
-      "kind": "cenario",
-      "x": 21,
-      "y": 17,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "praia/concha_b"
-    },
-    {
       "id": "concha_7",
       "kind": "cenario",
       "x": 26,
@@ -746,36 +537,6 @@
       "art": "praia/concha_b"
     },
     {
-      "id": "concha_9",
-      "kind": "cenario",
-      "x": 10,
-      "y": 11,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "praia/concha_b"
-    },
-    {
-      "id": "concha_10",
-      "kind": "cenario",
-      "x": 24,
-      "y": 11,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "praia/concha_a"
-    },
-    {
-      "id": "concha_11",
-      "kind": "cenario",
-      "x": 18,
-      "y": 12,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "praia/concha_b"
-    },
-    {
       "id": "concha_12",
       "kind": "cenario",
       "x": 15,
@@ -790,36 +551,6 @@
       "kind": "cenario",
       "x": 4,
       "y": 7,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "praia/pegadas"
-    },
-    {
-      "id": "pegadas_2",
-      "kind": "cenario",
-      "x": 12,
-      "y": 10,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "praia/pegadas"
-    },
-    {
-      "id": "pegadas_3",
-      "kind": "cenario",
-      "x": 16,
-      "y": 13,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "praia/pegadas"
-    },
-    {
-      "id": "pegadas_4",
-      "kind": "cenario",
-      "x": 20,
-      "y": 15,
       "w": 1,
       "h": 1,
       "blocks": false,
@@ -856,16 +587,6 @@
       "art": "praia/pegadas"
     },
     {
-      "id": "pegadas_8",
-      "kind": "cenario",
-      "x": 23,
-      "y": 16,
-      "w": 1,
-      "h": 1,
-      "blocks": false,
-      "art": "praia/pegadas"
-    },
-    {
       "id": "madeira_mar_1",
       "kind": "cenario",
       "x": 23,
@@ -884,6 +605,86 @@
       "h": 1,
       "blocks": true,
       "art": "praia/madeira_mar"
+    },
+    {
+      "id": "concha_6",
+      "kind": "cenario",
+      "x": 19,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
+      "id": "concha_9",
+      "kind": "cenario",
+      "x": 11,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "concha_10",
+      "kind": "cenario",
+      "x": 26,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
+      "id": "concha_11",
+      "kind": "cenario",
+      "x": 6,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "pegadas_2",
+      "kind": "cenario",
+      "x": 12,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_3",
+      "kind": "cenario",
+      "x": 20,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_4",
+      "kind": "cenario",
+      "x": 17,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_8",
+      "kind": "cenario",
+      "x": 25,
+      "y": 14,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
     },
     {
       "id": "concha_13",
@@ -943,6 +744,566 @@
       "h": 1,
       "blocks": true,
       "art": "praia/vara_apoiada"
+    },
+    {
+      "id": "guarda_sol_1",
+      "kind": "guarda_sol",
+      "x": 9,
+      "y": 9,
+      "blocks": true,
+      "art": "praia/guarda_sol_a"
+    },
+    {
+      "id": "cadeira_1",
+      "kind": "cadeira_praia",
+      "x": 8,
+      "y": 9,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia"
+    },
+    {
+      "id": "canga_1",
+      "kind": "cenario",
+      "x": 10,
+      "y": 9,
+      "w": 1,
+      "h": 2,
+      "blocks": false,
+      "art": "praia/canga_listras"
+    },
+    {
+      "id": "isopor_1",
+      "kind": "cenario",
+      "x": 8,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/isopor"
+    },
+    {
+      "id": "guarda_sol_2",
+      "kind": "guarda_sol",
+      "x": 8,
+      "y": 13,
+      "blocks": true,
+      "art": "praia/guarda_sol_b"
+    },
+    {
+      "id": "cadeira_2",
+      "kind": "cadeira_praia",
+      "x": 7,
+      "y": 13,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia_b"
+    },
+    {
+      "id": "cadeira_3",
+      "kind": "cadeira_praia",
+      "x": 9,
+      "y": 13,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia"
+    },
+    {
+      "id": "canga_2",
+      "kind": "cenario",
+      "x": 8,
+      "y": 14,
+      "w": 1,
+      "h": 2,
+      "blocks": false,
+      "art": "praia/canga_brasil"
+    },
+    {
+      "id": "chinelos_1",
+      "kind": "cenario",
+      "x": 10,
+      "y": 14,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/chinelos"
+    },
+    {
+      "id": "bolsa_1",
+      "kind": "cenario",
+      "x": 6,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/bolsa_praia"
+    },
+    {
+      "id": "guarda_sol_3",
+      "kind": "guarda_sol",
+      "x": 4,
+      "y": 16,
+      "blocks": true,
+      "art": "praia/guarda_sol_c"
+    },
+    {
+      "id": "cadeira_4",
+      "kind": "cadeira_praia",
+      "x": 3,
+      "y": 16,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia_b"
+    },
+    {
+      "id": "canga_3",
+      "kind": "cenario",
+      "x": 5,
+      "y": 15,
+      "w": 1,
+      "h": 2,
+      "blocks": false,
+      "art": "praia/canga_onda"
+    },
+    {
+      "id": "balde_pa_1",
+      "kind": "cenario",
+      "x": 7,
+      "y": 16,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/balde_pa"
+    },
+    {
+      "id": "castelo_1",
+      "kind": "cenario",
+      "x": 1,
+      "y": 14,
+      "w": 2,
+      "h": 2,
+      "blocks": false,
+      "art": "praia/castelo_torres"
+    },
+    {
+      "id": "quadra_volei",
+      "kind": "cenario",
+      "x": 14,
+      "y": 10,
+      "w": 6,
+      "h": 7,
+      "blocks": false,
+      "art": "praia/quadra_volei"
+    },
+    {
+      "id": "rede_volei",
+      "kind": "cenario",
+      "x": 14,
+      "y": 13,
+      "w": 6,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/rede_volei"
+    },
+    {
+      "id": "bola_1",
+      "kind": "cenario",
+      "x": 17,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/bola"
+    },
+    {
+      "id": "guarda_sol_4",
+      "kind": "guarda_sol",
+      "x": 12,
+      "y": 16,
+      "blocks": true,
+      "art": "praia/guarda_sol_a"
+    },
+    {
+      "id": "cadeira_5",
+      "kind": "cadeira_praia",
+      "x": 11,
+      "y": 16,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia"
+    },
+    {
+      "id": "canga_4",
+      "kind": "cenario",
+      "x": 13,
+      "y": 15,
+      "w": 1,
+      "h": 2,
+      "blocks": false,
+      "art": "praia/canga_sol"
+    },
+    {
+      "id": "frescobol_1",
+      "kind": "cenario",
+      "x": 12,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/frescobol"
+    },
+    {
+      "id": "guarda_sol_5",
+      "kind": "guarda_sol",
+      "x": 21,
+      "y": 9,
+      "blocks": true,
+      "art": "praia/guarda_sol_c"
+    },
+    {
+      "id": "cadeira_6",
+      "kind": "cadeira_praia",
+      "x": 22,
+      "y": 9,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia_b"
+    },
+    {
+      "id": "canga_5",
+      "kind": "cenario",
+      "x": 20,
+      "y": 9,
+      "w": 1,
+      "h": 2,
+      "blocks": false,
+      "art": "praia/canga_onda"
+    },
+    {
+      "id": "chinelos_2",
+      "kind": "cenario",
+      "x": 22,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/chinelos"
+    },
+    {
+      "id": "guarda_sol_6",
+      "kind": "guarda_sol",
+      "x": 22,
+      "y": 16,
+      "blocks": true,
+      "art": "praia/guarda_sol_b"
+    },
+    {
+      "id": "cadeira_7",
+      "kind": "cadeira_praia",
+      "x": 21,
+      "y": 16,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia"
+    },
+    {
+      "id": "cadeira_8",
+      "kind": "cadeira_praia",
+      "x": 23,
+      "y": 16,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia_b"
+    },
+    {
+      "id": "canga_6",
+      "kind": "cenario",
+      "x": 24,
+      "y": 15,
+      "w": 1,
+      "h": 2,
+      "blocks": false,
+      "art": "praia/canga_listras"
+    },
+    {
+      "id": "prancha_1",
+      "kind": "cenario",
+      "x": 20,
+      "y": 15,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/prancha_b"
+    },
+    {
+      "id": "isopor_2",
+      "kind": "cenario",
+      "x": 25,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/isopor"
+    },
+    {
+      "id": "prancha_2",
+      "kind": "cenario",
+      "x": 31,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/prancha_a"
+    },
+    {
+      "id": "prancha_3",
+      "kind": "cenario",
+      "x": 32,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/prancha_b"
+    },
+    {
+      "id": "estrela_1",
+      "kind": "cenario",
+      "x": 30,
+      "y": 15,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/estrela"
+    },
+    {
+      "id": "estrela_2",
+      "kind": "cenario",
+      "x": 9,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/estrela"
+    },
+    {
+      "id": "restinga_a",
+      "kind": "cenario",
+      "x": 11,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/restinga_p1"
+    },
+    {
+      "id": "restinga_b",
+      "kind": "cenario",
+      "x": 16,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/restinga_g2"
+    },
+    {
+      "id": "restinga_c",
+      "kind": "cenario",
+      "x": 23,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/restinga_p2"
+    },
+    {
+      "id": "restinga_d",
+      "kind": "cenario",
+      "x": 1,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/restinga_p3"
+    },
+    {
+      "id": "restinga_e",
+      "kind": "cenario",
+      "x": 33,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/restinga_g1"
+    },
+    {
+      "id": "restinga_f",
+      "kind": "cenario",
+      "x": 33,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/restinga_p1"
+    },
+    {
+      "id": "restinga_g",
+      "kind": "cenario",
+      "x": 31,
+      "y": 16,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/restinga_p2"
+    },
+    {
+      "id": "restinga_h",
+      "kind": "cenario",
+      "x": 4,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/restinga_g2"
+    },
+    {
+      "id": "farol",
+      "kind": "cenario",
+      "x": 36,
+      "y": 22,
+      "w": 2,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/farol"
+    },
+    {
+      "id": "pedra_mar_1",
+      "kind": "cenario",
+      "x": 36,
+      "y": 21,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_g2"
+    },
+    {
+      "id": "pedra_mar_2",
+      "kind": "cenario",
+      "x": 34,
+      "y": 21,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_m1"
+    },
+    {
+      "id": "pedra_mar_3",
+      "kind": "cenario",
+      "x": 39,
+      "y": 21,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_m3"
+    },
+    {
+      "id": "pedra_mar_4",
+      "kind": "cenario",
+      "x": 35,
+      "y": 27,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_g1"
+    },
+    {
+      "id": "pedra_mar_5",
+      "kind": "cenario",
+      "x": 39,
+      "y": 26,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_arco"
+    },
+    {
+      "id": "pedra_mar_6",
+      "kind": "cenario",
+      "x": 35,
+      "y": 23,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_p1"
+    },
+    {
+      "id": "pedra_mar_7",
+      "kind": "cenario",
+      "x": 3,
+      "y": 23,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_m2"
+    },
+    {
+      "id": "pedra_mar_8",
+      "kind": "cenario",
+      "x": 5,
+      "y": 24,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_p2"
+    },
+    {
+      "id": "pedra_mar_9",
+      "kind": "cenario",
+      "x": 1,
+      "y": 26,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_p1"
+    },
+    {
+      "id": "pedra_mar_10",
+      "kind": "cenario",
+      "x": 37,
+      "y": 23,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pedra_mar_p2"
+    },
+    {
+      "id": "boia_1",
+      "kind": "cenario",
+      "x": 9,
+      "y": 23,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/boia_vermelha"
+    },
+    {
+      "id": "boia_2",
+      "kind": "cenario",
+      "x": 15,
+      "y": 25,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/boia_laranja"
+    },
+    {
+      "id": "boia_3",
+      "kind": "cenario",
+      "x": 20,
+      "y": 22,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/boia_vermelha"
     },
     {
       "id": "pesca_praia_1",
