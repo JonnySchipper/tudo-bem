@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ASK_MS,
   CAFE_ITEMS,
   CHAPA,
   CHAPA_ITEMS,
@@ -25,7 +24,7 @@ import {
   orangeAt,
   WHERE_MENU_AT,
   WAVE_SIZES,
-  askOptions,
+  HOT_MOD,
   chapaFrame,
   chapaPhase,
   chapaSlots,
@@ -47,12 +46,10 @@ import {
   noteLesson,
   payBump,
   pendingLesson,
-  orderTotal,
-  parseNumberAnswer,
+  orderSig,
   patienceMs,
   patiencePipMs,
   patienceStage,
-  payNote,
   pourFrame,
   pourVerdict,
   pourZone,
@@ -94,8 +91,9 @@ function build(sh: Shift, ev: CEvent[] = []): void {
         push(shiftAdvance(sh, CHAPA.cookMs + 100));
         push(shiftAct(sh, { a: 'chapa_take', slot: 0 }));
       } else if (CAFE_ITEMS.includes(line.itemId)) {
+        // extra quente: hold on past the green into the red
         push(shiftAct(sh, { a: 'pour_start', item: line.itemId }));
-        push(shiftAdvance(sh, POUR.fullMs * 0.85));
+        push(shiftAdvance(sh, POUR.fullMs * (want.mods.includes(HOT_MOD) ? 1.25 : 0.85)));
         push(shiftAct(sh, { a: 'pour_end' }));
       } else if (SUCO_ITEMS.includes(line.itemId)) {
         // oranges until the glass reaches the line, then take it
@@ -110,21 +108,16 @@ function build(sh: Shift, ev: CEvent[] = []): void {
   for (const m of want.mods) {
     if (m === 'pra_viagem') push(shiftAct(sh, { a: 'pack', kind: 'bag' }));
     else if (m === 'pra_comer_aqui') push(shiftAct(sh, { a: 'pack', kind: 'plate' }));
-    else push(shiftAct(sh, { a: 'mod', id: m }));
   }
 }
 
-/** Wait for the front customer, build, serve (and answer "Quanto é?" right). */
+/** Wait for the front customer, build, serve. */
 function playAll(sh: Shift, opts: { followWait?: boolean; wrongFirst?: boolean } = {}): CEvent[] {
   const ev: CEvent[] = [];
   for (let guard = 0; !sh.over && guard < 4000; guard++) {
     const f = frontOf(sh);
     if (!f) {
       ev.push(...shiftAdvance(sh, 250));
-      continue;
-    }
-    if (f.state === 'asking') {
-      ev.push(...shiftAct(sh, { a: 'answer', value: f.ask!.total }));
       continue;
     }
     if (opts.followWait && f.follow && !f.followFired) {
@@ -149,11 +142,34 @@ describe('the shift numbers', () => {
     expect(MAX_PRESENT).toBe(3);
   });
 
-  it('every shelf item has a price and totals stay sayable (under 100)', () => {
+  it('every shelf item has a price (the house counter of an owned padaria sells at it)', () => {
     for (const i of MG_ITEMS) expect(COUNTER_PRICES[i.id], i.id).toBeGreaterThan(0);
-    // the biggest possible tray: 9 of the dearest item
-    expect(Math.max(...Object.values(COUNTER_PRICES)) * 9).toBeLessThanOrEqual(100);
-    expect(orderTotal([{ itemId: 'pao_na_chapa', qty: 2 }, { itemId: 'cafe_com_leite', qty: 1 }])).toBe(18);
+  });
+});
+
+describe('no math at the counter', () => {
+  it('no "Quanto é?": a served customer just leaves, whatever the level and the wave', () => {
+    for (const level of [0, 1, 2, 3]) {
+      const sh = newShift(ctx({ seed: 40 + level, level, unlocked: ['salgados'] }));
+      sh.debug = true;
+      const ev = playAll(sh);
+      expect(sh.over).toBe(true);
+      expect(sh.stats.served).toBe(CORRERIA_TOTAL);
+      // nothing to answer: no ask event exists, and no customer ever waits at the register
+      expect(ev.every((e) => !String(e.k).startsWith('ask'))).toBe(true);
+      expect(shiftSnapshot(sh).customers.every((c) => !('ask' in c))).toBe(true);
+    }
+    expect(sanitizeAct({ a: 'answer', value: 12 })).toBeNull();
+  });
+
+  it('every order is one of each item, so nobody counts ("três pães" is gone)', () => {
+    for (let seed = 1; seed <= 300; seed++) {
+      const o = makeCorrOrder(mulberry32(seed), { level: seed % 4, wave: seed % 3, unlocked: ['salgados', 'sabado'], shifts: FULL_MENU_SHIFTS, saturday: seed % 2 === 0, avoid: [] });
+      expect(o.lines.every((l) => l.qty === 1), o.pt).toBe(true);
+      expect(new Set(o.lines.map((l) => l.itemId)).size).toBe(o.lines.length);
+      expect(o.pt).not.toMatch(/\b(dois|duas|três)\b/i);
+    }
+    expect(LEVELS.every((lv) => !('ask' in lv) && !('maxQty' in lv))).toBe(true);
   });
 });
 
@@ -169,10 +185,9 @@ describe('difficulty by level', () => {
     expect(patienceMs({ timeMs: 900_000 } as MgOrder, 0, 0)).toBe(100_000);
   });
 
-  it('Verde wave 1 is written only, with no follow-ups and no "Quanto é?"; listening and follow-ups ramp in', () => {
+  it('Verde wave 1 is written only, with no follow-ups; listening and follow-ups ramp in', () => {
     expect(LEVELS[0]!.listen[0]).toBe(0);
     expect(LEVELS[0]!.follow[0]).toBe(0);
-    expect(LEVELS[0]!.ask[0]).toBe(0);
     for (let lv = 1; lv < LEVELS.length; lv++) {
       for (let w = 1; w < 3; w++) {
         expect(LEVELS[lv]!.listen[w]!).toBeGreaterThanOrEqual(LEVELS[lv]!.listen[w - 1]!);
@@ -249,8 +264,66 @@ describe('order generation', () => {
     expect(later.has('pastel') || later.has('coxinha')).toBe(true);
   });
 
-  it('Verde only draws authored tickets (never a generated combo)', () => {
-    for (let seed = 1; seed <= 100; seed++) for (const wave of [0, 1, 2]) expect(makeCorrOrder(mulberry32(seed), { level: 0, wave, unlocked: [], saturday: false, avoid: [] }).authored).toBe(true);
+  it('orders vary: many phrasings, authored tickets and fresh combos, different customers', () => {
+    const texts = new Set<string>();
+    let authored = 0;
+    let fresh = 0;
+    for (let seed = 1; seed <= 120; seed++) {
+      const o = makeCorrOrder(mulberry32(seed), { level: 1, wave: 1, unlocked: [], shifts: 6, saturday: false, avoid: [] });
+      texts.add(o.pt);
+      if (o.authored) authored++;
+      else fresh++;
+    }
+    expect(texts.size).toBeGreaterThan(40);
+    expect(authored).toBeGreaterThan(5);
+    expect(fresh).toBeGreaterThan(40);
+    // even the smallest counter (café and pão) is said many ways
+    const tiny = new Set<string>();
+    for (let seed = 1; seed <= 120; seed++) tiny.add(makeCorrOrder(mulberry32(seed), { level: 0, wave: 1, unlocked: [], shifts: 1, saturday: false, avoid: [] }).pt);
+    expect(tiny.size).toBeGreaterThan(12);
+    const names = new Set<string>();
+    const sh = newShift(ctx({ seed: 3 }));
+    sh.debug = true;
+    playAll(sh);
+    for (const id of sh.usedNames) names.add(id);
+    expect(names.size).toBeGreaterThan(8);
+  });
+
+  it('never the same order twice in a row, even on the café-and-pão counter', () => {
+    for (const shifts of [1, 4, FULL_MENU_SHIFTS])
+      for (let seed = 1; seed <= 20; seed++) {
+        const sh = newShift(ctx({ seed, shifts }));
+        sh.debug = true;
+        const sigs: string[] = [];
+        for (let guard = 0; !sh.over && guard < 4000; guard++) {
+          const f = frontOf(sh);
+          if (!f) {
+            shiftAdvance(sh, 250);
+            continue;
+          }
+          if (sigs.at(-1) !== `${f.id}`) sigs.push(`${f.id}`, orderSig(f.order));
+          build(sh);
+          shiftAct(sh, { a: 'serve' });
+        }
+        const orders = sigs.filter((_, i) => i % 2 === 1);
+        expect(orders.length).toBe(CORRERIA_TOTAL);
+        for (let i = 1; i < orders.length; i++) expect(orders[i], `shift ${shifts} seed ${seed} #${i}`).not.toBe(orders[i - 1]);
+      }
+  });
+
+  it('extra quente: only for a lone coffee, never on the very first shift, and said on the order', () => {
+    let hot = 0;
+    for (let seed = 1; seed <= 300; seed++) {
+      const o = makeCorrOrder(mulberry32(seed), { level: 1, wave: 1, unlocked: [], shifts: 3, saturday: false, avoid: [] });
+      if (!o.mods.includes(HOT_MOD)) continue;
+      hot++;
+      expect(o.lines.filter((l) => CAFE_ITEMS.includes(l.itemId))).toHaveLength(1);
+      expect(o.pt).toMatch(/extra quente/);
+      expect(o.en).toMatch(/extra-hot/);
+      const first = makeCorrOrder(mulberry32(seed), { level: 1, wave: 1, unlocked: [], shifts: 0, saturday: false, avoid: [] });
+      expect(first.mods).not.toContain(HOT_MOD);
+    }
+    expect(hot).toBeGreaterThan(20);
   });
 
   it('is deterministic for a seed, never repeats a served ticket while a fresh one exists, and keeps the "Me vê" phrasing', () => {
@@ -295,13 +368,14 @@ describe('follow-ups and changes of mind', () => {
     for (let seed = 1; seed <= 300; seed++) {
       const rng = mulberry32(seed);
       const o = makeCorrOrder(rng, { level: 2, wave: 1, unlocked: ['salgados'], saturday: false, avoid: [] });
-      const f = makeFollow(rng, o, itemsFor(FULL_MENU_SHIFTS));
+      const f = makeFollow(rng, o, itemsFor(FULL_MENU_SHIFTS), { where: seed % 2 === 0 });
       if (!f) continue;
       for (const l of f.lines) {
         expect(MG_ITEMS.some((i) => i.id === l.itemId)).toBe(true);
-        expect(l.qty).toBeGreaterThanOrEqual(1);
-        expect(l.qty).toBeLessThanOrEqual(3);
+        // never "e mais um": a follow-up never asks the player to count
+        expect(l.qty).toBe(1);
       }
+      expect(f.pt).not.toMatch(/mais/);
       expect(f.pt.length).toBeGreaterThan(5);
       expect(f.en.length).toBeGreaterThan(5);
       if (f.kind === 'swap') {
@@ -315,7 +389,11 @@ describe('follow-ups and changes of mind', () => {
       }
     }
     expect(swaps).toBeGreaterThan(5);
-    expect(extras).toBeGreaterThan(20);
+    // "Ah, e é pra viagem!" when packing is not on the order yet (a small menu)
+    const small = makeCorrOrder(mulberry32(3), { level: 2, wave: 1, unlocked: [], shifts: 2, saturday: false, avoid: [] });
+    const w = makeFollow(mulberry32(4), { ...small, lines: small.lines.filter((l) => !['cafe', 'agua'].includes(l.itemId)).concat([{ itemId: 'pao', qty: 1 }]).slice(0, 1) }, itemsFor(2), { where: true });
+    expect(w?.pt).toMatch(/^Ah, e é pra (viagem|comer aqui)!$/);
+    void extras;
   });
 
   it('in a shift, the follow-up changes what the counter wants after it fires', () => {
@@ -392,20 +470,42 @@ describe('the chapa', () => {
 });
 
 describe('the coffee pour', () => {
-  it('is good between 70% and 108% of the fill time', () => {
+  it('is good (green) between 70% and 108% of the fill time, extra hot (red) up to 145%, too late after', () => {
     expect(pourVerdict(POUR.fullMs * 0.5).verdict).toBe('short');
     expect(pourVerdict(POUR.fullMs * 0.69).verdict).toBe('short');
     expect(pourVerdict(POUR.fullMs * 0.7).verdict).toBe('ok');
     expect(pourVerdict(POUR.fullMs).verdict).toBe('ok');
-    expect(pourVerdict(POUR.fullMs * 1.09).verdict).toBe('spill');
+    expect(pourVerdict(POUR.fullMs * 1.09).verdict).toBe('hot');
+    expect(pourVerdict(POUR.fullMs * 1.45).verdict).toBe('hot');
+    expect(pourVerdict(POUR.fullMs * 1.46).verdict).toBe('spill');
+    expect(POUR.abortFactor).toBeGreaterThan(POUR.hotMax);
     expect([0, 0.3, 0.6, 0.9].map(pourFrame)).toEqual([0, 1, 2, 3]);
   });
 
-  it('the "Agora!" zone is exactly the window the server accepts', () => {
-    for (const f of [0, 0.5, 0.69, 0.7, 0.85, 1, 1.08, 1.09, 1.4]) {
+  it('the "Agora!" (green) and "Extra quente!" (red) zones are exactly the windows the server accepts', () => {
+    for (const f of [0, 0.5, 0.69, 0.7, 0.85, 1, 1.08, 1.09, 1.3, 1.45, 1.46, 1.55]) {
       const v = pourVerdict(POUR.fullMs * f).verdict;
-      expect(pourZone(f)).toBe(v === 'ok' ? 'agora' : v === 'short' ? 'filling' : 'over');
+      expect(pourZone(f)).toBe(v === 'ok' ? 'agora' : v === 'hot' ? 'quente' : v === 'short' ? 'filling' : 'over');
     }
+  });
+
+  it('a tap in the red is an extra-hot coffee: wanted, it is perfect; not wanted, the customer says so', () => {
+    const sh = newShift(ctx({ shifts: 1, seed: 11 }));
+    shiftAct(sh, { a: 'pour_start', item: 'cafe' });
+    shiftAdvance(sh, POUR.fullMs * 1.25);
+    expect(shiftAct(sh, { a: 'pour_end' })[0]).toMatchObject({ k: 'pour_ok', item: 'cafe', hot: true });
+    expect(sh.tray).toEqual(['cafe']);
+    expect(sh.mods).toEqual([HOT_MOD]);
+    shiftAct(sh, { a: 'clear' });
+    expect(sh.mods).toEqual([]);
+    const order: MgOrder = { customer: 'x', lines: [{ itemId: 'cafe', qty: 1 }], mods: [HOT_MOD], pt: '', en: '', timeMs: 20_000, authored: false };
+    expect(checkTray(order, { cafe: 1 }, [HOT_MOD]).ok).toBe(true);
+    const plain = checkTray(order, { cafe: 1 }, []);
+    expect(plain.ok).toBe(false);
+    expect(correctionFor(order, { cafe: 1 }, plain)).toEqual({ pt: 'Era extra quente!', en: 'It was extra hot!' });
+    const normal = { ...order, mods: [] };
+    const tooHot = checkTray(normal, { cafe: 1 }, [HOT_MOD]);
+    expect(correctionFor(normal, { cafe: 1 }, tooHot)).toEqual({ pt: 'Eu não pedi extra quente.', en: 'I didn’t ask for extra hot.' });
   });
 
   it('tap to start, the cup fills alone, tap again in the window; leaving it spills', () => {
@@ -564,10 +664,10 @@ describe('anti-cheat: the tray can only be filled through the real steps', () =>
     expect(sanitizeAct({ a: 'chapa_take', slot: 1 })).toEqual({ a: 'chapa_take', slot: 1 });
     expect(sanitizeAct({ a: 'pack', kind: 'sack' })).toBeNull();
     expect(sanitizeAct({ a: 'pack', kind: null })).toEqual({ a: 'pack', kind: null });
+    // extra quente comes from the pour itself, never from a toggle; there is no total to answer
     expect(sanitizeAct({ a: 'mod', id: 'pra_viagem' })).toBeNull();
-    expect(sanitizeAct({ a: 'mod', id: 'sem_acucar' })).toEqual({ a: 'mod', id: 'sem_acucar' });
-    expect(sanitizeAct({ a: 'answer', value: { x: 1 } })).toBeNull();
-    expect(sanitizeAct({ a: 'answer', value: 'x'.repeat(100) })).toMatchObject({ a: 'answer', value: 'x'.repeat(40) });
+    expect(sanitizeAct({ a: 'mod', id: 'bem_quente' })).toBeNull();
+    expect(sanitizeAct({ a: 'answer', value: 12 })).toBeNull();
   });
 
   it('the pack and mods come from the actions, so only the right ones make the order', () => {
@@ -630,15 +730,14 @@ describe('serving, corrections, scoring', () => {
     expect(sh.stats.second).toBe(1);
   });
 
-  it('the correction text: the count first ("DOIS"), then a missing item, an extra one, then mods', () => {
-    const order = { lines: [{ itemId: 'pao_na_chapa', qty: 2 }, { itemId: 'cafe', qty: 1 }], mods: ['pra_viagem'] } as MgOrder;
+  it('the correction text: one too many first ("Era só um…", never a count), then a missing item, an extra one, then mods', () => {
+    const order = { lines: [{ itemId: 'pao_na_chapa', qty: 1 }, { itemId: 'cafe', qty: 1 }], mods: ['pra_viagem'] } as MgOrder;
     const say = (tray: Tray, mods: string[]) => correctionFor(order, tray, checkTray(order, tray, mods));
-    expect(say({ pao_na_chapa: 1, cafe: 1 }, ['pra_viagem']).pt).toBe('Não, eu pedi DOIS pães na chapa…');
-    expect(say({ pao_na_chapa: 1, cafe: 1 }, ['pra_viagem']).en).toMatch(/^No, I ordered TWO .+…$/);
-    expect(say({ pao_na_chapa: 2 }, ['pra_viagem']).pt).toMatch(/^Faltou um café/);
-    expect(say({ pao_na_chapa: 2, cafe: 1, agua: 1 }, ['pra_viagem']).pt).toMatch(/^Eu não pedi água/);
-    expect(say({ pao_na_chapa: 2, cafe: 1 }, []).pt).toBe('Era pra viagem!');
-    expect(say({ pao_na_chapa: 2, cafe: 1 }, ['pra_viagem', 'pra_comer_aqui']).pt).toBe('Não era pra comer aqui.');
+    expect(say({ pao_na_chapa: 2, cafe: 1 }, ['pra_viagem'])).toEqual({ pt: 'Era só um pão na chapa!', en: expect.stringMatching(/^Just a .+!$/) });
+    expect(say({ pao_na_chapa: 1 }, ['pra_viagem']).pt).toMatch(/^Faltou um café/);
+    expect(say({ pao_na_chapa: 1, cafe: 1, agua: 1 }, ['pra_viagem']).pt).toMatch(/^Eu não pedi água/);
+    expect(say({ pao_na_chapa: 1, cafe: 1 }, []).pt).toBe('Era pra viagem!');
+    expect(say({ pao_na_chapa: 1, cafe: 1 }, ['pra_viagem', 'pra_comer_aqui']).pt).toBe('Não era pra comer aqui.');
   });
 
   it('a customer who runs out of patience leaves, breaks the combo and clears a tray that was being built for them', () => {
@@ -716,92 +815,6 @@ describe('serving, corrections, scoring', () => {
   });
 });
 
-describe('Quanto é? and the register', () => {
-  it('options hold the right total and two different slips, shuffled and in range', () => {
-    for (let seed = 1; seed <= 200; seed++) {
-      const total = 3 + (seed % 60);
-      const o = askOptions(mulberry32(seed), total);
-      expect(o).toHaveLength(3);
-      expect(new Set(o).size).toBe(3);
-      expect(o).toContain(total);
-      for (const n of o) expect(n).toBeGreaterThan(0);
-    }
-  });
-
-  it('parses digits, number words and R$ in any accent', () => {
-    expect(parseNumberAnswer('12')).toBe(12);
-    expect(parseNumberAnswer('R$ 12')).toBe(12);
-    expect(parseNumberAnswer('doze')).toBe(12);
-    expect(parseNumberAnswer('Doze reais')).toBe(12);
-    expect(parseNumberAnswer('vinte e um')).toBe(21);
-    expect(parseNumberAnswer('tres')).toBe(3);
-    expect(parseNumberAnswer('três')).toBe(3);
-    expect(parseNumberAnswer('cem')).toBe(100);
-    expect(parseNumberAnswer('uma')).toBe(1);
-    expect(parseNumberAnswer('banana')).toBeNull();
-    expect(parseNumberAnswer('101')).toBeNull();
-    expect(parseNumberAnswer(7)).toBe(7);
-    expect(parseNumberAnswer({})).toBeNull();
-  });
-
-  it('the customer pays with the smallest note that covers it', () => {
-    expect([1, 5, 6, 10, 11, 20, 21, 50, 51, 100].map(payNote)).toEqual([5, 5, 10, 10, 20, 20, 50, 50, 100, 100]);
-  });
-
-  it('after a serve a customer may ask; the right total pays points, the wrong one still pays the bill, and a late answer counts as wrong', () => {
-    let right = 0;
-    let wrong = 0;
-    let late = 0;
-    for (let seed = 1; seed <= 60 && (right < 1 || wrong < 1 || late < 1); seed++) {
-      const sh = newShift(ctx({ seed, level: 3, unlocked: ['salgados'] }));
-      for (let guard = 0; guard < 4000 && !sh.over; guard++) {
-        const f = frontOf(sh);
-        if (!f) {
-          shiftAdvance(sh, 250);
-          continue;
-        }
-        if (f.state === 'asking') {
-          const ask = f.ask!;
-          expect(ask.total).toBe(orderTotal(f.order.lines));
-          expect(ask.type).toBe('type');
-          const mode = (right + wrong + late) % 3;
-          const ev =
-            mode === 0
-              ? shiftAct(sh, { a: 'answer', value: numberWord(ask.total) })
-              : mode === 1
-                ? shiftAct(sh, { a: 'answer', value: ask.total + 1 })
-                : shiftAdvance(sh, ASK_MS + 200);
-          const r = ev.find((e): e is Extract<CEvent, { k: 'ask_result' }> => e.k === 'ask_result')!;
-          expect(r.change).toBe(r.pay - r.total);
-          expect(r.pay).toBe(payNote(r.total));
-          expect(r.line.pt).toMatch(/reais|real/);
-          if (mode === 0) {
-            expect(r.ok).toBe(true);
-            expect(r.points).toBeGreaterThan(0);
-            right++;
-          } else {
-            expect(r.ok).toBe(false);
-            expect(r.points).toBe(0);
-            mode === 1 ? wrong++ : late++;
-          }
-          continue;
-        }
-        build(sh);
-        shiftAct(sh, { a: 'serve' });
-      }
-    }
-    expect(right).toBeGreaterThan(0);
-    expect(wrong).toBeGreaterThan(0);
-    expect(late).toBeGreaterThan(0);
-  });
-});
-const numberWord = (n: number) => {
-  const w = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'catorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
-  const t = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
-  if (n < 20) return w[n]!;
-  if (n === 100) return 'cem';
-  return n % 10 ? `${t[Math.floor(n / 10)]} e ${w[n % 10]}` : t[n / 10]!;
-};
 
 describe('a whole shift', () => {
   it('a perfect bot serves all 15 in about three minutes of shift time, earns stars and RV', () => {
@@ -1022,13 +1035,15 @@ describe('stars, payout and the daily gate numbers', () => {
 });
 
 describe('practiceShift (the first-time tutorial order)', () => {
-  it('one written order at the counter: a coffee, a French roll and an orange juice, nothing else on the menu', () => {
+  it('one written order at the counter: a coffee and a French roll, what a new counter has, nothing else on the menu', () => {
     const sh = practiceShift(150);
     const snap = shiftSnapshot(sh);
     expect(snap.customers).toHaveLength(1);
     expect(snap.customers[0]!.state).toBe('front');
     expect(snap.customers[0]!.mode).toBe('written');
-    expect(snap.customers[0]!.pt).toMatch(/café.*pão.*suco de laranja/);
+    expect(snap.customers[0]!.pt).toBe('Bom dia! Me vê um café e um pão, por favor.');
+    expect(snap.customers[0]!.want).toEqual({ items: ['cafe', 'pao'], mods: [] });
+    expect([...snap.menu].sort()).toEqual(['cafe', 'pao']);
     expect([...snap.menu].sort()).toEqual([...PRACTICE_MENU].sort());
     expect(wantOf(sh)!.lines).toEqual(PRACTICE_MENU.map((itemId) => ({ itemId, qty: 1 })));
     expect(wantOf(sh)!.mods).toEqual([]);

@@ -41,49 +41,28 @@ import { originOf } from './spriteUtil';
 import { DEPTH } from './props';
 import {
   ART,
-  BAG_SPOT,
-  BAKER_SPOT,
-  BELL_SPOT,
   BOARD,
-  BOARD_SHELF_TOP,
-  BOARD_TOWER_X,
   CRATE_KEY,
-  HOPPER_NEXT,
-  JUICER_SPOT,
-  JUICE_CHAMBER,
-  JUICE_GAUGE,
-  JUICE_GLASS_SPOT,
   JUICE_LINE_ROWS,
-  JUICE_SPOUT,
-  PEEL_BIN,
   juiceGlassKey,
   juiceRows,
   juicerKey,
   orangeKey,
   type JuicerFrame,
   CHAPA_ITEM_SCALE,
-  CHAPA_SLOTS,
-  CHAPA_SPOT,
-  COFFEE_SPOT,
-  DOOR_SPOT,
   ITEM_SCALE,
-  ITEM_SPOTS,
-  PLATE_SPOT,
-  QUEUE_SPOTS,
-  REGISTER_SPOT,
-  SPOUT,
-  TIPJAR_SPOT,
   TRAY_ITEM_SCALE,
-  TRAY_SPOT,
   bellKey,
   chapaKey,
   coffeeKey,
+  counterLayout,
   itemKey,
   patienceKey,
   sizeOfKey,
   steamKey,
   tipjarKey,
   traySlot,
+  type CounterLayout,
   type Spot,
 } from './correriaArt';
 
@@ -115,11 +94,12 @@ type Img = Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
 const shelfKey = (id: string): string => (SUCO_ITEMS.includes(id) ? CRATE_KEY : itemKey(id));
 /** The next orange's size, said on the machine: pequena / média / grande. */
 const SIZE_WORD = { p: { pt: 'pequena', en: 'small' }, m: { pt: 'média', en: 'medium' }, g: { pt: 'grande', en: 'big' } } as const;
-/** The coffee machine's tap label through a pour. */
+/** The coffee machine's tap label through a pour (needs_br: "Extra quente!"). */
 const MACHINE_LABELS = {
   idle: { pt: 'Cafeteira', en: 'Tap to pour' },
   filling: { pt: 'Enchendo…', en: 'Filling… wait for green' },
   agora: { pt: 'Agora!', en: 'Tap now!' },
+  quente: { pt: 'Extra quente!', en: 'Extra hot!' },
   over: { pt: 'Derramando!', en: 'Spilling!' },
 } as const;
 
@@ -253,12 +233,36 @@ export class CounterStage {
   private pops: { el: HTMLElement; wx: number; wy: number; until: number }[] = [];
   private hotEl: HTMLElement | null = null;
   private popsEl: HTMLElement | null = null;
-  private hot = new Map<string, { el: HTMLButtonElement; spot: Spot; w: number; h: number }>();
+  /** Tap targets; `on` is false for a piece this shift's layout leaves off the board. */
+  private hot = new Map<string, { el: HTMLButtonElement; spot: Spot; w: number; h: number; on: boolean }>();
   private hotSig = '';
   private hotSnap = '';
   private pouring = false;
+  /** Where everything stands this shift (only what is on the menu, in this room). */
+  private L: CounterLayout = counterLayout(null);
+  private layoutSig = '';
 
   constructor(private readonly h: CounterHost) {}
+
+  // this shift's spots of the stations (a juice or coffee effect only ever plays while that station is on the board)
+  private get jg(): Spot {
+    return this.L.juiceGlass ?? this.L.tray;
+  }
+  private get jc(): Spot {
+    return this.L.juiceChamber ?? this.L.tray;
+  }
+  private get pb(): Spot {
+    return this.L.peelBin ?? this.L.tray;
+  }
+  private get jsp(): Spot {
+    return this.L.juiceSpout ?? this.L.tray;
+  }
+  private get cs(): Spot {
+    return this.L.coffee ?? this.L.tray;
+  }
+  private get cps(): Spot {
+    return this.L.chapa ?? this.L.tray;
+  }
 
   get active(): boolean {
     return correriaFeed.active;
@@ -281,35 +285,62 @@ export class CounterStage {
     const s = this.h.scene;
     this.board = this.h.world(s.add.graphics()).setDepth(D.board);
     this.meters = this.h.world(s.add.graphics()).setDepth(D.hud);
-    this.drawBoard();
-    for (const i of MG_ITEMS) this.items.set(i.id, this.img(shelfKey(i.id), ITEM_SPOTS[i.id]!, D.item));
-    this.juicer = this.img(juicerKey('idle'), JUICER_SPOT, D.piece);
-    this.glass = new Piece(this.h, D.item + 5, JUICE_GLASS_SPOT);
-    this.nextOrange = new Piece(this.h, D.item + 4, HOPPER_NEXT);
-    this.trayBase = this.img(ART.tray, TRAY_SPOT, D.tray);
-    this.bag = this.img(ART.bag, BAG_SPOT, D.piece);
-    this.plate = this.img(ART.plate, PLATE_SPOT, D.piece);
-    this.chapa = this.img(chapaKey('idle'), CHAPA_SPOT, D.piece);
-    this.coffee = this.img(coffeeKey('idle'), COFFEE_SPOT, D.piece);
-    this.register = this.img(ART.register, REGISTER_SPOT, D.piece);
-    this.bell = this.img(bellKey(0), BELL_SPOT, D.piece);
-    this.jar = this.img(tipjarKey(0), TIPJAR_SPOT, D.piece);
-    this.cup = new Piece(this.h, D.item + 5, SPOUT);
+    const L = this.L;
+    const nowhere: Spot = { x: L.w / 2, y: L.h / 2 };
+    for (const i of MG_ITEMS) this.items.set(i.id, this.img(shelfKey(i.id), L.cells[i.id] ?? nowhere, D.item));
+    this.juicer = new Piece(this.h, D.piece, nowhere);
+    this.glass = new Piece(this.h, D.item + 5, nowhere);
+    this.nextOrange = new Piece(this.h, D.item + 4, nowhere);
+    this.trayBase = this.img(ART.tray, L.tray, D.tray);
+    this.bag = new Piece(this.h, D.piece, nowhere);
+    this.plate = new Piece(this.h, D.piece, nowhere);
+    this.chapa = new Piece(this.h, D.piece, nowhere);
+    this.coffee = new Piece(this.h, D.piece, nowhere);
+    this.register = this.img(ART.register, L.register, D.piece);
+    this.bell = this.img(bellKey(0), L.bell, D.piece);
+    this.jar = this.img(tipjarKey(0), L.tipjar, D.piece);
+    this.cup = new Piece(this.h, D.item + 5, nowhere);
     this.ensureDom();
+  }
+
+  /** This shift's board (its menu, this room): the layout, the camera frame, the planks and where each tap target goes. */
+  private relayout(snap: CorreriaSnap): void {
+    const room = game.roomDef;
+    const dims = room ? { cols: room.cols, rows: room.rows } : undefined;
+    const sig = `${(snap.menu ?? []).join(',')}|${dims?.cols ?? ''}x${dims?.rows ?? ''}`;
+    if (sig === this.layoutSig) return;
+    this.layoutSig = sig;
+    const L = (this.L = counterLayout(snap.menu, dims));
+    correriaFeed.frame = { focus: L.focus, need: L.need };
+    this.drawBoard();
+    const at = (id: string): Spot | null => {
+      if (id.startsWith('item-')) return L.cells[id.slice(5)] ?? null;
+      if (id.startsWith('grill-')) return L.chapaSlots[Number(id.slice(6))] ?? null;
+      if (id === 'juice-glass') return L.juiceGlass ? { x: L.juiceGlass.x, y: L.juiceGlass.y + 1 } : null;
+      return ({ machine: L.coffee, juicer: L.juicer, bag: L.bag, plate: L.plate, tray: L.tray, bell: L.bell } as Record<string, Spot | null>)[id] ?? null;
+    };
+    for (const [id, h] of this.hot) {
+      const s = at(id);
+      h.on = !!s;
+      if (s) h.spot = s;
+    }
+    this.hotSnap = '';
   }
 
   /** The flat wooden plate the pieces stand on: planks, a lip and a few rail lines. Code-drawn surface, never stands in for missing art. */
   private drawBoard(): void {
-    const g = this.board!;
-    const { x0, y0, x1, y1 } = BOARD;
-    // the shelf part stops at BOARD_SHELF_TOP; the station column (the juicer on top) rises to y0
-    const sy = BOARD_SHELF_TOP;
-    const tx = BOARD_TOWER_X;
+    const g = this.board;
+    if (!g) return;
+    const L = this.L;
+    const { x0, y0, x1, y1 } = L.board;
+    // the shelf part stops at the shelf top; the station column (the juicer on top) rises to y0
+    const sy = L.shelfTop;
+    const tx = L.towerX;
     g.clear();
     g.fillStyle(0x3b2314, 1).fillRect(x0 - 2, sy - 2, x1 - x0 + 4, y1 - sy + 4);
-    g.fillStyle(0x3b2314, 1).fillRect(tx - 2, y0 - 2, x1 - tx + 4, sy - y0 + 2);
+    if (sy > y0) g.fillStyle(0x3b2314, 1).fillRect(tx - 2, y0 - 2, x1 - tx + 4, sy - y0 + 2);
     g.fillStyle(0xcf9b62, 1).fillRect(x0, sy, x1 - x0, y1 - sy);
-    g.fillStyle(0xcf9b62, 1).fillRect(tx, y0, x1 - tx, sy - y0);
+    if (sy > y0) g.fillStyle(0xcf9b62, 1).fillRect(tx, y0, x1 - tx, sy - y0);
     // planks
     for (let y = y0 + 8; y < y1; y += 14) {
       const from = y < sy ? tx : x0;
@@ -319,13 +350,18 @@ export class CounterStage {
     g.fillStyle(0xe2b97e, 1).fillRect(tx, y0, x1 - tx, 2);
     g.fillStyle(0x8a5a32, 1).fillRect(x0, y1 - 3, x1 - x0, 3);
     // a rail under each shelf row
-    for (const ry of [-5, 27, 59]) g.fillStyle(0x9c6a3a, 1).fillRect(x0 + 6, ry + 9, 104, 1);
+    for (const ry of L.rails) g.fillStyle(0x9c6a3a, 1).fillRect(x0 + 6, ry, L.railW, 1);
     // the station column (the juicer over the coffee machine over the chapa)
-    g.fillStyle(0xb98048, 1).fillRect(117, y0 + 5, x1 - 117 - 3, 140);
-    g.fillStyle(0x8a5a32, 1).fillRect(117, y0 + 5, 1, 140);
+    const low = Math.max(L.chapa?.y ?? -Infinity, L.coffee?.y ?? -Infinity, L.juicer?.y ?? -Infinity);
+    if (Number.isFinite(low)) {
+      const ch = low + 4 - (y0 + 5);
+      g.fillStyle(0xb98048, 1).fillRect(tx + 2, y0 + 5, x1 - tx - 5, ch);
+      g.fillStyle(0x8a5a32, 1).fillRect(tx + 2, y0 + 5, 1, ch);
+    }
     // the service strip along the front (pack row and register row)
-    g.fillStyle(0xc28c54, 1).fillRect(x0 + 3, 76, 110, 52);
-    g.fillStyle(0x8a5a32, 1).fillRect(x0 + 3, 76, 110, 1);
+    const strip = L.h - 68;
+    g.fillStyle(0xc28c54, 1).fillRect(x0 + 3, strip, tx - 5, y1 - 1 - strip);
+    g.fillStyle(0x8a5a32, 1).fillRect(x0 + 3, strip, tx - 5, 1);
   }
 
   private ensureDom(): void {
@@ -401,11 +437,12 @@ export class CounterStage {
         });
       }
       this.hotEl!.append(b);
-      this.hot.set(id, { el: b, spot, w, h });
+      this.hot.set(id, { el: b, spot, w, h, on: true });
     };
+    // every target is made once; `relayout` moves them to this shift's spots and hides the ones off the board
+    const spot: Spot = { x: 0, y: 0 };
     for (const it of MG_ITEMS) {
       const id = it.id;
-      const spot = ITEM_SPOTS[id]!;
       const isCup = CAFE_ITEMS.includes(id);
       const isJuice = SUCO_ITEMS.includes(id);
       // the crate in suco's cell feeds the juicer, like a tap on the machine
@@ -414,12 +451,12 @@ export class CounterStage {
         click: isCup ? () => togglePour(id) : isJuice ? () => on.on.juiceDrop() : () => (CHAPA_ITEMS.includes(id) ? on.on.chapaPut(id) : on.on.grab(id)),
       });
     }
-    btn('machine', 'cr-machine', { x: COFFEE_SPOT.x, y: COFFEE_SPOT.y }, 32, 40, 'Cafeteira', 'Tap to pour', {
+    btn('machine', 'cr-machine', spot, 32, 40, 'Cafeteira', 'Tap to pour', {
       click: () => togglePour(),
     });
     // the espremedor: a tap anywhere on it drops one orange; the glass on its tray is its own target (tap it at the line)
-    btn('juicer', 'cr-juicer', JUICER_SPOT, 40, 42, 'Espremedor', 'Juicer · 1 tap = 1 orange', { click: () => on.on.juiceDrop() });
-    btn('juice-glass', 'cr-glass', { x: JUICE_GLASS_SPOT.x, y: JUICE_GLASS_SPOT.y + 1 }, 16, 14, '', 'Glass: tap it at the line', { click: () => on.on.juiceTake() });
+    btn('juicer', 'cr-juicer', spot, 40, 42, 'Espremedor', 'Juicer · 1 tap = 1 orange', { click: () => on.on.juiceDrop() });
+    btn('juice-glass', 'cr-glass', spot, 16, 14, '', 'Glass: tap it at the line', { click: () => on.on.juiceTake() });
     {
       const glass = this.hot.get('juice-glass')!.el;
       glass.setAttribute('aria-label', 'Copo de suco: toque na linha (Juice glass: tap it at the line)');
@@ -439,11 +476,12 @@ export class CounterStage {
       bin.innerHTML = '<b>bagaço</b><i>peels</i>';
       juicer.append(bin);
     }
-    for (let i = 0; i < 2; i++) btn(`grill-${i}`, 'cr-grill', CHAPA_SLOTS[i]!, 16, 16, '', '', { click: () => on.on.chapaTake(i) });
-    btn('bag', 'cr-pack', BAG_SPOT, 24, 30, 'Sacola', 'Bag (to go)', { click: () => on.on.pack('bag') });
-    btn('plate', 'cr-pack', PLATE_SPOT, 28, 14, 'Prato', 'Plate (for here)', { click: () => on.on.pack('plate') });
-    btn('tray', 'cr-tray', TRAY_SPOT, 64, 18, '', 'Tray (tap to empty it)', { click: () => on.on.clear() });
-    btn('bell', 'cr-bell', BELL_SPOT, 22, 16, 'Entregar', 'Serve', { click: () => on.on.serve() });
+    for (let i = 0; i < 2; i++) btn(`grill-${i}`, 'cr-grill', spot, 16, 16, '', '', { click: () => on.on.chapaTake(i) });
+    btn('bag', 'cr-pack', spot, 24, 30, 'Sacola', 'Bag (to go)', { click: () => on.on.pack('bag') });
+    btn('plate', 'cr-pack', spot, 28, 14, 'Prato', 'Plate (for here)', { click: () => on.on.pack('plate') });
+    btn('tray', 'cr-tray', spot, 64, 18, '', 'Tray (tap to empty it)', { click: () => on.on.clear() });
+    btn('bell', 'cr-bell', spot, 22, 16, 'Entregar', 'Serve', { click: () => on.on.serve() });
+    this.layoutSig = '';
     this.hotEl!.style.display = 'none';
   }
 
@@ -451,6 +489,8 @@ export class CounterStage {
   private start(): void {
     this.build();
     this.epoch = correriaFeed.epoch;
+    // a new shift lays its board out again (the feed dropped the last camera frame, even when the menu is the same)
+    this.layoutSig = '';
     this.clearCustomers();
     this.clearParticles();
     this.lastTray = [];
@@ -518,6 +558,7 @@ export class CounterStage {
     if (this.epoch !== correriaFeed.epoch) this.start();
     const snap = correriaFeed.snap;
     if (!snap) return;
+    this.relayout(snap);
     this.board!.setVisible(true);
     this.hotEl!.style.display = '';
     for (const c of correriaFeed.drain()) this.onCue(c, snap);
@@ -535,27 +576,24 @@ export class CounterStage {
     this.stepPops();
   }
 
-  /** Items are lit up when the player can use them: dimmed when they are not on this shift's menu. An empty menu (old snap) leaves the shelf open. */
+  /** Only what is on this shift's menu stands on the board (`relayout`): a locked item is not there at all, not even greyed out. */
   private drawPieces(snap: CorreriaSnap, age: number): void {
-    const open = snap.menu?.length ? new Set(snap.menu) : null;
+    const L = this.L;
     // what this shift added wears a NOVO badge until it is first made
     const fresh = new Set((snap.ladder?.fresh ?? []).filter((id) => !this.tried.has(id)));
     for (const it of MG_ITEMS) {
-      const lock = !!open && !open.has(it.id);
       const p = this.items.get(it.id)!;
-      p.set(shelfKey(it.id), { alpha: lock ? 0.28 : 1, scale: ITEM_SCALE });
-      const hot = this.hot.get(`item-${it.id}`);
-      if (hot) {
-        hot.el.disabled = lock;
-        hot.el.classList.toggle('cr-new', fresh.has(it.id));
-      }
+      const cell = L.cells[it.id];
+      if (cell) p.set(shelfKey(it.id), { scale: ITEM_SCALE, spot: cell });
+      else p.hide();
+      this.hot.get(`item-${it.id}`)?.el.classList.toggle('cr-new', fresh.has(it.id));
     }
     this.hot.get('juicer')?.el.classList.toggle('cr-new', SUCO_ITEMS.some((id) => fresh.has(id)));
+    this.hot.get('machine')?.el.classList.toggle('cr-new', CAFE_ITEMS.some((id) => fresh.has(id)));
     const machine = this.hot.get('machine');
     if (machine) {
       const live = !!snap.pour || this.pouring;
-      machine.el.disabled = !!open && !open.has('cafe') && !open.has('cafe_com_leite');
-      // idle → filling ("espere…") → "Agora!" in the window → "Derramando!" past the brim
+      // idle → filling ("espere…") → "Agora!" in the green → "Extra quente!" in the red → "Derramando!" past it
       const zone = snap.pour ? pourZone((snap.pour.age + age) / snap.pourMs) : live ? 'filling' : 'idle';
       const lab = MACHINE_LABELS[zone];
       if (machine.el.dataset.zone !== zone) {
@@ -569,12 +607,12 @@ export class CounterStage {
     }
     // the tray: the base plus a miniature per item (a full one past five)
     const tray = snap.tray;
-    this.trayBase!.set(tray.length >= 7 ? ART.trayFull : ART.tray);
-    while (this.trayMinis.length < tray.length) this.trayMinis.push(new Piece(this.h, D.item + 1, TRAY_SPOT));
+    this.trayBase!.set(tray.length >= 7 ? ART.trayFull : ART.tray, { spot: L.tray });
+    while (this.trayMinis.length < tray.length) this.trayMinis.push(new Piece(this.h, D.item + 1, L.tray));
     this.trayMinis.forEach((m, i) => {
       // a juice glass still flying over from the machine lands in its slot before the miniature shows
       if (i >= tray.length || this.flight?.idx === i) return m.hide();
-      m.set(itemKey(tray[i]!), { scale: TRAY_ITEM_SCALE, spot: traySlot(i) });
+      m.set(itemKey(tray[i]!), { scale: TRAY_ITEM_SCALE, spot: traySlot(i, L.tray) });
     });
     if (tray.length > this.lastTray.length) {
       const idx = tray.length - 1;
@@ -582,37 +620,44 @@ export class CounterStage {
       if (m && !this.h.reduced()) this.hop.push({ piece: m, t: 0, dur: 0.28 });
     }
     this.lastTray = [...tray];
-    // bag and plate: the chosen one lifts and glows
-    this.bag!.set(ART.bag, { alpha: snap.pack === 'plate' ? 0.55 : 1, dy: snap.pack === 'bag' ? -3 : 0 });
-    this.plate!.set(ART.plate, { alpha: snap.pack === 'bag' ? 0.55 : 1, dy: snap.pack === 'plate' ? -3 : 0 });
+    // bag and plate (once packing is on the orders): the chosen one lifts and glows
+    if (L.bag) this.bag!.set(ART.bag, { alpha: snap.pack === 'plate' ? 0.55 : 1, dy: snap.pack === 'bag' ? -3 : 0, spot: L.bag });
+    else this.bag!.hide();
+    if (L.plate) this.plate!.set(ART.plate, { alpha: snap.pack === 'bag' ? 0.55 : 1, dy: snap.pack === 'plate' ? -3 : 0, spot: L.plate });
+    else this.plate!.hide();
     // the chapa: the busiest slot decides the frame, its items sit on the grill
     const slots = snap.chapa;
     let worst: 'idle' | 'sizzle_0' | 'sizzle_1' | 'sizzle_2' | 'burnt' = 'idle';
     const rank = { idle: 0, sizzle_0: 1, sizzle_1: 2, sizzle_2: 3, burnt: 4 } as const;
-    while (this.chapaItems.length < slots.length) this.chapaItems.push(new Piece(this.h, D.item + 2, CHAPA_SLOTS[this.chapaItems.length]!));
+    while (this.chapaItems.length < slots.length) this.chapaItems.push(new Piece(this.h, D.item + 2, L.tray));
     slots.forEach((s, i) => {
       const gp = this.chapaItems[i]!;
-      if (!s) return gp.hide();
+      const at = L.chapaSlots[i];
+      if (!s || !at) return gp.hide();
       const a = s.age + age;
       const f = chapaFrame(a);
       if (rank[f] > rank[worst]) worst = f;
-      gp.set(itemKey(s.item), { scale: CHAPA_ITEM_SCALE, alpha: f === 'burnt' ? 0.55 : 1 });
+      gp.set(itemKey(s.item), { scale: CHAPA_ITEM_SCALE, alpha: f === 'burnt' ? 0.55 : 1, spot: at });
     });
-    this.chapa!.set(chapaKey(worst));
+    if (L.chapa) this.chapa!.set(chapaKey(worst), { spot: L.chapa });
+    else this.chapa!.hide();
     // the machine: the pour frames while a pour runs, with the cup under the spout
-    if (snap.pour) {
+    if (!L.coffee || !L.spout) {
+      this.coffee!.hide();
+      this.cup!.hide();
+    } else if (snap.pour) {
       const fill = (snap.pour.age + age) / snap.pourMs;
-      this.coffee!.set(coffeeKey(pourFrame(Math.min(1.2, fill))));
-      this.cup!.set(itemKey(snap.pour.item), { scale: 0.7, dy: 2 });
+      this.coffee!.set(coffeeKey(pourFrame(Math.min(1.2, fill))), { spot: L.coffee });
+      this.cup!.set(itemKey(snap.pour.item), { scale: 0.7, dy: 2, spot: L.spout });
     } else {
-      this.coffee!.set(coffeeKey('idle'));
+      this.coffee!.set(coffeeKey('idle'), { spot: L.coffee });
       this.cup!.hide();
     }
-    this.drawJuicer(snap, age, open);
-    this.register!.set(ART.register);
-    this.bell!.set(bellKey(this.nowMs < this.bellUntil ? 1 : 0));
+    this.drawJuicer(snap, age);
+    this.register!.set(ART.register, { spot: L.register });
+    this.bell!.set(bellKey(this.nowMs < this.bellUntil ? 1 : 0), { spot: L.bell });
     const jar = tipJarStage(snap.stats.tips);
-    this.jar!.set(tipjarKey(jar));
+    this.jar!.set(tipjarKey(jar), { spot: L.tipjar });
     if (snap.stats.tips > this.lastTips && !this.h.reduced()) this.hop.push({ piece: this.jar!, t: 0, dur: 0.22 });
     this.lastTips = snap.stats.tips;
   }
@@ -630,8 +675,16 @@ export class CounterStage {
    * through, the glass rises to the rim and spills), a short glass tipped out. Under reduced motion the cycle is not played: the
    * machine stays idle (or ready) and the glass shows the server's level at once.
    */
-  private drawJuicer(snap: CorreriaSnap, age: number, open: Set<string> | null): void {
-    const locked = !!open && !SUCO_ITEMS.some((id) => open.has(id));
+  private drawJuicer(snap: CorreriaSnap, age: number): void {
+    const L = this.L;
+    if (!L.juicer || !L.juiceGlass || !L.hopperNext) {
+      // no suco on this menu: no juicer on the board
+      this.juicer!.hide();
+      this.glass!.hide();
+      this.nextOrange!.hide();
+      return;
+    }
+    const locked = false;
     const reduced = this.h.reduced();
     const j = snap.juice;
     // a new orange (the server's glass is back) ends a spill or a toss still on screen
@@ -643,7 +696,7 @@ export class CounterStage {
     if (this.ghost && step === 'idle') this.ghost = null;
     const atLine = !!j && step === 'idle' && j.fill >= JUICE.goodMin;
     const frame: JuicerFrame = atLine ? 'ready' : step;
-    this.juicer!.set(juicerKey(frame), { alpha: locked ? 0.4 : 1 });
+    this.juicer!.set(juicerKey(frame), { spot: L.juicer });
     if (step === 'press' && this.lastStep !== 'press') this.splash();
     if (step === 'peel' && this.lastStep !== 'peel') this.peelDrop();
     this.lastStep = step;
@@ -652,8 +705,8 @@ export class CounterStage {
     const poured = reduced || t >= JUICE.cycleMs * 0.84;
     if (j && poured && j.prev < JUICE.goodMin && j.fill >= JUICE.goodMin && this.lineCheered !== j.oranges) {
       this.lineCheered = j.oranges;
-      this.popWord(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 14, 'na linha!', 'at the line', 'good');
-      this.sparkle(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 12, 0x8ff0a4);
+      this.popWord(L.juiceGlass.x, L.juiceGlass.y - 14, 'na linha!', 'at the line', 'good');
+      this.sparkle(L.juiceGlass.x, L.juiceGlass.y - 12, 0x8ff0a4);
     }
     if (!j) this.lineCheered = -1;
     const g = this.ghost;
@@ -663,15 +716,14 @@ export class CounterStage {
     }
     // the next orange waits on the feeder (while one rolls in, the machine frame draws it)
     const next = snap.hopper?.[0];
-    if (next && !locked && step !== 'roll') this.nextOrange!.set(orangeKey(next));
+    if (next && !locked && step !== 'roll') this.nextOrange!.set(orangeKey(next), { spot: L.hopperNext });
     else this.nextOrange!.hide();
     // the glass: the overflow frame after a spill, a tipped-out glass running down, else the level (eased while it pours, whole rows)
     const fill = this.shownFill(snap, age);
     this.lastFill = j ? fill : 0;
-    if (this.nowMs < this.spillUntil) this.glass!.set(juiceGlassKey('spill'));
-    else if (g || j || this.drain) this.glass!.set(juiceGlassKey(juiceRows(fill)));
-    else if (!locked) this.glass!.set(juiceGlassKey(0));
-    else this.glass!.hide();
+    if (this.nowMs < this.spillUntil) this.glass!.set(juiceGlassKey('spill'), { spot: L.juiceGlass });
+    else if (g || j || this.drain) this.glass!.set(juiceGlassKey(juiceRows(fill)), { spot: L.juiceGlass });
+    else this.glass!.set(juiceGlassKey(0), { spot: L.juiceGlass });
     const hot = this.hot.get('juicer');
     if (hot) {
       hot.el.disabled = locked;
@@ -722,7 +774,7 @@ export class CounterStage {
     if (this.h.reduced()) return;
     const s = this.h.scene;
     for (let i = 0; i < 4; i++) {
-      const img = this.h.world(s.add.rectangle(JUICE_CHAMBER.x + (i - 1.5) * 2, JUICE_CHAMBER.y, 1, 1, i % 2 ? 0xffb43a : 0xf6a021, 1)).setOrigin(0, 0);
+      const img = this.h.world(s.add.rectangle(this.jc.x + (i - 1.5) * 2, this.jc.y, 1, 1, i % 2 ? 0xffb43a : 0xf6a021, 1)).setOrigin(0, 0);
       img.setDepth(D.fx);
       this.particles.push({ img, vx: (i - 1.5) * 9, vy: -14 - Math.random() * 6, life: 0, max: 0.35, grav: 120 });
     }
@@ -732,12 +784,12 @@ export class CounterStage {
   private overflow(): void {
     this.spillUntil = this.nowMs + SPILL_MS;
     this.kick();
-    this.popAt(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 16, '💦');
+    this.popAt(this.jg.x, this.jg.y - 16, '💦');
     if (this.h.reduced()) return;
     const s = this.h.scene;
     for (let i = 0; i < 8; i++) {
       const side = i % 2 ? 1 : -1;
-      const img = this.h.world(s.add.rectangle(JUICE_GLASS_SPOT.x + side * (6 + (i % 3)), JUICE_GLASS_SPOT.y - 11 + (i >> 1), 1, 1, i % 3 ? 0xf6a021 : 0xffd778, 1)).setOrigin(0, 0);
+      const img = this.h.world(s.add.rectangle(this.jg.x + side * (6 + (i % 3)), this.jg.y - 11 + (i >> 1), 1, 1, i % 3 ? 0xf6a021 : 0xffd778, 1)).setOrigin(0, 0);
       img.setDepth(D.fx);
       this.particles.push({ img, vx: side * (6 + Math.random() * 10), vy: -8 - Math.random() * 10, life: 0, max: 0.55, grav: 140 });
     }
@@ -746,11 +798,11 @@ export class CounterStage {
   /** A short glass tipped out: it runs down to nothing, a few drops fall off the tray. */
   private tipOut(from: number): void {
     this.drain = { from, at: this.nowMs };
-    this.popAt(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 16, '…');
+    this.popAt(this.jg.x, this.jg.y - 16, '…');
     if (this.h.reduced()) return;
     const s = this.h.scene;
     for (let i = 0; i < 3; i++) {
-      const img = this.h.world(s.add.rectangle(JUICE_GLASS_SPOT.x - 3 + i * 3, JUICE_GLASS_SPOT.y, 1, 1, 0xf6a021, 1)).setOrigin(0, 0);
+      const img = this.h.world(s.add.rectangle(this.jg.x - 3 + i * 3, this.jg.y, 1, 1, 0xf6a021, 1)).setOrigin(0, 0);
       img.setDepth(D.fx);
       this.particles.push({ img, vx: (i - 1) * 4, vy: 4, life: 0, max: 0.4, grav: 90 });
     }
@@ -774,9 +826,9 @@ export class CounterStage {
     if (this.h.reduced() || idx < 0) return;
     const d = this.h.manifest.sprites[juiceGlassKey(juiceRows(fill))];
     if (!d) return;
-    const from = { x: JUICE_GLASS_SPOT.x, y: JUICE_GLASS_SPOT.y };
+    const from = { x: this.jg.x, y: this.jg.y };
     const img = this.h.world(this.h.scene.add.image(from.x, from.y, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(D.fx);
-    this.flight = { img, from, to: traySlot(idx), t: 0, dur: 0.46, idx };
+    this.flight = { img, from, to: traySlot(idx, this.L.tray), t: 0, dur: 0.46, idx };
   }
 
   private stepFlight(dt: number): void {
@@ -794,7 +846,7 @@ export class CounterStage {
     this.sparkle(f.to.x, f.to.y - 6, 0xffd778);
     const m = this.trayMinis[idx];
     if (m) {
-      m.set(itemKey(correriaFeed.snap?.tray[idx] ?? 'suco_de_laranja'), { scale: TRAY_ITEM_SCALE, spot: traySlot(idx) });
+      m.set(itemKey(correriaFeed.snap?.tray[idx] ?? 'suco_de_laranja'), { scale: TRAY_ITEM_SCALE, spot: traySlot(idx, this.L.tray) });
       this.hop.push({ piece: m, t: 0, dur: 0.24 });
     }
   }
@@ -829,7 +881,7 @@ export class CounterStage {
     if (this.h.reduced()) return;
     const s = this.h.scene;
     for (let i = 0; i < 2; i++) {
-      const img = this.h.world(s.add.rectangle(PEEL_BIN.x + i * 2, PEEL_BIN.y - 4 + i, 2, 1, i ? 0xb4520e : 0xe07a14, 1)).setOrigin(0, 0);
+      const img = this.h.world(s.add.rectangle(this.pb.x + i * 2, this.pb.y - 4 + i, 2, 1, i ? 0xb4520e : 0xe07a14, 1)).setOrigin(0, 0);
       img.setDepth(D.fx);
       this.particles.push({ img, vx: -4, vy: 6, life: 0, max: 0.3, grav: 60 });
     }
@@ -847,8 +899,8 @@ export class CounterStage {
 
   // ------------------------------------------------------------------ customers
   private slotOrder(snap: CorreriaSnap): CustomerView[] {
-    const front = snap.customers.filter((c) => c.state === 'front' || c.state === 'asking');
-    const rest = snap.customers.filter((c) => c.state !== 'front' && c.state !== 'asking');
+    const front = snap.customers.filter((c) => c.state === 'front');
+    const rest = snap.customers.filter((c) => c.state !== 'front');
     return [...front, ...rest];
   }
 
@@ -866,7 +918,7 @@ export class CounterStage {
       if (!c) {
         const sheet = this.h.acquireSheet(this.lookOf(cv.who));
         const s = this.h.scene;
-        const spr = this.h.world(s.add.sprite(DOOR_SPOT.x, DOOR_SPOT.y, sheet, 0)).setOrigin(0.5, 1);
+        const spr = this.h.world(s.add.sprite(this.L.door.x, this.L.door.y, sheet, 0)).setOrigin(0.5, 1);
         const shadow = this.h.world(s.add.ellipse(0, 0, 13, 5, 0x000000, 0.28)).setDepth(D.customer - 1);
         const bubble = document.createElement('div');
         bubble.className = 'cr-bubble';
@@ -876,12 +928,12 @@ export class CounterStage {
         tag.className = `cr-tag${cv.regular ? ' regular' : ''}`;
         tag.textContent = `${cv.regular ? '♥ ' : ''}${cv.who.name}`;
         this.popsEl!.append(tag);
-        c = { id: cv.id, sheet, spr, shadow, meter: new Piece(this.h, D.hud + 1, DOOR_SPOT), x: this.h.instant() ? QUEUE_SPOTS[Math.min(slot, 2)]!.x : DOOR_SPOT.x, y: QUEUE_SPOTS[Math.min(slot, 2)]!.y, face: 'E', moving: true, leaving: false, who: cv.who, bubble, tag, bubbleSig: '', speakUntil: 0, slot, state: cv.state };
+        c = { id: cv.id, sheet, spr, shadow, meter: new Piece(this.h, D.hud + 1, this.L.door), x: this.h.instant() ? this.L.queue[Math.min(slot, 2)]!.x : this.L.door.x, y: this.L.queue[Math.min(slot, 2)]!.y, face: 'E', moving: true, leaving: false, who: cv.who, bubble, tag, bubbleSig: '', speakUntil: 0, slot, state: cv.state };
         this.customers.set(cv.id, c);
       }
       c.slot = slot;
       c.state = cv.state;
-      const to = QUEUE_SPOTS[Math.min(slot, QUEUE_SPOTS.length - 1)]!;
+      const to = this.L.queue[Math.min(slot, this.L.queue.length - 1)]!;
       this.walk(c, to, dt);
       // patience meter over the head (frozen while they walk in and once served)
       const left = cv.patience - cv.rate * age;
@@ -901,8 +953,8 @@ export class CounterStage {
       c.bubble.style.display = 'none';
       c.tag.style.display = 'none';
       c.meter.hide();
-      this.walk(c, { x: DOOR_SPOT.x, y: c.y }, dt);
-      if (c.x <= DOOR_SPOT.x + 1 || this.h.instant()) {
+      this.walk(c, { x: this.L.door.x, y: c.y }, dt);
+      if (c.x <= this.L.door.x + 1 || this.h.instant()) {
         this.dropCustomer(c);
         this.customers.delete(c.id);
       }
@@ -940,7 +992,7 @@ export class CounterStage {
   private bubbleFor(c: CustomerView2, cv: CustomerView): void {
     const tag = c.tag;
     const here = !c.leaving && !c.moving;
-    const want = `${cv.regular ? '♥ ' : ''}${cv.who.name}${cv.state === 'front' && cv.mode === 'listening' ? ' 🔊' : ''}`;
+    const want = `${cv.regular ? '♥ ' : ''}${cv.who.name}${cv.state === 'front' && cv.mode === 'listening' ? ' 🔊' : ''}${cv.state === 'front' && cv.hot ? ' ☕🔥' : ''}`;
     if (tag.textContent !== want) tag.textContent = want;
     const tp = this.h.toCanvas(c.x, c.y - 47);
     tag.style.display = here ? '' : 'none';
@@ -1021,7 +1073,7 @@ export class CounterStage {
     // chapa: a bar over each item, the green window between ready and burnt
     snap.chapa.forEach((s, i) => {
       if (!s) return;
-      const sp = CHAPA_SLOTS[i]!;
+      const sp = this.L.chapaSlots[i]!;
       const a = s.age + age;
       const w = 16;
       const x = Math.round(sp.x - w / 2);
@@ -1034,24 +1086,33 @@ export class CounterStage {
       const phase = chapaPhase(a);
       g.fillStyle(phase === 'burnt' ? 0xc0392b : 0xfff2c2, 1).fillRect(x + Math.round(w * u), y - 1, 1, 4);
     });
-    // coffee: a vertical fill bar beside the machine, scaled past the brim so an overpour shows. The green band is the server's window
-    // (POUR.goodMin..spillAt), the red notch the brim; in the window the bar blinks bright (steady under reduced motion).
-    if (snap.pour) {
+    // coffee: a vertical bar beside the machine, the server's windows on it: green (POUR.goodMin..spillAt) lands a coffee, red above it
+    // (..hotMax) an extra-hot one, past the red it is too late. The bar blinks in the window it is in (steady under reduced motion). When
+    // the order at the counter wants extra quente, a flame marker points at the red, from the first tap.
+    if (snap.pour && this.L.coffee) {
       const fill = (snap.pour.age + age) / snap.pourMs;
       const zone = pourZone(fill);
-      const x = 117;
-      const top = COFFEE_SPOT.y - 38;
-      const hgt = 34;
-      const max = 1.3;
+      const x = this.L.towerX + 2;
+      const top = this.cs.y - 40;
+      const hgt = 38;
+      const max = 1.6;
       const yOf = (f: number) => top + hgt - Math.round((hgt * Math.min(max, Math.max(0, f))) / max);
-      g.fillStyle(0x1b1210, 0.9).fillRect(x - 1, top - 1, 5, hgt + 2);
-      g.fillStyle(0x2e8a55, 0.9).fillRect(x, yOf(POUR.spillAt), 3, yOf(POUR.goodMin) - yOf(POUR.spillAt));
-      const blink = zone === 'agora' && !this.h.reduced() && Math.floor(this.nowMs / 120) % 2 === 0;
-      const col = zone === 'filling' ? 0xf2c230 : zone === 'agora' ? (blink ? 0xc8ffd2 : 0x66d27f) : 0xc0392b;
+      g.fillStyle(0x1b1210, 0.9).fillRect(x - 1, top - 1, 6, hgt + 2);
+      g.fillStyle(0x2e8a55, 0.9).fillRect(x, yOf(POUR.spillAt), 4, yOf(POUR.goodMin) - yOf(POUR.spillAt));
+      g.fillStyle(0x9c2a1e, 0.95).fillRect(x, yOf(POUR.hotMax), 4, yOf(POUR.spillAt) - yOf(POUR.hotMax));
+      const blink = (zone === 'agora' || zone === 'quente') && !this.h.reduced() && Math.floor(this.nowMs / 120) % 2 === 0;
+      const col = zone === 'filling' ? 0xf2c230 : zone === 'agora' ? (blink ? 0xc8ffd2 : 0x66d27f) : zone === 'quente' ? (blink ? 0xffc0a8 : 0xff5a36) : 0x6b4a3a;
       const yy = yOf(fill);
-      g.fillStyle(col, 1).fillRect(x, yy, 3, top + hgt - yy);
-      g.fillStyle(0xd93232, 1).fillRect(x - 1, yOf(POUR.spillAt), 5, 1);
-      if (zone === 'agora') g.fillStyle(0xfff2c2, 1).fillRect(x - 3, yy, 2, 1);
+      g.fillStyle(col, 1).fillRect(x, yy, 4, top + hgt - yy);
+      g.fillStyle(0xfff2c2, 1).fillRect(x - 1, yOf(POUR.spillAt), 6, 1);
+      g.fillStyle(0x1b1210, 1).fillRect(x - 1, yOf(POUR.hotMax), 6, 1);
+      if (zone === 'agora' || zone === 'quente') g.fillStyle(0xfff2c2, 1).fillRect(x - 3, yy, 2, 1);
+      // the order wants it extra hot: a flame-coloured arrow pointing at the middle of the red
+      const front = snap.customers.find((c) => c.state === 'front');
+      if (front?.hot) {
+        const my = yOf((POUR.spillAt + POUR.hotMax) / 2);
+        g.fillStyle(0xff7a1a, 1).fillRect(x - 6, my - 2, 1, 5).fillRect(x - 5, my - 1, 1, 3).fillRect(x - 4, my, 1, 1);
+      }
     }
     this.drawJuiceMeter(g, snap, age);
   }
@@ -1064,8 +1125,10 @@ export class CounterStage {
     const j = snap.juice;
     const spilling = this.nowMs < this.spillUntil;
     if (!j && !spilling && !this.ghost && !this.drain) return;
-    const fill = spilling ? JUICE_GAUGE.max : this.shownFill(snap, age);
-    const { x, y, w, h, max } = JUICE_GAUGE;
+    const gauge = this.L.juiceGauge;
+    if (!gauge) return;
+    const fill = spilling ? gauge.max : this.shownFill(snap, age);
+    const { x, y, w, h, max } = gauge;
     const rows = Math.round((h * Math.min(max, Math.max(0, fill))) / max);
     if (rows > 0) {
       const col = fill > JUICE.spillAt ? 0xd93232 : fill >= JUICE.goodMin ? 0x4fd06a : 0xf6a021;
@@ -1075,8 +1138,8 @@ export class CounterStage {
     }
     // the stream from the spout into the glass while this orange pours
     if ((j || this.ghost) && !this.h.reduced() && this.juiceStep(snap, age) === 'pour') {
-      const surface = JUICE_GLASS_SPOT.y - 2 - juiceRows(fill);
-      g.fillStyle(0xf6a021, 1).fillRect(JUICE_SPOUT.x, JUICE_SPOUT.y, 1, Math.max(1, surface - JUICE_SPOUT.y));
+      const surface = this.jg.y - 2 - juiceRows(fill);
+      g.fillStyle(0xf6a021, 1).fillRect(this.jsp.x, this.jsp.y, 1, Math.max(1, surface - this.jsp.y));
     }
   }
 
@@ -1088,29 +1151,29 @@ export class CounterStage {
     if (e.k === 'grab' || e.k === 'chapa_ok' || e.k === 'pour_ok' || e.k === 'juice_ok') this.tried.add(e.item);
     switch (e.k) {
       case 'chapa_put':
-        this.puff(CHAPA_SLOTS[e.slot]!.x, CHAPA_SLOTS[e.slot]!.y - 6, 1);
+        this.puff(this.L.chapaSlots[e.slot]!.x, this.L.chapaSlots[e.slot]!.y - 6, 1);
         break;
       case 'chapa_ok':
-        this.puff(CHAPA_SLOTS[e.slot]!.x, CHAPA_SLOTS[e.slot]!.y - 8, 3);
+        this.puff(this.L.chapaSlots[e.slot]!.x, this.L.chapaSlots[e.slot]!.y - 8, 3);
         break;
       case 'chapa_burnt':
-        this.puff(CHAPA_SLOTS[e.slot]!.x, CHAPA_SLOTS[e.slot]!.y - 8, 4, true);
-        this.popAt(CHAPA_SPOT.x, CHAPA_SPOT.y - 44, '💨');
+        this.puff(this.L.chapaSlots[e.slot]!.x, this.L.chapaSlots[e.slot]!.y - 8, 4, true);
+        this.popAt(this.cps.x, this.cps.y - 44, '💨');
         break;
       case 'chapa_trash':
-        this.puff(CHAPA_SLOTS[e.slot]!.x, CHAPA_SLOTS[e.slot]!.y - 4, 2, true);
+        this.puff(this.L.chapaSlots[e.slot]!.x, this.L.chapaSlots[e.slot]!.y - 4, 2, true);
         break;
       case 'pour_ok':
         this.pouring = false;
-        this.popAt(COFFEE_SPOT.x, COFFEE_SPOT.y - 40, '☕');
+        this.popAt(this.cs.x, this.cs.y - 40, '☕');
         break;
       case 'pour_bad':
         this.pouring = false;
-        this.popAt(COFFEE_SPOT.x, COFFEE_SPOT.y - 40, e.why === 'spill' ? '💦' : '…');
+        this.popAt(this.cs.x, this.cs.y - 40, e.why === 'spill' ? '💦' : '…');
         break;
       case 'juice_ok':
         // the glass is won: it hops off the drip tray onto the tray
-        this.popAt(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 16, '🍊');
+        this.popAt(this.jg.x, this.jg.y - 16, '🍊');
         this.flyGlass(Math.max(this.lastFill, e.fill), snap.tray.lastIndexOf(e.item));
         break;
       case 'juice_bad':
@@ -1137,12 +1200,6 @@ export class CounterStage {
         break;
       case 'leave':
         this.emoteAt(e.id, e.emote, snap);
-        break;
-      case 'ask_result':
-        this.popAt(REGISTER_SPOT.x, REGISTER_SPOT.y - 26, e.ok ? '💰' : '🧾');
-        break;
-      case 'ask':
-        this.popAt(REGISTER_SPOT.x, REGISTER_SPOT.y - 26, '🧾');
         break;
       default:
         break;
@@ -1182,9 +1239,9 @@ export class CounterStage {
     if (snap && !this.h.reduced() && this.nowMs - this.steamAt > 420) {
       this.steamAt = this.nowMs;
       snap.chapa.forEach((s, i) => {
-        if (s && chapaPhase(s.age + (this.nowMs - correriaFeed.snapAt)) !== 'raw') this.puff(CHAPA_SLOTS[i]!.x, CHAPA_SLOTS[i]!.y - 10, 1);
+        if (s && chapaPhase(s.age + (this.nowMs - correriaFeed.snapAt)) !== 'raw') this.puff(this.L.chapaSlots[i]!.x, this.L.chapaSlots[i]!.y - 10, 1);
       });
-      if (snap.pour) this.puff(SPOUT.x, SPOUT.y - 4, 1);
+      if (snap.pour && this.L.spout) this.puff(this.L.spout.x, this.L.spout.y - 4, 1);
     }
     this.particles = this.particles.filter((p) => {
       p.life += dt;
@@ -1229,9 +1286,12 @@ export class CounterStage {
       h.el.style.top = `${Math.round(py - hh)}px`;
       h.el.style.width = `${Math.round(w)}px`;
       h.el.style.height = `${Math.round(hh)}px`;
+      // a piece this shift's board leaves off has no tap target either
+      h.el.style.display = h.on ? '' : 'none';
+      h.el.disabled = !h.on;
       if (id.startsWith('grill-')) {
         const i = Number(id.slice(6));
-        h.el.style.display = i < slotCount ? '' : 'none';
+        h.el.style.display = h.on && i < slotCount ? '' : 'none';
         const s = snap.chapa[i];
         h.el.dataset.state = s ? chapaPhase(s.age + (this.nowMs - correriaFeed.snapAt)) : 'empty';
       }
@@ -1267,7 +1327,7 @@ export class CounterStage {
     if (b && b.style.display !== 'none') {
       if (this.nowMs > Number(b.dataset.until ?? 0)) b.style.display = 'none';
       else {
-        const { px, py } = this.h.toCanvas(BAKER_SPOT.x, BAKER_SPOT.y);
+        const { px, py } = this.h.toCanvas(this.L.baker.x, this.L.baker.y);
         b.style.left = `${Math.round(px)}px`;
         b.style.top = `${Math.round(py)}px`;
       }

@@ -87,7 +87,7 @@ import { BoutStage, type StageHost } from './boutStage';
 import { boutFeed } from './boutFeed';
 import { CounterStage } from './correriaStage';
 import { correriaFeed } from './correriaFeed';
-import { FOCUS, NEED } from './correriaArt';
+import { FOCUS as FULL_FOCUS, NEED as FULL_NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propClickKind, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, glintSpot, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor, type WireRun } from './scenery';
@@ -515,7 +515,7 @@ export class WorldScene extends Phaser.Scene {
       const a = propAnchor(p);
       arts.push({ key, rect: spriteRect(Math.round(a.wx), Math.round(a.wy), d) });
     }
-    for (const hs of hotspotsInRoom(def.id)) {
+    for (const hs of def.noHotspots ? [] : hotspotsInRoom(def.id)) {
       const word = wordForSign(hs.id);
       if (!word) continue;
       const b = hotspotBox(hs);
@@ -820,9 +820,8 @@ export class WorldScene extends Phaser.Scene {
     for (const p of sur?.props ?? []) this.buildProp(p, true);
 
     // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
-    for (const hs of hotspotsInRoom(def.id)) {
-      // Seu Carlos's own shelf sign does not hang in a player-owned padaria
-      if (game.room?.padaria && hs.id === 'padaria_prateleira') continue;
+    // (a player's padaria is its own room: Seu Carlos's signs and words do not hang there)
+    for (const hs of def.noHotspots ? [] : hotspotsInRoom(def.id)) {
       if (!diaryVisible(def.id, hs.id, this.diaryDay)) continue;
       const b = hotspotBox(hs);
       this.staticHits.push({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T, hit: { kind: 'hotspot', hotspot: hs }, depth: b.y1 * T - 0.25 });
@@ -855,7 +854,7 @@ export class WorldScene extends Phaser.Scene {
 
   /** North band (3 tiles) and west strip from wall tiles; a missing tile key falls back to a flat fill in the room's wall color. */
   private buildWalls(def: RoomDef): void {
-    const style = WALL_STYLE[def.id] ?? 'padaria';
+    const style = def.wallStyle ?? WALL_STYLE[def.id] ?? 'padaria';
     const band = northBandRect(def);
     const strip = westStripRect(def);
     const has = (k: string) => !!this.m.sprites[k];
@@ -1425,15 +1424,17 @@ export class WorldScene extends Phaser.Scene {
     return { ...f, ...g };
   }
 
-  // ---- Correria no Balcão: the camera eases one zoom step onto the work board, above the overlay (like the dialogue)
+  // ---- Correria no Balcão: the camera eases in onto the work board, above the overlay (like the dialogue)
   private withCounter(f: { zoom: number; cx: number; cy: number; fits: boolean }, ins: Insets, k: number, dt: number): typeof f {
     this.counterBlend = stepBlend(this.counterBlend, correriaFeed.camera ? 1 : 0, dt, 0.4, this.fxLevel.reduced || !!this.host.shot);
     if (this.counterBlend <= 0 || !this.roomId.startsWith('padaria')) return f;
-    // one step in, but never so far that the board and the queue leave the free band between the HUD and the strip
+    // as close as the board and the queue fit in the free band between the HUD and the strip (a new counter is small: it fills the screen)
+    const NEED = correriaFeed.frame?.need ?? FULL_NEED;
+    const FOCUS = correriaFeed.frame?.focus ?? FULL_FOCUS;
     const unit = Math.max(1, Math.round(k));
     const availH = this.cam.h - (correriaFeed.topPx + 6) * k - (correriaFeed.boxPx + 6) * k;
     const availW = this.cam.w - (ins.left + ins.right) * k;
-    let zoom = f.zoom + unit;
+    let zoom = f.zoom + unit * 6;
     while (zoom > unit && (NEED.h * zoom > availH || NEED.w * zoom > availW)) zoom -= unit;
     const base = zoom >= f.zoom ? f : { ...f, zoom };
     const g = dialogueFraming({

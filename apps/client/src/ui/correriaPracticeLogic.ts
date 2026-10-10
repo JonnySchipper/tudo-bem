@@ -1,132 +1,115 @@
 /**
- * Pure model of the first-time "Correria no Balcão" tutorial (no DOM): the six steps of the practice order (read the order, the coffee pour,
- * the pão francês, the juicer, Entregar, the pay), which taps each step lets through, what it lights up, and what moves it on.
- * `ui/correriaPractice.ts` runs the practice shift locally and draws the coach card from these.
+ * Teach by doing (no DOM): the coach marks of "Correria no Balcão". One short hint, pinned next to the thing to tap, for each action the
+ * player has never done: the coffee machine, the green "Agora!", the red "extra quente", each shelf item, the chapa, the juicer, the bag or
+ * the plate, Entregar. A hint goes away for good once its action is done (`coachDone`); the practice order and every real shift share the
+ * one list of what was learnt, so a new player meets each hint once. needs_br: true on every Portuguese line here.
  */
-import { COUNTER_PRICES, JUICE, PRACTICE_MENU, moneyLabel, type Bilingual, type CAct, type CEvent, type CorreriaSnap } from '@tudobem/shared';
+import { CAFE_ITEMS, CHAPA_ITEMS, JUICE, SUCO_ITEMS, chapaPhase, mgItemByIdAny, type Bilingual, type CEvent, type CorreriaSnap } from '@tudobem/shared';
 
-export type PracticeStepId = 'read' | 'cafe' | 'pao' | 'suco' | 'serve' | 'paid';
-
-export interface PracticeStep {
-  id: PracticeStepId;
-  title: Bilingual;
-  body: Bilingual;
+export interface CoachMark extends Bilingual {
+  /** What is being taught (stored once done). */
+  key: string;
+  /** The element id it points at (a counter tap target or a strip button). */
+  target: string;
 }
 
-const b = (pt: string, en: string): Bilingual => ({ pt, en });
+const mark = (key: string, target: string, pt: string, en: string): CoachMark => ({ key, target, pt, en });
 
-export const PRACTICE_STEPS: readonly PracticeStep[] = [
-  {
-    id: 'read',
-    title: b('Leia o pedido', 'Read the order'),
-    body: b('A Ana pede no balão e no bilhete aqui embaixo: um café, um pão francês e um suco de laranja.', 'Ana orders in the bubble and on the ticket below: a coffee, a French roll and an orange juice.'),
-  },
-  {
-    id: 'cafe',
-    title: b('O café: toque duas vezes', 'Coffee: tap twice'),
-    body: b('Toque na cafeteira. A xícara enche sozinha. Toque de novo quando aparecer “Agora!” em verde.', 'Tap the coffee machine. The cup fills on its own. Tap again when the green “Agora!” (now!) shows.'),
-  },
-  {
-    id: 'pao',
-    title: b('O pão francês', 'The French roll'),
-    body: b('Toque no pão na vitrine. Ele vai direto pra bandeja.', 'Tap the bread in the display case. It goes straight onto the tray.'),
-  },
-  {
-    id: 'suco',
-    title: b('O suco: o espremedor', 'Juice: the juicer'),
-    body: b('Toque no espremedor: cada toque, uma laranja. Quando o suco chegar na linha, toque no copo.', 'Tap the juicer: each tap, one orange. When the juice reaches the line, tap the glass.'),
-  },
-  {
-    id: 'serve',
-    title: b('Entregue', 'Serve'),
-    body: b('Tudo na bandeja? Toque em Entregar 🔔.', 'Everything on the tray? Tap Entregar 🔔 (Serve).'),
-  },
-  {
-    id: 'paid',
-    title: b('Você recebeu!', 'You got paid!'),
-    body: b('', ''),
-  },
-];
+/** The extra-hot hint, at the machine (from the first tap of a hot order until a hot pour lands). */
+const HOT = (): CoachMark => mark('hot', 'cr-machine', 'Extra quente 🔥: passe do verde, toque no vermelho', 'Extra hot: go past the green, tap in the red');
 
-export const practiceStep = (id: PracticeStepId): PracticeStep => PRACTICE_STEPS.find((s) => s.id === id)!;
-export const practiceIndex = (id: PracticeStepId): number => PRACTICE_STEPS.findIndex((s) => s.id === id);
-
-/** Only the taps the current step teaches go through, so the practice order cannot go wrong. */
-export function practiceAllows(step: PracticeStepId, act: CAct): boolean {
-  switch (step) {
-    case 'cafe':
-      return (act.a === 'pour_start' && act.item === 'cafe') || act.a === 'pour_end';
-    case 'pao':
-      return act.a === 'grab' && act.item === 'pao';
-    case 'suco':
-      return act.a === 'juice_drop' || act.a === 'juice_take';
-    case 'serve':
-      return act.a === 'serve';
-    default:
-      return false;
+/** The hint to show now, or null: the front customer's next untaught step, in the order the tray is built. */
+export function coachMark(snap: Pick<CorreriaSnap, 'customers' | 'tray' | 'pour' | 'juice' | 'chapa' | 'pack' | 'pourMs' | 'menu'>, seen: ReadonlySet<string>, pouring = false): CoachMark | null {
+  const f = snap.customers.find((c) => c.state === 'front');
+  if (!f) return null;
+  if (f.mode === 'listening' && f.replays === 0 && !seen.has('listen')) return mark('listen', 'cr-replay', 'Escute o pedido 🔊', 'Listen to the order');
+  // a pour is running: wait for the green (or, for an extra-hot order, the red)
+  if (snap.pour || pouring) {
+    if (f.hot && !seen.has('hot')) return HOT();
+    if (!f.hot && !seen.has('agora')) return mark('agora', 'cr-machine', 'Toque de novo no verde: Agora!', 'Tap again on the green: now!');
+    return null;
   }
-}
-
-/** The step after these events (the same step until its item is on the tray). */
-export function practiceAfter(step: PracticeStepId, ev: readonly CEvent[]): PracticeStepId {
-  if (step === 'cafe' && ev.some((e) => e.k === 'pour_ok')) return 'pao';
-  if (step === 'pao' && ev.some((e) => e.k === 'grab' && e.item === 'pao')) return 'suco';
-  if (step === 'suco' && ev.some((e) => e.k === 'juice_ok')) return 'serve';
-  if (step === 'serve' && ev.some((e) => e.k === 'serve')) return 'paid';
-  return step;
-}
-
-/** A friendly "try again" when a pour or a glass misses (the step stays where it is). */
-export function practiceRetry(ev: readonly CEvent[]): Bilingual | null {
-  for (const e of ev) {
-    if (e.k === 'pour_bad') return e.why === 'short' ? b('Cedo demais! Toque de novo e espere o verde.', 'Too early! Tap again and wait for the green.') : b('Passou! Toque bem no “Agora!”.', 'Too late! Tap right at “Agora!”.');
-    if (e.k === 'juice_bad') return e.why === 'short' ? b('Ainda não chegou na linha. Mais laranjas, depois o copo!', 'Not at the line yet. More oranges, then the glass!') : b('Transbordou! Comece outro copo.', 'It overflowed! Start another glass.');
+  // something is ready to take off a station
+  if (snap.juice && snap.juice.fill >= JUICE.goodMin && !seen.has('suco_take')) return mark('suco_take', 'cr-juice-glass', 'Na linha! Toque no copo', 'At the line! Tap the glass');
+  const ready = snap.chapa.findIndex((s) => s && chapaPhase(s.age) === 'ready');
+  if (ready >= 0 && !seen.has('chapa_take')) return mark('chapa_take', `cr-grill-${ready}`, 'Dourou! Toque pra tirar', 'Golden! Tap to take it off');
+  const want = f.want;
+  if (!want) return null;
+  const have = (id: string) => snap.tray.includes(id);
+  for (const id of want.items) {
+    if (have(id)) continue;
+    if (CAFE_ITEMS.includes(id)) {
+      if (!seen.has('cafe')) return mark('cafe', 'cr-machine', 'Toque na cafeteira', 'Tap the coffee machine');
+      if (f.hot && !seen.has('hot')) return HOT();
+      continue;
+    }
+    if (SUCO_ITEMS.includes(id)) {
+      if (!snap.juice && !seen.has('suco')) return mark('suco', 'cr-juicer', 'Uma laranja por toque', 'One orange per tap');
+      continue;
+    }
+    const card = mgItemByIdAny(id)?.card;
+    const the = (card?.gender ?? 'm') === 'f' ? 'a' : 'o';
+    if (CHAPA_ITEMS.includes(id)) {
+      if (snap.chapa.some((s) => s?.item === id)) continue;
+      if (!seen.has('chapa')) return mark('chapa', `cr-item-${id}`, 'Toque aqui: vai pra chapa', 'Tap here: it goes on the grill');
+      continue;
+    }
+    const key = `item:${id}`;
+    if (!seen.has(key)) return mark(key, `cr-item-${id}`, `Pegue ${the} ${card?.form ?? id}`, `Take the ${card?.gloss_en ?? id}`);
   }
+  // packing, once the orders say pra viagem / pra comer aqui
+  const where = want.mods.find((m) => m === 'pra_viagem' || m === 'pra_comer_aqui');
+  const packed = where === 'pra_viagem' ? snap.pack === 'bag' : where === 'pra_comer_aqui' ? snap.pack === 'plate' : true;
+  if (where && !packed && !seen.has('pack'))
+    return where === 'pra_viagem' ? mark('pack', 'cr-bag', 'Pra viagem: a sacola', 'To go: the bag') : mark('pack', 'cr-plate', 'Pra comer aqui: o prato', 'For here: the plate');
+  if (want.items.every(have) && packed && !seen.has('serve')) return mark('serve', 'cr-serve', 'Tudo pronto? Entregar 🔔', 'All set? Serve');
   return null;
 }
 
-/** Element ids the step lights up. The juicer step moves the light from the machine to the glass once the juice is at the line. */
-export function practiceTargets(step: PracticeStepId, snap: Pick<CorreriaSnap, 'juice' | 'pour'> | null): string[] {
-  switch (step) {
-    case 'read':
-      return ['cr-order'];
-    case 'cafe':
-      return ['cr-machine'];
-    case 'pao':
-      return ['cr-item-pao'];
-    case 'suco':
-      return (snap?.juice?.fill ?? 0) >= JUICE.goodMin ? ['cr-juice-glass'] : ['cr-juicer'];
+/** What an event shows the player has learnt (the hints that never come back). */
+export function coachDone(e: CEvent): string[] {
+  switch (e.k) {
+    case 'pour_start':
+      return ['cafe'];
+    case 'pour_ok':
+      return e.hot ? ['agora', 'hot'] : ['agora'];
+    case 'grab':
+      return [`item:${e.item}`];
+    case 'chapa_put':
+      return ['chapa'];
+    case 'chapa_ok':
+      return ['chapa_take'];
+    case 'juice_drop':
+      return ['suco'];
+    case 'juice_ok':
+      return ['suco_take'];
+    case 'pack':
+      return e.kind ? ['pack'] : [];
     case 'serve':
-      return ['cr-serve', 'cr-bell'];
-    case 'paid':
-      return ['cr-points', 'cr-tips'];
+      return ['serve'];
+    case 'replay':
+      return ['listen'];
+    default:
+      return [];
   }
 }
 
-/** The pay step's lines: what Ana paid, the tip, and that a real shift turns points into RV (the practice pays none). */
-export function practicePaid(tip: number, points: number): Bilingual {
-  const total = PRACTICE_MENU.reduce((s, id) => s + (COUNTER_PRICES[id] ?? 0), 0);
-  return {
-    pt: `A Ana pagou ${moneyLabel(total * 100)} e deixou ${moneyLabel(tip * 100)} de gorjeta: +${points} pontos. Num turno de verdade, os pontos viram RV no fim. O treino não paga RV.`,
-    en: `Ana paid ${moneyLabel(total * 100)} and left a ${moneyLabel(tip * 100)} tip: +${points} points. In a real shift, points turn into RV at the end. Practice pays no RV.`,
-  };
+/** Where the learnt hints are kept (per browser, like the practice flag). */
+export const COACH_KEY = 'tb_cr_coach_v1';
+export function readCoach(raw: string | null): Set<string> {
+  try {
+    const v = JSON.parse(raw ?? '[]') as unknown;
+    return new Set(Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 64) : []);
+  } catch {
+    return new Set();
+  }
 }
-
-export const PRACTICE_BLOCKED: Bilingual = b('Agora não: siga o passo em destaque.', 'Not yet: follow the highlighted step.');
-
-/** The "?" card in a real shift: the same steps, short. */
-export const HELP_TITLE: Bilingual = b('Como jogar', 'How to play');
-export const HELP_STEPS: readonly Bilingual[] = [
-  b('Leia o pedido no bilhete (ou escute).', 'Read the order on the ticket (or listen).'),
-  b('Café: toque na cafeteira e de novo no “Agora!”.', 'Coffee: tap the machine, then again at “Agora!”.'),
-  b('Vitrine, estufa, geladeira: um toque põe na bandeja.', 'Display case, warmer, fridge: one tap puts it on the tray.'),
-  b('Chapa: ponha e tire quando dourar.', 'Grill: put it on, take it off when it browns.'),
-  b('Suco: uma laranja por toque; na linha, toque no copo.', 'Juice: one orange per tap; at the line, tap the glass.'),
-  b('Entregar 🔔. Os pontos viram RV no fim do turno.', 'Entregar 🔔 (Serve). Points turn into RV at the end of the shift.'),
-];
 
 /** Done once: a player who finished (or skipped) the practice, or already played a shift, goes straight to a real one. */
 export const PRACTICE_KEY = 'tb_cr_practice';
 export function practiceNeeded(stored: string | null, playedShift: boolean): boolean {
   return stored !== '1' && !playedShift;
 }
+
+/** The practice is over: one line, then the real shift. */
+export const PRACTICE_DONE: Bilingual = { pt: 'Boa! 🎉 Agora é pra valer.', en: 'Nice! Now for real.' };
