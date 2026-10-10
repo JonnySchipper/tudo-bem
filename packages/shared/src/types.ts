@@ -96,6 +96,11 @@ export interface PublicAvatar {
   pet?: 'dog' | 'cat' | null;
   /** Name on that pet's collar tag. Present only while the pet is out and has a name. */
   petName?: string | null;
+  /** The pet's breed and coat (petBreeds.ts ids), its collar and toy (PET_ITEMS ids): set with `pet`, hidden with it (#234). */
+  petBreed?: string;
+  petCoat?: string;
+  petCollar?: string | null;
+  petToy?: string | null;
   /** Chat bubble appearance. Classic for anyone without an active subscription. */
   bubbleStyle?: import('./subscription.js').BubbleStyle;
   /**
@@ -156,6 +161,27 @@ export interface CorreriaProgress {
   paid?: number;
   /** Lesson ids already shown (item ids, plus `where`). Server-owned; a missing list on an old save means they already played the wide counter. */
   taught?: string[];
+}
+
+/** One adopted pet (#234, petShop.ts). */
+export interface OwnedPet {
+  /** `p<base36 time><2 random>`, or `legacy_dog` / `legacy_cat` for the pets an old save had: stable, never reused. */
+  id: string;
+  species: 'dog' | 'cat';
+  /** BreedDef id (petBreeds.ts). */
+  breed: string;
+  /** CoatOption id of that breed. */
+  coat: string;
+  /** Moderated like the old pet names (petName.ts), 16 chars max. */
+  name: string | null;
+  /** PET_ITEMS id of kind `coleira`, or none (the mustard default). */
+  collar: string | null;
+  /** PET_ITEMS id of kind `brinquedo`. */
+  toy: string | null;
+  /** Server clock, unix ms. */
+  adoptedAt: number;
+  /** Migrated from `pet` / `petNames`. */
+  legacy?: true;
 }
 
 export interface PrivateProfile {
@@ -245,10 +271,19 @@ export interface PrivateProfile {
   founderBadge?: boolean;
   /** Permanent founders banner already granted. The item itself lives in `furniture`. */
   founderBanner?: boolean;
-  /** Subscriber pet choice. Shown only while the subscription is active. */
+  /**
+   * Species of the active pet: a mirror of `activePet(p)` kept for one release (older clients, scripts). Shown only while the
+   * subscription is active.
+   */
   pet?: 'dog' | 'cat' | null;
-  /** Names the player gave the dog and the cat. Kept when the pet is put away or the subscription lapses. */
+  /** First named dog / cat: a mirror of `pets` kept for one release (the names live on `OwnedPet.name`). */
   petNames?: { dog?: string; cat?: string };
+  /** Adopted pets (#234, petShop.ts). Kept forever, also when the subscription lapses. Old saves migrate from `pet` / `petNames`. */
+  pets?: OwnedPet[];
+  /** The pet out with you (null: everyone is home in the kitnet). */
+  activePetId?: string | null;
+  /** Collars and toys bought at the lojinha (PET_ITEMS ids, one of each). */
+  petItems?: string[];
   /** Subscriber chat-bubble appearance. Reverts to classic when the subscription ends. */
   bubbleStyle?: import('./subscription.js').BubbleStyle;
   /** Support subscription. Absent means never subscribed. */

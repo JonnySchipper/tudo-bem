@@ -66,6 +66,8 @@ export interface ImageDef {
   face?: [number, number];
   /** pet strips: inclusive frame ranges (walkE, walkS, walkN, idleS, sitE, sitS, sitN, lieE, lieS, lieN) */
   anims?: Record<string, [number, number]>;
+  /** pet shop breed strips (#234): drawn in the PET_KEY_RAMPS key colours, recoloured at runtime (petLook.ts) */
+  keyed?: boolean;
 }
 
 const manifests = new Map<string, Promise<Manifest>>();

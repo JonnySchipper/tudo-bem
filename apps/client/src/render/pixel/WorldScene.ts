@@ -41,7 +41,10 @@ import {
   STREET_SNACKS,
   CARRY,
   carryOf,
+  petToyCommands,
+  publicPetLook,
 } from '@tudobem/shared';
+import { ensurePetTexture, petAnimKey } from './petLook';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
@@ -375,6 +378,8 @@ export class WorldScene extends Phaser.Scene {
       const img = m.images?.[`chars/pet_${kind}`];
       if (img?.file && img.frameW) this.load.spritesheet(`pet:${kind}`, b + img.file, { frameWidth: img.frameW, frameHeight: img.h });
     }
+    // the pet shop's breed strips (key colours, a few KB each): recoloured per look on first use (petLook.ts)
+    for (const [key, img] of Object.entries(m.images ?? {})) if (img.keyed && img.file) this.load.image(`petsrc:${key}`, b + img.file);
   }
 
   create(): void {
@@ -1921,14 +1926,18 @@ export class WorldScene extends Phaser.Scene {
    * never added to that list, so it cannot take a click meant for the player or a neighbour.
    */
   private updatePet(v: AvatarView, a: ClientAvatar, wx: number, wy: number, dt: number): void {
-    const kind = a.pub.pet === 'dog' || a.pub.pet === 'cat' ? a.pub.pet : null;
+    const look = publicPetLook(a.pub);
+    const kind = look?.species ?? null;
     const heard = petCommandFromLines(
       a.bubbles,
       v.petHeard,
       kind ? [PET_COPY[kind].pt, PET_COPY[kind].en, ...(a.pub.petName ? [a.pub.petName] : [])] : [],
+      petToyCommands(a.pub),
     );
     v.petHeard = heard.heardAt;
-    if (!kind) {
+    // the look's texture (breed, coat, collar); the legacy dog and cat keep their own strips
+    const tex = look ? ensurePetTexture(this, look) : null;
+    if (!kind || !tex) {
       if (v.pet) {
         v.pet.destroy();
         v.pet = null;
@@ -1947,16 +1956,16 @@ export class WorldScene extends Phaser.Scene {
       command: heard.command,
     });
     const pose = this.petPose(follow.facing, follow.pose);
-    const anim = `anim:pet:${kind}:${pose.name}`;
+    const anim = petAnimKey(tex, pose.name);
     if (!this.anims.exists(anim)) {
       v.pet?.setVisible(false);
       return;
     }
-    if (!v.pet || v.petKind !== kind) {
+    if (!v.pet || v.petKind !== tex) {
       v.pet?.destroy();
-      v.pet = this.rig.world(this.add.sprite(0, 0, `pet:${kind}`, 0)).setOrigin(0.5, 1);
+      v.pet = this.rig.world(this.add.sprite(0, 0, tex, 0)).setOrigin(0.5, 1);
       v.pet.disableInteractive();
-      v.petKind = kind;
+      v.petKind = tex;
       v.petKey = '';
     }
     if (v.petKey !== anim) {

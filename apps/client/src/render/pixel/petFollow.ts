@@ -12,7 +12,17 @@
 import { facingForStep, type Facing } from './facing';
 
 export type PetPose = 'walk' | 'idle' | 'sit' | 'lie';
-export type PetVoice = 'sit' | 'lie' | 'come';
+/** `fetch` ("busca", a dog with a ball, bone or plush) and `play` ("brinca", a cat with a toy) only answer when the pet has the toy (#234). */
+export type PetVoice = 'sit' | 'lie' | 'come' | 'fetch' | 'play';
+/** Which toy commands the pet answers (petToyCommands in @tudobem/shared). */
+export interface PetToys {
+  fetch: boolean;
+  play: boolean;
+}
+const NO_TOYS: PetToys = { fetch: false, play: false };
+/** How far a fetch runs ahead of the owner, and how long a cat plays. */
+export const FETCH_PX = 3 * 16;
+export const PLAY_S = 4;
 
 /** Art px per tile. The follower works in world px, the same space as avatar feet. */
 export const PET_TILE = 16;
@@ -57,6 +67,10 @@ export interface PetFollow {
   running: boolean;
   place: string;
   ownerWasMoving: boolean;
+  /** A fetch in progress: the spot the toy landed, then back to the owner. */
+  fetch: { x: number; y: number; back: boolean } | null;
+  /** Seconds of play left (the cat pounces: sit and stand in turn). */
+  play: number;
 }
 
 export interface PetFollowStep {
@@ -83,10 +97,12 @@ export function createPetFollow(): PetFollow {
     running: false,
     place: '',
     ownerWasMoving: false,
+    fetch: null,
+    play: 0,
   };
 }
 
-const COMMANDS: Record<string, PetVoice> = { senta: 'sit', deita: 'lie', vem: 'come' };
+const COMMANDS: Record<string, PetVoice> = { senta: 'sit', deita: 'lie', vem: 'come', busca: 'fetch', 'pega a bolinha': 'fetch', brinca: 'play' };
 
 /** Punctuation a player can wrap around a one-word command, including the optional "!". */
 const PUNCT = /[!?.,…;:"“”'‘’()[\]«»¿¡\-—–~*]+/g;
@@ -106,7 +122,7 @@ function fold(s: string): string {
  * Case, accents, and punctuation are ignored. The pet's name may sit on either side.
  * Any other word means it is ordinary chat and the pet does not react.
  */
-export function parsePetCommand(text: string, names: readonly string[] = []): PetVoice | null {
+export function parsePetCommand(text: string, names: readonly string[] = [], toys: PetToys = NO_TOYS): PetVoice | null {
   if (typeof text !== 'string') return null;
   let rest = fold(text);
   if (!rest) return null;
@@ -117,7 +133,9 @@ export function parsePetCommand(text: string, names: readonly string[] = []): Pe
     rest = rest.replace(re, ' ').replace(/\s+/g, ' ').trim();
     break;
   }
-  return COMMANDS[rest] ?? null;
+  const c = COMMANDS[rest] ?? null;
+  if ((c === 'fetch' && !toys.fetch) || (c === 'play' && !toys.play)) return null;
+  return c;
 }
 
 export interface PetLine {
@@ -130,14 +148,14 @@ export interface PetLine {
  * Lines are chronological. Hearing a line that is not a command does not cancel a pose;
  * it only marks the line as already seen so it is not parsed again.
  */
-export function petCommandFromLines(lines: readonly PetLine[], heardAt: number, names: readonly string[] = []): { command: PetVoice | null; heardAt: number } {
+export function petCommandFromLines(lines: readonly PetLine[], heardAt: number, names: readonly string[] = [], toys: PetToys = NO_TOYS): { command: PetVoice | null; heardAt: number } {
   let command: PetVoice | null = null;
   let heard = heardAt;
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i]!;
     if (line.at <= heardAt) break;
     if (line.at > heard) heard = line.at;
-    if (!command) command = parsePetCommand(line.text, names);
+    if (!command) command = parsePetCommand(line.text, names, toys);
   }
   return { command, heardAt: heard };
 }
@@ -215,7 +233,7 @@ function snapNear(state: PetFollow, x: number, y: number, place: string): void {
   state.pose = state.held === 'lie' ? 'lie' : state.held === 'sit' ? 'sit' : 'idle';
 }
 
-function applyCommand(state: PetFollow, step: PetFollowStep): void {
+function applyCommand(state: PetFollow, step: PetFollowStep, samples?: readonly PetCrumb[]): void {
   const started = step.ownerMoving && !state.ownerWasMoving;
   state.ownerWasMoving = step.ownerMoving;
   if (step.command === 'sit' || step.command === 'lie') {
@@ -224,7 +242,49 @@ function applyCommand(state: PetFollow, step: PetFollowStep): void {
   } else if (step.command === 'come') {
     state.held = null;
     state.running = true;
-  } else if (started && state.held) state.held = null;
+  } else if (step.command === 'fetch') {
+    // the toy lands three tiles ahead of the owner (the way they last walked; down the screen when they have not moved)
+    const h = samples ? heading(samples) : { x: 0, y: 0 };
+    const len = Math.hypot(h.x, h.y);
+    const [ux, uy] = len < 1e-3 ? [0, 1] : [h.x / len, h.y / len];
+    state.held = null;
+    state.play = 0;
+    state.fetch = { x: step.ownerX + ux * FETCH_PX, y: step.ownerY + uy * FETCH_PX, back: false };
+  } else if (step.command === 'play') {
+    state.held = null;
+    state.fetch = null;
+    state.play = PLAY_S;
+  } else if (started) {
+    state.held = null;
+    state.fetch = null;
+    state.play = 0;
+  }
+}
+
+/** The fetch run: out to the toy at a run, then back to the owner's side; done once back. */
+function stepFetch(state: PetFollow, step: PetFollowStep, dt: number): void {
+  const f = state.fetch!;
+  const tx = f.back ? step.ownerX + REST_ASIDE_PX : f.x;
+  const ty = f.back ? step.ownerY + 2 : f.y;
+  const dx = tx - state.x, dy = ty - state.y;
+  const dist = Math.hypot(dx, dy);
+  const stepPx = PET_RUN_PX_S * dt;
+  if (dist <= Math.max(ARRIVE_PX, stepPx)) {
+    state.x = tx;
+    state.y = ty;
+    if (f.back) {
+      state.fetch = null;
+      state.moving = false;
+      state.pose = 'idle';
+      state.facing = 'S';
+    } else f.back = true;
+    return;
+  }
+  state.x += (dx / dist) * stepPx;
+  state.y += (dy / dist) * stepPx;
+  state.moving = true;
+  state.pose = 'walk';
+  state.facing = facingForStep(dx, dy, state.facing);
 }
 
 function holdPose(state: PetFollow): void {
@@ -245,13 +305,25 @@ export function stepPet(state: PetFollow, step: PetFollowStep): PetFollow {
   }
 
   rememberCrumb(state.trail, step.ownerX, step.ownerY);
-  applyCommand(state, step);
+  const samples = samplesOf(state.trail, step.ownerX, step.ownerY);
+  applyCommand(state, step, samples);
   if (state.held) {
     holdPose(state);
     return state;
   }
+  if (state.fetch) {
+    stepFetch(state, step, dt);
+    return state;
+  }
+  if (state.play > 0 && !step.ownerMoving) {
+    // the pounce: crouch and spring, half a second each, then back to idle
+    state.play = Math.max(0, state.play - dt);
+    state.moving = false;
+    state.facing = 'S';
+    state.pose = state.play > 0 && Math.floor(state.play * 2) % 2 === 0 ? 'sit' : 'idle';
+    return state;
+  }
 
-  const samples = samplesOf(state.trail, step.ownerX, step.ownerY);
   const target = goal(samples, step.ownerMoving, state.running);
   const dx = target.x - state.x;
   const dy = target.y - state.y;

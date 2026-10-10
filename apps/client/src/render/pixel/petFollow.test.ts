@@ -226,3 +226,43 @@ describe('pet voice commands', () => {
     expect(run.x - walk.x).toBeGreaterThan(PET_RUN_PX_S * 0.2 - PET_WALK_PX_S * 0.2);
   });
 });
+
+describe('toy commands (#234: busca, brinca)', () => {
+  it('busca and brinca answer only with the toy, and never rewrite the line', () => {
+    expect(parsePetCommand('busca!')).toBeNull();
+    expect(parsePetCommand('busca!', [], { fetch: true, play: false })).toBe('fetch');
+    expect(parsePetCommand('Pega a bolinha', ['Paçoca'], { fetch: true, play: false })).toBe('fetch');
+    expect(parsePetCommand('Paçoca, busca', ['Paçoca'], { fetch: true, play: false })).toBe('fetch');
+    expect(parsePetCommand('brinca', [], { fetch: true, play: false })).toBeNull();
+    expect(parsePetCommand('brinca', [], { fetch: false, play: true })).toBe('play');
+    const lines = [{ text: 'busca!', at: 5 }];
+    expect(petCommandFromLines(lines, 0, [], { fetch: true, play: false }).command).toBe('fetch');
+    expect(lines[0]!.text).toBe('busca!');
+  });
+
+  it('a fetch runs ahead of the owner, then comes back and rests', () => {
+    const pet = go(createPetFollow(), { ownerX: 0, ownerY: 0 });
+    for (let i = 0; i < 60; i++) go(pet, { ownerX: 0, ownerY: 0 });
+    go(pet, { ownerX: 0, ownerY: 0, command: 'fetch' as PetVoice });
+    let far = 0;
+    for (let i = 0; i < 180; i++) {
+      go(pet, { ownerX: 0, ownerY: 0 });
+      far = Math.max(far, Math.hypot(pet.x, pet.y));
+    }
+    expect(far).toBeGreaterThan(40);
+    expect(pet.fetch).toBeNull();
+    expect(Math.hypot(pet.x, pet.y)).toBeLessThan(24);
+    expect(pet.pose).toBe('idle');
+  });
+
+  it('a cat plays (sits and stands in turn) and then idles', () => {
+    const pet = go(createPetFollow(), { ownerX: 0, ownerY: 0 });
+    for (let i = 0; i < 60; i++) go(pet, { ownerX: 0, ownerY: 0 });
+    go(pet, { ownerX: 0, ownerY: 0, command: 'play' as PetVoice });
+    const poses = new Set<string>();
+    for (let i = 0; i < 300; i++) poses.add(go(pet, { ownerX: 0, ownerY: 0 }).pose);
+    expect(poses.has('sit') && poses.has('idle')).toBe(true);
+    expect(pet.play).toBe(0);
+    expect(pet.pose).toBe('idle');
+  });
+});
