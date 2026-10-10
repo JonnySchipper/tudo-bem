@@ -27,6 +27,8 @@ export interface QueuedWord<P = unknown> extends WordMoment {
   total: number;
   /** The print of the shot, carried by the shot's last card: it flies into the diary when that card closes. */
   print?: P;
+  /** The print of the shot, on every card of it: each word bursts out of the photo (ui/photoFind.ts). */
+  shot?: P;
 }
 
 /**
@@ -39,7 +41,7 @@ export const cardMs = (w: { index: number; total: number }): number => (w.index 
 
 /** The cards of one shot (or of one word that came alone), in the order the server sent them. */
 export function momentsOfShot<P>(words: readonly WordMoment[], print?: P): QueuedWord<P>[] {
-  return words.map((w, i) => ({ ...w, index: i + 1, total: words.length, ...(i === words.length - 1 && print ? { print } : {}) }));
+  return words.map((w, i) => ({ ...w, index: i + 1, total: words.length, ...(print ? { shot: print } : {}), ...(i === words.length - 1 && print ? { print } : {}) }));
 }
 
 export class WordQueue<P = unknown> {

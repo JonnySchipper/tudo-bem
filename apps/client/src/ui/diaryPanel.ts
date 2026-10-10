@@ -4,7 +4,8 @@
  *
  * A click is a shot the moment it happens: the blades close over the frame, a white flash, the shutter sound, and a print slides out
  * with the picture on it. The server answers with what the print says (a new word, a word already in the diary, or just "Foto guardada.").
- * Then the print flies into the Diário button. None of these layers takes the pointer, so the next click is the next shot.
+ * A new word then bursts out of the print itself (ui/photoFind.ts), like a word found on a sign, and is written on it; a print with no new
+ * word just flies into the Diário button. None of these layers takes the pointer, so the next click is the next shot.
  */
 import { PHOTO_MAX_CHARS, pickPhotoUrl } from '@tudobem/shared';
 import { game } from '../state';
@@ -13,6 +14,7 @@ import { ambience } from '../ambience';
 import { WordQueue, cardMs, momentsOfShot, type QueuedWord, type WordMoment } from './diaryWordQueue';
 import { flyWord } from './wordFlight';
 import { miniBook, revealJournal, wantsReveal } from './journalReveal';
+import { canPhotoFind, playPhotoFind } from './photoFind';
 import { cameraFrameAt, clientRectToCanvas } from './viewfinder';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -97,14 +99,17 @@ export function shutter(frame: { x: number; y: number; w: number; h: number }, i
   const ui = document.getElementById('ui');
   if (!ui) return;
   const flash = h('div', { class: 'shutter-flash', 'aria-hidden': 'true', style: `left:${frame.x}px;top:${frame.y}px;width:${frame.w}px;height:${frame.h}px` });
-  ui.append(flash);
+  // the light spills out of the frame over the whole screen for a moment
+  const bloom = h('div', { class: 'shutter-bloom', 'aria-hidden': 'true', style: `--x:${frame.x + frame.w / 2}px;--y:${frame.y + frame.h / 2}px` });
+  ui.append(flash, bloom);
   window.setTimeout(() => flash.remove(), 520);
+  window.setTimeout(() => bloom.remove(), 620);
 
   dropPendingPrint();
   document.getElementById('photo-print')?.remove();
   const print = h(
     'figure',
-    { id: 'photo-print', class: 'developing', role: 'status', 'aria-live': 'polite', style: `left:${frame.x + frame.w / 2}px;top:${frame.y + frame.h / 2}px` },
+    { id: 'photo-print', class: 'photo-print developing', role: 'status', 'aria-live': 'polite', style: `left:${frame.x + frame.w / 2}px;top:${frame.y + frame.h / 2}px` },
     h('div', { class: 'print-img' }, image ? h('img', { src: image, alt: '' }) : null),
     h('figcaption', { class: 'print-cap' }, h('span', { class: 'print-dots', 'aria-hidden': 'true' }, '• • •')),
   );
@@ -158,6 +163,14 @@ function celebrate(m: QueuedWord<HTMLElement>) {
       if (m.print?.isConnected) flyInto(m.print);
       window.clearTimeout(pumping);
       pumping = window.setTimeout(pump, 300);
+    });
+    return;
+  }
+  // a word in a photo bursts out of the print itself
+  if (canPhotoFind(m.shot)) {
+    playPhotoFind(m, m.shot, () => {
+      window.clearTimeout(pumping);
+      pumping = window.setTimeout(pump, 120);
     });
     return;
   }
@@ -261,8 +274,13 @@ export function showPhoto(m: ShotMsg) {
     pending = null;
   }
   const words = m.ok ? (m.words?.length ? m.words : [m]) : [];
+  // a new word keeps the print's caption a secret: the word bursts out of the picture and is written there (ui/photoFind.ts)
+  const finding = m.ok && canPhotoFind(print);
   if (print) {
     print.classList.remove('developing');
+    if (finding) print.classList.add('charged');
+  }
+  if (print && !finding) {
     print.classList.add(m.ok ? 'new-word' : m.empty ? 'saved' : 'known');
     const cap = print.querySelector('.print-cap');
     cap?.replaceChildren(

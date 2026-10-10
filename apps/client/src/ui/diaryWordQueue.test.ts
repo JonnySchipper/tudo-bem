@@ -13,6 +13,12 @@ describe('the new-word cards of a shot', () => {
     expect(momentsOfShot([w('fonte')])[0]).not.toHaveProperty('print');
   });
 
+  it('gives every card of a shot its print to burst out of, and none to a word that came without a photo', () => {
+    const print = { id: 'photo-print' };
+    expect(momentsOfShot([w('fonte'), w('moeda')], print).map((c) => c.shot)).toEqual([print, print]);
+    expect(momentsOfShot([w('fonte')])[0]).not.toHaveProperty('shot');
+  });
+
   it('hands out one card at a time, in order, and never while a card is up or a game is on', () => {
     const q = new WordQueue();
     q.push(momentsOfShot([w('fonte'), w('moeda'), w('musgo')]));
