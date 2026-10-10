@@ -26,6 +26,7 @@ import type { PriceOption, VendorId } from './feira.js';
 import type { Weather } from './weather.js';
 import type { FeiraBoardRow, FeiraCartAdminGame, FeiraCartMode, FeiraCartSchedule, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
 import type { BoardRow } from './leaderboards.js';
+import type { PraiaMode } from './praia.js';
 import type { AdminTestSnapshot } from './adminTestes.js';
 import type { AdminBannedRow, ModerationRow, ReportReason } from './moderation.js';
 
@@ -149,6 +150,8 @@ export type ClientMsg =
   /** Feira cart games switch. `feiraCart` reads the list; `feiraCartSet` turns one game off, on, or (later) onto a schedule. */
   | { t: 'admin'; action: 'feiraCart' }
   | { t: 'admin'; action: 'feiraCartSet'; game: string; mode: FeiraCartMode; schedule?: FeiraCartSchedule | null }
+  /** The Praia: open / preview / closed, and the party boat on or off (either field may be left out). */
+  | { t: 'admin'; action: 'praiaSet'; mode?: PraiaMode; partyBoat?: boolean }
   /** Subscriber list for the Assinaturas section. */
   | { t: 'admin'; action: 'subscribers' }
   /** Dev/test subscription (no payment). Admin socket only. */
@@ -649,4 +652,6 @@ export type ServerMsg =
     }
   /** Live switch. Broadcast when an admin changes it, and included on the Feira room enter. */
   | { t: 'feiraGame'; phase: 'cart'; closed: boolean; game: FeiraGameId | null }
-  | { t: 'feiraGame'; phase: 'crown'; id: string | null };
+  | { t: 'feiraGame'; phase: 'crown'; id: string | null }
+  /** The Praia's admin switch (PRAIA-PLAN.md 1.2): sent on sign-in and broadcast on change. `allowed`: may this player go to the beach now. */
+  | { t: 'praia'; phase: 'mode'; mode: PraiaMode; partyBoat: boolean; allowed: boolean };

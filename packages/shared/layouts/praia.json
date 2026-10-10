@@ -1203,7 +1203,8 @@
       "h": 1,
       "blocks": false,
       "art": "praia/gaivota",
-      "ox": 3
+      "ox": 3,
+      "z": 40
     },
     {
       "id": "gaivota_2",
@@ -1214,7 +1215,8 @@
       "h": 1,
       "blocks": false,
       "art": "praia/gaivota",
-      "ox": -4
+      "ox": -4,
+      "z": 90
     }
   ]
 }

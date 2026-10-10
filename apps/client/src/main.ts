@@ -975,6 +975,11 @@ net.on((m: ServerMsg) => {
     case 'feiraGame':
       onFeiraGameMsg(m);
       break;
+    case 'praia':
+      // the admin switch: the map shows the beach as a teaser again while it is closed to this player
+      game.praia = { mode: m.mode, partyBoat: m.partyBoat, allowed: m.allowed };
+      game.emit('praia');
+      break;
     case 'photos':
       game.photos = m.photos;
       game.emit('profile');

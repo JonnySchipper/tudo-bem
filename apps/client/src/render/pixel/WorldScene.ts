@@ -67,6 +67,7 @@ import { presetFor } from './lightPresets';
 import { roofHall } from './roofLights';
 import { aoForOverhead, aoForSprite } from './ao';
 import { AmbientLife, ambientHandlesProp } from './ambient';
+import { buildSea, type SeaView } from './sea';
 import { ZoneFeed } from '../../audio/zonesFeed';
 import { ambience } from '../../ambience';
 import { carrySfxFor, carrySfxGain } from '../../audio/carrySfx';
@@ -276,6 +277,8 @@ export class WorldScene extends Phaser.Scene {
   // Phase 6a: live clock, weather, performance fallback
   private weatherFx!: WeatherFx;
   private ambient!: AmbientLife;
+  /** The Praia's foam and crabs (null in a room without sea). */
+  private sea: SeaView | null = null;
   private readonly zoneFeed = new ZoneFeed();
   private readonly blend = new WeatherBlend();
   private blendReady = false;
@@ -842,6 +845,7 @@ export class WorldScene extends Phaser.Scene {
     const blocked = buildGrid(def, []).blocked;
     this.weatherFx.buildRoom(def, (x, y) => blocked.has(tileKey(x, y)));
     this.ambient.buildRoom(def, (x, y) => x >= 0 && y >= 0 && x < def.cols && y < def.rows && !blocked.has(tileKey(x, y)));
+    this.sea = buildSea(this, this.m, def, (o) => this.reg(o));
     this.ao.build(def.floor, def.outdoor === true);
     this.bounds = roomBounds(def, tallest);
     this.snapCamera = true;
@@ -1260,6 +1264,7 @@ export class WorldScene extends Phaser.Scene {
     const people = [...this.avatars.values()].map((v) => ({ x: v.wx, y: v.wy }));
     this.syncRunway();
     this.ambient.update({ dt, t: Date.now() + clock.skewMs, minute: clock.minutesExact(), params, dark: look.dark, people, cam: this.cameras.main });
+    this.sea?.update(dt, look.night);
     this.zoneFeed.update(def, me ? { x: me.wx, y: me.wy, moving: me.moving } : null, clock.minutes(), params.rain, performance.now());
     // V5: the sun's shadows draw in outdoor rooms unless low-fx dropped them (then the baked cast shadows are used)
     const dyn = this.outdoor && !this.fxLevel.lowfx && v5on('shadow');

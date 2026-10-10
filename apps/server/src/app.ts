@@ -8,7 +8,8 @@ import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
-import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, gameConfigFileAdapter, layoutFileAdapter, padariaFileAdapter } from './fileStore.js';
+import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, gameConfigFileAdapter, layoutFileAdapter, padariaFileAdapter, praiaFileAdapter } from './fileStore.js';
+import { PraiaStore } from './praiaStore.js';
 import { GameConfig } from './gameConfig.js';
 import { createAdminApi } from './adminApi.js';
 import { AdminSessions } from './adminSession.js';
@@ -122,6 +123,8 @@ export function createApp(opts: AppOptions) {
   const feiraGames = new FeiraGamesStore(() => feiraGamesFile.load(), (state) => feiraGamesFile.save(state), () => Date.now());
   const feiraCartFile = feiraCartFileAdapter(dataDir);
   const feiraCart = new FeiraCartStore(() => feiraCartFile.load(), (state) => feiraCartFile.save(state));
+  const praiaFile = praiaFileAdapter(dataDir);
+  const praia = new PraiaStore(() => praiaFile.load(), (state) => praiaFile.save(state));
   const academies = new AcademyStore(academyFileAdapter(dataDir));
   const padarias = new PadariaStore(padariaFileAdapter(dataDir));
   const layouts = new LayoutStore(layoutFileAdapter(dataDir));
@@ -145,7 +148,7 @@ export function createApp(opts: AppOptions) {
       student: new InMemoryStudentModel(),
       moderation,
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, adminGuard, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts, config, githubToken: opts.githubToken, githubFetch: opts.githubFetch },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, adminGuard, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, praia, layouts, config, githubToken: opts.githubToken, githubFetch: opts.githubFetch },
   );
   const handleAdminApi = createAdminApi({
     ctx: {
@@ -428,6 +431,7 @@ export function createApp(opts: AppOptions) {
       ['profiles', () => (final ? store.shutdown() : store.flush())],
       ['feiraGames', () => feiraGames.persist()],
       ['feiraCart', () => feiraCart.persist()],
+      ['praia', () => praia.persist()],
       ['academies', () => academies.save()],
       ['padarias', () => padarias.save()],
       ['feedback', () => feedback.save()],

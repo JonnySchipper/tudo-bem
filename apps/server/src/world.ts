@@ -151,6 +151,11 @@ import {
   type PlayerPadaria,
   type PrivateProfile,
   type FeiraCartSchedule,
+  isPraiaMode,
+  praiaAllows,
+  PRAIA_CLOSED,
+  PRAIA_DEFAULT,
+  type PraiaConfig,
 } from '@tudobem/shared';
 import type { ChatSafetyCtx, ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { JEV_CONTEXT_LINES } from './services/jevModel.js';
@@ -170,6 +175,7 @@ import { Leaderboards } from './leaderboards.js';
 import { FeiraCounter } from './feira.js';
 import { FeiraGamesEngine, FeiraGamesStore, type FeiraGameRun } from './feiraGames.js';
 import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
+import { PraiaStore, memoryPraia } from './praiaStore.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
@@ -208,6 +214,8 @@ export interface WorldOptions {
   feiraGames?: import('./feiraGames.js').FeiraGamesStore;
   /** Feira cart on/off switch. Omitted stores start with every game off. */
   feiraCart?: FeiraCartStore;
+  /** The Praia's open / preview / closed switch. Omitted: an in-memory store, open. */
+  praia?: PraiaStore;
   /** Bout intro length in ms (default: 4.2 s, 0.5 s in hint mode). Env `TB_TEST_BOUT_INTRO_MS`. */
   boutIntroMs?: number;
   /** Bout pause scale (default 1, 0.35 in hint mode). Env `TB_TEST_BOUT_PACE`: shots want the real pauses with the hints on. */
@@ -384,6 +392,8 @@ export class World {
   readonly padarias: PadariaStore;
   readonly padariaOwnership: boolean;
   private readonly layouts: LayoutStore;
+  /** The Praia's admin switch (PRAIA-PLAN.md 1.2). */
+  readonly praia: PraiaStore;
   private readonly githubToken?: string;
   private readonly githubFetch?: typeof fetch;
 
@@ -416,6 +426,7 @@ export class World {
     this.padarias = opts.padarias ?? new PadariaStore(null);
     this.padariaOwnership = opts.padariaOwnership ?? readEnv('TB_PADARIA_OWNERSHIP') === '1';
     this.layouts = opts.layouts ?? new LayoutStore();
+    this.praia = opts.praia ?? memoryPraia();
     for (const row of this.layouts.overrides()) installRoomProps(row.room, row.objects);
     if (opts.githubToken === null) this.githubToken = undefined;
     else if (typeof opts.githubToken === 'string') this.githubToken = opts.githubToken.trim() || undefined;
@@ -1054,6 +1065,9 @@ export class World {
       ...(layouts.length ? { layouts } : {}),
     });
     if (p.photos?.length) this.pushPhotos(s);
+    // the client starts at the default (open, party boat on): only a changed switch needs telling
+    const praia = this.praia.config();
+    if (praia.mode !== PRAIA_DEFAULT.mode || praia.partyBoat !== PRAIA_DEFAULT.partyBoat) s.send(this.praiaMsg(s));
     this.notifyFriendsOfPresence(p.id);
     if (this.friendReqs.incoming(p.id).length) this.sendFriends(s);
   }
@@ -1245,6 +1259,14 @@ export class World {
 
   join(s: Session, room: RoomId, opts: { instanceId?: string; ownerId?: string; academyId?: string; padariaId?: string } = {}, arrive?: { tile: Tile; dir: Dir }) {
     if (!isRoomId(room)) return this.err(s, 'room', 'Sala desconhecida.', 'Unknown room.');
+    if ((room === 'praia' || room === 'barco_festa') && !this.praiaOpenFor(s)) {
+      // a reconnect that remembered the beach lands at the bus stop it came from instead of nowhere
+      if (!s.instance) {
+        this.join(s, 'rua_leste', {}, { tile: { x: 5, y: 13 }, dir: 'SW' });
+        return;
+      }
+      return this.err(s, 'praia', PRAIA_CLOSED.pt, PRAIA_CLOSED.en);
+    }
     const target = this.instanceFor(room, s, opts);
     if ('error' in target) return this.err(s, 'join', target.error.pt, target.error.en);
     this.leaveInstance(s);
@@ -1485,6 +1507,12 @@ export class World {
     }
     if (msg.action === 'feiraCart') return this.adminFeiraCart(s);
     if (msg.action === 'feiraCartSet') return this.adminFeiraCartSet(s, msg.game, msg.mode, msg.schedule);
+    if (msg.action === 'praiaSet') {
+      if (msg.mode !== undefined && !isPraiaMode(msg.mode)) return this.err(s, 'admin', 'Modo inválido.', 'Invalid mode.');
+      if (msg.partyBoat !== undefined && typeof msg.partyBoat !== 'boolean') return this.err(s, 'admin', 'Valor inválido.', 'Invalid value.');
+      const cfg = this.setPraia({ ...(msg.mode ? { mode: msg.mode } : {}), ...(msg.partyBoat !== undefined ? { partyBoat: msg.partyBoat } : {}) });
+      return s.send({ t: 'notice', level: 'info', pt: `Praia: ${cfg.mode}, barco de festa ${cfg.partyBoat ? 'ligado' : 'desligado'}.`, en: `Beach: ${cfg.mode}, party boat ${cfg.partyBoat ? 'on' : 'off'}.` });
+    }
     if (msg.action === 'weather') {
       if (msg.weather !== null && !(WEATHER_KINDS as readonly string[]).includes(msg.weather)) {
         return this.err(s, 'admin', 'Clima inválido.', 'Invalid weather.');
@@ -1587,6 +1615,34 @@ export class World {
     const msg = this.feiraGames.cartMsg();
     for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
     return this.adminFeiraCart(s);
+  }
+
+  /** May this session's player be on the beach now (open, or preview with a subscriber's early access)? */
+  private praiaOpenFor(s: Session): boolean {
+    return praiaAllows(this.praia.config(), s.profile?.subscription, this.now());
+  }
+
+  private praiaMsg(s: Session): Extract<ServerMsg, { t: 'praia' }> {
+    const cfg = this.praia.config();
+    return { t: 'praia', phase: 'mode', mode: cfg.mode, partyBoat: cfg.partyBoat, allowed: this.praiaOpenFor(s) };
+  }
+
+  /**
+   * The admin switch (socket door and the dashboard): store it, tell every player, and walk anyone the beach is now closed to back to the
+   * Vila's bus stop with a notice.
+   */
+  setPraia(patch: Partial<PraiaConfig>): PraiaConfig {
+    const cfg = this.praia.set(patch);
+    for (const sess of this.sessions.values()) {
+      if (!sess.profile) continue;
+      sess.send(this.praiaMsg(sess));
+      const here = sess.instance?.def.id;
+      if ((here === 'praia' || here === 'barco_festa') && !this.praiaOpenFor(sess)) {
+        sess.send({ t: 'notice', level: 'info', pt: 'A praia fechou por agora. O ônibus te trouxe de volta.', en: 'The beach has closed for now. The bus brought you back.' });
+        this.join(sess, 'rua_leste', {}, { tile: { x: 5, y: 13 }, dir: 'SW' });
+      }
+    }
+    return cfg;
   }
 
   private adminList(s: Session) {

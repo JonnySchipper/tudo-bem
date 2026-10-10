@@ -19,8 +19,8 @@ export const isCpuId = (id: string) => id.startsWith(CPU_ID_PREFIX);
  * each gets fewer CPUs than the old 56 x 40 map's 8 (Rua and Rua leste 2 each, Praça 4, Feira 3 at 0-1 humans); the more humans the fewer CPUs.
  */
 export function cpuTarget(humans: number, room: RoomId = 'academia'): number {
-  if (room === 'praca' || room === 'rua' || room === 'rua_leste' || room === 'feira') {
-    const max = room === 'praca' ? 4 : room === 'feira' ? 3 : 2; // each half of the street is half the old rua
+  if (room === 'praca' || room === 'rua' || room === 'rua_leste' || room === 'feira' || room === 'praia') {
+    const max = room === 'praca' ? 4 : room === 'feira' || room === 'praia' ? 3 : 2; // each half of the street is half the old rua
     if (humans <= 1) return max;
     if (humans === 2) return max - 1;
     if (humans <= 6) return Math.max(1, max - 2);
@@ -73,6 +73,21 @@ export const FEIRA_AMBIANCE: AmbMap = {
 };
 
 /**
+ * Praia do Jerivá (PRAIA-PLAN.md 1.5): beachgoers on the towels, a stroll on the calçadão, a stop at Jô's kiosk; they sit on the beach
+ * chairs and the calçadão benches. They never wave on the beach (`NO_WAVE_ROOMS`).
+ */
+export const PRAIA_AMBIANCE: AmbMap = {
+  spots: [{ x: 10, y: 9 }, { x: 15, y: 8 }, { x: 20, y: 10 }, { x: 13, y: 13 }, { x: 18, y: 15 }, { x: 23, y: 13 }, { x: 9, y: 15 }, { x: 17, y: 4 }, { x: 25, y: 4 }],
+  /** In front of the Barraca da Jô, beside (never on) her counter's talking tile. */
+  doorSpots: [{ x: 8, y: 7 }, { x: 9, y: 7 }, { x: 5, y: 7 }],
+  /** They come and go at the calçadão's two ends. */
+  entries: [{ x: 1, y: 4 }, { x: 33, y: 4 }],
+};
+
+/** Rooms where the CPUs never wave (the Praia's lock: no `oi` on the beach). */
+export const NO_WAVE_ROOMS: ReadonlySet<RoomId> = new Set<RoomId>(['praia', 'barco_festa']);
+
+/**
  * Academia do Bairro idle and wander targets. Sidelines, the fila wall, and the wood
  * in front of the benches — never the open-mat footprint. The roll queue still uses the mat.
  */
@@ -114,6 +129,7 @@ export const ROOM_AMBIANCE: Partial<Record<RoomId, { spots: Tile[]; doorSpots: T
   rua_leste: RUA_LESTE_AMBIANCE,
   feira: FEIRA_AMBIANCE,
   academia: ACADEMIA_AMBIANCE,
+  praia: PRAIA_AMBIANCE,
 };
 
 export const ambianceRoomIds = (): RoomId[] => Object.keys(ROOM_AMBIANCE) as RoomId[];
