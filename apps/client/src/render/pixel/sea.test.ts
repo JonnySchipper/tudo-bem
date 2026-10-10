@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS } from '@tudobem/shared';
-import { CRABS_MAX, FOAM_MAX, crabHomes, shoreTiles } from './sea';
+import { CRABS_MAX, FOAM_MAX, crabHomes, shoreTiles, sunPathAlpha, sunPathColumn } from './sea';
 
 describe('the Praia sea (foam and crabs)', () => {
   const floor = ROOMS.praia.floor;
@@ -30,5 +30,27 @@ describe('the Praia sea (foam and crabs)', () => {
   it('rooms without sea have no foam', () => {
     expect(shoreTiles(ROOMS.praca.floor)).toEqual([]);
     expect(crabHomes(ROOMS.praca.floor)).toEqual([]);
+    expect(sunPathColumn(ROOMS.praca.floor)).toBeNull();
+  });
+
+  it('the sun path on the water shows only at golden hour: in from 16:30, full at 17:30, gone by 18:30', () => {
+    expect(sunPathAlpha(12 * 60)).toBe(0);
+    expect(sunPathAlpha(16 * 60 + 30)).toBe(0);
+    expect(sunPathAlpha(17 * 60)).toBeGreaterThan(0.3);
+    expect(sunPathAlpha(17 * 60 + 30)).toBe(1);
+    expect(sunPathAlpha(18 * 60)).toBeGreaterThan(0.3);
+    expect(sunPathAlpha(18 * 60 + 30)).toBe(0);
+    expect(sunPathAlpha(20 * 60)).toBe(0);
+  });
+
+  it('lies over the open sea west of the pier, from the shore down to the bottom edge', () => {
+    const col = sunPathColumn(floor)!;
+    expect(col).not.toBeNull();
+    expect(col.x).toBeLessThan(28); // west of the pier
+    expect(col.y1).toBe(floor.length - 1);
+    for (let y = col.y0; y <= col.y1; y++) expect(floor[y][col.x]).toBe('o');
+    expect(floor[col.y0 - 1][col.x]).toBe('s');
+    // the party deck's ring of sea is too thin for a path
+    expect(sunPathColumn(ROOMS.barco_festa.floor)).toBeNull();
   });
 });

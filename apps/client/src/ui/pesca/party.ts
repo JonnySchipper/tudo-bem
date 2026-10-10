@@ -7,6 +7,7 @@ import { FISH, PARTY_LINES, furnitureById, hatById, partyTimeWords, type ClientM
 import { game } from '../../state';
 import { clock } from '../../gameClock';
 import { speak } from '../../audio';
+import { ambience } from '../../ambience';
 import { h, bi, en } from '../dom';
 import { foodIcon } from '../pixelArt';
 import { openModal, closeModal } from '../modal.js';
@@ -46,6 +47,8 @@ export const aboardMyParty = (id: string) => hostingParty() && id !== trip!.host
 export function onPartyMsg(m: Extract<ServerMsg, { t: 'party' }>) {
   if (m.phase === 'invite') return showInvite(m);
   if (m.phase === 'state') {
+    // the music starts when the second person boards (5.4): the win stinger swells over the deck's bed, once per trip
+    if (m.music && !trip?.music && game.sound) ambience.sting('win');
     trip = m;
     return renderPill();
   }

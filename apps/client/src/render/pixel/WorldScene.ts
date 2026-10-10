@@ -323,6 +323,8 @@ export class WorldScene extends Phaser.Scene {
   private canopies: Canopy[] = [];
   /** Feira stalls (Phase 9): the open sprites and tarp, and the folded ones, shown by the game clock (06:00-13:00). */
   private feiraStalls: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null }[] = [];
+  /** The Praia's umbrellas (PRAIA-PLAN.md 1.4): the open pole and canopy, and the folded `_fechado` variant shown while it rains. */
+  private umbrellas: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null }[] = [];
   private avatars = new Map<string, AvatarView>();
   private furniture = new Map<string, FurnitureView>();
   private grid: RoomGrid | null = null;
@@ -677,6 +679,7 @@ export class WorldScene extends Phaser.Scene {
     this.stall = null;
     this.bins = [];
     this.feiraStalls = [];
+    this.umbrellas = [];
     for (const o of this.roomObjs) o.destroy();
     this.roomObjs = [];
     this.roomMap?.destroy();
@@ -957,7 +960,9 @@ export class WorldScene extends Phaser.Scene {
       const main = this.sprite(artKey, a.wx, a.wy, depth, !scenery);
       if (p.flip) main?.setFlipX(true);
       const mainShadow = this.lastShadow;
-      const feiraEntry = !scenery && p.kind === 'feira' ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
+      // a feira stall folds by the clock, a beach umbrella by the rain: both keep an open set and a closed set of objects
+      const swap = !scenery && (p.kind === 'feira' || (p.kind === 'guarda_sol' && !!m.sprites[`${artKey}_fechado`]));
+      const feiraEntry = swap ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
       if (feiraEntry && mainShadow) feiraEntry.open.push(mainShadow as unknown as Phaser.GameObjects.GameObject);
       if (!scenery && p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
       if (!scenery && p.kind === 'lixeira' && main) this.bins.push({ x: p.x, y: p.y, sprite: main, mouthY: Math.round(a.wy) - d.ay + 4 });
@@ -994,7 +999,7 @@ export class WorldScene extends Phaser.Scene {
           this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1, stall: p.kind === 'feira' || p.kind === 'barraca_chapeus' });
         }
       }
-      if (feiraEntry) this.buildFeiraClosed(artKey, a, depth, feiraEntry);
+      if (feiraEntry) this.buildFeiraClosed(artKey, a, depth, feiraEntry, p.kind === 'guarda_sol' ? 'rain' : 'clock');
       if (!scenery) {
         const L = d.light ? { x: d.light.x - d.ax, y: d.light.y - d.ay, r: d.light.r, color: d.light.color } : PROP_LIGHT[p.kind];
         if (L) this.addLampLights(Math.round(a.wx), Math.round(a.wy), L);
@@ -1031,9 +1036,18 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** The folded variant of a feira stall (`<key>_fechada`: goods under a sheet, tarp rolled on the bar), shown while the feira is closed. */
-  private buildFeiraClosed(openKey: string, a: { wx: number; wy: number }, depth: number, entry: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null }): void {
-    const ck = `${openKey}_fechada`;
+  /**
+   * The folded variant of a feira stall (`<key>_fechada`: goods under a sheet, tarp rolled on the bar), shown while the feira is closed;
+   * or of a beach umbrella (`<key>_fechado`), shown while it rains (`by: 'rain'`).
+   */
+  private buildFeiraClosed(
+    openKey: string,
+    a: { wx: number; wy: number },
+    depth: number,
+    entry: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null },
+    by: 'clock' | 'rain' = 'clock',
+  ): void {
+    const ck = `${openKey}${by === 'rain' ? '_fechado' : '_fechada'}`;
     const cd = this.m.sprites[ck];
     if (!cd) {
       this.noteMissing(ck);
@@ -1051,7 +1065,20 @@ export class WorldScene extends Phaser.Scene {
       const rollShadow = this.roomOutdoor ? this.shadows.addStatic(cd.overhead, od, x, y, DEPTH.overhead + y / 1000) : null;
       if (rollShadow) entry.closed.push(rollShadow as unknown as Phaser.GameObjects.GameObject);
     }
-    this.feiraStalls.push(entry);
+    (by === 'rain' ? this.umbrellas : this.feiraStalls).push(entry);
+  }
+
+  /** The beach umbrellas fold when the rain sets in (garoa or chuva) and open again once it has mostly passed. */
+  private updateUmbrellas(rain: number): void {
+    if (!this.umbrellas.length) return;
+    for (const e of this.umbrellas) {
+      // a little hysteresis, so a blend passing through the threshold does not flap them
+      const open = e.isOpen === null ? rain < 0.3 : e.isOpen ? rain < 0.4 : rain < 0.2;
+      if (e.isOpen === open) continue;
+      e.isOpen = open;
+      for (const o of e.open) (o as Phaser.GameObjects.Sprite).setVisible(open);
+      for (const o of e.closed) (o as Phaser.GameObjects.Sprite).setVisible(!open);
+    }
   }
 
   /** Show the open stalls (tarp up) at 06:00-13:00, the folded ones otherwise. */
@@ -1264,7 +1291,8 @@ export class WorldScene extends Phaser.Scene {
     const people = [...this.avatars.values()].map((v) => ({ x: v.wx, y: v.wy }));
     this.syncRunway();
     this.ambient.update({ dt, t: Date.now() + clock.skewMs, minute: clock.minutesExact(), params, dark: look.dark, people, cam: this.cameras.main });
-    this.sea?.update(dt, look.night);
+    this.sea?.update(dt, look.night, clock.minutesExact(), params.sun);
+    this.updateUmbrellas(params.rain);
     this.zoneFeed.update(def, me ? { x: me.wx, y: me.wy, moving: me.moving } : null, clock.minutes(), params.rain, performance.now());
     // V5: the sun's shadows draw in outdoor rooms unless low-fx dropped them (then the baked cast shadows are used)
     const dyn = this.outdoor && !this.fxLevel.lowfx && v5on('shadow');
