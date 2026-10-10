@@ -79,6 +79,7 @@ import type { TapCue } from './render/pixel/tapMark';
 import { HOLD_MS, STEER_MS, TapGesture } from './tapGesture';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, holdCartelaChip, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
+import { hudShows, kioskShown } from './ui/disclosure';
 import { CARTELA_BANNER_MS, cartelaBanner, openCartela } from './ui/cartela';
 import { CARTELA_COPY, stampNotice } from '@tudobem/shared';
 import {
@@ -575,11 +576,18 @@ function openEscolaDesk() {
   });
 }
 
+/** Rewards whose RV an on-screen card already shows (the Correria, feira cart, Escola and tatame end cards; Vizinho do dia on the thanks card). */
+const rewardOnCard = (reason: string): boolean =>
+  reason === 'Correria no Balcão' || reason.startsWith('Carrinho da feira: ') || reason === 'Dona Lúcia paga a aula.' || reason.startsWith('Treino no tatame') || reason === 'Vizinho do dia';
+
 function propAction(action: string, propId?: string) {
   if (action === 'feira_stall') openStall(propId);
   else if (action === 'shop_hats') openShop();
   else if (action === 'minigame') startMinigame();
-  else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
+  else if (action === 'kiosk') {
+    // the Missão do dia is a regular's (S3): before that the kiosk is scenery
+    if (game.profile && kioskShown(game.profile)) openKiosk(() => net.send({ t: 'mission', action: 'take' }));
+  }
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
   else if (action === 'street_snack' && propId) openStreetSnack(propId, (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
   else if (action === 'beach_shop') openBeachRack();
@@ -1182,14 +1190,22 @@ net.on((m: ServerMsg) => {
       if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks' && m.tag !== 'recado_bonus') toast(m.level, m.pt, m.en);
       break;
     case 'cartela': {
-      const line = stampNotice(m.activity, m.stamps, m.paid);
+      // the chip is the stamp's signal (it animates on the profile that follows): nothing shows while it is hidden (before S3), the
+      // first stamp of a regular brings it in with one line, after that the chip alone (and the payout banner on the seventh)
+      const p = game.profile;
+      const shown = !!p && hudShows(p).cartela;
+      const appears = !shown && !!p && hudShows({ ...p, cartela: { stamps: Math.max(1, m.stamps), activityDay: p.cartela?.activityDay ?? {} } }).cartela;
+      if (!shown && !appears) break;
       if (m.paid) {
         // the profile that follows already holds the fresh card: keep the chip full while the banner plays (the reward toast follows)
         holdCartelaChip(m.stamps, CARTELA_BANNER_MS);
         cartelaBanner(m.stamps);
         ambience.sting('mission');
       } else {
-        toast('info', line.pt, line.en);
+        if (appears) {
+          const line = stampNotice(m.activity, m.stamps, m.paid);
+          toast('info', line.pt, line.en);
+        }
         ambience.sfx('stamp');
       }
       game.emit('hud');
@@ -1200,11 +1216,17 @@ net.on((m: ServerMsg) => {
         missionBanner();
         ambience.sting('mission');
       } else if (m.reason.pt === CARTELA_COPY.paid.pt) {
-        // the payout banner already shows the card and the RV; the coin counter ticks when it leaves
-        window.setTimeout(() => document.getElementById('coins')?.classList.add('tick'), CARTELA_BANNER_MS - 300);
-        window.setTimeout(() => document.getElementById('coins')?.classList.remove('tick'), CARTELA_BANNER_MS + 400);
+        // the payout banner already shows the card and the RV; the coin counter ticks when it leaves (at once while the chip is hidden)
+        const wait = game.profile && hudShows(game.profile).cartela ? CARTELA_BANNER_MS : 300;
+        window.setTimeout(() => document.getElementById('coins')?.classList.add('tick'), wait - 300);
+        window.setTimeout(() => document.getElementById('coins')?.classList.remove('tick'), wait + 400);
       } else if (m.reason.pt.startsWith('Favor: ') || m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
-      else {
+      else if (rewardOnCard(m.reason.pt)) {
+        // an end card (or the thanks card's Vizinho do dia line) already shows this RV: the coin counter ticks, no toast
+        const coinsEl = document.getElementById('coins');
+        coinsEl?.classList.add('tick');
+        window.setTimeout(() => coinsEl?.classList.remove('tick'), 700);
+      } else {
         toast('reward', m.reason.pt, m.reason.en, m.amount);
         ambience.sting('coin');
       }
@@ -1583,7 +1605,9 @@ function handleClickInner(hit: Hit | null) {
     case 'prop': {
       const p: PropDef = hit.prop;
       if (game.cameraOn) break;
-      if (p.action && p.interact) {
+      // the kiosk is scenery until the Missão do dia means something (S3)
+      const scenery = p.action === 'kiosk' && !(game.profile && kioskShown(game.profile));
+      if (p.action && p.interact && !scenery) {
         markTap('target', { tile: p.interact });
         walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });
       } else if (cameraObjectIds().has(p.id)) toast('info', 'Abra a câmera pra fotografar.', 'Open the camera to take a photo.');

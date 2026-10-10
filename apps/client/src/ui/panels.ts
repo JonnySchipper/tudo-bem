@@ -40,6 +40,7 @@ import { icon } from '../art/ui';
 import { beltChip } from './beltChip';
 import { clock } from '../gameClock';
 import { profileMetJulia, rememberJuliaMet } from './juliaMet';
+import { kioskShown } from './disclosure';
 
 // ---------------------------------------------------------------- modal base
 
@@ -137,6 +138,8 @@ export function showJulia(fromGreeting = false) {
 export const rvBadge = (amount = MISSION_REWARD) => h('span', { class: 'rv-badge' }, h('span', { class: 'coin' }), `+${amount} RV`);
 
 export function openKiosk(take: () => void) {
+  // a regular's daily loop (S3): before that the kiosk is scenery and has no panel
+  if (!game.profile || !kioskShown(game.profile)) return;
   const body = h('div');
   const render = () => {
     const m = game.profile?.mission;

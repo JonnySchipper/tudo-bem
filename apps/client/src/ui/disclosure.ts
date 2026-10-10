@@ -133,3 +133,12 @@ export function hudShows(p: DisclosureProfile, room: HudRoomCtx | null = null): 
     belt: !!p.giOwned || !!p.testUser,
   };
 }
+
+/**
+ * The Praça kiosk's Missão do dia: a regular's daily loop. Before S3 the kiosk is scenery (no walk-to, no modal); a taken mission keeps its
+ * pill whatever the stage. Test profiles see it once out of the arrival, like the rest of the HUD.
+ */
+export function kioskShown(p: DisclosureProfile): boolean {
+  const s = stage(p);
+  return atLeast(s, 'S3') || (!!p.testUser && s !== 'S0');
+}

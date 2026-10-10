@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { atLeast, hudShows, recadosDone, stage, type DisclosureProfile } from './disclosure';
+import { atLeast, hudShows, kioskShown, recadosDone, stage, type DisclosureProfile } from './disclosure';
 
 const words = (n: number) => Array.from({ length: n }, (_, i) => `w${i}`);
 const vila: DisclosureProfile = { desembarqueDone: true, arrivalIntroDone: true, tutorial: { carlos: false }, recados: { done: [] }, diary: [], escola: { lessons: 0 }, giOwned: false, hats: [] };
@@ -100,5 +100,16 @@ describe('hudShows: the §3 table', () => {
     const s = hudShows({ ...vila, testUser: true }, { solo: false });
     expect(s).toMatchObject({ favores: true, look: true, hats: true, friends: true, emotesOpen: true, gearExtras: true, roomCounts: true, plate: true, goal: true, cartela: true, belt: true });
     expect(hudShows({ desembarqueDone: false, testUser: true })).toMatchObject({ favores: false, belt: true });
+  });
+});
+
+describe('kioskShown: the Missão do dia kiosk', () => {
+  it('is scenery until S3', () => {
+    expect(kioskShown({ desembarqueDone: false })).toBe(false);
+    expect(kioskShown(vila)).toBe(false);
+    expect(kioskShown(resident)).toBe(false);
+    expect(kioskShown(regular)).toBe(true);
+    expect(kioskShown({ ...vila, testUser: true })).toBe(true);
+    expect(kioskShown({ desembarqueDone: false, testUser: true })).toBe(false);
   });
 });
