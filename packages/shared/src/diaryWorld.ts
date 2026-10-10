@@ -36,7 +36,7 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_porta_malas', room: 'rua_leste', x: 14, y: 14, art: 'diary/porta_malas' },
   { id: 'd_farol', room: 'rua_leste', x: 15, y: 14, art: 'diary/farol' },
   { id: 'd_volante', room: 'rua_leste', x: 12, y: 13, art: 'diary/volante' },
-  { id: 'd_buzina', room: 'rua_leste', x: 16, y: 14, art: 'diary/buzina' },
+  { id: 'd_buzina', room: 'rua_leste', x: 22, y: 14, art: 'diary/buzina' },
   { id: 'd_cone', room: 'rua_leste', x: 8, y: 14, art: 'diary/cone' },
   { id: 'd_tapume', room: 'rua_leste', x: 7, y: 14, art: 'diary/tapume' },
   { id: 'd_andaime', room: 'rua_leste', x: 9, y: 13, art: 'diary/andaime' },
@@ -51,8 +51,8 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 's_loterica', room: 'rua_leste', x: 8, y: 3, w: 2, h: 2, sign: { pt: "LOTÉRICA", en: "Lottery shop" } }, // on the Academia block, east shopfront
   { id: 's_acougue', room: 'rua_leste', x: 10, y: 3, w: 2, h: 2, sign: { pt: "AÇOUGUE", en: "Butcher" } }, // on the Escola block, west shopfront
   { id: 's_mercado', room: 'rua_leste', x: 13, y: 3, w: 2, h: 2, sign: { pt: "MERCADO", en: "Market" } }, // on the Escola block, east shopfront
-  { id: 's_chaveiro', room: 'rua_leste', x: 16, y: 3, w: 3, h: 2, sign: { pt: "CHAVEIRO", en: "Locksmith" } }, // on the end wall shopfront
-  { id: 's_ladeira', room: 'rua_leste', x: 17, y: 9, w: 2, h: 2, sign: { pt: "LADEIRA", en: "Hill street" } }, // on the barrier at the end of the street
+  { id: 's_chaveiro', room: 'rua_leste', x: 22, y: 3, w: 3, h: 2, sign: { pt: "CHAVEIRO", en: "Locksmith" } }, // on the end wall shopfront
+  { id: 's_ladeira', room: 'rua_leste', x: 23, y: 9, w: 2, h: 2, sign: { pt: "LADEIRA", en: "Hill street" } }, // on the barrier at the end of the street
   { id: 's_travessa', room: 'rua_leste', x: 2, y: 13, sign: { pt: "TRAVESSA", en: "Side lane" } }, // on the lamp post
   { id: 'd_pombo', room: 'praca', x: 15, y: 9, art: 'critters/pigeon' },
   { id: 'd_paralelepipedo', room: 'praca', x: 16, y: 8, art: 'diary/paralelepipedo' },

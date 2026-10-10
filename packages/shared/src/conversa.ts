@@ -149,6 +149,8 @@ export const CONVERSA_CAST: Record<NpcId, ConversaCastEntry> = {
     enabled: false,
     subjects: [],
   },
+  // The pet shop owner (#234): the talk tree in npcTalk.ts, no Conversa yet.
+  dito: { npc: 'dito', name: 'Seu Dito', room: 'praca', enabled: false, subjects: [] },
   // The airport staff (the arrival tutorial): scripted lines in the client, no Conversa.
   celia: { npc: 'celia', name: 'Célia', room: 'praca', enabled: false, subjects: [] },
   agente: { npc: 'agente', name: 'Agente Paulo', room: 'praca', enabled: false, subjects: [] },

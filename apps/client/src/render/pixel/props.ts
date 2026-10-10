@@ -53,6 +53,12 @@ const ART: Partial<Record<PropKind, string>> = {
   // Vila Ipê
   fonte: 'props/fountain',
   ponto_onibus: 'props/ponto_onibus',
+  // Pet Shop do Seu Dito (#234)
+  aquario: 'props/aquario',
+  cercadinho: 'props/cercadinho',
+  gatil: 'props/gatil',
+  prateleira_racao: 'props/prateleira_racao',
+  banheira: 'props/banheira_tosa',
 };
 
 /** Seat direction (wire Dir) -> the chair sprite suffix (SE faces E, SW faces S, NE faces N, NW faces W, HOWTO §5.2). */

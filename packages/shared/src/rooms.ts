@@ -49,9 +49,15 @@ export type PropKind =
   // Feira livre (Phase 9): a market stall that is open or folded by the game clock (`art` = `feira/<name>` of the open variant), and
   // the Hortifrúti crate at the banca (`art`), which sells at every hour
   | 'feira'
-  | 'hortifruti';
+  | 'hortifruti'
+  // Pet Shop do Seu Dito (#234): the fish tank, the dog pen, the cat pen, the pet-food shelves, the grooming tub
+  | 'aquario'
+  | 'cercadinho'
+  | 'gatil'
+  | 'prateleira_racao'
+  | 'banheira';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter' | 'feira_cart' | 'feira_sign' | 'leaderboard';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter' | 'feira_cart' | 'feira_sign' | 'leaderboard' | 'petshop_counter' | 'petshop_pen';
 
 export interface PropDef {
   id: string;
@@ -85,7 +91,7 @@ export interface PropDef {
 export type WallSide = 'left' | 'right';
 
 export interface WallDecor {
-  kind: 'fachada_padaria' | 'mural' | 'predio' | 'metro' | 'janela_rua' | 'prateleira_paes' | 'lousa' | 'relogio' | 'azulejos' | 'poster' | 'janela' | 'placa' | 'cobogo' | 'tv' | 'toldo' | 'foto';
+  kind: 'fachada_padaria' | 'mural' | 'predio' | 'metro' | 'janela_rua' | 'prateleira_paes' | 'lousa' | 'relogio' | 'azulejos' | 'poster' | 'janela' | 'placa' | 'cobogo' | 'tv' | 'toldo' | 'foto' | 'quadro_racas';
   wall: WallSide;
   /** Start and end along the wall in tile units. */
   from: number;
@@ -117,7 +123,7 @@ export interface PortalDef {
 export const OFFSTAGE_NPCS: Partial<Record<NpcId, { name: string; role: Bilingual }>> = {};
 
 /** The feira vendors (Phase 9): Tia Lu (fruit), Seu Zé (vegetables), Seu Chico (pastel and caldo de cana), Dona Rosa (flowers). */
-export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia' | 'celia' | 'agente' | 'comissaria';
+export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia' | 'celia' | 'agente' | 'comissaria' | 'dito';
 
 export interface NpcDef {
   id: NpcId;
@@ -192,7 +198,8 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
 //  rua   Rua dos Ipês     21 x 16  the west half of the street (it was 40 x 16 before the street was split again): rows 0-5 building row (padaria, banca,
 //                                  Edifício Ipê; doors on row 5) | 6-7 north calçada | 8-11 the street | 12-13 south calçada | 14-15 the lawns and the brick path down
 //                                  to the praça (edge portals on row 15, x15-18); east edge (col 20, y6-14) on to rua_leste
-//  rua_leste Rua dos Ipês (leste) 19 x 16  the east half (old x21-39): academia and escola doors, the bus stop, the parked taxi; west edge (col 0, y6-14) back to the rua
+//  rua_leste Rua dos Ipês (leste) 25 x 16  the east half (old x21-39, plus the pet shop's 6-tile front since #234): academia, escola and pet shop doors,
+//                                  the bus stop, the parked taxi; west edge (col 0, y6-14) back to the rua
 //  praca Praça Central    32 x 24  the fountain plaza, coreto, playground, games tables, kiosk, Nanda's stall; north edge (row 0, x14-17) back to the rua,
 //                                  east edge (col 31, y10-13) on to the feira
 //  feira Feira Livre      32 x 20  a fenced lot of setts with a grid of stall slots (FEIRA_SLOTS: four taken, four free, room beyond); west edge (col 0, y7-10)
@@ -202,7 +209,9 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
 /** The street was one 40-tile map; it is cut at x21, the seam between Edifício Ipê (x11-20) and the academia (x21-30): no facade, door, crosswalk or bay is split. */
 const RUA_CUT = 21;
 const RUA_COLS = RUA_CUT;
-const RUA_LESTE_COLS = 40 - RUA_CUT;
+/** The east half grew by the pet shop's front (6 tiles) in #234; the street was one 40-tile map before that. */
+const PETSHOP_FRONT_W = 6;
+const RUA_LESTE_COLS = 40 - RUA_CUT + PETSHOP_FRONT_W; // 25
 const RUA_ROWS = 16;
 const PRACA_COLS = 32;
 const PRACA_ROWS = 24;
@@ -387,6 +396,16 @@ const ruaLeste: RoomDef = {
       arriveDir: 'SE',
       doorAt: { x: 12, y: 5 },
       label: { pt: 'Escola da Praça', en: 'Square school' },
+    },
+    {
+      id: 'rua_petshop',
+      x: 19,
+      y: 5,
+      to: 'petshop',
+      arrive: { x: 1, y: 6 },
+      arriveDir: 'SE',
+      doorAt: { x: 19, y: 5 },
+      label: { pt: 'Pet Shop do Seu Dito', en: 'Seu Dito’s pet shop' }, // needs_br: true
     },
     // the airport bus (line 875) stops here too: the little sign next to the shelter
     { id: 'rua_aeroporto', x: 9, y: 12, to: 'aeroporto', arrive: { x: 20, y: 24 }, arriveDir: 'NW', doorAt: { x: 9, y: 12 }, label: { pt: 'Ônibus para o Aeroporto', en: 'Bus to the Airport' } },
@@ -840,6 +859,69 @@ const escola: RoomDef = {
   private: false,
 };
 
+// ---------------------------------------------------------------- petshop
+/**
+ * Pet Shop do Seu Dito (#234, `docs/PET-STORE-PLAN.md`): the counter and Seu Dito in the north-west corner, the dog pen (cercadinho) and
+ * the cat pen (gatil) along the north wall, the grooming corner (banho e tosa) east, the food shelves west, beds and bowls south. The
+ * animals in the pens are drawn by the client from the day's litter (`penLitter`), not props. Needs_br: every Portuguese string here.
+ */
+const DITO: NpcDef = {
+  id: 'dito',
+  name: 'Seu Dito',
+  role: { pt: 'Dono do pet shop', en: 'Pet shop owner' },
+  x: 1,
+  y: 1,
+  dir: 'SW',
+  interact: { x: 2, y: 3 },
+  appearance: { body: 'forte', skin: 6, hair: 'raspado', hairColor: 4, top: 'camisa', topColor: 3, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'barba', idle: 'bracos' },
+  hat: null,
+  // each one is a diary line anchor (`dito.idle0..3`)
+  idleLines: [
+    { pt: 'Hoje chegou um filhote novo!', en: 'A new puppy arrived today!' },
+    { pt: 'Carinho atrás da orelha, eles adoram.', en: 'A scratch behind the ear, they love it.' },
+    { pt: 'Senta! Isso. Bom menino.', en: 'Sit! That’s it. Good boy.' },
+    { pt: 'Vira-lata é o cachorro mais fiel que existe.', en: 'A mutt is the most loyal dog there is.' },
+  ],
+};
+
+const PETSHOP_WALLS: WallDecor[] = [
+  { kind: 'poster', wall: 'right', from: -1, to: 1, text: 'ADOÇÃO' },
+  { kind: 'quadro_racas', wall: 'right', from: 1, to: 5 },
+  { kind: 'placa', wall: 'right', from: 5, to: 8, text: 'VETERINÁRIO' },
+  { kind: 'placa', wall: 'right', from: 9, to: 12, text: 'BANHO E TOSA' },
+];
+
+const petshop: RoomDef = {
+  id: 'petshop',
+  name: 'Pet Shop do Seu Dito', // needs_br: true
+  gloss: 'Seu Dito’s pet shop',
+  cols: 12,
+  rows: 9,
+  floor: Array.from({ length: 9 }, () => 'l'.repeat(12)),
+  wallHeight: 140,
+  wallColor: '#F5E6D3',
+  wallTrim: '#8B5E3C',
+  lighting: 'manha',
+  spawn: { x: 1, y: 6 },
+  props: bundledObjects('petshop'),
+  walls: PETSHOP_WALLS,
+  pixelWalls: PETSHOP_WALLS,
+  portals: [
+    {
+      id: 'petshop_rua',
+      x: 0,
+      y: 6,
+      wall: 'left',
+      to: 'rua_leste',
+      arrive: { x: 19, y: 6 },
+      arriveDir: 'SW',
+      label: { pt: 'SAÍDA · Rua', en: 'Exit to the street' },
+    },
+  ],
+  npcs: [DITO],
+  private: false,
+};
+
 // ---------------------------------------------------------------- aeroporto
 /**
  * Where every new arrival starts: the plane has just come in to gate 3. A walk-through tutorial runs north to south (client
@@ -972,7 +1054,7 @@ const desembarque: RoomDef = {
   private: false,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar, aeroporto, desembarque };
+export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar, aeroporto, desembarque, petshop };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;

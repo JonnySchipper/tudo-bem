@@ -99,7 +99,7 @@ describe('Vila Ipê art coverage (rua, praça, feira)', () => {
 
   it('the camera bounds of the open-air map are the map plus its 2 tile sky margin', () => {
     expect(roomBounds(rua, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 21 * T, y1: 16 * T });
-    expect(roomBounds(leste, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 19 * T, y1: 16 * T });
+    expect(roomBounds(leste, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 25 * T, y1: 16 * T });
     expect(roomBounds(praca, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 32 * T, y1: 24 * T });
     expect(roomBounds(ROOMS.feira, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 32 * T, y1: 20 * T });
   });

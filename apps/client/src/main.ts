@@ -939,7 +939,7 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque';
+      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'petshop' || last === 'aeroporto' || last === 'desembarque';
       // a new arrival starts in the arrivals hall (the guided tutorial), then the airport until Célia's hand-over; everybody else comes
       // back where they were, or to the praça
       // the dashboard's design link (`/?design=<room>`) wins over both, once the player has arrived

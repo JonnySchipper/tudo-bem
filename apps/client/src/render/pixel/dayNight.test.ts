@@ -99,7 +99,7 @@ describe('outdoor vs interior rooms', () => {
 
   it('the feira follows the same outdoor clock and weather as the other open-air rooms', () => {
     for (const id of ['rua', 'rua_leste', 'praca', 'feira'] as const) expect(isOutdoor(ROOMS[id]), id).toBe(true);
-    for (const id of ['padaria', 'kitnet', 'academia', 'escola', 'andar'] as const) expect(isOutdoor(ROOMS[id]), id).toBe(false);
+    for (const id of ['padaria', 'kitnet', 'academia', 'escola', 'andar', 'petshop'] as const) expect(isOutdoor(ROOMS[id]), id).toBe(false);
     // setts alone are not outdoors; the feira is, because the room is open-air
     expect(isOutdoor({ floor: ['pppp', 'pttp'] })).toBe(false);
     expect(ROOMS.feira.floor.some((row) => row.includes('g') || row.includes('a'))).toBe(false);

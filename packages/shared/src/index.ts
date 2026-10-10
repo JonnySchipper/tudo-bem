@@ -19,6 +19,7 @@ export * from './padariaEconomy.js';
 export * from './founder.js';
 export * from './subscription.js';
 export * from './petName.js';
+export * from './petBreeds.js';
 export * from './protocol.js';
 export * from './ambiance.js';
 export * from './looks.js';

@@ -687,6 +687,8 @@ class Ambience {
     if (this.room === 'rua' || this.room === 'rua_leste') return 'praca';
     // the arrivals hall (the first room): the kitnet's quiet bed, so the tutorial and the journal reveal sit over something calm
     if (this.room === 'escola' || this.room === 'desembarque') return 'kitnet';
+    // the pet shop (#234) borrows the padaria's day bed: warm, unhurried, no music of its own yet
+    if (this.room === 'petshop') return 'padaria';
     return this.room === 'padaria' && padariaIsNight(this.world.minute) ? 'padariaNight' : this.room;
   }
 

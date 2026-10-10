@@ -5,7 +5,7 @@
  *
  * The picture is the real town: each outdoor area is drawn from its own layout with the game's own sprites (the same snapshot the title screen
  * uses), laid out the way the areas join in the game. The Rua dos Ipês runs across the top (west half, then east half) with the Padaria,
- * Edifício Ipê, Academia and Escola fronts on it; the Praça sits under the brick path that leads down from the rua; the Feira opens off the
+ * Edifício Ipê, Academia, Escola and Pet Shop fronts on it; the Praça sits under the brick path that leads down from the rua; the Feira opens off the
  * Praça's east path; the Aeroporto (its runway and terminal front) sits up the road the 875 bus takes from the rua leste.
  *
  * Every room in the shared room list has an entry in `ROOM_ON_MAP` (a new RoomId fails to compile until it is placed or routed through
@@ -15,7 +15,7 @@ import { ROOMS, ROOM_IDS, type RoomId } from '@tudobem/shared';
 
 /** One map tile is one game tile (16 art px). */
 export const MAP_T = 16;
-export const MAP_COLS = 74;
+export const MAP_COLS = 80;
 export const MAP_ROWS = 40;
 /** The map is MAP_W × MAP_H art pixels: one art pixel of the map is one pixel of the game. */
 export const MAP_W = MAP_COLS * MAP_T;
@@ -37,7 +37,7 @@ export const AREA_AT: Record<MapArea, readonly [col: number, row: number]> = {
   rua_leste: [ROOMS.rua.cols, 0],
   praca: [1, ROOMS.rua.rows],
   feira: [1 + ROOMS.praca.cols, ROOMS.rua.rows + 3],
-  aeroporto: [44, 0],
+  aeroporto: [50, 0],
 };
 
 /** The Aeroporto on the map: its runway and the terminal's first rows (to `AERO_KEEP`), then its front (from `AERO_FRONT`: the low glass, the curb, the bus). */
@@ -75,6 +75,7 @@ export const ROOM_ON_MAP: Record<RoomId, MapSpot | { via: RoomId }> = {
   kitnet: place('kitnet', [at('rua', 11, 0, 10, 6)]),
   academia: place('academia', [at('rua_leste', 0, 0, 10, 6)]),
   escola: place('escola', [at('rua_leste', 10, 0, 6, 6)]),
+  petshop: place('petshop', [at('rua_leste', 16, 0, 6, 6)]),
   // the street itself, from the sidewalk under the fronts to the lawns
   rua: place('rua', [at('rua', 0, 6, ROOMS.rua.cols, ROOMS.rua.rows - 6)]),
   rua_leste: place('rua_leste', [at('rua_leste', 0, 6, ROOMS.rua_leste.cols, ROOMS.rua_leste.rows - 6)]),
