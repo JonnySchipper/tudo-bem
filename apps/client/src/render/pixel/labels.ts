@@ -5,7 +5,7 @@
  *
  *  - Nameplates: Verde plate for players (or the colour and shape they earned in the escola), terracotta for NPCs, a mustard ring on yourself,
  *    stepped pixel corners (pixel.css).
- *  - Speech bubbles: the art track 2 9-slice bubble (`ui/bubble`, slice and file from the manifest's `images`), 2x. The tail is bottom-left;
+ *  - Speech bubbles: the art track 2 9-slice bubble (`ui/bubble`, slice and file from the manifest's `images`), 3x. The tail is bottom-left;
  *    when the speaker is in the right half of the screen a mirrored copy (tail bottom-right) is used so the bubble opens toward the middle.
  *  - Guides: the bouncing pixel arrow (`ui/guide_arrow_strip`, a CSS steps animation over its 4 frames) with a small label. Off-screen
  *    targets pin the arrow to the nearest edge of the free screen region and turn it toward the target (`guides.ts`).
@@ -82,17 +82,18 @@ export interface LabelArt {
 }
 
 /** Bubble art px -> CSS px (an integer, so the 9-slice stays crisp). */
-export const BUBBLE_SCALE = 2;
+export const BUBBLE_SCALE = 3;
+/** The same on a phone, where the 3x frame's extra height would push a line under the tracker. */
+export const BUBBLE_SCALE_NARROW = 2;
+const NARROW = '(max-width: 480px)';
 /** Guide arrow art px -> CSS px. */
-export const ARROW_SCALE = 2;
-/** CSS px between the anchor point and the bubble's edge on the tail side: the tail tip sits about 9 art px in from the bubble's edge. */
-const TAIL_X = 9 * BUBBLE_SCALE;
+export const ARROW_SCALE = 3;
 /** CSS px between the nameplate and the tail tip of the bubble above it. */
 const BUBBLE_GAP = 1;
 /** CSS px between the head anchor and the bottom of the nameplate. */
-const PLATE_LIFT = 3;
-/** CSS px the recado marker (`.wl-quest`: 24 px, its 3 px gap, the 4 px bob) adds on top of a plate. */
-const QUEST_H = 31;
+const PLATE_LIFT = 5;
+/** CSS px the recado marker (`.wl-quest`: 33 px, its 4 px gap, the 5 px bob) adds on top of a plate. */
+const QUEST_H = 42;
 
 /** Which side the tail (and so the anchor) is on for a speaker at screen x; `prev` gives hysteresis so a walker crossing the middle does not flicker. */
 export function bubbleSide(x: number, viewW: number, prev: 'left' | 'right'): 'left' | 'right' {
@@ -101,9 +102,11 @@ export function bubbleSide(x: number, viewW: number, prev: 'left' | 'right'): 'l
   return x < mid - 24 ? 'left' : 'right';
 }
 
-/** Left edge of a bubble of width `w` whose tail tip is at `anchor`, kept inside `[4, viewW - 4]`. */
-export function bubbleLeft(anchor: number, w: number, side: 'left' | 'right', viewW: number): number {
-  const raw = side === 'left' ? anchor - TAIL_X : anchor + TAIL_X - w;
+/** Left edge of a bubble of width `w` drawn at `scale` whose tail tip is at `anchor`, kept inside `[4, viewW - 4]`. */
+export function bubbleLeft(anchor: number, w: number, side: 'left' | 'right', viewW: number, scale = BUBBLE_SCALE): number {
+  // the tail tip sits about 9 art px in from the bubble's edge
+  const tailX = 9 * scale;
+  const raw = side === 'left' ? anchor - tailX : anchor + tailX - w;
   return Math.round(Math.min(Math.max(raw, 4), Math.max(4, viewW - w - 4)));
 }
 
@@ -212,6 +215,12 @@ interface StackEl {
   quest: HTMLElement;
   bubbles: BubbleEl[];
   side: 'left' | 'right';
+  /** the side `bubbleSide` picks for the speaker; `side` is the other one while `hudFlip` is set */
+  natural: 'left' | 'right';
+  /** the bubbles touched the HUD on the natural side: they open the other way until the speaker crosses the middle or stops talking */
+  hudFlip: boolean;
+  /** the LabelLayer's `bubbleGen` when the bubbles were last measured */
+  bubbleGen: number;
   plateKey: string;
   plateW: number;
   plateH: number;
@@ -281,6 +290,12 @@ function beltBar(belt: Belt, stripes?: number): HTMLElement {
 
 export class LabelLayer {
   readonly root: HTMLElement;
+  /** bumped when the bubble frame's scale changes (a phone turned, a window resized across NARROW) */
+  private bubbleGen = 0;
+  /** the bubble frame's art px -> CSS px for this screen width */
+  private get bubbleScale(): number {
+    return typeof window !== 'undefined' && window.matchMedia?.(NARROW).matches ? BUBBLE_SCALE_NARROW : BUBBLE_SCALE;
+  }
   private stacks = new Map<string, StackEl>();
   private guides = new Map<string, GuideEl>();
   private artKeys = new Map<string, HTMLElement>();
@@ -298,21 +313,32 @@ export class LabelLayer {
     if (b?.slice) {
       const url = art.base + b.file;
       const s = b.slice;
-      const k = BUBBLE_SCALE;
       const st = this.root.style;
       st.setProperty('--wl-bubble', `url("${url}")`);
       st.setProperty('--wl-bubble-slice', `${s.top} ${s.right} ${s.bottom} ${s.left}`);
-      st.setProperty('--wl-bubble-width', `${px(s.top * k)} ${px(s.right * k)} ${px(s.bottom * k)} ${px(s.left * k)}`);
       st.setProperty('--wl-bubble-slice-m', `${s.top} ${s.left} ${s.bottom} ${s.right}`);
-      st.setProperty('--wl-bubble-width-m', `${px(s.top * k)} ${px(s.left * k)} ${px(s.bottom * k)} ${px(s.right * k)}`);
-      st.setProperty('--wl-bubble-in', `${px(-(s.top * k - 8))} ${px(-(s.right * k - 8))} ${px(-(s.bottom * k - 20))} ${px(-(s.left * k - 8))}`);
-      st.setProperty('--wl-bubble-in-m', `${px(-(s.top * k - 8))} ${px(-(s.left * k - 8))} ${px(-(s.bottom * k - 20))} ${px(-(s.right * k - 8))}`);
-      st.setProperty('--wl-bubble-pad-bottom', px(s.bottom * k));
+      const sized = (): void => {
+        const k = this.bubbleScale;
+        st.setProperty('--wl-bubble-width', `${px(s.top * k)} ${px(s.right * k)} ${px(s.bottom * k)} ${px(s.left * k)}`);
+        st.setProperty('--wl-bubble-width-m', `${px(s.top * k)} ${px(s.left * k)} ${px(s.bottom * k)} ${px(s.right * k)}`);
+        // the words sit 4 art px in from the edge and 10 above the tail's tip
+        st.setProperty('--wl-bubble-in', `${px(-(s.top - 4) * k)} ${px(-(s.right - 4) * k)} ${px(-(s.bottom - 10) * k)} ${px(-(s.left - 4) * k)}`);
+        st.setProperty('--wl-bubble-in-m', `${px(-(s.top - 4) * k)} ${px(-(s.left - 4) * k)} ${px(-(s.bottom - 10) * k)} ${px(-(s.right - 4) * k)}`);
+        st.setProperty('--wl-bubble-pad-bottom', px(s.bottom * k));
+      };
+      sized();
+      const mq = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(NARROW) : null;
+      mq?.addEventListener('change', () => {
+        sized();
+        // every bubble measures itself again on its next layout
+        this.bubbleGen++;
+      });
       this.root.classList.add('wl-art-bubble');
       const rootStyle = document.documentElement.style;
       rootStyle.setProperty('--wl-bubble', `url("${url}")`);
       rootStyle.setProperty('--wl-bubble-slice', `${s.top} ${s.right} ${s.bottom} ${s.left}`);
-      rootStyle.setProperty('--wl-bubble-width', `${px(s.top * k)} ${px(s.right * k)} ${px(s.bottom * k)} ${px(s.left * k)}`);
+      // the support panel's style swatches stay at 2x
+      rootStyle.setProperty('--wl-bubble-width', `${px(s.top * 2)} ${px(s.right * 2)} ${px(s.bottom * 2)} ${px(s.left * 2)}`);
       void mirrorImage(url)
         .then((m) => {
           this.root.style.setProperty('--wl-bubble-m', `url("${m}")`);
@@ -388,7 +414,7 @@ export class LabelLayer {
   private hudRects: Rect[] = [];
   private hudAt = -1e9;
 
-  /** A stack whose plate or bubbles overlap a HUD box is hidden whole (never half under the HUD); it returns once it clears. */
+  /** A stack whose plate overlaps a HUD box is hidden whole (never half under the HUD); bubbles that do first flip to the other side. Either returns once it clears. */
   private hideUnderHud(): void {
     if (typeof document === 'undefined') return;
     const now = performance.now();
@@ -410,6 +436,8 @@ export class LabelLayer {
       // name and "!" stay readable while a line they say rises under the top bar.
       const plateUnder = hit(el.plateRow) || (el.quest.style.display !== 'none' && hit(el.quest));
       const bubblesUnder = !plateUnder && el.bubbles.some((b) => hit(b.root));
+      // first try opening the bubbles the other way (laid out next frame; hidden until then so they never flash under the HUD)
+      if (bubblesUnder && !el.hudFlip) el.hudFlip = true;
       if (plateUnder !== el.occluded) {
         el.occluded = plateUnder;
         el.root.style.visibility = plateUnder ? 'hidden' : '';
@@ -445,7 +473,7 @@ export class LabelLayer {
     quest.style.display = 'none';
     plateRow.append(crown, plate, subBadge, founder, quest);
     root.appendChild(plateRow);
-    return { root, plateRow, plate, founder, subBadge, crown, quest, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, bubblesOccluded: false, baseBottoms: [], plateBottom: '' };
+    return { root, plateRow, plate, founder, subBadge, crown, quest, bubbles: [], side: 'left', natural: 'left', hudFlip: false, bubbleGen: 0, plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, bubblesOccluded: false, baseBottoms: [], plateBottom: '' };
   }
 
   private createBubble(): BubbleEl {
@@ -606,9 +634,13 @@ export class LabelLayer {
         be.root.style.opacity = o;
       }
     });
-    const side = bubbleSide(s.x, view.w, el.side);
-    if (side !== el.side || remeasure) {
+    const natural = bubbleSide(s.x, view.w, el.natural);
+    if (natural !== el.natural || !el.bubbles.length) el.hudFlip = false;
+    el.natural = natural;
+    const side = el.hudFlip ? (natural === 'left' ? 'right' : 'left') : natural;
+    if (side !== el.side || remeasure || el.bubbleGen !== this.bubbleGen) {
       el.side = side;
+      el.bubbleGen = this.bubbleGen;
       el.root.classList.toggle('wl-mirror', side === 'right');
       for (const be of el.bubbles) {
         be.w = be.root.offsetWidth;
@@ -625,11 +657,12 @@ export class LabelLayer {
       el.root.style.transform = tf;
     }
     // newest line lowest; each older line's tail tip just touches the top edge of the one below it
+    const k = this.bubbleScale;
     let bottom = PLATE_LIFT + el.plateH + BUBBLE_GAP;
     const lefts: number[] = [];
     for (let i = el.bubbles.length - 1; i >= 0; i--) {
       const be = el.bubbles[i];
-      const left = bubbleLeft(ax, be.w, side, view.w) - ax;
+      const left = bubbleLeft(ax, be.w, side, view.w, k) - ax;
       lefts[i] = left;
       be.root.style.left = px(left);
       el.baseBottoms[i] = bottom;
@@ -674,8 +707,8 @@ export class LabelLayer {
       this.guides.get(k)?.spot?.remove();
       this.guides.delete(k);
     }
-    const arrowW = this.cssPx('--wl-arrow-w', 32);
-    const arrowH = this.cssPx('--wl-arrow-h', 40);
+    const arrowW = this.cssPx('--wl-arrow-w', 16 * ARROW_SCALE);
+    const arrowH = this.cssPx('--wl-arrow-h', 20 * ARROW_SCALE);
     for (const g of items) {
       let el = this.guides.get(g.key);
       if (!el) {
