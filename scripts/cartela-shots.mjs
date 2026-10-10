@@ -44,11 +44,13 @@ async function enterPraça() {
 
 try {
   await enterPraça();
+  // the Cartela chip is a regular's (three recados done) and waits for the first stamp (SIMPLIFICATION-REVIEW §3); the empty card opens from it directly
   await page.evaluate(() => {
+    window.__tb.game.profile.recadosDoneTotal = 3;
     window.__tb.game.profile.cartela = { stamps: 0, activityDay: {} };
     window.__tb.game.emit('profile');
   });
-  await page.click('#cartela-pill');
+  await page.$eval('#cartela-pill', (b) => b.click());
   await page.waitForSelector('[data-modal="cartela"]', { timeout: 5000 });
   await shot('cartela-empty');
   await page.keyboard.press('Escape');
@@ -58,7 +60,7 @@ try {
     window.__tb.game.profile.cartela = { stamps: 3, activityDay: { tatame: day, balcao: day, feira: day } };
     window.__tb.game.emit('profile');
   });
-  await page.click('#cartela-pill');
+  await page.$eval('#cartela-pill', (b) => b.click());
   await page.waitForSelector('[data-modal="cartela"]', { timeout: 5000 });
   await shot('cartela-partial');
   await page.keyboard.press('Escape');

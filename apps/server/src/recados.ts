@@ -164,6 +164,7 @@ export class RecadoTracker {
     const p = s.profile!;
     st.active = st.active.filter((a) => a.id !== def.id);
     if (!st.done.includes(def.id)) st.done.push(def.id);
+    p.recadosDoneTotal = (p.recadosDoneTotal ?? 0) + 1;
     this.gain(s, def.giver, def.reward.bond);
     if (def.reward.itemId) p.bag = addToBag(p.bag ?? {}, def.reward.itemId, 1);
     this.d.reward(s, def.reward.rv, { pt: `Favor: ${def.title.pt}`, en: `Favor: ${def.title.en}` });

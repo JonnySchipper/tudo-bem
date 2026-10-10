@@ -11,7 +11,7 @@ import { en, h, ui } from './dom';
 import { speak } from '../audio';
 import { reducedMotion } from '../render/pixel/perf';
 import { npcPortrait, parrotPortrait, type Expression } from './pixelArt';
-import { Typewriter, dialogueKeyAction, npcTagColor, readShowEnglish, writeShowEnglish } from './dialogueLogic';
+import { Typewriter, dialogueKeyAction, npcTagColor, writeShowEnglish } from './dialogueLogic';
 import { noteHeard } from './heard';
 import { modalId } from './modal';
 import { heartsWith } from './recadoView';
@@ -67,7 +67,6 @@ export function setDialogueHost(h: DialogueHost | null): void {
 
 let root: HTMLElement | null = null;
 let spec: BoxSpec | null = null;
-let showEn = readShowEnglish();
 const tw = new Typewriter();
 let lastKey = '';
 let lastLine = '';
@@ -166,13 +165,15 @@ function build(s: BoxSpec): HTMLElement[] {
         class: 'dbx-en-toggle',
         id: 'dbx-en-toggle',
         role: 'switch',
-        'aria-checked': String(showEn),
+        'aria-checked': String(game.englishHelp),
         title: 'Mostrar inglês / Show English',
         onclick: (e: Event) => {
-          showEn = !showEn;
-          writeShowEnglish(showEn);
-          root?.classList.toggle('dbx-noen', !showEn);
-          (e.currentTarget as HTMLElement).setAttribute('aria-checked', String(showEn));
+          // the same flag as Ajustes → Inglês, so the glosses change everywhere
+          game.englishHelp = !game.englishHelp;
+          writeShowEnglish(game.englishHelp);
+          root?.classList.toggle('dbx-noen', !game.englishHelp);
+          (e.currentTarget as HTMLElement).setAttribute('aria-checked', String(game.englishHelp));
+          game.emit('hud');
         },
       },
       h('span', { class: 'sw' }),
@@ -245,7 +246,7 @@ export function showDialogueBox(s: BoxSpec): void {
       ro.observe(root);
     }
   }
-  root.className = `dbx dbx-${s.key}${showEn ? '' : ' dbx-noen'}${s.thinking ? ' dbx-thinking' : ''}`;
+  root.className = `dbx dbx-${s.key}${game.englishHelp ? '' : ' dbx-noen'}${s.thinking ? ' dbx-thinking' : ''}`;
   root.dataset.dialogue = s.key;
   root.setAttribute('aria-label', s.speaker);
 

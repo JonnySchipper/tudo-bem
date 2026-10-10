@@ -84,6 +84,10 @@ describe('Mostrar inglês preference', () => {
     return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
   };
 
+  it('is the same setting as the gear’s Inglês (one key, tb_english)', () => {
+    expect(SHOW_EN_KEY).toBe('tb_english');
+  });
+
   it('is on by default and remembers off', () => {
     const s = mem();
     expect(readShowEnglish(s)).toBe(true);

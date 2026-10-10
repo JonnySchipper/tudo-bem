@@ -20,17 +20,19 @@ describe('the top bar explains itself', () => {
 describe('what the top bar shows', () => {
   it('keeps the arrivals hall and the airport to what their steps teach', () => {
     const hall = hudShows({ desembarqueDone: false, arrivalIntroDone: false });
-    expect(hall).toEqual({ belt: false, plate: false, goal: false, cartela: false, vila: false });
+    expect(hall).toMatchObject({ belt: false, plate: false, goal: false, cartela: false, favores: false });
     const airport = hudShows({ desembarqueDone: true, arrivalIntroDone: false });
     expect(airport.cartela).toBe(false);
-    expect(airport.vila).toBe(false);
+    expect(airport.favores).toBe(false);
   });
 
-  it('shows the Cartela once Célia hands it over, and the Vila buttons in the Vila', () => {
+  it('opens Favores in the Vila; the plate, the Meta chip and the Cartela wait for a regular', () => {
     const vila = hudShows({ desembarqueDone: true, arrivalIntroDone: true });
-    expect(vila).toMatchObject({ plate: true, goal: true, cartela: true, vila: true });
-    // accounts from before the arrival tutorial have neither flag: they are residents
-    expect(hudShows({})).toMatchObject({ cartela: true, vila: true });
+    expect(vila).toMatchObject({ favores: true, plate: false, goal: false, cartela: false });
+    // accounts from before the arrival tutorial have neither flag: they are in the Vila
+    expect(hudShows({}).favores).toBe(true);
+    const regular = hudShows({ desembarqueDone: true, arrivalIntroDone: true, escola: { lessons: 1 }, cartela: { stamps: 1, activityDay: {} } });
+    expect(regular).toMatchObject({ plate: true, goal: true, cartela: true });
   });
 
   it('shows the belt only once there is a gi (test profiles always see theirs)', () => {

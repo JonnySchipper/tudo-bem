@@ -33,7 +33,8 @@ import { openFeedback } from './feedback';
 import { openAccount } from './account';
 import { tierIcon, tierName } from './plate';
 import { wireHudNote } from './hudNotes';
-import { CARTELA_RULE, hudShows } from './hudNotesData';
+import { CARTELA_RULE } from './hudNotesData';
+import { hudShows } from './disclosure';
 import { showSupportButton } from './supportGate';
 import { fetchPublicConfig } from '../auth/config';
 
@@ -133,9 +134,10 @@ export function missionBanner() {
 
 /**
  * One slim HUD (V4). Top left: the brand, where you are and the clock, in one plate. Top right: the RV coin, the Verde plate and a bar of pixel
- * icons (Mapa, Recados, Diário, Chapéus, Amigos) plus a gear for Música / Voz / Créditos / Sair, and a Fala chip for feedback; the labels (Portuguese with the English gloss)
- * show on hover and focus. On a phone (<= 640 px wide, or a landscape phone under 520 px tall) the same buttons become a drawer behind one ☰,
- * and the emote row hides behind a smiley next to the chat field. Ids are the old ones (`btn-map`, `btn-music`, ...).
+ * icons (Mapa, Recados, Diário, Chapéus, Amigos) plus a gear for Música / Voz / Inglês / Fala / Créditos / Sair; the labels (Portuguese with
+ * the English gloss) show on hover and focus. What shows when follows the disclosure ladder (disclosure.ts). On a phone (<= 640 px wide, or a
+ * landscape phone under 520 px tall) the same buttons become a drawer behind one ☰, and the emote row hides behind a smiley next to the chat
+ * field (on desktop too, until the resident stage). Ids are the old ones (`btn-map`, `btn-music`, ...).
  */
 export function buildHud(actions: HudActions) {
   const root = ui();
@@ -207,6 +209,23 @@ export function buildHud(actions: HudActions) {
     billingReady = c.billingReady;
     refresh();
   });
+  // Fala (feedback): a gear entry, not a slab on the strip; the id stays `btn-feedback` for the scripts
+  const feedbackBtn = h(
+    'button',
+    {
+      class: 'hud-btn hud-fala',
+      id: 'btn-feedback',
+      type: 'button',
+      'aria-haspopup': 'dialog',
+      'aria-label': `${FEEDBACK_COPY.title.pt} (${FEEDBACK_COPY.button.en})`,
+      onclick: () => {
+        closeMenus();
+        openFeedback();
+      },
+    },
+    h('i', { class: 'fala-bubble', 'aria-hidden': 'true' }),
+    h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, FEEDBACK_COPY.button.pt), h('i', { class: 'hud-gloss' }, FEEDBACK_COPY.button.en)),
+  );
   const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
   // Account settings sit next to Sair: only a signed-in multiplayer session has an account to manage.
   const accountBtn = actions.logout ? btn('btn-account', 'gear', 'Conta', 'Account', openAccount) : null;
@@ -217,6 +236,7 @@ export function buildHud(actions: HudActions) {
     musicBtn,
     soundBtn,
     englishBtn,
+    feedbackBtn,
     supportBtn,
     guideBtn,
     tutorialBtn,
@@ -249,22 +269,6 @@ export function buildHud(actions: HudActions) {
     friendsBtn,
     gearWrap,
   );
-  const feedbackBtn = h(
-    'button',
-    {
-      class: 'hud-feedback hud-slab',
-      id: 'btn-feedback',
-      type: 'button',
-      'aria-haspopup': 'dialog',
-      'aria-label': `${FEEDBACK_COPY.title.pt} (${FEEDBACK_COPY.button.en})`,
-      onclick: () => {
-        closeMenus();
-        openFeedback();
-      },
-    },
-    h('i', { class: 'fala-bubble', 'aria-hidden': 'true' }),
-    h('span', { class: 'hud-feedback-words' }, h('b', { class: 'pt' }, FEEDBACK_COPY.button.pt), h('i', { class: 'hud-gloss' }, FEEDBACK_COPY.button.en)),
-  );
   const burger = h('button', { class: 'hud-btn hud-burger hud-slab', id: 'btn-burger', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'hud-actions', 'aria-label': 'Menu (Menu)' }, icon('burger', 32));
   const scrim = h('div', { class: 'hud-scrim', 'aria-hidden': 'true' });
 
@@ -289,7 +293,6 @@ export function buildHud(actions: HudActions) {
       'div',
       { class: 'hud-right' },
       h('div', { class: 'hud-stats hud-slab' }, beltEl, plate, goalChip, h('span', { class: 'hud-rv', id: 'hud-rv', title: 'Reais virtuais (RV): the game’s play money, earned by playing' }, icon('rv', 16), coins)),
-      feedbackBtn,
       burger,
       actionsNav,
     ),
@@ -446,20 +449,27 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       const all = [...game.avatars.values()].filter((a) => !a.pub.npc); // the neighbours are not people in the room (the seat count is players)
       const count = all.filter((a) => !a.pub.cpu).length;
       const neighbors = all.length - count;
-      roomName.replaceChildren(h('span', { class: 'room-name' }, ...(r.instanceName.includes(' · ') ? [r.instanceName.split(' · ')[0]!, h('span', { class: 'room-inst' }, ` · ${r.instanceName.split(' · ').slice(1).join(' · ')}`)] : [r.instanceName])), h('small', null, `${roomGloss(r)} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
+      roomName.replaceChildren(h('span', { class: 'room-name' }, ...(r.instanceName.includes(' · ') ? [r.instanceName.split(' · ')[0]!, h('span', { class: 'room-inst' }, ` · ${r.instanceName.split(' · ').slice(1).join(' · ')}`)] : [r.instanceName])), h('small', null, p && !hudShows(p).roomCounts ? roomGloss(r) : `${roomGloss(r)} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
       document.title = `Tudo Bem · ${r.instanceName}`;
     }
     if (p) {
       paintHudBelt(p.bjj);
-      const shows = hudShows(p);
+      // the disclosure ladder (disclosure.ts): each element waits for the stage at which it means something
+      const shows = hudShows(p, { solo: game.solo, ownKitnet: game.isOwnKitnet });
       beltEl.style.display = shows.belt ? '' : 'none';
       plate.style.display = shows.plate ? '' : 'none';
       drawerPlateChip.style.display = shows.plate ? '' : 'none';
       cartelaPill.style.display = shows.cartela ? '' : 'none';
       cartelaPill.title = `${CARTELA_COPY.title.en}: ${CARTELA_RULE}`;
-      for (const b of [recadosBtn, lookBtn, wardrobeBtn, friendsBtn]) b.style.display = shows.vila ? '' : 'none';
-      // the first time the Vila's menu opens up: the look picked on the plane can be changed now (once per profile)
-      if (shows.vila) {
+      recadosBtn.style.display = shows.favores ? '' : 'none';
+      lookBtn.style.display = shows.look ? '' : 'none';
+      wardrobeBtn.style.display = shows.hats ? '' : 'none';
+      friendsBtn.style.display = shows.friends ? '' : 'none';
+      for (const b of [guideBtn, tutorialBtn, creditsBtn]) b.style.display = shows.gearExtras ? '' : 'none';
+      // on desktop the emote row waits behind the smiley (as on a phone) until the player is a resident
+      bottombar.classList.toggle('emotes-tucked', !shows.emotesOpen);
+      // the first time Visual turns up: the look picked on the plane can be changed now (once per profile)
+      if (shows.look) {
         const key = `tb_look_hint_${p.id}`;
         try {
           if (!localStorage.getItem(key)) {
@@ -517,7 +527,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       parrotToggle.style.display = p.parrotOwned ? '' : 'none';
       parrotToggle.replaceChildren(bi(p.parrotEquipped ? 'Guardar papagaio' : 'Chamar papagaio', p.parrotEquipped ? 'Hide parrot' : 'Show parrot'));
       cameraBtn.style.display = p.hasCamera ? '' : 'none';
-      supportBtn.style.display = showSupportButton(billingReady, p.subscription, Date.now()) ? '' : 'none';
+      supportBtn.style.display = shows.gearExtras && showSupportButton(billingReady, p.subscription, Date.now()) ? '' : 'none';
       cameraBtn.classList.toggle('on', game.cameraOn && !!p.hasCamera);
     }
     decorBtn.style.display = game.isOwnKitnet ? '' : 'none';

@@ -273,7 +273,8 @@ async function sectionUi(browser, vp) {
   await sleep(1200);
   await ui('map_panel');
   await close();
-  await press(page, '#btn-credits');
+  // Créditos waits for the resident stage in Ajustes (SIMPLIFICATION-REVIEW §3): a newcomer's audit presses the button itself
+  await page.$eval('#btn-credits', (b) => b.click());
   await page.waitForSelector('[data-modal="credits"] .credits-panel', { timeout: 5000 });
   await sleep(500);
   await ui('credits');

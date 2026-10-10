@@ -89,7 +89,8 @@ async function mclick(page, sel) {
 async function enableCart(page, ids) {
   const password = process.env.TB_ADMIN_PASSWORD || 'tb-admin-praca';
   await page.click('#btn-menu').catch(() => page.click('#btn-burger'));
-  await page.click('#btn-credits');
+  // Créditos waits for the resident stage in Ajustes (SIMPLIFICATION-REVIEW §3): press the button itself
+  await page.$eval('#btn-credits', (b) => b.click());
   await page.waitForSelector('#credits-admin-door', { timeout: 8_000 });
   await page.click('#credits-admin-door');
   await page.waitForSelector('#admin-password', { timeout: 8_000 });

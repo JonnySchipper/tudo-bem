@@ -87,6 +87,13 @@ async function ownServer() {
   throw new Error('server did not come up');
 }
 
+/** Fala is an Ajustes entry now (the gear on desktop, the drawer on a phone). */
+async function openFala(page) {
+  const opener = (await page.isVisible('#btn-burger')) ? '#btn-burger' : '#btn-menu';
+  await page.click(opener);
+  await page.click('#btn-feedback');
+}
+
 const server = process.env.BASE_URL ? { base: process.env.BASE_URL, stop: () => {} } : await ownServer();
 const BASE = server.base;
 const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
@@ -99,7 +106,7 @@ try {
     await quiet(page);
     await shot(page, 'hud', size);
 
-    await page.click('#btn-feedback');
+    await openFala(page);
     await page.waitForSelector('#feedback-text', { timeout: 5_000 });
     await sleep(400);
     await shot(page, 'fala-form', size);
@@ -115,7 +122,7 @@ try {
     await page.waitForSelector('#feedback-thanks-close', { state: 'detached', timeout: 5_000 });
 
     // Escape closes the form mid-play
-    await page.click('#btn-feedback');
+    await openFala(page);
     await page.waitForSelector('#feedback-text', { timeout: 5_000 });
     await page.keyboard.press('Escape');
     await page.waitForSelector('#feedback-text', { state: 'detached', timeout: 5_000 });

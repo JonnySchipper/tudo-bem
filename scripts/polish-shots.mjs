@@ -126,6 +126,10 @@ try {
   await sleep(500);
 
   // ---------------------------------------------------------------- cartela: a stamp, then the 7th
+  // the Cartela chip is a regular's (three recados done, SIMPLIFICATION-REVIEW §3): the next profile push carries it
+  await page.evaluate(() => {
+    window.__tb.net.session.profile.recadosDoneTotal = 3;
+  });
   await goArea(page, 'feira');
   await sleep(500);
   await shot('11-cartela-stamp');

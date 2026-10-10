@@ -224,6 +224,8 @@ export interface PrivateProfile {
   bag?: Record<string, number>;
   /** Recados state: today's offer, the ones in progress, the ones finished today (Phase 8). */
   recados?: RecadoState;
+  /** Recados finished, ever (`recados.done` is only today's): the disclosure ladder reads it. Defaulted on load from today's list. */
+  recadosDoneTotal?: number;
   /** NPC friendship points 0-100 (10 = 1 heart). */
   bond?: Partial<Record<NpcId, number>>;
   /** NPCs whose 6-heart furniture gift was already handed over (once each). */

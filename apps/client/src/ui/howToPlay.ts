@@ -3,11 +3,18 @@
  * sits over it; a "?" button stays in the corner while it is open, to read it again. After the first time the card waits for the "?".
  * Each one is found by its root element (`HOW_TO_PLAY[].selector`), so the games and panels themselves need not know about this.
  * A card never lands on top of a new-word card or the Diário reveal: it waits until they are gone.
+ *
+ * The "?" is the one help button (SIMPLIFICATION-REVIEW B7): inside an activity it opens that activity's card; out in the Vila, with nothing
+ * open, it opens the Vila guide. The top bar's stats open their own notes on a click (hudNotes.ts).
  */
 import { game } from '../state';
 import { h, ui } from './dom';
 import { COMPACT_QUERY } from './hudLayout';
 import { HOW_TO_PLAY, howToPlay, type HowToPlay } from './howToPlayData';
+import { modalId } from './modal';
+import { isDialogueBoxOpen } from './dialogue';
+import { openVilaGuide } from './vilaGuide';
+import { stage } from './disclosure';
 
 const seenKey = (id: string) => `tb_howto:${game.profile?.id ?? 'guest'}:${id}`;
 
@@ -82,9 +89,18 @@ function openGame(): HowToPlay | null {
 let current: string | null = null;
 let help: HTMLElement | null = null;
 
+/** The "?" key for the open world: no activity, panel or dialogue open, in the Vila (not the arrival). */
+const VILA_HELP = 'vila-guide';
+function inOpenVila(): boolean {
+  const p = game.profile;
+  const room = game.room?.room;
+  if (!p || !room || room === 'aeroporto' || room === 'desembarque' || stage(p) === 'S0') return false;
+  return !modalId() && !isDialogueBoxOpen();
+}
+
 function sync() {
   const g = openGame();
-  const id = g?.id ?? null;
+  const id = g?.id ?? (inOpenVila() ? VILA_HELP : null);
   if (id === current) return;
   current = id;
   // a card left from the thing that just closed goes with it
@@ -94,6 +110,10 @@ function sync() {
   help = null;
   if (!g) {
     closeHowToPlay();
+    if (id === VILA_HELP) {
+      help = h('button', { type: 'button', class: 'howto-help howto-vila', id: 'howto-help', 'aria-label': 'Guia da Vila (Your guide to the Vila)', title: 'Guia da Vila', onclick: () => openVilaGuide() }, '?');
+      ui().append(help);
+    }
     return;
   }
   const label = g.kind === 'place' ? 'How it works' : 'How to play';

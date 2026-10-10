@@ -248,7 +248,7 @@ async function main() {
   assert(((await page.textContent('#recado-tracker')) ?? '').includes('Bem-vindo à Vila Ipê'), 'the tracker shows the welcome chain');
   // skipping the flight keeps the random passenger the account was made with: a starter outfit
   assert(['camiseta', 'blusa'].includes(start.appearance.top) && ['calca', 'saia'].includes(start.appearance.bottom), 'a passenger look in a starter outfit');
-  // Menu → Visual: the look editor (what the creator used to be) changes the look any time
+  // Menu → Visual: the look editor (what the creator used to be) changes the look any time (the button joins the bar at the resident stage)
   await page.evaluate(() => document.getElementById('btn-look').click());
   await page.waitForSelector('.look-editor #avatar-preview', { timeout: 5_000 });
   const lookLabels = await page.$$eval('.look-editor .field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
@@ -273,7 +273,8 @@ async function main() {
     assert(crowd.length >= 4 && crowd.length <= 8, `4–8 CPUs for one player on the big map (got ${crowd.length})`);
     assert(crowd.every((c) => c.nameplate === 'verde' && CPU_NAMES.includes(c.name) && !/\s/.test(c.name)), 'CPU plates: Verde, allowlisted first names only');
     const head = await page.textContent('.topbar .room small');
-    assert(/ 1\/16 aqui/.test(head), `head-count ignores CPUs (${head})`);
+    // a newcomer's plate is the room's name and gloss: the head count waits for the resident stage (SIMPLIFICATION-REVIEW §3)
+    assert(!/ aqui/.test(head), `no head count for a newcomer (${head})`);
     log('ambiance:', crowd.map((c) => c.name).join(', '), '·', head.trim());
   }
 
@@ -297,6 +298,8 @@ async function main() {
   await waitIdleAt(page, 14, 6);
   await clickTile(page, 12, 6, 4); // banco_1 (Praça Central, by the kiosk): a real click on a bench
   await waitFor(page, () => window.__tb.game.profile?.tutorial.sentar, null, 8000, 'sat on bench');
+  // a newcomer's emotes wait behind the smiley next to the chat field, on desktop too
+  if (!(await page.isVisible('[data-emote="oi"]'))) await page.click('#btn-emotes');
   await page.click('[data-emote="oi"]');
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
   await page.press('#chat-input', 'Enter');
@@ -359,7 +362,8 @@ async function main() {
     const bId = await pageB.evaluate(() => window.__tb.game.room.selfId);
     aId = await page.evaluate(() => window.__tb.game.room.selfId);
     await pageB.evaluate((id) => window.__tb.net.send({ t: 'friend', action: 'request', targetId: id }), aId);
-    await page.click('#btn-friends');
+    // Amigos joins the bar at the resident stage; this newcomer opens the panel straight from its button
+    await page.evaluate(() => document.getElementById('btn-friends').click());
     await page.waitForSelector('button:has-text("Aceitar")');
     await page.click('button:has-text("Aceitar")');
     await waitFor(page, (id) => window.__tb.game.profile.friends.includes(id), bId, 5000, 'friends');

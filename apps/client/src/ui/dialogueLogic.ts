@@ -84,7 +84,8 @@ export function dialogueKeyAction(key: string, ctx: DialogueKeyCtx): DialogueKey
 
 // ---------------------------------------------------------------- "Mostrar inglês" preference
 
-export const SHOW_EN_KEY = 'tb_show_en';
+/** One English setting: the dialogue's "Mostrar inglês" and the gear's "Inglês" (`game.englishHelp`) share this key. */
+export const SHOW_EN_KEY = 'tb_english';
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>;
 
