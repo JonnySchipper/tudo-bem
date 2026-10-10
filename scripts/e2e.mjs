@@ -543,7 +543,7 @@ async function main() {
     assert(bag.cafe_com_leite >= 1, `the ordered café com leite is in the bag (${JSON.stringify(bag)})`);
     const before = await profile(page);
     const gave = await openNpc(page, 'nanda', 'talk-nanda', { give: true });
-    assert(gave === 'gave', 'Nanda offers Entregar café com leite');
+    assert(gave === 'gave', 'Nanda takes the café com leite (Trouxe … pra você!)');
     await page.waitForSelector('#recado-done', { timeout: 8000 });
     await shot(page, '08b2_recado_done');
     const after = await profile(page);

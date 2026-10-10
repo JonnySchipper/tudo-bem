@@ -72,6 +72,7 @@ import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { doorTagsFor, doorsFresh, type DoorTag } from '../../ui/wayfinding';
+import { declinedOffers, npcMarkers } from '../../ui/recadoView';
 import { T, cssZoomFor, deviceZoomFor, feet, leadNorthFor, outdoorFraming, roomFraming, roomZoom, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 
 /** Door tags per room definition (they never change while the room is up). */
@@ -2285,6 +2286,8 @@ export class WorldScene extends Phaser.Scene {
         stacks.push({ key: 'feira:closed', x: p.px, y: p.py, plate: { text: 'Feira fechada · volta às 6h', gloss: 'Market closed · back at 6 am', kind: 'npc' }, bubbles: [] });
       }
     }
+    // recado markers: "!" over a neighbour with an errand for you, "?" over the one your current step is with
+    const markers = npcMarkers(game.board, declinedOffers);
     for (const [id, v] of this.avatars) {
       const a = game.avatars.get(id);
       if (!a) continue;
@@ -2301,7 +2304,9 @@ export class WorldScene extends Phaser.Scene {
           y: p.py,
           z: Math.round(p.py),
           // the mat camera keeps the pair and the scoreboard clear: neighbours' plates wait until the bout is over (their bubbles still talk)
-          plate: boutFeed.camera ? null : { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
+          plate: boutFeed.camera
+            ? null
+            : { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc', ...(markers.has(a.pub.npc) ? { marker: markers.get(a.pub.npc) } : {}) },
           // Bia is the referee while a bout is on: her idle chatter stays quiet
           bubbles: b && age < 7000 && !(boutFeed.camera && a.pub.npc === 'prof') ? [{ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(age) }] : [],
         });

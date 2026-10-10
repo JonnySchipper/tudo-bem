@@ -6,7 +6,7 @@
  * The game's own Portuguese name sits in the title. `selector` is the root element: it is in the page only while the thing is open
  * (ui/howToPlay.ts watches for it). Pure data, tested.
  */
-import { CARTELA_REWARD, CONVERSA_MAX_PLAYER_MSGS, CONVERSA_RV, ECONOMY, FILM, MISSION_REWARD, RECADO_MAX_ACTIVE } from '@tudobem/shared';
+import { CARTELA_REWARD, CONVERSA_MAX_PLAYER_MSGS, CONVERSA_RV, ECONOMY, FILM, MISSION_REWARD, RECADO_DAY_BONUS_RV, RECADO_MAX_ACTIVE, RECADOS_PER_DAY } from '@tudobem/shared';
 
 export interface HowToPlay {
   id: string;
@@ -171,9 +171,10 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     en: 'Errands, your bag and your friends',
     goal: 'Neighbours ask you for small favours (recados). Doing them pays RV and makes friends.',
     steps: [
-      'A neighbour with an errand asks when you talk to them. Pode deixar! says yes, Agora não says not now.',
-      `You can carry ${RECADO_MAX_ACTIVE} errands at once. The Recados list near the top of the screen shows the next step. Tap it to open this page.`,
-      'Steps are things like: talk to someone, read a sign, buy something and hand it over (Entregar).',
+      'A gold ! over a neighbour: they have an errand for you. Talk to them (Pode deixar! = yes), or press Aceitar here.',
+      `Carry up to ${RECADO_MAX_ACTIVE}. The Recados list at the top shows the next step and where (📍); a green ? marks who the step is with.`,
+      'Steps: talk to someone, read a sign, buy something and hand it over.',
+      `${RECADOS_PER_DAY} errands in one day: Vizinho do dia, +${RECADO_DAY_BONUS_RV} RV.`,
       'Hearts ♥ grow when you talk and help. At 2 ♥ they use your name, at 4 ♥ there is a new Conversa topic, at 6 ♥ a gift for your kitnet.',
       `Bem-vindo à Vila Ipê is Júlia’s welcome list. Finish its 8 steps for a ${ECONOMY.tutorialBonus} RV bonus.`,
     ],

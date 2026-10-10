@@ -5,6 +5,8 @@
  */
 import {
   RECADOS,
+  RECADOS_PER_DAY,
+  RECADO_DAY_BONUS_RV,
   RECADO_MAX_ACTIVE,
   TUTORIAL_STEPS,
   hearts,
@@ -12,6 +14,9 @@ import {
   npcName,
   recadoById,
   sameNpcRole,
+  stepNpc,
+  stepWhere,
+  whereLine,
   type Bilingual,
   type BondMap,
   type NpcId,
@@ -19,6 +24,7 @@ import {
   type RecadoActiveView,
   type RecadoDef,
   type RecadoOfferView,
+  type RoomId,
 } from '@tudobem/shared';
 
 /** The board the server sends (`{ t: 'recados' }`). */
@@ -27,6 +33,8 @@ export interface RecadoBoard {
   offered: RecadoOfferView[];
   active: RecadoActiveView[];
   done: string[];
+  /** today's "Vizinho do dia" bonus was paid */
+  bonus?: boolean;
 }
 
 /** The tracker shows at most this many entries (the tutorial chain counts as one). */
@@ -37,7 +45,8 @@ export const WELCOME_TITLE: Bilingual = { pt: 'Bem-vindo à Vila Ipê', en: 'Wel
 export interface TrackerEntry {
   /** stable key (`tutorial` or the recado id) */
   key: string;
-  kind: 'tutorial' | 'recado';
+  /** `offer`: today's errand nobody took yet (talk to the giver, or accept it in the journal) */
+  kind: 'tutorial' | 'recado' | 'offer';
   giver: NpcId;
   title: Bilingual;
   /** the current step, one line */
@@ -46,6 +55,8 @@ export interface TrackerEntry {
   progress: string;
   done: number;
   total: number;
+  /** where the step (or the giver of an offer) is right now: "Praça", "Em casa · volta às 8h" */
+  where?: Bilingual | null;
 }
 
 /** Júlia's welcome chain (the old "Primeiros passos") is shown until every tutorial step is done and the bonus is paid. */
@@ -69,15 +80,100 @@ export function tutorialEntry(p: Pick<PrivateProfile, 'tutorial'>): TrackerEntry
   };
 }
 
-/** Welcome chain first (while it lasts), then the active recados in the order they were accepted; max 3 entries. */
-export function trackerEntries(board: RecadoBoard | null, p: PrivateProfile | null | undefined): TrackerEntry[] {
+/** Where an active recado's current step happens at `minute` (null without a minute or for a step with no place). */
+export function activeWhere(a: Pick<RecadoActiveView, 'id' | 'step'>, minute: number | undefined): Bilingual | null {
+  const step = minute === undefined ? undefined : recadoById(a.id)?.steps[a.step];
+  return step ? whereLine(stepWhere(step, minute!)) : null;
+}
+
+/** Where an offer's giver is at `minute`. */
+export function giverWhere(giver: NpcId, minute: number | undefined): Bilingual | null {
+  return minute === undefined ? null : whereLine(stepWhere({ kind: 'falar', npc: giver }, minute));
+}
+
+/**
+ * Welcome chain first (while it lasts), then the active recados in the order they were accepted, then (while there is room to take one)
+ * today's offers, so a neighbour's errand is on screen before the player ever talks to them; max 3 entries. `minute` adds the where-lines.
+ */
+export function trackerEntries(board: RecadoBoard | null, p: PrivateProfile | null | undefined, minute?: number): TrackerEntry[] {
   const out: TrackerEntry[] = [];
   if (p && tutorialPending(p)) out.push(tutorialEntry(p));
   for (const a of board?.active ?? []) {
     if (out.length >= TRACKER_MAX) break;
-    out.push({ key: a.id, kind: 'recado', giver: a.giver, title: a.title, step: a.hint, progress: `${Math.min(a.step + 1, a.steps)}/${a.steps}`, done: a.step, total: a.steps });
+    out.push({ key: a.id, kind: 'recado', giver: a.giver, title: a.title, step: a.hint, progress: `${Math.min(a.step + 1, a.steps)}/${a.steps}`, done: a.step, total: a.steps, where: activeWhere(a, minute) });
+  }
+  if ((board?.active.length ?? 0) < RECADO_MAX_ACTIVE) {
+    for (const o of board?.offered ?? []) {
+      if (out.length >= TRACKER_MAX) break;
+      const who = npcName(o.giver);
+      // needs_br: true
+      out.push({ key: `offer:${o.id}`, kind: 'offer', giver: o.giver, title: o.title, step: { pt: `${who} tem um recado pra você!`, en: `${who} has an errand for you!` }, progress: '!', done: 0, total: 0, where: giverWhere(o.giver, minute) });
+    }
   }
   return out;
+}
+
+// ---------------------------------------------------------------- the world: who has something for you
+
+/** Offers turned down with "Agora não" this page load: the NPC does not ask again (and loses its "!") until the page reloads. */
+export const declinedOffers = new Set<string>();
+
+/** `offer`: a gold "!" (they have an errand for you). `step`: a "?" (your current step is with them). */
+export type NpcMarker = 'offer' | 'step';
+
+/**
+ * The marker over each NPC's head. A current step wins over an offer. A step with Seu Carlos marks Dona Graça too (she works the same counter).
+ * Offers only while there is room to take one, and not the ones turned down with "Agora não" this session.
+ */
+export function npcMarkers(board: RecadoBoard | null, declined: ReadonlySet<string> = new Set()): Map<NpcId, NpcMarker> {
+  const out = new Map<NpcId, NpcMarker>();
+  if (!board) return out;
+  if (board.active.length < RECADO_MAX_ACTIVE) for (const o of board.offered) if (!declined.has(o.id)) out.set(o.giver, 'offer');
+  for (const a of board.active) {
+    const step = recadoById(a.id)?.steps[a.step];
+    const npc = step ? stepNpc(step) : null;
+    if (!npc) continue;
+    out.set(npc, 'step');
+    if (npc === 'carlos') out.set('graca', 'step');
+  }
+  return out;
+}
+
+export interface RecadoFocus {
+  /** the recado the arrow is for */
+  id: string;
+  /** where to go: the room, and the NPC there (null for a room or a sign) */
+  room: RoomId | null;
+  npc: NpcId | null;
+  /** the NPC is at home right now (no arrow: the where-line says when they come back) */
+  away: boolean;
+  /** the arrow's label */
+  label: Bilingual;
+}
+
+/** The first active recado's current step, as a place to point at (the tracker's top row is the one the arrows follow). */
+export function recadoFocus(board: RecadoBoard | null, minute: number): RecadoFocus | null {
+  const a = board?.active[0];
+  const step = a ? recadoById(a.id)?.steps[a.step] : undefined;
+  if (!a || !step) return null;
+  const w = stepWhere(step, minute);
+  return { id: a.id, room: w.room, npc: w.npc, away: !w.out, label: a.hint };
+}
+
+// ---------------------------------------------------------------- the day's goal
+
+export interface DayProgress {
+  done: number;
+  goal: number;
+  /** the bonus was paid today */
+  paid: boolean;
+  rv: number;
+}
+
+/** "Vizinho do dia": how many of today's `RECADOS_PER_DAY` are done, and whether the bonus was paid. */
+export function dayProgress(board: RecadoBoard | null): DayProgress {
+  const done = Math.min(RECADOS_PER_DAY, board?.done.length ?? 0);
+  return { done, goal: RECADOS_PER_DAY, paid: !!board?.bonus, rv: RECADO_DAY_BONUS_RV };
 }
 
 // ---------------------------------------------------------------- hearts

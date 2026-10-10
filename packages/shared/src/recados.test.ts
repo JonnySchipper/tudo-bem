@@ -5,18 +5,23 @@ import { cardById } from './cards.js';
 import { ECONOMY } from './constants.js';
 import { isNpcId } from './bonds.js';
 import { ROOMS } from './rooms.js';
+import { nextPortalToward } from './npcMotion.js';
 import {
   addToBag,
   advance,
   BAG_MAX_PER_ITEM,
+  dayBonusDue,
   describeStep,
+  dropRecado,
   freshRecadoState,
   greetingKind,
   ITEMS,
   itemById,
+  itemWithArticle,
   normalizeBag,
   normalizeRecados,
   npcName,
+  npcWhere,
   offerFor,
   RECADO_FLAGS,
   RECADOS,
@@ -24,7 +29,10 @@ import {
   recadoById,
   rollRecadoDay,
   stepMatches,
+  stepNpc,
+  stepWhere,
   takeFromBag,
+  whereLine,
   type RecadoDef,
   type RecadoEvent,
   type RecadoFlag,
@@ -403,5 +411,66 @@ describe('normalizeRecados', () => {
     expect(normalizeRecados('nope')).toMatchObject({ day: -1, active: [] });
     const messy = normalizeRecados({ day: 7.9, offered: ['a', 3, null], active: [{ id: 'a', step: 1 }, { id: 5, step: 0 }, { id: 'b', step: -1 }, { id: 'c', step: 1.5 }, null], done: 'x', talked: ['carlos', 'ghost'] });
     expect(messy).toEqual({ day: 7, offered: ['a'], active: [{ id: 'a', step: 1 }], done: [], talked: ['carlos'], graded: [] });
+  });
+});
+
+describe('where a step happens (markers, arrows, the where-line)', () => {
+  const at = (h: number, m = 0) => h * 60 + m;
+
+  it('finds a scheduled NPC by the hour, and when one at home comes back out', () => {
+    expect(npcWhere('nanda', at(10))).toEqual({ npc: 'nanda', room: 'praca', out: true });
+    expect(npcWhere('nanda', at(21))).toMatchObject({ out: false, backAt: at(8) });
+    expect(npcWhere('nanda', at(3))).toMatchObject({ out: false, backAt: at(8) });
+    expect(npcWhere('graca', at(9))).toMatchObject({ out: false, backAt: at(17) });
+    // no schedule: the room that lists them, always out
+    expect(npcWhere('prof', at(3))).toMatchObject({ room: 'academia', out: true });
+  });
+
+  it('sends a step with Seu Carlos to whoever works the counter, and names the room or the time they are back', () => {
+    const order: RecadoStep = { kind: 'pedir', npc: 'carlos', itemId: 'coxinha', qty: 1 };
+    expect(stepNpc(order)).toBe('carlos');
+    expect(stepWhere(order, at(10))).toMatchObject({ room: 'padaria', npc: 'carlos', out: true });
+    expect(stepWhere(order, at(23))).toMatchObject({ room: 'padaria', npc: 'graca', out: true });
+    expect(stepWhere({ kind: 'ir', room: 'feira' }, at(10))).toMatchObject({ room: 'feira', npc: null });
+    expect(stepNpc({ kind: 'cumprimentar', timeCorrect: true })).toBeNull();
+    expect(whereLine(stepWhere({ kind: 'entregar', npc: 'nanda', itemId: 'coxinha', qty: 1 }, at(10)))).toEqual({ pt: ROOMS.praca.name, en: ROOMS.praca.gloss });
+    expect(whereLine(stepWhere({ kind: 'entregar', npc: 'nanda', itemId: 'coxinha', qty: 1 }, at(22)))).toEqual({ pt: 'Em casa · volta às 8h', en: 'At home · back at 8:00' });
+  });
+
+  it('points at the door toward the next room on the shortest public route', () => {
+    expect(nextPortalToward('praca', { x: 10, y: 10 }, 'praca')).toBeNull();
+    expect(nextPortalToward('praca', { x: 10, y: 10 }, 'padaria')?.to).toBe('rua');
+    expect(nextPortalToward('rua', { x: 5, y: 5 }, 'padaria')?.to).toBe('padaria');
+  });
+});
+
+describe('drop and the day bonus', () => {
+  it('drop takes an active recado off the list and back onto the offer; unknown ids are refused', () => {
+    const st = { ...freshRecadoState(), day: 3, offered: [], active: [{ id: 'nanda_coxinha', step: 1 }] };
+    expect(dropRecado(st, 'nope')).toBeNull();
+    const next = dropRecado(st, 'nanda_coxinha')!;
+    expect(next.active).toEqual([]);
+    expect(next.offered).toEqual(['nanda_coxinha']);
+    expect(st.active).toHaveLength(1);
+  });
+
+  it('the bonus is due at three done and not yet paid; it survives a reload and resets with the day', () => {
+    expect(dayBonusDue({ done: ['a', 'b'] })).toBe(false);
+    expect(dayBonusDue({ done: ['a', 'b', 'c'] })).toBe(true);
+    expect(dayBonusDue({ done: ['a', 'b', 'c'], bonus: true })).toBe(false);
+    expect(normalizeRecados({ day: 2, bonus: true }).bonus).toBe(true);
+    expect(normalizeRecados({ day: 2, bonus: 'yes' }).bonus).toBeUndefined();
+    const rolled = rollRecadoDay({ recados: { ...freshRecadoState(), day: 1, done: ['a', 'b', 'c'], bonus: true } }, 2, mulberry32(1));
+    expect(rolled.bonus).toBeUndefined();
+  });
+});
+
+describe('naming an item in a sentence', () => {
+  it('uses the card’s gender for um / uma, and no article for a plural', () => {
+    expect(itemWithArticle('coxinha')).toBe('uma coxinha');
+    expect(itemWithArticle('cafe_com_leite')).toBe('um café com leite');
+    expect(itemWithArticle('banana')).toBe('uma banana');
+    expect(itemWithArticle('flores')).toBe('flores');
+    for (const it of ITEMS) expect(it.gender, it.id).toBeDefined();
   });
 });
