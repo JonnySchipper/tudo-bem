@@ -7159,6 +7159,42 @@
       "file": "ui-987321af6e.mp3"
     },
     {
+      "id": "ui-32405e889a",
+      "voice": "ui",
+      "text": "motor",
+      "file": "ui-32405e889a.mp3"
+    },
+    {
+      "id": "ui-50c6337556",
+      "voice": "ui",
+      "text": "cauda",
+      "file": "ui-50c6337556.mp3"
+    },
+    {
+      "id": "ui-06256410b8",
+      "voice": "ui",
+      "text": "nariz",
+      "file": "ui-06256410b8.mp3"
+    },
+    {
+      "id": "ui-9fa417beea",
+      "voice": "ui",
+      "text": "porta",
+      "file": "ui-9fa417beea.mp3"
+    },
+    {
+      "id": "ui-89183816e1",
+      "voice": "ui",
+      "text": "roda",
+      "file": "ui-89183816e1.mp3"
+    },
+    {
+      "id": "ui-2f8a2b48ac",
+      "voice": "ui",
+      "text": "fuselagem",
+      "file": "ui-2f8a2b48ac.mp3"
+    },
+    {
       "id": "ui-886813d602",
       "voice": "ui",
       "text": "aeroporto",
