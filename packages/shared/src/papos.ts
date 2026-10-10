@@ -117,7 +117,7 @@ export const PAPOS: readonly Papo[] = [
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: '{nome}, posso te contar uma coisa? Essa padaria era do meu pai.', en: '{nome}, can I tell you something? This bakery was my father’s.' },
+        line: { pt: 'Ei, {nome}! Posso te contar uma coisa? Essa padaria era do meu pai.', en: 'Hey, {nome}! Can I tell you something? This bakery was my father’s.' },
         chips: [
           { pt: 'Conta, sim!', en: 'Please, tell me!', next: 'pai' },
           { pt: 'Sério? Que legal!', en: 'Really? How cool!', next: 'pai' },
@@ -185,7 +185,7 @@ export const PAPOS: readonly Papo[] = [
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: '{nome}, você já comeu bolo de fubá?', en: '{nome}, have you ever had bolo de fubá (cornmeal cake)?' },
+        line: { pt: 'Ô, {nome}! Você já comeu bolo de fubá?', en: 'Oh, {nome}! Have you ever had bolo de fubá (cornmeal cake)?' },
         chips: [
           { pt: 'Ainda não. O que é?', en: 'Not yet. What is it?', next: 'fuba' },
           { pt: 'Já! É uma delícia.', en: 'Yes! It’s delicious.', next: 'delicia' },
@@ -213,7 +213,7 @@ export const PAPOS: readonly Papo[] = [
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: '{nome}, sabe por que eu gosto de trabalhar de noite?', en: '{nome}, do you know why I like working at night?' },
+        line: { pt: 'Ô, {nome}! Sabe por que eu gosto de trabalhar de noite?', en: 'Oh, {nome}! Do you know why I like working at night?' },
         chips: [
           { pt: 'Por quê?', en: 'Why?', next: 'coral' },
           { pt: 'Conta pra mim!', en: 'Tell me!', next: 'coral' },
@@ -280,7 +280,7 @@ export const PAPOS: readonly Papo[] = [
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: '{nome}, você já viu a fonte da praça?', en: '{nome}, have you seen the fountain in the square (praça)?' },
+        line: { pt: 'Ei, {nome}! Você já viu a fonte da praça?', en: 'Hey, {nome}! Have you seen the fountain in the square (praça)?' },
         chips: [
           { pt: 'Já vi! É bonita.', en: 'I have! It’s pretty.', next: 'fonte' },
           { pt: 'Ainda não.', en: 'Not yet.', next: 'nao' },
@@ -314,7 +314,7 @@ export const PAPOS: readonly Papo[] = [
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: '{nome}, quer saber como eu comecei a fazer chapéus?', en: '{nome}, want to know how I started making hats?' },
+        line: { pt: 'Ei, {nome}! Quer saber como eu comecei a fazer chapéus?', en: 'Hey, {nome}! Want to know how I started making hats?' },
         chips: [
           { pt: 'Quero!', en: 'I do!', next: 'mae' },
           { pt: 'Conta, Nanda!', en: 'Tell me, Nanda!', next: 'mae' },
@@ -348,7 +348,7 @@ export const PAPOS: readonly Papo[] = [
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: '{nome}, tá gostando de Vila Ipê?', en: '{nome}, are you enjoying Vila Ipê?' },
+        line: { pt: 'Oi, {nome}! Tá gostando de Vila Ipê?', en: 'Hi, {nome}! Are you enjoying Vila Ipê?' },
         chips: [
           { pt: 'Tô adorando!', en: 'I’m loving it!', next: 'gosto' },
           { pt: 'Ainda tô conhecendo.', en: 'I’m still getting to know it.', next: 'conhecer' },
@@ -408,7 +408,7 @@ export const PAPOS: readonly Papo[] = [
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: '{nome}, posso te contar um segredo? Eu também cheguei aqui de fora.', en: '{nome}, can I tell you a secret? I came here from somewhere else too.' },
+        line: { pt: 'Ei, {nome}! Posso te contar um segredo? Eu também cheguei aqui de fora.', en: 'Hey, {nome}! Can I tell you a secret? I came here from somewhere else too.' },
         chips: [
           { pt: 'Sério? De onde?', en: 'Really? From where?', next: 'onde' },
           { pt: 'Não acredito!', en: 'No way!', next: 'onde' },
@@ -442,7 +442,7 @@ export const PAPOS: readonly Papo[] = [
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: '{nome}, você treina sempre?', en: '{nome}, do you train often?' },
+        line: { pt: 'Oi, {nome}! Você treina sempre?', en: 'Hi, {nome}! Do you train often?' },
         chips: [
           { pt: 'Quase todo dia!', en: 'Almost every day!', next: 'bom' },
           { pt: 'Ainda não.', en: 'Not yet.', next: 'comeco' },
@@ -500,7 +500,7 @@ export const PAPOS: readonly Papo[] = [
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: '{nome}, quer saber por que eu comecei no jiu-jitsu?', en: '{nome}, want to know why I started jiu-jitsu?' },
+        line: { pt: 'Ei, {nome}! Quer saber por que eu comecei no jiu-jitsu?', en: 'Hey, {nome}! Want to know why I started jiu-jitsu?' },
         chips: [
           { pt: 'Quero, sim!', en: 'Yes, I do!', next: 'timida' },
           { pt: 'Por quê, professora?', en: 'Why, teacher?', next: 'timida' },
@@ -576,6 +576,8 @@ export function papoProblems(p: Papo): string[] {
   for (const [id, node] of Object.entries(p.nodes)) {
     if (!reached.has(id)) bad.push(`${p.id}.${id}: never reached`);
     if (!node.line.pt.trim() || !node.line.en.trim()) bad.push(`${p.id}.${id}: line needs PT and EN`);
+    // before 2 hearts the NPC does not know the name and `fillTalk` drops only ", {nome}": a line opening on the name would start with a comma
+    if (/^\{nome\}/.test(node.line.pt) || /^\{nome\}/.test(node.line.en)) bad.push(`${p.id}.${id}: opens on {nome}`);
     if (!node.chips.length) bad.push(`${p.id}.${id}: no chips (a bate-papo ends on a chip)`);
     for (const c of node.chips) {
       if (c.next !== 'end' && !p.nodes[c.next]) bad.push(`${p.id}.${id}: chip leads to unknown "${c.next}"`);

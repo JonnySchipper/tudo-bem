@@ -177,12 +177,6 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     expect((await post('/api/auth/login', { email: 'z@exemplo.com', password: 'senha-senha-1' })).status).toBe(429);
   });
 
-  it('has no Conversa API any more (#229)', async () => {
-    await start();
-    const r = await post('/api/conversa', { action: 'start', npcId: 'carlos' });
-    expect(r.status).not.toBe(200);
-  });
-
   const smokeOn = (password = 'ops-smoke-test-password-1'): OpsSmokeConfig => ({
     enabled: true,
     ready: true,

@@ -22,7 +22,7 @@ export const JULIA_TREE: { q: Bilingual; a: Bilingual; guide?: true }[] = [
   {
     q: { pt: 'Como ganho reais virtuais?', en: 'How do I earn reais virtuais (RV), the play money?' },
     a: {
-      pt: 'Faça uns recados pros vizinhos e jogue a “Correria no Balcão” na padaria. Depois compre um chapéu com a Nanda!',
+      pt: 'Faça uns favores pros vizinhos e jogue a “Correria no Balcão” na padaria. Depois compre um chapéu com a Nanda!',
       en: 'Do favors (Favores) for the neighbours and play “Correria no Balcão” (Counter Rush) at the bakery. Then buy a hat from Nanda!',
     },
   },
