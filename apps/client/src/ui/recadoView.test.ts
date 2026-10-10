@@ -33,21 +33,21 @@ describe('tracker view-model', () => {
   it('starts with Júlia’s welcome chain and its next step, then the active recados, max 3 lines', () => {
     const e = trackerEntries(board({ active: [active('carlos_cafe_pra_nanda'), active('nanda_coxinha'), active('julia_cumprimento_certo')] }), profile({ tutorial: tut(2) }));
     expect(e).toHaveLength(TRACKER_MAX);
-    expect(e[0]).toMatchObject({ kind: 'tutorial', giver: 'julia', progress: '2/8' });
+    expect(e[0]).toMatchObject({ kind: 'tutorial', giver: 'julia', progress: '2/3' });
     expect(e[0]!.title.pt).toBe('Bem-vindo à Vila Ipê');
     expect(e[0]!.step.pt).toBe(TUTORIAL_STEPS[2]!.pt);
     expect(e.slice(1).map((x) => x.key)).toEqual(['carlos_cafe_pra_nanda', 'nanda_coxinha']);
   });
 
   it('shows only recados once the welcome chain is finished and paid', () => {
-    const done = profile({ tutorial: tut(8), tutorialRewarded: true });
+    const done = profile({ tutorial: tut(3), tutorialRewarded: true });
     expect(tutorialPending(done)).toBe(false);
     const e = trackerEntries(board({ active: [active('carlos_manha_de_entregas', 2)] }), done);
     expect(e).toHaveLength(1);
     expect(e[0]).toMatchObject({ kind: 'recado', progress: '3/4', step: { pt: 'passo 2' } });
     expect(trackerEntries(board(), done)).toEqual([]);
     // all steps done but the bonus not paid yet: the chain stays (one last line)
-    expect(tutorialPending(profile({ tutorial: tut(8), tutorialRewarded: false }))).toBe(true);
+    expect(tutorialPending(profile({ tutorial: tut(3), tutorialRewarded: false }))).toBe(true);
   });
 
   it('is empty without a profile or board', () => {
@@ -138,7 +138,7 @@ describe('errands you can see before talking to anyone', () => {
     const d = recadoById(id)!;
     return { id, giver: d.giver, title: d.title, ask: d.ask, reward: d.reward };
   };
-  const done = profile({ tutorial: tut(8), tutorialRewarded: true });
+  const done = profile({ tutorial: tut(3), tutorialRewarded: true });
 
   it('lists today’s offers in the tracker after the active ones, with where the giver is', () => {
     const b = board({ active: [active('carlos_cafe_pra_nanda', 1)], offered: [offerOf('nanda_coxinha'), offerOf('julia_cumprimento_certo'), offerOf('graca_pao_pra_julia')] });

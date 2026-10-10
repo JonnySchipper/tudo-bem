@@ -24,6 +24,9 @@ import {
   SCORE_FEEDBACK,
   seatTiles,
   TYPED_MISS_HINT,
+  TUTORIAL_STEPS,
+  TUTORIAL_STEP_IDS,
+  HALL_TUTORIAL_STEPS,
   type ServerMsg,
   type ClientMsg,
   type PublicAvatar,
@@ -346,6 +349,44 @@ describe('World', () => {
     const coins = p.coins;
     await a.send({ t: 'join', room: 'kitnet' });
     expect(a.s.profile!.coins).toBe(coins);
+  });
+
+  it('the hall-taught steps are done with the hall, silently, and are not part of the welcome chain', async () => {
+    const { world } = makeWorld();
+    const a = await client(world, 'Recem');
+    const p = a.s.profile!;
+    expect(TUTORIAL_STEPS.map((t) => t.id)).toEqual(['carlos', 'chapeu', 'cadeira']);
+    expect(p.desembarqueDone).toBe(false);
+    expect(Object.keys(p.tutorial).sort()).toEqual([...TUTORIAL_STEP_IDS].sort());
+    await a.send({ t: 'arrival', action: 'landed' });
+    expect(HALL_TUTORIAL_STEPS.every((id) => p.tutorial[id])).toBe(true);
+    // a chat in the Vila never sends a step signal for the hidden steps
+    await a.send({ t: 'chat', text: 'Oi, pessoal!' });
+    expect(a.all('tutorial')).toEqual([]);
+    expect(p.tutorial.meveum).toBe(false);
+    expect(p.tutorialRewarded).toBe(false);
+  });
+
+  it('an old save past the hall loads with the hall steps done; one whose chain is already done is paid the bonus once', async () => {
+    const old = { desembarqueDone: undefined, tutorial: { andar: false, sentar: true, acenar: false, conversar: false, carlos: true, meveum: false, chapeu: true, cadeira: true } } as unknown as StoredProfile;
+    normalizeProfile(old);
+    expect(HALL_TUTORIAL_STEPS.every((id) => old.tutorial[id])).toBe(true);
+    expect(old.tutorial.meveum).toBe(false);
+    const inHall = { desembarqueDone: false, tutorial: { andar: false, sentar: false, acenar: false, conversar: false, carlos: false, meveum: false, chapeu: false, cadeira: false } } as unknown as StoredProfile;
+    normalizeProfile(inHall);
+    expect(Object.values(inHall.tutorial).some(Boolean)).toBe(false);
+
+    const { world } = makeWorld();
+    const a = await client(world, 'Antiga');
+    const p = a.s.profile!;
+    Object.assign(p.tutorial, { carlos: true, chapeu: true, cadeira: true });
+    const coins = p.coins;
+    await a.send({ t: 'hello', token: p.token });
+    expect(p.tutorialRewarded).toBe(true);
+    expect(p.coins).toBe(coins + ECONOMY.tutorialBonus);
+    await a.send({ t: 'hello', token: p.token });
+    expect(p.coins).toBe(coins + ECONOMY.tutorialBonus);
+    expect(a.all('reward').filter((r) => r.amount === ECONOMY.tutorialBonus)).toHaveLength(1);
   });
 
   it('Pedido rápido daily RV gate: once per player day', async () => {

@@ -4,7 +4,7 @@ import { VILA_GUIDE, VILA_GUIDE_PT_WORDS, shouldShowVilaGuide } from './vilaGuid
 
 describe('the Vila Ipê guide', () => {
   it('names each loop once, in English, short enough to read in one go', () => {
-    expect(VILA_GUIDE.lines.map((l) => l.pt)).toEqual(['Favores', 'Diário', 'Cartela', 'Lugares', 'Relógio']);
+    expect(VILA_GUIDE.lines.map((l) => l.pt)).toEqual(['Favores', 'Diário', 'Lugares']);
     const all = [VILA_GUIDE.lead, ...VILA_GUIDE.lines.map((l) => l.en), VILA_GUIDE.tip].join(' ');
     expect(all.length).toBeLessThan(1200);
   });
@@ -20,14 +20,9 @@ describe('the Vila Ipê guide', () => {
     }
   });
 
-  it('opens by itself once, in the Vila, after the arrival', () => {
-    expect(shouldShowVilaGuide({ room: 'rua_leste', arrivalIntroDone: true, seen: false })).toBe(true);
-    expect(shouldShowVilaGuide({ room: 'praca', seen: false })).toBe(true);
-    expect(shouldShowVilaGuide({ room: 'praca', seen: true })).toBe(false);
-    expect(shouldShowVilaGuide({ room: 'aeroporto', arrivalIntroDone: false, seen: false })).toBe(false);
-    expect(shouldShowVilaGuide({ room: 'desembarque', desembarqueDone: false, seen: false })).toBe(false);
-    // indoors (a game, a shop) it waits for the next walk outside
-    expect(shouldShowVilaGuide({ room: 'padaria', seen: false })).toBe(false);
+  it('never opens by itself (Ajustes → Guia, the "?" and Júlia open it)', () => {
+    for (const room of ['rua_leste', 'rua', 'praca', 'feira', 'padaria', 'aeroporto', 'desembarque'])
+      expect(shouldShowVilaGuide({ room, arrivalIntroDone: true, desembarqueDone: true, seen: false }), room).toBe(false);
   });
 
   it('is one of Júlia’s answers', () => {

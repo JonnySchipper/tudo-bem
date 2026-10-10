@@ -618,7 +618,7 @@ export class CorreriaUI {
         : h('div', { class: 'cr-end-head' }, h('div', { class: 'big' }, model.big), h('div', { class: 'stars', 'data-stars': String(m.end.stars) }, model.stars)),
       h('p', { class: 'cr-end-note' }, h('span', { class: 'pt' }, `“${m.carlos.pt}”`), h('span', { class: 'en' }, m.carlos.en)),
       !lost && m.end.dailyBlocked ? h('p', { class: 'cr-end-daily' }, 'RV de hoje: já pagamos os turnos do dia. As estrelas contam!', h('span', { class: 'en' }, 'Today’s paid shifts are used up. The stars still count!')) : null,
-      !lost && model.words.length ? h('div', { class: 'cr-end-words' }, h('b', null, 'Palavras novas no Caderno'), ...model.words.map((w) => h('span', { class: 'cr-chip' }, w.pt, h('span', { class: 'en' }, w.en)))) : null,
+      !lost && model.words.length ? h('div', { class: 'cr-end-words' }, h('b', null, 'Palavras novas no Diário'), ...model.words.map((w) => h('span', { class: 'cr-chip' }, w.pt, h('span', { class: 'en' }, w.en)))) : null,
       !lost ? this.ownerNext() ?? this.nextEl(model.next) : null,
       h(
         'div',

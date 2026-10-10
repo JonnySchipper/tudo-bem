@@ -57,6 +57,8 @@ import {
   STARTER_HATS,
   TOP_STYLES,
   TUTORIAL_STEPS,
+  TUTORIAL_STEP_IDS,
+  completeHallSteps,
   validateName,
   cardById,
   claimGrant,
@@ -1206,6 +1208,7 @@ export class World {
     if (praia.mode !== PRAIA_DEFAULT.mode || praia.partyBoat !== PRAIA_DEFAULT.partyBoat) s.send(this.praiaMsg(s));
     this.notifyFriendsOfPresence(p.id);
     if (this.friendReqs.incoming(p.id).length) this.sendFriends(s);
+    this.payTutorialBonus(s);
   }
 
   private createProfile(s: Session, m: Extract<ClientMsg, { t: 'createProfile' }>) {
@@ -1219,7 +1222,7 @@ export class World {
     if (!nameCheck.ok) return this.err(s, 'name', nameCheck.reason.pt, nameCheck.reason.en);
     const appearance = sanitizeAppearance(m.appearance);
     const pronoun = m.pronoun === 'ele' || m.pronoun === 'ela' ? m.pronoun : 'nome';
-    const tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
+    const tutorial = Object.fromEntries(TUTORIAL_STEP_IDS.map((id) => [id, false])) as Record<TutorialStep, boolean>;
     const p: StoredProfile = {
       id: this.store.newId(),
       token: this.store.newToken(),
@@ -1264,6 +1267,8 @@ export class World {
     const p = s.profile!;
     if (p.desembarqueDone !== false) return;
     p.desembarqueDone = true;
+    // the hall taught walking, sitting, waving and chatting: those welcome steps are done, silently
+    completeHallSteps(p);
     this.store.save(p.id);
     this.pushProfile(s);
   }
@@ -1318,12 +1323,19 @@ export class World {
     if (p.tutorial[step]) return;
     p.tutorial[step] = true;
     this.store.save(p.id);
+    // the hall steps and `meveum` stay in the record for old saves but are not in the chain: no signal for them
+    if (!TUTORIAL_STEPS.some((t) => t.id === step)) return;
     s.send({ t: 'tutorial', step });
     this.pushProfile(s);
-    if (!p.tutorialRewarded && TUTORIAL_STEPS.every((t) => p.tutorial[t.id])) {
-      p.tutorialRewarded = true;
-      this.reward(s, this.config.get('tutorialBonus'), { pt: 'Primeiros passos completos! Bem-vindo ao bairro!', en: 'First steps complete! Welcome to the neighborhood!' });
-    }
+    this.payTutorialBonus(s);
+  }
+
+  /** The welcome bonus, once, when every chain step is done (also on sign-in, for a save whose chain shrank to steps it had already done). */
+  private payTutorialBonus(s: Session) {
+    const p = s.profile!;
+    if (p.tutorialRewarded || !TUTORIAL_STEPS.every((t) => p.tutorial[t.id])) return;
+    p.tutorialRewarded = true;
+    this.reward(s, this.config.get('tutorialBonus'), { pt: 'Primeiros passos completos! Bem-vindo ao bairro!', en: 'First steps complete! Welcome to the neighborhood!' });
   }
 
   // ---------- rooms ----------

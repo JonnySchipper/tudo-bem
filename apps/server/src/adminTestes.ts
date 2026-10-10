@@ -10,6 +10,7 @@ import {
   PADARIA_FOUNDER_HAT,
   RECADOS,
   TUTORIAL_STEPS,
+  TUTORIAL_STEP_IDS,
   WHERE_LESSON_ID,
   WHERE_MENU_AT,
   addCalendarDays,
@@ -325,14 +326,14 @@ function clearCaps(host: AdminTestHost, p: StoredProfile) {
 function writeTutorial(host: AdminTestHost, p: StoredProfile, mode: 'reset' | 'skip'): Write {
   if (mode !== 'reset' && mode !== 'skip') return { ok: false, pt: 'Modo inválido.', en: 'Invalid mode.' };
   if (mode === 'skip') {
-    p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, true])) as Record<TutorialStep, boolean>;
+    p.tutorial = Object.fromEntries(TUTORIAL_STEP_IDS.map((id) => [id, true])) as Record<TutorialStep, boolean>;
     p.tutorialRewarded = true;
     p.arrivalIntroDone = true;
     p.desembarqueDone = true;
     p.recados = { day: host.gameDayOf(p), offered: [], active: [], done: RECADOS.map((r) => r.id), talked: [], graded: [] };
     return { ok: true, pt: 'Tutorial e recados de hoje pulados.', en: 'Tutorial and today’s errands skipped.', detail: 'skip' };
   }
-  p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
+  p.tutorial = Object.fromEntries(TUTORIAL_STEP_IDS.map((id) => [id, false])) as Record<TutorialStep, boolean>;
   p.tutorialRewarded = false;
   p.arrivalIntroDone = false;
   p.desembarqueDone = false;
@@ -425,7 +426,7 @@ function writeReset(host: AdminTestHost, p: StoredProfile, confirm: boolean | un
   p.cadernoPaid = [];
   p.testDayOffset = undefined;
   p.mission = freshMission(host.dayOf(p));
-  p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
+  p.tutorial = Object.fromEntries(TUTORIAL_STEP_IDS.map((id) => [id, false])) as Record<TutorialStep, boolean>;
   p.tutorialRewarded = false;
   p.arrivalIntroDone = false;
   p.pet = null;

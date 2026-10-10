@@ -27,7 +27,7 @@ import {
   ITEMS,
   MUTE_MAX_MINUTES,
   PARROT_COLORS,
-  TUTORIAL_STEPS,
+  TUTORIAL_STEP_IDS,
   addToBag,
   applyAdminBelt,
   furnitureById,
@@ -529,7 +529,7 @@ export function resetIntro(ctx: AdminCtx, actor: string, body: Body): OpResult {
     if (!(INTRO_RESETS as readonly string[]).includes(which)) return fail(400, 'Pick tutorial, desembarque, arrivalIntro or flight.');
     const before = { tutorial: { ...p.tutorial }, desembarqueDone: p.desembarqueDone, arrivalIntroDone: p.arrivalIntroDone, replayFlight: p.replayFlight ?? false };
     // tutorialRewarded stays: walking the steps again must not pay the bonus twice
-    if (which === 'tutorial') p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
+    if (which === 'tutorial') p.tutorial = Object.fromEntries(TUTORIAL_STEP_IDS.map((id) => [id, false])) as Record<TutorialStep, boolean>;
     if (which === 'desembarque' || which === 'flight') p.desembarqueDone = false;
     if (which === 'arrivalIntro') p.arrivalIntroDone = false;
     if (which === 'flight') p.replayFlight = true;
@@ -620,7 +620,7 @@ export function wipeProgress(p: StoredProfile, startingCoins: number, padarias: 
   p.cadernoPaid = [];
   p.testDayOffset = undefined;
   p.mission = freshMission(profileDay(p, Date.now()));
-  p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
+  p.tutorial = Object.fromEntries(TUTORIAL_STEP_IDS.map((id) => [id, false])) as Record<TutorialStep, boolean>;
   p.tutorialRewarded = false;
   p.kitnetGiftPaid = false;
   p.hats = [];

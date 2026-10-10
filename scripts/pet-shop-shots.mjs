@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findChrome } from './lib/chrome.mjs';
-import { finishArrival, quietFirstTimeCards } from './lib/arrival.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SHOTS = process.env.SHOTS_DIR ?? path.join(ROOT, 'docs/lifesim/shots/petshop');
@@ -62,7 +62,6 @@ async function enter(page, base, name) {
   await page.click('button:has-text("ela (she)")');
   await page.click('#enter-praca');
   await finishArrival(page);
-  await quietFirstTimeCards(page);
   await clockAt(page, '11:00');
 }
 
@@ -200,8 +199,7 @@ try {
 
     // ---------------------------------------------------------------- the kitnet: the others resting, one on the caminha
     await join(page, 'kitnet');
-    await quietFirstTimeCards(page);
-    await closePanels(page);
+      await closePanels(page);
     await page.evaluate(() => window.__tb.net.send({ t: 'furniture', action: 'place', itemId: 'caminha_xadrez', x: 5, y: 6, rot: 0 }));
     await page.waitForFunction(() => (window.__tb.game.room?.homePets ?? []).length >= 2, null, { timeout: 10_000 });
     await sleep(7000);

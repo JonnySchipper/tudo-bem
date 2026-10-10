@@ -30,7 +30,6 @@ import {
   DEFAULT_APPEARANCE,
   MISSION_COPY,
   ROOMS,
-  TUTORIAL_STEPS,
   buildGrid,
   cameraObjectIds,
   findPath,
@@ -129,7 +128,7 @@ import { shouldPlayFlightIntro } from './ui/flightIntroLogic';
 import { thanksFor } from './ui/airportTutorialLogic';
 import { installHowToPlay } from './ui/howToPlay';
 import { maybeShowVilaGuide, openVilaGuide } from './ui/vilaGuide';
-import { doorTagsFor, showRoomIntro } from './ui/wayfinding';
+import { doorTagsFor, noteRoomVisit } from './ui/wayfinding';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
 import { startAchado, claimReadingWord } from './ui/achado';
@@ -766,13 +765,9 @@ function updateGuides() {
   }
   // the kitnet guide's floor steps: a free tile for the piece in hand, or the piece to rotate
   if (r.room === 'kitnet') add(kitnetWorldGuide());
-  // the Vila's first stop is Júlia (the bus toast sends you to her): until you have met her, one arrow, to her or the way to her
-  if (p.arrivalIntroDone !== false && (r.room === 'rua_leste' || r.room === 'rua' || r.room === 'praca') && !profileMetJulia()) {
-    const julia = guideAt('npc', 'julia', 120, 'Júlia · sua guia', 'Júlia · your guide: talk to her');
-    if (julia) add(julia);
-    else if (r.room === 'rua_leste') add(guideAt('portal', 'leste_rua_1', 60, '← Júlia: pela Rua', '← Júlia: via the Street'));
-    else if (r.room === 'rua') add(guideAt('portal', 'rua_praca_1', 60, 'Júlia: Praça ↓', 'Júlia: Square ↓'));
-    else add(guideAt('portal', 'praca_rua_1', 60, 'Júlia: pela Rua ↑', 'Júlia: via the Street ↑'));
+  // the Vila's first stop is Júlia (the bus toast sends you to her): until you have met her, exactly one arrow, to her or the way to her
+  if (p.arrivalIntroDone !== false && !profileMetJulia()) {
+    if (!renderer.guides.length) add(juliaGuide(r.room));
     return;
   }
   if (r.room === 'rua') {
@@ -832,6 +827,20 @@ function updateGuides() {
   const errand = recadoGuide();
   // a sign already standing there (the tutorial's "Padaria: pela Rua ↑") points the same way: one label, not two on top of each other
   if (errand && !renderer.guides.some((g) => Math.abs(g.x - errand.x) + Math.abs(g.y - errand.y) <= 3)) add(errand);
+}
+
+/** Before the player has met Júlia: the one arrow, on her when she is in the room, else on the door toward the Praça. */
+function juliaGuide(room: RoomId): Guide | null {
+  const julia = guideAt('npc', 'julia', 120, 'Júlia · sua guia', 'Júlia · your guide: talk to her');
+  if (julia) return julia;
+  if (room === 'rua_leste') return guideAt('portal', 'leste_rua_1', 60, '← Júlia: pela Rua', '← Júlia: via the Street');
+  if (room === 'rua') return guideAt('portal', 'rua_praca_1', 60, 'Júlia: Praça ↓', 'Júlia: Square ↓');
+  if (room === 'praca') return guideAt('portal', 'praca_rua_1', 60, 'Júlia: pela Rua ↑', 'Júlia: via the Street ↑');
+  const from = selfTile()?.tile;
+  const portal = from ? nextPortalToward(room, from, 'praca') : null;
+  if (!portal) return null;
+  const to = ROOMS[portal.to];
+  return { x: portal.doorAt?.x ?? portal.x, y: portal.doorAt?.y ?? portal.y, lift: 60, label: `Júlia: ${to.name}`, en: `Júlia: ${to.gloss}` };
 }
 
 /** Where the first active recado's current step points: its NPC or sign in this room, else the way out toward their room. Nothing while they are at home. */
@@ -1060,7 +1069,7 @@ net.on((m: ServerMsg) => {
       if (outOfHall) {
         markDesembStep('porta');
         net.send({ t: 'arrival', action: 'landed' });
-      } else showRoomIntro(m.room, doorTagsFor(ROOMS[m.room]), game.profile?.id);
+      } else noteRoomVisit(m.room, doorTagsFor(ROOMS[m.room]), game.profile?.id);
       if (offTheBus) {
         markAirportStep('onibus');
         setTimeout(() => toast('info', 'Bem-vindo à Vila Ipê! A Júlia te espera na praça: siga a Rua pra oeste.', 'Welcome to Vila Ipê! Júlia is waiting in the square: follow the street west.'), 900);
@@ -1069,7 +1078,7 @@ net.on((m: ServerMsg) => {
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
       // your own padaria: what is where, the first time you stand in it
       if (m.padaria?.owner) setTimeout(welcomeOwner, 900);
-      // the first time in the Vila: one card with what there is to do (it waits for the welcome toast and any dialogue to clear)
+      // the Vila guide never opens by itself (shouldShowVilaGuide): Ajustes → Guia, the "?" and Júlia keep it
       maybeShowVilaGuide(m.room);
       if (m.room === 'padaria' && !m.padaria && !game.profile?.tutorial.carlos)
         setTimeout(() => {
@@ -1280,14 +1289,10 @@ net.on((m: ServerMsg) => {
       game.emit('recados');
       updateGuides();
       break;
-    case 'tutorial': {
-      const s = TUTORIAL_STEPS.find((x) => x.id === m.step);
-      // in the hall and the airport their own card ticks walking and saying hi (in its own words: not "pela praça"), so no second toast
-      const ticked = (inAirport() || inDesembarque()) && (m.step === 'andar' || m.step === 'sentar' || m.step === 'acenar' || m.step === 'conversar');
-      if (s && !ticked) toast('reward', `✓ ${s.pt}`, s.en);
+    case 'tutorial':
+      // the tracker row flash is the signal: no toast per step
       updateGuides();
       break;
-    }
   }
 });
 

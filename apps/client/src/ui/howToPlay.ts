@@ -119,12 +119,9 @@ function sync() {
   const label = g.kind === 'place' ? 'How it works' : 'How to play';
   help = h('button', { type: 'button', class: 'howto-help', id: 'howto-help', 'aria-label': `${label}: ${g.en}`, title: label, onclick: () => openHowToPlay(g.id) }, '?');
   ui().append(help);
-  // a guided tutorial that already explains it here keeps the card for the "?" (it opens by itself the next time, somewhere else);
-  // a thing that teaches by doing (fishing) never opens its card by itself
-  if (!seen(g.id) && !quietHere(g) && g.autoOpen !== false) autoOpen(g.id);
+  // a place card, and a thing that teaches by doing (fishing, the cart games), never opens its card by itself
+  if (!seen(g.id) && g.autoOpen !== false) autoOpen(g.id);
 }
-
-const quietHere = (g: HowToPlay): boolean => !!g.quietIn?.includes(game.room?.room ?? '');
 
 /** Something else is telling the player something right now: a new-word card, the Diário reveal, another how-to card, the Vila guide. */
 const busy = (): boolean => !!document.getElementById('photo-celebrate') || !!document.getElementById('howto-card') || !!document.getElementById('vila-guide');

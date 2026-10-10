@@ -49,9 +49,9 @@ try {
   await sleep(1200);
   assert(await page.isVisible('#solo-pill'), 'the solo pill shows (HUD, top left)');
 
-  // tutorial: the welcome chain's first step is "Ande pela praça"
+  // tutorial: the hall-taught steps (walking among them) are done once the hall is; the welcome chain starts at the padaria
   await page.evaluate(() => window.__tb.walkTo(24, 12));
-  await waitFor(page, () => window.__tb.game.profile?.tutorial?.andar === true, null, 20_000, 'tutorial: andar (walk around)');
+  await waitFor(page, () => window.__tb.game.profile?.tutorial?.andar === true, null, 20_000, 'tutorial: andar (done with the hall)');
   log('tutorial step done: andar');
   await shot('tutorial');
 
