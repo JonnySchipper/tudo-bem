@@ -212,7 +212,7 @@ describe('recados on the server', () => {
     const a = await client(world);
     offer(a, 'nanda_coxinha');
     await a.send({ t: 'recados', action: 'accept', id: 'nanda_coxinha' });
-    expect(a.all('notice').find((m) => m.tag === 'recado_accept')?.pt).toBe('Favor aceito: Coxinha da padaria → Peça 1× coxinha (Seu Carlos).');
+    expect(a.all('notice').find((m) => m.tag === 'recado_accept')?.pt).toBe('Favor aceito: Coxinha da padaria → Peça uma coxinha pro Seu Carlos.');
 
     await a.send({ t: 'recados', action: 'drop', id: 'nope' });
     expect(errors(a)).toEqual(['recado']);
