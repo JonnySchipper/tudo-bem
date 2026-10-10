@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CLOCK_OFFSET_MS, GAME_DAY_MS, formatClock, gameDay, gameMinutes, greetingFor, period, weekday } from './clock.js';
+import { CLOCK_OFFSET_MS, GAME_DAY_MS, formatClock, gameDay, gameMinutes, greetingFor, period, weekday, weekdayLabel } from './clock.js';
 
 /** A timestamp (>= 0) at which the game clock reads exactly `min` on game day `day`. */
 const at = (day: number, min: number) => day * GAME_DAY_MS + (min / 1440) * GAME_DAY_MS - CLOCK_OFFSET_MS;
@@ -101,5 +101,14 @@ describe('game clock', () => {
     expect(weekday(-7).short).toBe('Dom');
     expect(weekday(2)).toEqual({ short: 'Ter', pt: 'terça-feira', en: 'Tuesday' });
     expect(weekday(1_000_003).short).toBe(weekday(1_000_003 % 7).short);
+    expect([0, 1, 2, 3, 4, 5, 6].map((d) => weekdayLabel(weekday(d)))).toEqual([
+      'domingo (Sunday)',
+      'segunda-feira (Monday)',
+      'terça-feira (Tuesday)',
+      'quarta-feira (Wednesday)',
+      'quinta-feira (Thursday)',
+      'sexta-feira (Friday)',
+      'sábado (Saturday)',
+    ]);
   });
 });

@@ -1,8 +1,10 @@
 /**
- * The HUD clock pill (HOWTO Phase 6 step 2), top-left next to the brand: `Seg · 17:40 · ☀️`, with the English reading in the tooltip
- * (`Monday · 5:40 pm · Sunny`). It updates when the game minute (or the weather) changes.
+ * The HUD clock pill (HOWTO Phase 6 step 2), top-left next to the brand: `sexta-feira (Friday) · 17:40 · ☀️`.
+ * The weekday is the full Portuguese name plus a small English gloss (the short tag stays off the screen).
+ * The tooltip keeps the English clock and weather: `sexta-feira (Friday) · 5:40 pm · Sunny`.
+ * It updates when the game minute (or the weather) changes.
  */
-import { WEATHER_COPY, formatClock, period, weekday, type Weather } from '@tudobem/shared';
+import { WEATHER_COPY, formatClock, period, weekday, weekdayLabel, type Weather } from '@tudobem/shared';
 import { clock } from '../gameClock';
 import { h } from './dom';
 
@@ -29,12 +31,17 @@ export function weatherEmoji(weather: Weather, min: number): string {
 }
 
 export interface ClockPillView {
+  /** Full Portuguese weekday, e.g. `sexta-feira`. */
+  pt: string;
+  /** English weekday, e.g. `Friday`. */
+  en: string;
+  /** `sexta-feira (Friday)` */
   day: string;
   time: string;
   emoji: string;
-  /** `Seg · 17:40 · ☀️` */
+  /** `sexta-feira (Friday) · 17:40 · ☀️` */
   text: string;
-  /** `Monday · 5:40 pm · Sunny` */
+  /** `sexta-feira (Friday) · 5:40 pm · Sunny` */
   title: string;
   /** part of the day, for styling */
   period: string;
@@ -45,28 +52,39 @@ export function clockPillView(day: number, min: number, weather: Weather): Clock
   const wd = weekday(day);
   const time = formatClock(min);
   const emoji = weatherEmoji(weather, min);
+  const label = weekdayLabel(wd);
   return {
-    day: wd.short,
+    pt: wd.pt,
+    en: wd.en,
+    day: label,
     time,
     emoji,
-    text: `${wd.short} · ${time} · ${emoji}`,
-    title: `${wd.en} · ${clock12h(min)} · ${WEATHER_COPY[weather].en}`,
+    text: `${label} · ${time} · ${emoji}`,
+    title: `${label} · ${clock12h(min)} · ${WEATHER_COPY[weather].en}`,
     period: period(min),
   };
 }
 
 /** Build the pill and keep it current. Returns the element; the timer stops itself when the element leaves the page. */
 export function mountClockPill(): HTMLElement {
-  const dayEl = h('span', { class: 'cp-day' });
+  const ptEl = h('b', { class: 'cp-pt', lang: 'pt-BR' });
+  const glossEl = h('i', { class: 'hud-gloss cp-gloss' });
+  const dayEl = h('span', { class: 'cp-day' }, ptEl, glossEl);
   const timeEl = h('span', { class: 'cp-time' });
   const wxEl = h('span', { class: 'cp-wx', 'aria-hidden': 'true' });
-  const el = h('span', { class: 'hud-clock clock-pill', id: 'clock-pill', role: 'timer', 'aria-live': 'off' }, dayEl, h('span', { class: 'cp-sep cp-sep-1' }, '·'), timeEl, h('span', { class: 'cp-sep' }, '·'), wxEl);
+  const el = h(
+    'span',
+    { class: 'hud-clock clock-pill', id: 'clock-pill', role: 'timer', 'aria-live': 'off' },
+    dayEl,
+    h('span', { class: 'cp-when' }, h('span', { class: 'cp-sep' }, '·'), timeEl, h('span', { class: 'cp-sep' }, '·'), wxEl),
+  );
   let last = '';
   const tick = () => {
     const v = clockPillView(clock.day(), clock.minutes(), clock.weather());
     if (v.text === last) return;
     last = v.text;
-    dayEl.textContent = v.day;
+    ptEl.textContent = v.pt;
+    glossEl.textContent = `(${v.en})`;
     timeEl.textContent = v.time;
     wxEl.textContent = v.emoji;
     el.title = v.title;

@@ -142,14 +142,54 @@
 }
 
 .hud-clock {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+  row-gap: 0;
+  min-width: 0;
+  max-width: 100%;
   font-family: var(--font-pixel);
   font-weight: 600;
   font-size: 14px;
-  white-space: nowrap;
+  line-height: 1.2;
+  white-space: normal;
   font-variant-numeric: tabular-nums;
+}
+
+/* The Portuguese weekday stays whole. The English gloss is the same small italic as the other HUD translations, and it may wrap onto the next line. */
+.hud-clock .cp-day {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
+  row-gap: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hud-clock .cp-pt {
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.hud-clock .cp-gloss {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.15;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.hud-clock .cp-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .hud-clock .cp-sep {
@@ -947,14 +987,22 @@ body:has(.dbx) .bottombar {
     display: none;
   }
 
-  .hud-clock {
-    gap: 4px;
-    font-size: 14px;
+  .hud-left {
+    flex-wrap: wrap;
+    row-gap: 1px;
   }
 
-  .hud-clock .cp-day,
-  .hud-clock .cp-sep {
-    display: none;
+  /* The weekday stays on screen. On a narrow phone it takes the row under the brand so the full Portuguese word is not clipped. */
+  .hud-left > .hud-clock {
+    flex: 1 1 100%;
+    padding-left: 0;
+    border-left: 0;
+    column-gap: 4px;
+    font-size: 13px;
+  }
+
+  .hud-clock .cp-gloss {
+    font-size: 10px;
   }
 
   .hud-right {

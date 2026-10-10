@@ -81,6 +81,10 @@ export function localizeGreeting<T extends { pt: string; en?: string }>(line: T,
 }
 
 export interface WeekdayInfo {
+  /**
+   * Internal tag (Dom…Sáb). Not for anything a player reads: "Sex" is the English word.
+   * Screens use {@link weekdayLabel}.
+   */
   short: 'Dom' | 'Seg' | 'Ter' | 'Qua' | 'Qui' | 'Sex' | 'Sáb';
   /** Full Portuguese name. */
   pt: string;
@@ -98,9 +102,14 @@ const WEEKDAYS: readonly WeekdayInfo[] = [
   { short: 'Sáb', pt: 'sábado', en: 'Saturday' },
 ];
 
-/** Weekday for a game day number (`gameDay(now)`): 0 = Dom ... 6 = Sáb, cycling. Works for negative days. */
+/** Weekday for a game day number (`gameDay(now)`): 0 = domingo ... 6 = sábado, cycling. Works for negative days. */
 export function weekday(day: number): WeekdayInfo {
   return WEEKDAYS[mod(Math.floor(day), 7)]!;
+}
+
+/** What a player reads: `sexta-feira (Friday)`. Never the short tag. */
+export function weekdayLabel(info: Pick<WeekdayInfo, 'pt' | 'en'>): string {
+  return `${info.pt} (${info.en})`;
 }
 
 /** "17:40" (zero-padded 24 h). Input is clamped and floored to 0..1439. */
