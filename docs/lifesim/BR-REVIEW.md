@@ -32,6 +32,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [S. Arrival, camera, escola and cartela polish (client)](#s-polish) (4)
 - [R. Proposed cards for the Curriculum team](#r-proposed-cards)
 - [V. Diário: the sticker album (client)](#v-diario) (39)
+- [W. Bate-papos and the #229 wording sweep](#w-papos) (24)
 
 ## A. Time of day, weekdays and weather
 
@@ -746,6 +747,39 @@ The Diário redone as an álbum de figurinhas: index tabs per place, a numbered 
 | 549 | Ver figurinha | See the sticker | `ui/journal.ts` (photo card) | Button | |
 | 550 | Início | Overview | `ui/journal.ts` (tabs) | First index tab | |
 
+## W. Bate-papos and the #229 wording sweep
+
+<a id="w-papos"></a>
+The bate-papos replace the graded Conversa (sections D, E and P are gone from the game). Every line and chip of each bate-papo is in
+`packages/shared/src/papos.ts`; review the whole tree of each one (row = one bate-papo).
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 551 | Bate-papo · Bater papo · Vamos bater um papo? | Chat · Have a chat · Shall we have a chat? | `ui/papo.ts`, `ui/padariaCounter.ts`, `ui/npcTalk.ts` | Starting a bate-papo | |
+| 552 | Acordar cedo | Getting up early | `papos.ts` carlos.cedo | Seu Carlos | |
+| 553 | Café ou suco? | Coffee or juice? | `papos.ts` carlos.cafe | Seu Carlos; ends on the counter line "Pra viagem, então…" | |
+| 554 | A história da padaria | The bakery’s story | `papos.ts` carlos.historia | 4 ♥ story; invented fact: his father came from the Northeast | |
+| 555 | A noite na padaria | Night at the bakery | `papos.ts` graca.noite | Dona Graça | |
+| 556 | Bolo de fubá | Cornmeal cake | `papos.ts` graca.bolo | Dona Graça | |
+| 557 | A cantora da madrugada | The late-night singer | `papos.ts` graca.historia | 4 ♥ story; invented fact: she sang in a choir | |
+| 558 | Sol e chapéu | Sun and hats | `papos.ts` nanda.sol | Nanda | |
+| 559 | A fonte da praça | The fountain in the square | `papos.ts` nanda.fonte | Nanda | |
+| 560 | O primeiro chapéu | The first hat | `papos.ts` nanda.historia | 4 ♥ story; invented fact: her mother was a seamstress | |
+| 561 | O bairro | The neighborhood | `papos.ts` julia.bairro | Júlia | |
+| 562 | Por que Vila Ipê? | Why Vila Ipê? | `papos.ts` julia.ipe | Júlia; invented fact: the ipês bloom at the end of winter | |
+| 563 | Quando a Júlia chegou | When Júlia arrived | `papos.ts` julia.historia | 4 ♥ story; invented fact: she came from a small town | |
+| 564 | O treino | Training | `papos.ts` prof.treino | Professora Bia | |
+| 565 | As faixas | The belts | `papos.ts` prof.faixa | Professora Bia | |
+| 566 | Por que o jiu-jitsu | Why jiu-jitsu | `papos.ts` prof.historia | 4 ♥ story | |
+| 567 | Conta a própria história pra você · 4 ♥ conta a própria história | Tells you their own story | `bonds.ts`, `ui/recados.ts` | The 4-heart milestone | |
+| 568 | {nome} quer te contar uma história: “{título}”. Vá bater um papo! | {name} wants to tell you a story… Go have a chat! | `apps/server/src/recados.ts` | 4-heart notice | |
+| 569 | Bate-papo na praça | A chat in the square (praça) | `cartela.ts` | Stamp label (was Conversa na praça) | |
+| 570 | Favores · Favor: {título} · {nome} quer te pedir um favor! | Favors · Favor · {name} has a favor to ask you! | `ui/recados.ts`, `ui/recadoView.ts`, server `recados.ts` | Recados renamed Favores (ids unchanged) | |
+| 571 | Preços em reais virtuais (RV). | Prices in reais virtuais (RV), the game’s play money | `ui/dom.ts` (`rvPriceNote`) | First price in each shop | |
+| 572 | FEIRA DE RUA · Feira de rua: todo dia, 6h às 13h | Street market | `hotspots.ts`, `rooms.ts`, banner art | Was feira livre | |
+| 573 | Faça uns favores pros vizinhos e jogue a “Correria no Balcão” na padaria. | Do favors for the neighbours… | `juliaTalk.ts` | Spoken; was "recados" | |
+| 574 | Preço · Pagar | Price · Pay | `ui/feira.ts` | One tap pays the exact price (no coin counting) | |
+
 ## Totals
 
-550 numbered strings in sections A to Q, S, T, U and V, plus 9 proposed-card entries.
+574 numbered strings in sections A to Q, S, T, U, V and W, plus 9 proposed-card entries.
