@@ -239,6 +239,42 @@ describe('admin dashboard API (/api/admin/*)', () => {
     await ana.c.waitFor('profile', (m) => m.profile.giOwned === true);
   });
 
+  it('grants a pet without a comp, takes it out and puts it away, removes it with a typed confirm (#234)', async () => {
+    await start();
+    const ana = await player('Ana');
+    const { write, get } = await signIn();
+    const cat = (await get('catalogs')).body;
+    expect(cat.breeds.find((b: { id: string }) => b.id === 'vira_lata_caramelo')).toMatchObject({ species: 'dog', coats: [{ id: 'caramelo' }] });
+    const p = () => app!.store.get(ana.id)!;
+    expect((await write('player/pet-grant', { id: ana.id, breed: 'unicornio' })).status).toBe(400);
+    expect((await write('player/pet-grant', { id: ana.id, breed: 'siames', coat: 'caramelo' })).status).toBe(400);
+    expect((await write('player/pet-grant', { id: ana.id, breed: 'siames', name: 'Rex2' })).status).toBe(400);
+    const granted = await write('player/pet-grant', { id: ana.id, breed: 'siames', coat: 'seal', name: 'Mel' });
+    expect(granted.status).toBe(200);
+    const petId = granted.body.petId as string;
+    expect(p().pets).toEqual([expect.objectContaining({ id: petId, species: 'cat', breed: 'siames', coat: 'seal', name: 'Mel' })]);
+    expect(p().activePetId ?? null).toBeNull();
+    expect(lastAudit()).toMatchObject({ action: 'player.pet-grant', target: ana.id, before: { pets: [] } });
+    await ana.c.waitFor('profile', (m) => (m.profile.pets ?? []).length === 1);
+    // the player page lists it
+    expect((await get(`player?id=${ana.id}`)).body.profile.pets).toEqual([expect.objectContaining({ id: petId, breedPt: 'Siamês' })]);
+
+    expect((await write('player/pet-active', { id: ana.id, petId })).status).toBe(200);
+    expect(p().activePetId).toBe(petId);
+    expect(p().pet).toBe('cat');
+    expect((await write('player/pet-active', { id: ana.id, petId: null })).status).toBe(200);
+    expect(p().activePetId).toBeNull();
+    expect((await write('player/pet-active', { id: ana.id, petId: 'nope' })).status).toBe(404);
+    expect(lastAudit()).toMatchObject({ action: 'player.pet-active' });
+
+    await write('player/pet-active', { id: ana.id, petId });
+    expect((await write('player/pet-remove', { id: ana.id, petId, confirm: 'Rex' })).status).toBe(400);
+    expect((await write('player/pet-remove', { id: ana.id, petId, confirm: 'mel' })).status).toBe(200);
+    expect(p().pets).toEqual([]);
+    expect(p().activePetId).toBeNull();
+    expect(lastAudit()).toMatchObject({ action: 'player.pet-remove', before: { pets: [expect.objectContaining({ id: petId })], activePetId: petId }, after: { pets: [], activePetId: null } });
+  });
+
   it('sets belt and stripes through the win count', async () => {
     await start();
     const ana = await player('Ana');

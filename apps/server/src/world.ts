@@ -1737,6 +1737,7 @@ export class World {
       layoutPullRequest: (room, objects) => publishLayoutPullRequest({ token: this.githubToken, room, objects, fetch: this.githubFetch }),
       markBoardsDirty: () => this.leaderboards.markDirty(),
       now: () => this.now(),
+      homePetsChanged: (ownerId) => this.sendHomePets(ownerId),
     });
   }
 

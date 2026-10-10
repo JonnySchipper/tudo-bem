@@ -9,6 +9,16 @@
 import {
   ALL_HATS,
   BAG_MAX_PER_ITEM,
+  BREEDS,
+  PET_MAX_OWNED,
+  adoptPet,
+  breedById,
+  isBreedCoat,
+  newPetId,
+  releasePet,
+  setActivePet,
+  validatePetName,
+  writePetMirrors,
   COMP_MAX_DAYS,
   FOUNDER_BANNER_ID,
   FURNITURE,
@@ -245,6 +255,9 @@ export function playerDetail(ctx: AdminCtx, id: unknown): OpResult {
       bag: p.bag ?? {},
       pet: p.pet ?? null,
       petNames: p.petNames ?? {},
+      pets: (p.pets ?? []).map((q) => ({ ...q, breedPt: breedById(q.breed)?.pt ?? q.breed })),
+      activePetId: p.activePetId ?? null,
+      petItems: p.petItems ?? [],
       bubbleStyle: p.bubbleStyle ?? 'classic',
       diaryWords: diary.length,
       escola: { xp: escola.xp, streak: escola.streak, best: escola.best, words: Object.keys(escola.words).length },
@@ -411,6 +424,73 @@ function itemSlice(p: StoredProfile, kind: ItemKind): unknown {
   if (kind === 'parrot') return { parrotColors: [...(p.parrotColors ?? [])], parrotColor: p.parrotColor ?? null };
   if (kind === 'bag') return { bag: { ...(p.bag ?? {}) } };
   return { giOwned: p.giOwned === true };
+}
+
+// ---------------------------------------------------------------- pets (#234, docs/PET-STORE-PLAN.md §7.4)
+
+const petSlice = (p: StoredProfile) => ({ pets: structuredClone(p.pets ?? []), activePetId: p.activePetId ?? null });
+
+/** The breed catalog for the Pets card's picker. */
+export function breedCatalog() {
+  return BREEDS.map((b) => ({ id: b.id, pt: b.pt, en: b.en, species: b.species, coats: b.coats.map((c) => ({ id: c.id, pt: c.pt, en: c.en })) }));
+}
+
+/** Gift one animal without a comp: adopted like in the shop (the subscription is not checked), at home until the player takes it out. */
+export function petGrant(ctx: AdminCtx, actor: string, body: Body): OpResult {
+  return withProfile(ctx, body, (p) => {
+    const breed = breedById(str(body.breed, 64));
+    if (!breed) return fail(400, 'Pick a breed.');
+    const coat = str(body.coat, 64) || breed.coats[0]!.id;
+    if (!isBreedCoat(breed, coat)) return fail(400, 'That coat is not one of the breed’s.');
+    const rawName = str(body.name, 40);
+    let name: string | null = null;
+    if (rawName) {
+      const shaped = validatePetName(rawName);
+      if (!shaped.ok) return fail(400, 'Names are letters only, up to 16 (spaces and hyphens allowed).');
+      name = shaped.name;
+    }
+    const before = petSlice(p);
+    const id = newPetId(ctx.world.now());
+    const r = adoptPet(p, breed.id, coat, ctx.world.now(), id, name);
+    if (r === 'full') return fail(409, `Already has ${PET_MAX_OWNED} pets. Remove one first.`);
+    if (r !== 'ok') return fail(400, 'Could not add that pet.');
+    writePetMirrors(p);
+    ctx.store.save(p.id);
+    ctx.world.changed(p.id, { pets: true });
+    ctx.audit.append({ actor, action: 'player.pet-grant', target: p.id, summary: `granted a ${breed.en} (${coat})${name ? ` named ${name}` : ''} to ${p.name}`, before, after: petSlice(p) });
+    return { ok: true, petId: id };
+  });
+}
+
+/** Take a pet off a profile (put away first if it was out). The removed pet is kept in the audit row. */
+export function petRemove(ctx: AdminCtx, actor: string, body: Body): OpResult {
+  return withProfile(ctx, body, (p) => {
+    const petId = str(body.petId, 40);
+    const pet = p.pets?.find((q) => q.id === petId);
+    if (!pet) return fail(404, 'No pet with that id on this player.');
+    const label = pet.name ?? breedById(pet.breed)?.en ?? pet.breed;
+    if (!confirmed(body.confirm, label)) return fail(400, `Type the pet’s name (${label}) to confirm.`);
+    const before = petSlice(p);
+    const wasOut = p.activePetId === pet.id;
+    releasePet(p, pet.id);
+    ctx.store.save(p.id);
+    ctx.world.changed(p.id, { avatar: wasOut, pets: true });
+    ctx.audit.append({ actor, action: 'player.pet-remove', target: p.id, summary: `removed ${label} (${pet.breed}) from ${p.name}`, before, after: petSlice(p) });
+    return { ok: true };
+  });
+}
+
+/** Take a pet out or put it away (null). No subscription check: an admin can always put a pet away, and take one out for a test. */
+export function petActive(ctx: AdminCtx, actor: string, body: Body): OpResult {
+  return withProfile(ctx, body, (p) => {
+    const petId = body.petId === null || body.petId === undefined || body.petId === '' ? null : str(body.petId, 40);
+    const before = petSlice(p);
+    if (setActivePet(p, petId) !== 'ok') return fail(404, 'No pet with that id on this player.');
+    ctx.store.save(p.id);
+    ctx.world.changed(p.id, { avatar: true, pets: true });
+    ctx.audit.append({ actor, action: 'player.pet-active', target: p.id, summary: petId ? `took ${petId} out for ${p.name}` : `put ${p.name}’s pet away`, before, after: petSlice(p) });
+    return { ok: true };
+  });
 }
 
 export function setBelt(ctx: AdminCtx, actor: string, body: Body): OpResult {
