@@ -29,6 +29,16 @@ export const KEY_RAMPS: Record<RampName, readonly string[]> = {
 };
 
 /**
+ * The Pet Shop breed strips (#234, `chars/pet_<species>_<shape>_<pattern>`): the coat (base colour), coat2 (the markings) and the collar,
+ * darkest first. coat and coat2 take a 4-colour `buildRamp` of the coat's colours; the collar takes ranks 2 and 3 (base, highlight).
+ */
+export const PET_KEY_RAMPS = {
+  coat: ['#5a0a60', '#7a0a80', '#9a0aa0', '#ba2ac0'],
+  coat2: ['#0a6050', '#0a8070', '#0aa090', '#2ac0b0'],
+  collar: ['#c0600a', '#e0802a'],
+} as const;
+
+/**
  * Which key ranks a source layer with N distinct shades maps to. The base color of the ramp is
  * rank 2 (the shadow ranks sit below it, the highlight above), so a 2-shade layer uses
  * base + highlight, a 3-shade layer uses shadow + base + highlight.
