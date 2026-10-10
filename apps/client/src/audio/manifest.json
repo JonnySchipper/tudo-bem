@@ -170,6 +170,120 @@
       "file": "dito-a233277e04.mp3"
     },
     {
+      "id": "dito-71de33a144",
+      "voice": "dito",
+      "text": "Esse aqui? Boa escolha. Agora é só dar um nome.",
+      "file": "dito-71de33a144.mp3"
+    },
+    {
+      "id": "dito-9bfcdf3d7d",
+      "voice": "dito",
+      "text": "Parabéns! Agora faz parte da família.",
+      "file": "dito-9bfcdf3d7d.mp3"
+    },
+    {
+      "id": "dito-b843a528f1",
+      "voice": "dito",
+      "text": "Seis já é uma matilha! Deixa um em casa primeiro.",
+      "file": "dito-b843a528f1.mp3"
+    },
+    {
+      "id": "dito-8bbc11f843",
+      "voice": "dito",
+      "text": "Adoção é pra quem apoia a Vila. Mas carinho é de graça, viu?",
+      "file": "dito-8bbc11f843.mp3"
+    },
+    {
+      "id": "dito-25b0d33aeb",
+      "voice": "dito",
+      "text": "Prontinho. Seu bichinho vai adorar.",
+      "file": "dito-25b0d33aeb.mp3"
+    },
+    {
+      "id": "dito-df4f7c6c05",
+      "voice": "dito",
+      "text": "Faltam uns reais virtuais ainda. Volta depois, sem pressa.",
+      "file": "dito-df4f7c6c05.mp3"
+    },
+    {
+      "id": "dito-4db1d4fa10",
+      "voice": "dito",
+      "text": "Vai passear? Leva a guia!",
+      "file": "dito-4db1d4fa10.mp3"
+    },
+    {
+      "id": "dito-bac89c4e4e",
+      "voice": "dito",
+      "text": "Deixa em casa que eu sei que ele fica bem.",
+      "file": "dito-bac89c4e4e.mp3"
+    },
+    {
+      "id": "dito-203b97250a",
+      "voice": "dito",
+      "text": "Olha o rabo abanando! Ele gostou de você.",
+      "file": "dito-203b97250a.mp3"
+    },
+    {
+      "id": "dito-0ae28789ae",
+      "voice": "dito",
+      "text": "Essa aqui adora carinho na barriga.",
+      "file": "dito-0ae28789ae.mp3"
+    },
+    {
+      "id": "dito-b5458a09ba",
+      "voice": "dito",
+      "text": "Cuidado, ele lambe o nariz de todo mundo!",
+      "file": "dito-b5458a09ba.mp3"
+    },
+    {
+      "id": "dito-04e8075d09",
+      "voice": "dito",
+      "text": "Tá ouvindo? Ele tá ronronando.",
+      "file": "dito-04e8075d09.mp3"
+    },
+    {
+      "id": "dito-5b11f55f7e",
+      "voice": "dito",
+      "text": "Olha o bigode dela, todo arrepiado.",
+      "file": "dito-5b11f55f7e.mp3"
+    },
+    {
+      "id": "dito-0910ad6a9b",
+      "voice": "dito",
+      "text": "Esse gato brinca com tudo. Até com o rabo!",
+      "file": "dito-0910ad6a9b.mp3"
+    },
+    {
+      "id": "ui-f828a1957f",
+      "voice": "ui",
+      "text": "senta",
+      "file": "ui-f828a1957f.mp3"
+    },
+    {
+      "id": "ui-6e8ccad4a5",
+      "voice": "ui",
+      "text": "deita",
+      "file": "ui-6e8ccad4a5.mp3"
+    },
+    {
+      "id": "ui-fce3569ac8",
+      "voice": "ui",
+      "text": "vem",
+      "file": "ui-fce3569ac8.mp3"
+    },
+    {
+      "id": "ui-40f93657e8",
+      "voice": "ui",
+      "text": "busca",
+      "file": "ui-40f93657e8.mp3"
+    },
+    {
+      "id": "ui-eff0e37693",
+      "voice": "ui",
+      "text": "brinca",
+      "file": "ui-eff0e37693.mp3"
+    },
+    {
       "id": "julia-a13cfa886f",
       "voice": "julia",
       "text": "Oi! Eu sou a Júlia, guia da praça. Posso te ajudar?",

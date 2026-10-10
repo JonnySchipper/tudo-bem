@@ -45,6 +45,7 @@ import {
   publicPetLook,
 } from '@tudobem/shared';
 import { ensurePetTexture, petAnimKey } from './petLook';
+import { homeResidents, penResidents } from './residentPets';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
@@ -325,6 +326,10 @@ export class WorldScene extends Phaser.Scene {
   private feiraStalls: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null }[] = [];
   private avatars = new Map<string, AvatarView>();
   private furniture = new Map<string, FurnitureView>();
+  /** Pen animals and resting pets (#234), by resident key. */
+  private residents = new Map<string, Phaser.GameObjects.Sprite>();
+  /** When this room was built (the kitnet pets gather at the bowl for a few seconds). */
+  private residentsSince = Date.now();
   private grid: RoomGrid | null = null;
   private gridFurniture: PlacedFurniture[] | null = null;
   /** The room the grid was built from, so a live cart toggle rebuilds collision with the sprites. */
@@ -693,6 +698,9 @@ export class WorldScene extends Phaser.Scene {
     this.trilhoLive = false;
     // furniture rectangles were registered with the room objects
     this.furniture.clear();
+    for (const r of this.residents.values()) r.destroy();
+    this.residents.clear();
+    this.residentsSince = Date.now();
     this.rig.clearRoom();
     this.shadows?.clearRoom();
     this.ao?.clearRoom();
@@ -1228,6 +1236,7 @@ export class WorldScene extends Phaser.Scene {
     const dyn: HitBox[] = [];
     this.syncFurniture(dyn);
     this.syncAvatars(def, now, dyn, dt);
+    this.syncResidents(def);
     this.syncGlints(now);
     this.syncBout(dt, now);
     this.syncCounter(dt, now);
@@ -1898,6 +1907,40 @@ export class WorldScene extends Phaser.Scene {
       if (this.anims.exists(key)) continue;
       const [start, end] = range;
       this.anims.create({ key, frames: this.anims.generateFrameNumbers(`pet:${kind}`, { start, end }), frameRate: name.startsWith('idle') ? 3 : fps, repeat: -1 });
+    }
+  }
+
+  /**
+   * The pets nobody is walking (#234): the day's animals in the pet shop's pens, and the owner's pets resting in a kitnet. Not hit targets
+   * (the pen props under them take the click). Planned in residentPets.ts from the shared clock.
+   */
+  private syncResidents(def: RoomDef): void {
+    const plan =
+      def.id === 'petshop'
+        ? penResidents(clock.day(), clock.now())
+        : def.id === 'kitnet'
+          ? homeResidents(game.room?.homePets ?? [], game.furniture, Date.now(), Date.now() - this.residentsSince)
+          : [];
+    const seen = new Set<string>();
+    for (const r of plan) {
+      const tex = ensurePetTexture(this, r.look);
+      if (!tex) continue;
+      seen.add(r.key);
+      let spr = this.residents.get(r.key);
+      if (!spr || spr.texture.key !== tex) {
+        spr?.destroy();
+        spr = this.rig.world(this.add.sprite(0, 0, tex, 0)).setOrigin(0.5, 1);
+        spr.disableInteractive();
+        this.residents.set(r.key, spr);
+      }
+      const anim = petAnimKey(tex, r.pose);
+      if (this.anims.exists(anim) && spr.anims.currentAnim?.key !== anim) spr.play({ key: anim, startFrame: 0 });
+      spr.setPosition(r.x, r.y).setFlipX(r.flip).setDepth(standingDepth(r.y, r.key));
+    }
+    for (const [k, spr] of this.residents) {
+      if (seen.has(k)) continue;
+      spr.destroy();
+      this.residents.delete(k);
     }
   }
 
