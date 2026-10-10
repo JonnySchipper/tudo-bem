@@ -54,6 +54,7 @@ export * from './arrival.js';
 export * from './airportTalk.js';
 export * from './flightTalk.js';
 export * from './photoSpots.js';
+export * from './photoFrame.js';
 export * from './diaryLines.js';
 export * from './diaryWorld.js';
 export * from './diaryDaily.js';

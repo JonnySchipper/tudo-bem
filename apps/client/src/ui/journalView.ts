@@ -17,6 +17,7 @@ import {
   normalizeDiary,
   normalizeEscola,
   npcDefById,
+  photoWordIds,
   type Bilingual,
   type DiaryPhoto,
   type DiarySource,
@@ -182,9 +183,10 @@ export function journalModel(input: JournalInput): JournalModel {
   const orderOf = new Map(held.map((id, i) => [id, i]));
   const seen = Math.max(0, Math.min(held.length, Math.floor(input.seen)));
   const escola = normalizeEscola(input.escola, held);
-  // the newest photo of each word (photos arrive newest first; keep the first one met)
+  // the newest photo of each word (photos arrive newest first; keep the first one met). One shot of several things is the photo of every
+  // word it taught: they all point at the same stored image (an old save's photo names only its first word)
   const photoOf = new Map<string, string>();
-  for (const p of [...(input.photos ?? [])].sort((a, b) => b.at - a.at)) if (p.wordId && !photoOf.has(p.wordId)) photoOf.set(p.wordId, p.image);
+  for (const p of [...(input.photos ?? [])].sort((a, b) => b.at - a.at)) for (const id of photoWordIds(p)) if (!photoOf.has(id)) photoOf.set(id, p.image);
 
   const areaIds = DIARY_AREAS.map((a) => a.id);
   for (const w of DIARY_WORDS) if (!areaIds.includes(w.area)) areaIds.push(w.area);
