@@ -48,6 +48,12 @@ CREATE TABLE IF NOT EXISTS photos (
   profile_id TEXT PRIMARY KEY,
   json TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS photo_images (
+  profile_id TEXT NOT NULL,
+  photo_id TEXT NOT NULL,
+  image TEXT NOT NULL,
+  PRIMARY KEY (profile_id, photo_id)
+);
 CREATE TABLE IF NOT EXISTS academies (
   id TEXT PRIMARY KEY,
   json TEXT NOT NULL

@@ -230,8 +230,8 @@ export interface PrivateProfile {
   escola?: import('./escola.js').EscolaState;
   /** Film rolls left in the camera. Júlia sells more. */
   film?: number;
-  /** Photos taken with the camera, newest first. */
-  photos?: { id: string; at: number; image: string; wordId?: string; wordIds?: string[] }[];
+  /** Photos taken with the camera, newest first: ids, times and words (the images live in the server's photo image store). */
+  photos?: import('./diary.js').DiaryPhoto[];
   /** Cartela de carimbos do bairro (seven stamps pay RV; persists across sessions). */
   cartela?: CartelaState;
   /** Beta founder badge on the overhead nameplate. Absent on old saves until normalized (treated as true). */

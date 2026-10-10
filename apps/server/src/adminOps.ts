@@ -216,7 +216,7 @@ export function playerDetail(ctx: AdminCtx, id: unknown): OpResult {
   const diary = normalizeDiary(p.diary);
   const escola = normalizeEscola(p.escola, diary);
   const live = ctx.world.online().find((o) => o.profileId === p.id) ?? null;
-  const raw = redact({ ...p, photos: (p.photos ?? []).map((ph) => ({ id: ph.id, at: ph.at, wordId: ph.wordId ?? null, bytes: ph.image.length })) });
+  const raw = redact({ ...p, photos: (p.photos ?? []).map((ph) => ({ id: ph.id, at: ph.at, wordIds: ph.wordIds ?? (ph.wordId ? [ph.wordId] : []) })) });
   const academy = ctx.academies.list().find((x) => x.ownerId === p.id || x.members.includes(p.id)) ?? null;
   const padaria = ctx.padarias.ownedBy(p.id) ?? null;
   const ids = new Set([p.id, ...(a ? [a.id] : [])]);

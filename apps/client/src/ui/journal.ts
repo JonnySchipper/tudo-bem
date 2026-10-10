@@ -8,7 +8,8 @@
  *
  * The view-model is journalView.ts (pure, tested); the art is journalArt.ts; the Caderno spread is caderno.ts.
  */
-import { FEIRA_GAME_LABEL, ESCOLA_MAX_BOX, diaryWord, normalizeDiary, photoWordIds } from '@tudobem/shared';
+import { FEIRA_GAME_LABEL, ESCOLA_MAX_BOX, diaryWord, normalizeDiary, photoWordIds, type DiaryPhoto } from '@tudobem/shared';
+import { photoImages } from './photoImageCache';
 import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal } from './modal';
@@ -37,6 +38,8 @@ import {
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const narrow = () => window.matchMedia?.('(max-width: 760px)').matches ?? false;
 const pad = (n: number) => String(n).padStart(3, '0');
+/** Prints on one spread of the photo wall (a page each side). */
+const PHOTOS_PER_PAGE = 12;
 
 // ---------------------------------------------------------------- what the player has already seen (per browser)
 
@@ -228,6 +231,10 @@ export function openDiario(opts: DiarioOpen = {}): void {
   const tabs = h('nav', { class: 'jb-tabs', role: 'tablist', 'aria-label': 'Capítulos · Chapters' });
   const detailHost = h('div', { class: 'jb-detail-host' });
 
+  /** A photo's <img>: its jpeg comes from the server when first shown (photos keep only their ids here). */
+  const photoImg = (id: string, alt: string, cls?: string) =>
+    photoImages.bind(h('img', { ...(cls ? { class: cls } : {}), alt, draggable: false }) as HTMLImageElement, id);
+
   // ---------------------------------------------------------------- stickers
 
   const chapterOf = (w: JournalWord) => model.chapters.find((c) => c.id === w.area) ?? model.chapters[0]!;
@@ -256,7 +263,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
         ? [
             h('span', { class: 'stk-no' }, pad(w.no)),
             h('span', { class: 'stk-src' }, sourceIcon(w.source)),
-            w.photo ? h('span', { class: 'stk-pic' }, h('img', { src: w.photo, alt: '', draggable: false })) : null,
+            w.photo ? h('span', { class: 'stk-pic' }, photoImg(w.photo, '')) : null,
             h('b', { class: `stk-pt ${lenClass(w.pt)}`, lang: 'pt-BR' }, w.pt),
             h('span', { class: 'stk-en' }, w.en),
             pips(w.box),
@@ -474,8 +481,15 @@ export function openDiario(opts: DiarioOpen = {}): void {
     return [leftPage, rightPage];
   }
 
+  /** The photo wall's page (0 is the newest dozen): the diary keeps every photo, so the wall turns like the rest of the book. */
+  let photoPage = 0;
+
   function photosSpread(): [HTMLElement[], HTMLElement[]] {
-    const photos = game.photos;
+    const all = game.photos;
+    const pages = Math.max(1, Math.ceil(all.length / PHOTOS_PER_PAGE));
+    photoPage = Math.min(Math.max(0, photoPage), pages - 1);
+    const first = photoPage * PHOTOS_PER_PAGE;
+    const photos = all.slice(first, first + PHOTOS_PER_PAGE);
     const film = game.profile?.film ?? 0;
     const print = (p: (typeof photos)[number], i: number) => {
       // every word the shot taught, under the one print
@@ -487,24 +501,44 @@ export function openDiario(opts: DiarioOpen = {}): void {
         {
           type: 'button',
           class: 'jb-print',
-          style: `--r:${((i * 53) % 9) - 4}deg;--i:${i}`,
+          style: `--r:${(((first + i) * 53) % 9) - 4}deg;--i:${i}`,
           'data-photo': p.id,
           'aria-label': words.length ? `Foto: ${words.join(', ')}` : 'Foto',
           onclick: (e: Event) => openPhoto(p, e.currentTarget as HTMLElement),
         },
         h('i', { class: 'tape', 'aria-hidden': 'true' }),
-        h('img', { class: 'jb-photo', src: p.image, alt: '', draggable: false }),
+        photoImg(p.id, '', 'jb-photo'),
         h('span', { class: 'jb-print-cap', lang: 'pt-BR' }, words.length ? words.join(' · ') : ' '),
       );
     };
     const half = Math.ceil(photos.length / 2);
+    const turn = (to: number, dir: 1 | -1) => {
+      ambience.sfx('page');
+      const snap = snapshot();
+      photoPage = to;
+      draw(false);
+      left.scrollTop = 0;
+      right.scrollTop = 0;
+      if (!narrow()) pageTurn(dir, snap);
+    };
+    const pager =
+      pages > 1
+        ? h(
+            'div',
+            { class: 'jb-sorts jb-photo-pager', role: 'group', 'aria-label': 'Páginas de fotos · Photo pages' },
+            h('button', { type: 'button', class: 'jb-sort', 'data-photo-page': 'newer', disabled: photoPage === 0, onclick: () => turn(photoPage - 1, -1) }, '‹ Mais novas'),
+            h('span', { class: 'jb-sort jb-photo-range' }, `${first + 1}–${first + photos.length} de ${all.length}`),
+            h('button', { type: 'button', class: 'jb-sort', 'data-photo-page': 'older', disabled: photoPage >= pages - 1, onclick: () => turn(photoPage + 1, 1) }, 'Mais antigas ›'),
+          )
+        : null;
     const head = h(
       'div',
       { class: 'jb-head' },
-      h('p', { class: 'jb-kicker' }, `${photos.length} ${photos.length === 1 ? 'foto' : 'fotos'}`),
+      h('p', { class: 'jb-kicker' }, `${all.length} ${all.length === 1 ? 'foto' : 'fotos'}`),
       h('h3', null, 'Fotos'),
       en('Your photos of Vila Ipê, newest first'),
       h('p', { class: 'jb-film' }, h('b', null, String(film)), film === 1 ? ' filme' : ' filmes', en('shots left · Júlia sells film')),
+      pager,
     );
     if (!photos.length)
       return [
@@ -512,7 +546,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
         [h('div', { class: 'jb-wall empty', 'aria-hidden': 'true' }, ...Array.from({ length: 4 }, (_, i) => h('i', { class: 'jb-print ghost', style: `--r:${((i * 53) % 9) - 4}deg` })))],
       ];
     return [
-      [head, h('div', { class: 'jb-wall' }, ...photos.slice(0, half).map(print))],
+      [head, h('div', { class: 'jb-wall' }, ...photos.slice(0, half).map((p, i) => print(p, i)))],
       [h('div', { class: 'jb-wall' }, ...photos.slice(half).map((p, i) => print(p, i + half)))],
     ];
   }
@@ -741,7 +775,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
       h('span', null, 'Ouvir'),
     );
     const pic = w.photo
-      ? h('figure', { class: 'jbc-pic photo' }, h('img', { src: w.photo, alt: '' }), h('i', { class: 'tape', 'aria-hidden': 'true' }))
+      ? h('figure', { class: 'jbc-pic photo' }, photoImg(w.photo, ''), h('i', { class: 'tape', 'aria-hidden': 'true' }))
       : w.speakerId
         ? h('figure', { class: 'jbc-pic face' }, npcPortrait(w.speakerId, 'feliz', 'jbc-portrait'), h('figcaption', null, w.speaker ?? ''))
         : h('figure', { class: 'jbc-pic art' }, sourceIcon(w.source, 'jbc-art'));
@@ -854,7 +888,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
     if (id) panel.querySelector<HTMLElement>(`.jb-spread [data-word="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
   }
 
-  function openPhoto(p: { image: string; wordId?: string; wordIds?: string[]; at: number }, from: HTMLElement) {
+  function openPhoto(p: DiaryPhoto, from: HTMLElement) {
     closeDetail(true);
     // the stickers of every word this shot taught (one picture, several words)
     const all = model.chapters.flatMap((c) => c.words);
@@ -867,7 +901,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
       'div',
       { class: 'jb-card photo-card', role: 'dialog', 'aria-label': 'Foto' },
       h('button', { type: 'button', class: 'jbc-close', 'aria-label': 'Fechar · Close', onclick: () => closeDetail() }, '✕'),
-      h('figure', { class: 'jbc-big-photo' }, h('img', { src: p.image, alt: words.map((w) => w.pt).join(', ') }), h('i', { class: 'tape', 'aria-hidden': 'true' })),
+      h('figure', { class: 'jbc-big-photo' }, photoImg(p.id, words.map((w) => w.pt).join(', ')), h('i', { class: 'tape', 'aria-hidden': 'true' })),
       words.length
         ? h('p', { class: 'jbc-photo-word' }, h('b', { lang: 'pt-BR' }, words.map((w) => w.pt).join(' · ')), en(words.map((w) => w.en).join(' · ')))
         : h('p', { class: 'jbc-photo-word' }, en('A photo of Vila Ipê')),

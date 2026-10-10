@@ -70,7 +70,9 @@ async function fill(page) {
       return c.toDataURL('image/jpeg', 0.7);
     };
     const shotOf = ['seed.praca.fonte', 'diary.praca.banco', 'diary.praca.papagaio', null, 'diary.chegada.mala'];
-    tb.game.photos = shotOf.map((wordId, i) => ({ id: `p${i}`, at: now - i * 3600e3, image: crop(160 + i * 90, 100 + i * 40), ...(wordId ? { wordId } : {}) }));
+    tb.game.photos = shotOf.map((wordId, i) => ({ id: `p${i}`, at: now - i * 3600e3, ...(wordId ? { wordId } : {}) }));
+    // their images, as the server would send them when the diary asks
+    tb.photoImages.receive(shotOf.map((_, i) => ({ id: `p${i}`, image: crop(160 + i * 90, 100 + i * 40) })));
     tb.game.emit('profile');
   }, WORDS);
   await sleep(300);

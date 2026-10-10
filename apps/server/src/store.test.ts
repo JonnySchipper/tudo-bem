@@ -168,25 +168,58 @@ describe('ProfileStore on SQLite', () => {
     expect((db.prepare('SELECT COUNT(*) AS n FROM profiles').get() as { n: number }).n).toBe(2);
   });
 
-  it('writes and drops the photo row with the profile', () => {
+  it('writes and drops the photo row and its images with the profile', async () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-store-dirty-'));
     const store = new ProfileStore(fileAdapter(dir));
     const p = profile('a');
-    p.photos = [{ id: 'x', at: 1, image: 'data:image/jpeg;base64,AAAA' }];
+    p.photos = [{ id: 'x', at: 1 }];
     store.add(p);
+    store.images.put('a', 'x', 'data:image/jpeg;base64,AAAA');
     store.flush();
     const db = openDatabase(dir);
     expect(db.prepare('SELECT profile_id FROM photos WHERE profile_id = ?').get('a')).toBeTruthy();
+    expect((await store.images.get('a', ['x', 'nope'])).get('x')).toBe('data:image/jpeg;base64,AAAA');
     store.get('a')!.photos = [];
     store.save('a');
     store.flush();
     expect(db.prepare('SELECT profile_id FROM photos WHERE profile_id = ?').get('a')).toBeUndefined();
-    store.get('a')!.photos = [{ id: 'y', at: 2, image: 'data:image/jpeg;base64,BBBB' }];
+    store.get('a')!.photos = [{ id: 'y', at: 2 }];
     store.save('a');
     store.flush();
     store.remove('a');
     store.flush();
     expect(db.prepare('SELECT profile_id FROM photos WHERE profile_id = ?').get('a')).toBeUndefined();
+    expect(db.prepare('SELECT photo_id FROM photo_images WHERE profile_id = ?').get('a')).toBeUndefined();
     expect(new ProfileStore(fileAdapter(dir)).count()).toBe(0);
+  });
+
+  it('moves the jpegs of an old photo row (inline images) to photo_images, and rewrites the row without them', async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-store-photos-'));
+    const db = openDatabase(dir);
+    db.prepare('INSERT INTO profiles (id, json) VALUES (?, ?)').run('a', JSON.stringify(profile('a')));
+    const old = [
+      { id: 'n', at: 2, image: 'data:image/jpeg;base64,NEW' },
+      { id: 'o', at: 1, image: 'data:image/jpeg;base64,OLD' },
+    ];
+    db.prepare('INSERT INTO photos (profile_id, json) VALUES (?, ?)').run('a', JSON.stringify(old));
+    const store = new ProfileStore(fileAdapter(dir));
+    expect(store.get('a')!.photos).toEqual([
+      { id: 'n', at: 2 },
+      { id: 'o', at: 1 },
+    ]);
+    const images = await store.images.get('a', ['n', 'o']);
+    expect(images.get('n')).toBe('data:image/jpeg;base64,NEW');
+    expect(images.get('o')).toBe('data:image/jpeg;base64,OLD');
+    store.flush();
+    const row = db.prepare('SELECT json FROM photos WHERE profile_id = ?').get('a') as { json: string };
+    expect(JSON.parse(row.json)).toEqual([
+      { id: 'n', at: 2 },
+      { id: 'o', at: 1 },
+    ]);
+    // the next start finds nothing left to move
+    const again = new ProfileStore(fileAdapter(dir));
+    expect((await again.images.get('a', ['n'])).get('n')).toBe('data:image/jpeg;base64,NEW');
+    store.shutdown();
+    again.shutdown();
   });
 });

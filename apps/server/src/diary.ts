@@ -9,6 +9,7 @@ import {
   ROOMS,
   FILM,
   addPhoto,
+  photoImageRequest,
   frameNearPlayer,
   frameReaches,
   photoFrame,
@@ -132,6 +133,24 @@ export class DiaryTracker {
     if (msg.action === 'photo') return this.photo(s, msg);
     if (msg.action === 'line') return this.line(s, msg.anchor);
     if (msg.action === 'buyFilm') return this.buyFilm(s);
+    if (msg.action === 'photoImages') return void this.photoImages(s, msg.ids);
+  }
+
+  /** The images of the player's own kept photos that the client is about to show. */
+  private async photoImages(s: Session, raw: unknown) {
+    const p = s.profile;
+    if (!p) return;
+    const kept = new Set((p.photos ?? []).map((ph) => ph.id));
+    const ids = photoImageRequest(raw).filter((id) => kept.has(id));
+    if (!ids.length) return;
+    let found: Map<string, string>;
+    try {
+      found = await this.d.store.images.get(p.id, ids);
+    } catch (e) {
+      console.error('[diary] photo images', e);
+      return;
+    }
+    s.send({ t: 'photoImages', images: ids.flatMap((id) => (found.has(id) ? [{ id, image: found.get(id)! }] : [])) });
   }
 
   /** A sign the player just read (distance already checked). Grants its reading word once. */
@@ -193,7 +212,14 @@ export class DiaryTracker {
       }
     }
     // one picture for the whole shot: every word it taught points at the same stored image
-    if (image) p.photos = addPhoto(p.photos, { id: crypto.randomUUID(), at: this.d.now(), image, wordIds: fresh.map((w) => w.id) });
+    if (image) {
+      const id = crypto.randomUUID();
+      // the image first: a photo in the profile always has its image stored
+      this.d.store.images.put(p.id, id, image);
+      const added = addPhoto(p.photos, { id, at: this.d.now(), wordIds: fresh.map((w) => w.id) });
+      p.photos = added.photos;
+      if (added.dropped.length) this.d.store.images.remove(p.id, added.dropped);
+    }
     this.d.store.save(p.id);
     this.d.pushProfile(s);
     if (image) this.d.pushPhotos?.(s);

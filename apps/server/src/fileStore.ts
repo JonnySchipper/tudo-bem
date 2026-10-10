@@ -8,7 +8,10 @@
  * and tests.
  *
  * Photos stay out of the profiles table. A save rewrites a photo row only when that profile's
- * photo ids change (same rule as the old `photos.json` split: image bytes live under an id).
+ * photo ids change. The row holds the photos' ids, times and words; each image is its own row in
+ * `photo_images`, written when the photo is taken and read when the client shows it. A photo row
+ * from before `photo_images` still carries the jpegs inline: `ProfileStore` moves them on load and
+ * the row is rewritten without them.
  *
  * Design-mode `layouts.json` is a kv row. A volume that already has the file is imported, and
  * `layoutFileAdapter` is what `LayoutStore` loads and saves.
@@ -18,6 +21,7 @@ import type { AcademyPersistence } from './academyStore.js';
 import type { AccountPersistence, AccountsData } from './auth.js';
 import type { FeedbackFile, FeedbackPersistence } from './feedbackStore.js';
 import type { PadariaPersistence } from './padariaStore.js';
+import type { PhotoImageStore } from './photoImages.js';
 import type { PersistenceAdapter, StoredProfile } from './store.js';
 import { commitImmediate, countOf, loadJsonList, loadKv, loadSingleton, openDatabase, rowsOf, saveKv, saveSingleton, sqlitePath, syncRows, syncRowsCommitted, type SqliteDatabase } from './sqliteDb.js';
 
@@ -33,12 +37,40 @@ function writable(db: SqliteDatabase): boolean {
   return db.open;
 }
 
+/** One row per diary photo image. Each write is its own small statement (a photo is taken, or falls off past the cap). */
+function photoImageAdapter(db: SqliteDatabase): PhotoImageStore {
+  return {
+    put: (profileId, photoId, image) => {
+      if (!writable(db)) return;
+      db.prepare('INSERT INTO photo_images (profile_id, photo_id, image) VALUES (?, ?, ?) ON CONFLICT(profile_id, photo_id) DO UPDATE SET image = excluded.image').run(profileId, photoId, image);
+    },
+    get: async (profileId, photoIds) => {
+      const out = new Map<string, string>();
+      if (!writable(db) || !photoIds.length) return out;
+      const rows = db.prepare(`SELECT photo_id AS id, image FROM photo_images WHERE profile_id = ? AND photo_id IN (${photoIds.map(() => '?').join(',')})`).all(profileId, ...photoIds) as { id: string; image: string }[];
+      for (const r of rows) out.set(r.id, r.image);
+      return out;
+    },
+    remove: (profileId, photoIds) => {
+      if (!writable(db) || !photoIds.length) return;
+      const del = db.prepare('DELETE FROM photo_images WHERE profile_id = ? AND photo_id = ?');
+      commitImmediate(db, () => {
+        for (const id of photoIds) del.run(profileId, id);
+      });
+    },
+    removeProfile: (profileId) => {
+      if (writable(db)) db.prepare('DELETE FROM photo_images WHERE profile_id = ?').run(profileId);
+    },
+  };
+}
+
 export function fileAdapter(dataDir: string): PersistenceAdapter {
   const db = dbFor(dataDir);
   /** Photo ids last written or loaded, by profile id. Missing key means no photo row. */
   const written = new Map<string, string>();
   return {
     describe: () => sqlitePath(dataDir),
+    images: photoImageAdapter(db),
     load: () => {
       written.clear();
       const photos = new Map<string, Photos>();
@@ -47,7 +79,8 @@ export function fileAdapter(dataDir: string): PersistenceAdapter {
           const parsed = JSON.parse(row.json) as Photos;
           if (Array.isArray(parsed) && parsed.length) {
             photos.set(row.id, parsed);
-            written.set(row.id, photoSignature(parsed));
+            // a row with inline images is rewritten (without them) on the next save
+            if (!parsed.some((p) => p && typeof p === 'object' && 'image' in p)) written.set(row.id, photoSignature(parsed));
           }
         } catch {
           console.error('[sqlite] skipped unreadable photo row');
@@ -97,6 +130,8 @@ export function fileAdapter(dataDir: string): PersistenceAdapter {
           upsert.run(row.id, JSON.stringify(row.photos));
         }
         for (const id of photoIds) if (!seen.has(id)) del.run(id);
+        const delImages = db.prepare('DELETE FROM photo_images WHERE profile_id = ?');
+        for (const { id } of db.prepare('SELECT DISTINCT profile_id AS id FROM photo_images').all() as { id: string }[]) if (!seen.has(id)) delImages.run(id);
       });
       written.clear();
       for (const [id, sig] of next) written.set(id, sig);
@@ -131,9 +166,11 @@ export function fileAdapter(dataDir: string): PersistenceAdapter {
       commitImmediate(db, () => {
         const delProfile = db.prepare('DELETE FROM profiles WHERE id = ?');
         const delPhoto = db.prepare('DELETE FROM photos WHERE profile_id = ?');
+        const delImages = db.prepare('DELETE FROM photo_images WHERE profile_id = ?');
         for (const id of ids) {
           delProfile.run(id);
           delPhoto.run(id);
+          delImages.run(id);
         }
       });
       for (const id of ids) written.delete(id);

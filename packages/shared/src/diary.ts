@@ -255,7 +255,13 @@ function positive(n: number | undefined, fallback: number): number {
 /** A prop this close (Chebyshev tiles) can sit inside the viewfinder. Farther than the talk range, because the frame can reach across the screen. */
 export const PHOTO_RANGE = 8;
 
-export const PHOTO_KEEP = 12;
+/**
+ * The diary keeps every photo. This is only a guard for the server's disk (about 20 MB of jpegs per player at the cap), far past what film
+ * allows in normal play; past it the oldest photo goes.
+ */
+export const PHOTO_KEEP = 1000;
+/** Most photo images one request may ask for (a page of the photo wall, or the stickers on screen). */
+export const PHOTO_IMAGES_PER_REQUEST = 24;
 export const PHOTO_MAX_CHARS = 80_000;
 /**
  * One diary photo plus the message around it. The socket used to stop at 16KB, so a phone shot
@@ -264,13 +270,13 @@ export const PHOTO_MAX_CHARS = 80_000;
 export const WS_MAX_PAYLOAD = PHOTO_MAX_CHARS + 8 * 1024;
 
 /**
- * One kept photo. The image is stored once; every word the shot taught points at it through `wordIds` (in the order they were taught), so a
- * picture of three things is the photo of all three words. `wordId` is the first of them, kept for saves and clients from before `wordIds`.
+ * One kept photo. The image is stored once, apart from the profile (the server's photo image store), and fetched by `id` when the diary shows
+ * it; every word the shot taught points at it through `wordIds` (in the order they were taught), so a picture of three things is the photo of
+ * all three words. `wordId` is the first of them, kept for saves and clients from before `wordIds`.
  */
 export interface DiaryPhoto {
   id: string;
   at: number;
-  image: string;
   wordId?: string;
   wordIds?: string[];
 }
@@ -295,13 +301,14 @@ export function photoForWord(photos: readonly DiaryPhoto[], wordId: string): Dia
 }
 
 /**
- * A new shot at the front of the kept photos: one image, linked to every word it taught (`wordIds`, none for a shot that taught nothing),
- * the oldest photo dropped past `PHOTO_KEEP`.
+ * A new shot at the front of the kept photos, linked to every word it taught (`wordIds`, none for a shot that taught nothing). `dropped`: the
+ * ids that fell off past `PHOTO_KEEP` (their images can go too).
  */
-export function addPhoto(photos: unknown, shot: { id: string; at: number; image: string; wordIds: readonly string[] }): DiaryPhoto[] {
+export function addPhoto(photos: unknown, shot: { id: string; at: number; wordIds: readonly string[] }): { photos: DiaryPhoto[]; dropped: string[] } {
   const wordIds = photoWordIds({ wordIds: shot.wordIds });
-  const photo: DiaryPhoto = { id: shot.id, at: shot.at, image: shot.image, ...(wordIds.length ? { wordId: wordIds[0], wordIds } : {}) };
-  return [photo, ...normalizePhotos(photos)].slice(0, PHOTO_KEEP);
+  const photo: DiaryPhoto = { id: shot.id, at: shot.at, ...(wordIds.length ? { wordId: wordIds[0], wordIds } : {}) };
+  const all = [photo, ...normalizePhotos(photos)];
+  return { photos: all.slice(0, PHOTO_KEEP), dropped: all.slice(PHOTO_KEEP).map((p) => p.id) };
 }
 
 export function normalizeFilm(raw: unknown): number {
@@ -327,23 +334,54 @@ export function pickPhotoUrl(candidates: readonly string[]): string | undefined 
   return undefined;
 }
 
+const photoId = (id: unknown): id is string => typeof id === 'string' && id.length > 0 && id.length <= 40;
+
+/** The kept photos, newest first, without images. A save from before the image store carried each `image` inline (see `inlinePhotoImages`). */
 export function normalizePhotos(raw: unknown): DiaryPhoto[] {
   if (!Array.isArray(raw)) return [];
   const out: DiaryPhoto[] = [];
+  const seen = new Set<string>();
   for (const item of raw) {
     if (!item || typeof item !== 'object') continue;
-    const image = photoImage((item as { image?: unknown }).image);
     const id = (item as { id?: unknown }).id;
     const at = (item as { at?: unknown }).at;
-    if (!image || typeof id !== 'string' || id.length > 40 || typeof at !== 'number') continue;
+    if (!photoId(id) || seen.has(id) || typeof at !== 'number' || !Number.isFinite(at)) continue;
+    // an old inline photo whose image never fit was never kept: it stays out
+    if ('image' in item && !photoImage((item as { image?: unknown }).image)) continue;
+    seen.add(id);
     const wordIds = photoWordIds(item as { wordId?: unknown; wordIds?: unknown });
-    const photo: DiaryPhoto = { id, at, image };
+    const photo: DiaryPhoto = { id, at };
     if (wordIds.length) {
       photo.wordId = wordIds[0];
       photo.wordIds = wordIds;
     }
     out.push(photo);
     if (out.length >= PHOTO_KEEP) break;
+  }
+  return out;
+}
+
+/** The images a save from before the image store kept inline on its photos (moved to the store when the profile loads). */
+export function inlinePhotoImages(raw: unknown): { id: string; image: string }[] {
+  if (!Array.isArray(raw)) return [];
+  const out: { id: string; image: string }[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const id = (item as { id?: unknown }).id;
+    const image = photoImage((item as { image?: unknown }).image);
+    if (photoId(id) && image) out.push({ id, image });
+  }
+  return out;
+}
+
+/** The photo ids of a `photoImages` request: strings, no repeats, at most `PHOTO_IMAGES_PER_REQUEST`. */
+export function photoImageRequest(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const id of raw) {
+    if (!photoId(id) || out.includes(id)) continue;
+    out.push(id);
+    if (out.length >= PHOTO_IMAGES_PER_REQUEST) break;
   }
   return out;
 }
