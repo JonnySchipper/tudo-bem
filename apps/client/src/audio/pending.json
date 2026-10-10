@@ -1,4 +1,11 @@
 {
   "_readme": "Lines the game speaks that have no clip yet (the coverage test lets exactly these through). `pnpm tts` rewrites this file; when everything is baked it is empty. Do not add to it by hand: bake instead.",
-  "lines": []
+  "lines": [
+    "ui: cauda",
+    "ui: fuselagem",
+    "ui: motor",
+    "ui: nariz",
+    "ui: porta",
+    "ui: roda"
+  ]
 }

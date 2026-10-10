@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { FURNITURE, ROOMS } from '@tudobem/shared';
+import { FURNITURE, ROOMS, padariaCasaRoom } from '@tudobem/shared';
 import type { Manifest } from './manifest';
 import { FLOOR_SUBSTITUTE, WALL_STYLE, allNorthDecor, decorArt, northWallKey, westWallKey } from './roomLayout';
 import { fencePieces, furnitureArtKey, propArtKey, propSlices } from './props';
@@ -45,6 +45,23 @@ describe('art track 3 coverage (manifest vs rooms and catalog)', () => {
         for (const k of keys) expect(k && has(k), `${r.id}/${p.id} (${p.kind}) -> ${k}`).toBe(true);
       }
     }
+  });
+
+  it("a player's own padaria (every size) has all its art: floor, its own wall style, decor and props (a short counter reuses the slices)", () => {
+    for (const size of [1, 2, 3] as const) {
+      const r = padariaCasaRoom(size);
+      for (const ch of new Set(r.floor.join(''))) expect(manifest.terrain.layers[ch], `casa ${size} floor ${ch}`).toBeTruthy();
+      const s = r.wallStyle ?? WALL_STYLE[r.id];
+      expect(s).not.toBe(WALL_STYLE.padaria);
+      for (const part of ['l', 'm', 'r'] as const) expect(has(northWallKey(s, part)), `casa ${size} north ${part}`).toBe(true);
+      for (const d of allNorthDecor(r)) {
+        const art = decorArt(d);
+        if (art) expect(has(art.key), `casa ${size} ${d.kind}`).toBe(true);
+      }
+      for (const p of r.props) for (const k of propSlices(p)?.map((x) => x.key) ?? [propArtKey(p)]) expect(k && has(k), `casa ${size}/${p.id} -> ${k}`).toBe(true);
+    }
+    const short = padariaCasaRoom(1).props.find((p) => p.id === 'balcao')!;
+    expect(propSlices(short)?.map((x) => x.key)).toEqual(['props/balcao_0_of_5', 'props/balcao_1_of_5', 'props/balcao_4_of_5']);
   });
 
   it('every catalog furniture item has both rotations, and the animated ones have frames', () => {

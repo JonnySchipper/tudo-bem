@@ -80,6 +80,10 @@ export interface PropDef {
   ox?: number;
   /** Pixel view: nudge down in px. Design mode's free placement uses this; bundled layouts leave it unset. */
   oy?: number;
+  /** Pixel view: the sprite is drawn mirrored left to right (design mode's flip). The server ignores it. */
+  flip?: boolean;
+  /** Pixel view: draw-order bias in world px (design mode's bring forward / send back). The server ignores it. */
+  z?: number;
 }
 
 export type WallSide = 'left' | 'right';
@@ -172,6 +176,10 @@ export interface RoomDef {
   npcs: NpcDef[];
   /** Private rooms (kitnet) are instanced per owner. */
   private: boolean;
+  /** Pixel view: the wall tiles to draw (default: the room id's own style). A player's padaria has its own walls. */
+  wallStyle?: string;
+  /** A room built for one instance (a player's padaria): the room id's signs and reading words belong to the shared room, not here. */
+  noHotspots?: boolean;
 }
 
 export const FLOOR_CHARS: Record<string, FloorKind> = {
@@ -727,7 +735,7 @@ const academia: RoomDef = {
       y: 4,
       dir: 'NW',
       interact: { x: 8, y: 5 },
-      appearance: { body: 'forte', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'nenhum', idle: 'bracos' },
+      appearance: { body: 'forte', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'brincos', idle: 'bracos' },
       hat: null,
       // needs_br: true (new lines)
       idleLines: [

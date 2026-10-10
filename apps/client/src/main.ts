@@ -27,6 +27,7 @@ import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
 import {
   DEFAULT_APPEARANCE,
+  DESEMBARQUE_EXIT,
   MISSION_COPY,
   ROOMS,
   TUTORIAL_STEPS,
@@ -115,7 +116,7 @@ import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia, showAirportNext } from './ui/airportTutorial';
 import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
-import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
+import { desembGateHint, desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
 import { firstRoom } from './ui/desembarqueLogic';
 import { designLinkRoom, watchDesignLink } from './ui/designLink';
 import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
@@ -298,11 +299,29 @@ function propOnInteractTile(): PropDef | undefined {
   return room.props.find((p) => p.action && p.interact && p.interact.x === cur.tile.x && p.interact.y === cur.tile.y);
 }
 
+/**
+ * The arrivals hall's doors to the airport stay shut until every tutorial step before them is done: trying them shows what is left
+ * (PT + EN) and returns true. Any other door is never shut.
+ */
+let gateToastAt = -1e9;
+function gateShut(portalId: string): boolean {
+  if (portalId !== DESEMBARQUE_EXIT) return false;
+  const hint = desembGateHint();
+  if (!hint) return false;
+  // one hint per beat: a double click or a held key does not stack toasts
+  if (performance.now() - gateToastAt > 1500) {
+    gateToastAt = performance.now();
+    toast('info', `🔒 ${hint.pt}`, hint.en);
+  }
+  return true;
+}
+
 function runPending() {
   const p = game.pending;
   game.pending = null;
   if (!p) return;
   if (p.kind === 'portal') {
+    if (gateShut(p.portalId)) return;
     const to = game.roomDef?.portals.find((q) => q.id === p.portalId)?.to;
     // an owner at Seu Carlos's door picks: their own padaria or his (the facade is shared; the owned shop has no door of its own)
     if (to === 'padaria' && game.profile?.padaria) chooseBakery(game.profile.padaria, () => net.send({ t: 'portal', portalId: p.portalId }));
@@ -640,6 +659,7 @@ bindPadariaOwn({
   },
   upgrade: (kind) => net.send({ t: 'padariaOwn', action: 'upgrade', kind }),
   buy: (itemId) => net.send({ t: 'padaria', action: 'buy', itemId }),
+  play: () => startMinigame(),
 });
 
 wireParrotShop({
@@ -707,9 +727,9 @@ function updateGuides() {
   if (!p || !r || isDialogueBoxOpen() || boutUi?.open) return;
   const t = p.tutorial;
   const add = (g: Guide | null) => g && renderer.guides.push(g);
-  // the bakery game: a glowing start spot and a sign on the counter rail, "Comece aqui!" until the first shift
+  // the bakery game: a glowing start spot and a sign on the display case (the vitrine is what you click), "Comece aqui!" until the first shift
   const playSpot = (en: string) => {
-    const g = guideAt('prop', 'trilho', 128, 'Jogar: Padaria');
+    const g = guideAt('prop', 'vitrine', 128, 'Jogar: Padaria');
     const first = t.carlos && practiceNeeded(localStorage.getItem(PRACTICE_KEY), !!t.meveum);
     return g ? { ...g, en, kind: 'play' as const, first } : null;
   };
@@ -770,13 +790,9 @@ function updateGuides() {
     if (r.academy.owner) add(guideAt('prop', 'andar_brasao', 30, 'Brasão e kimono', 'Crest and kimono'));
     else if (!r.academy.member) add(guideAt('prop', 'andar_brasao', 30, 'Entrar na equipe', 'Join the team'));
   } else if (r.room === 'padaria' && r.padaria) {
-    // a player-owned padaria: no baker on duty, the owner works the counter
-    if (r.padaria.owner) {
-      add(playSpot('Play the bakery · your counter'));
-      // on the vaso itself (its interact tile is where you stand, so an arrow there points at your own head)
-      const vaso = game.roomDef?.props.find((q) => q.id === 'padaria_porta_fundar');
-      if (vaso) add({ x: vaso.x, y: vaso.y, lift: 60, label: 'Melhorias', en: 'Upgrades' });
-    } else {
+    // a player-owned padaria: no baker on duty, the owner works the counter (the upgrades are on the "Minha padaria" button, not in the room)
+    if (r.padaria.owner) add(playSpot('Play the bakery · your counter'));
+    else {
       add(guideAt('prop', 'balcao', 60, 'Balcão da casa', 'The house counter'));
       add(guideAt('portal', 'padaria_praca', 110, '← Rua', '← Street'));
     }
@@ -1454,6 +1470,7 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       return [t.pt, `${t.en} — click to read`];
     }
     case 'portal':
+      if (hit.portal.id === DESEMBARQUE_EXIT && desembGateHint()) return [`🔒 ${hit.portal.label.pt}`, 'Locked until the tutorial steps are done'];
       return [hit.portal.label.pt, hit.portal.label.en];
     case 'avatar': {
       const a = game.avatars.get(hit.id);
@@ -1539,6 +1556,10 @@ function handleClickInner(hit: Hit | null) {
       break;
     case 'portal': {
       const tile = { x: hit.portal.x, y: hit.portal.y };
+      if (gateShut(hit.portal.id)) {
+        markTap('refused', { tile });
+        break;
+      }
       markTap('target', { tile });
       walkTo(tile, { kind: 'portal', portalId: hit.portal.id, tile });
       break;

@@ -35,7 +35,16 @@
       "kind": "vitrine",
       "x": 6,
       "y": 2,
-      "blocks": true
+      "blocks": true,
+      "action": "minigame",
+      "interact": {
+        "x": 6,
+        "y": 4
+      },
+      "label": {
+        "pt": "Correria no Balcão",
+        "en": "Counter Rush"
+      }
     },
     {
       "id": "estufa",
@@ -53,16 +62,7 @@
       "kind": "trilho_pedidos",
       "x": 8,
       "y": 2,
-      "blocks": true,
-      "action": "minigame",
-      "interact": {
-        "x": 6,
-        "y": 4
-      },
-      "label": {
-        "pt": "Correria no Balcão",
-        "en": "Counter Rush"
-      }
+      "blocks": true
     },
     {
       "id": "vaso_canto",

@@ -70,7 +70,7 @@ const PLURALS = {
   pao: 'pães', pao_na_chapa: 'pães na chapa', pastel: 'pastéis', coxinha: 'coxinhas', bolo: 'bolos', cafe: 'cafés', cafe_com_leite: 'cafés com leite',
   suco_de_laranja: 'sucos de laranja', agua: 'águas', pao_de_queijo: 'pães de queijo', misto_quente: 'mistos-quentes', guarana: 'guaranás',
 };
-const MODS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
+const MODS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'extra quente': 'bem_quente' };
 export async function parseOrder(page, text) {
   const forms = await page.evaluate(() => [...document.querySelectorAll('.cr-item')].map((b) => ({ id: b.dataset.hit.replace('item-', ''), form: b.querySelector('.cr-lab')?.textContent ?? '' })));
   const list = forms.flatMap((i) => [[PLURALS[i.id], i.id], [i.form, i.id]]).filter(([f]) => f).sort((a, b) => b[0].length - a[0].length);
@@ -473,7 +473,8 @@ async function assembleOrder(page, want) {
     };
     const pourOnce = async (itemId, qty) => {
       const pourMs = feed.snap?.pourMs > 0 ? feed.snap.pourMs : pourFull;
-      const target = Math.round(pourMs * Math.min(pourHold.hi, Math.max(pourHold.lo, hold)));
+      // extra quente: hold on past the green to the middle of the red
+      const target = mods.includes('bem_quente') ? Math.round(pourMs * 1.26) : Math.round(pourMs * Math.min(pourHold.hi, Math.max(pourHold.lo, hold)));
       if (feed.snap?.pour) {
         feed.on.pourEnd();
         const until = performance.now() + 700;
@@ -619,13 +620,8 @@ async function assembleOrder(page, want) {
         const until = performance.now() + 1000;
         while (feed.snap?.pack !== packWant && performance.now() < until && alive()) await sleep(40);
       }
-      for (const m of coffeeMods) {
-        if (feed.snap?.mods?.includes(m)) continue;
-        if (!alive()) return resolve({ status: 'gone', ...base() });
-        document.querySelector(`.cr-mod[data-mod="${CSS.escape(m)}"]`)?.click();
-        const until = performance.now() + 1000;
-        while (!feed.snap?.mods?.includes(m) && performance.now() < until && alive()) await sleep(40);
-      }
+      // extra quente is not a toggle: it came with the pour (into the red) above
+      void coffeeMods;
       if (!alive()) return resolve({ status: 'gone', ...base() });
       if (!sameOrder()) return resolve({ status: 'follow', ...base() });
       return resolve({ status: ready() ? 'ready' : 'short', ...base() });
@@ -683,12 +679,12 @@ export async function takeGrilled(page) {
   }
 }
 
-/** Open a shift from the counter rail in the padaria (the "Me vê um…" spot behind the counter). The first-time practice order is marked done, so this is a real shift. */
+/** Open a shift from the display case in the padaria (the vitrine, under the "Jogar: Padaria" sign). The first-time practice order is marked done, so this is a real shift. */
 export async function startShiftFromPedido(page) {
   await page.keyboard.press('Escape');
   await page.evaluate(() => {
     localStorage.setItem('tb_cr_practice', '1');
-    window.__tb.interact({ prop: 'trilho' });
+    window.__tb.interact({ prop: 'vitrine' });
   });
   await page.waitForSelector('#cr-order', { timeout: 12_000 });
   await waitFor(page, () => !!window.__tb.correria.feed.snap, null, 8000, 'the first shift state');

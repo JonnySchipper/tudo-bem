@@ -20,7 +20,7 @@
  * Positions are room pixels (the padaria is 160 x 144; one tile is 16) of each piece's anchor. The work board is a flat wooden plate the
  * stage draws over the counter area (it hides the room's own counter props while a shift runs), so every piece reads on the same surface.
  */
-import { MG_ITEMS, type JuicerStep, type OrangeSize } from '@tudobem/shared';
+import { MG_ITEMS, whereRequired, type JuicerStep, type OrangeSize } from '@tudobem/shared';
 
 export interface Spot {
   x: number;
@@ -193,9 +193,126 @@ export const NEED = { w: 162, h: 216 } as const;
 
 /** Miniature item size on the tray (item sprites are drawn at this scale there). */
 export const TRAY_ITEM_SCALE = 0.5;
-/** Slots on the tray for the miniatures, relative to TRAY_SPOT (x offsets, one row; a second row above when more than 5). */
-export function traySlot(i: number): Spot {
+/** Slots on the tray for the miniatures, relative to the tray's spot (x offsets, one row; a second row above when more than 5). */
+export function traySlot(i: number, tray: Spot = TRAY_SPOT): Spot {
   const col = i % 5;
   const row = Math.floor(i / 5);
-  return { x: TRAY_SPOT.x - 24 + col * 12, y: TRAY_SPOT.y - 5 - row * 8 };
+  return { x: tray.x - 24 + col * 12, y: tray.y - 5 - row * 8 };
+}
+
+// ---------------------------------------------------------------- the board for this shift's menu, in this room
+//
+// The constants above are the full counter in Seu Carlos's room (160 x 144). A shift lays out only what is on its menu: the shelf cells
+// of the open items (packed into the same grid from the bottom row up), the stations it needs stacked up the right column (chapa, coffee,
+// juicer, bottom first), the bag and the plate only once packing is on the orders. A new counter (café and pão) is a small board, so the
+// camera comes in close. Everything hangs off the room's bottom-right corner, so a smaller room (a player's Balcão) gets the same counter.
+
+/** Every spot the stage draws a shift at. `cells` has only the shelf items on this menu; a station or the bag / plate is null when absent. */
+export interface CounterLayout {
+  /** Room size in px. */
+  w: number;
+  h: number;
+  cells: Record<string, Spot>;
+  coffee: Spot | null;
+  /** The cup under the coffee spout. */
+  spout: Spot | null;
+  juicer: Spot | null;
+  juiceGlass: Spot | null;
+  juiceSpout: Spot | null;
+  hopperNext: Spot | null;
+  peelBin: Spot | null;
+  juiceChamber: Spot | null;
+  juiceGauge: { x: number; y: number; w: number; h: number; max: number } | null;
+  chapa: Spot | null;
+  chapaSlots: Spot[];
+  tray: Spot;
+  bag: Spot | null;
+  plate: Spot | null;
+  register: Spot;
+  tipjar: Spot;
+  bell: Spot;
+  queue: Spot[];
+  door: Spot;
+  baker: Spot;
+  board: { x0: number; y0: number; x1: number; y1: number };
+  /** Left of this x the board stops at `shelfTop`; the station column rises to `board.y0`. */
+  towerX: number;
+  shelfTop: number;
+  /** The rail under each shelf row (y) and how wide the rows run. */
+  rails: number[];
+  railW: number;
+  /** What the camera must show (the board, the queue and their tags) and where to centre it. */
+  focus: Spot;
+  need: { w: number; h: number };
+}
+
+const CELL_STEP = 27;
+const ROW_STEP = 32;
+/** Shelf cells in reading order (the full grid fills in this order, which is `ITEM_SPOTS`). */
+const CELL_ORDER = Object.keys(ITEM_SPOTS);
+/** Station anchors up from the room's bottom edge: the lowest slot first (the chapa's in the full counter), then the coffee's, the juicer's. */
+const STATION_UP = [69, 116, 168];
+
+/**
+ * The counter for these open item ids in a room of `cols` x `rows` tiles. An empty menu (an old snapshot) is the full counter. The coffee
+ * cups only get shelf cells when there are two to choose from (one cup: the machine pours it); the crate of oranges shows with the juicer.
+ */
+export function counterLayout(menu: readonly string[] | null | undefined, room: { cols: number; rows: number } = { cols: 10, rows: 9 }): CounterLayout {
+  const w = room.cols * 16;
+  const h = room.rows * 16;
+  const all = MG_ITEMS.map((i) => i.id);
+  const open = new Set(menu?.length ? menu.filter((id) => all.includes(id)) : all);
+  const cups = ['cafe', 'cafe_com_leite'].filter((id) => open.has(id));
+  const ids = CELL_ORDER.filter((id) => open.has(id) && (cups.length > 1 || !cups.includes(id)));
+  const nCols = Math.max(1, Math.floor((w - 48) / CELL_STEP));
+  const nRows = Math.max(1, Math.ceil(ids.length / nCols));
+  const rowY = (r: number) => h - 90 - (nRows - 1 - r) * ROW_STEP;
+  const cells: Record<string, Spot> = {};
+  ids.forEach((id, i) => (cells[id] = { x: 17 + (i % nCols) * CELL_STEP, y: rowY(Math.floor(i / nCols)) }));
+  // the stations, bottom up
+  const x = w - 24;
+  const want = [open.has('pao_na_chapa') || open.has('misto_quente') ? 'chapa' : '', cups.length ? 'coffee' : '', open.has('suco_de_laranja') ? 'juicer' : ''].filter(Boolean);
+  const at = (k: string): Spot | null => (want.includes(k) ? { x, y: h - STATION_UP[want.indexOf(k)]! } : null);
+  const chapa = at('chapa');
+  const coffee = at('coffee');
+  const juicer = at('juicer');
+  // the bag and the plate come with packing (from six items on the menu, `whereRequired`)
+  const pack = whereRequired(open.size);
+  const wide = w >= 160;
+  const shelfTop = rowY(0) - 28;
+  const stationTop = juicer ? juicer.y - 42 : coffee ? coffee.y - 42 : chapa ? chapa.y - 36 : shelfTop;
+  const y0 = Math.min(shelfTop, stationTop);
+  const board = { x0: 3, y0, x1: w - 3, y1: h - 15 };
+  return {
+    w,
+    h,
+    cells,
+    coffee,
+    spout: coffee ? { x: coffee.x, y: coffee.y - 8 } : null,
+    juicer,
+    juiceGlass: juicer ? { x: juicer.x, y: juicer.y - 2 } : null,
+    juiceSpout: juicer ? { x: juicer.x, y: juicer.y - 14 } : null,
+    hopperNext: juicer ? { x: juicer.x + 11, y: juicer.y - 31 } : null,
+    peelBin: juicer ? { x: juicer.x - 14, y: juicer.y - 12 } : null,
+    juiceChamber: juicer ? { x: juicer.x, y: juicer.y - 20 } : null,
+    juiceGauge: juicer ? { x: juicer.x - 20 + 33, y: juicer.y - 41 + 18, w: 2, h: 18, max: 1.3 } : null,
+    chapa,
+    chapaSlots: chapa ? [{ x: chapa.x - 8, y: chapa.y - 10 }, { x: chapa.x + 8, y: chapa.y - 10 }] : [],
+    tray: { x: 36, y: h - 50 },
+    bag: pack ? { x: 84, y: h - 48 } : null,
+    plate: pack ? { x: w - 28, y: h - 58 } : null,
+    register: { x: 16, y: h - 22 },
+    tipjar: { x: wide ? 44 : 39, y: h - 22 },
+    bell: { x: wide ? 74 : 62, y: h - 22 },
+    queue: (wide ? [w - 56, w - 34, w - 12] : [w - 46, w - 28, w - 10]).map((qx) => ({ x: qx, y: h - 2 })),
+    door: { x: -14, y: h - 2 },
+    baker: { x: w - 60, y: y0 + 34 },
+    board,
+    towerX: w - 45,
+    shelfTop,
+    rails: Array.from({ length: ids.length ? nRows : 0 }, (_, r) => rowY(r) + 14),
+    railW: Math.min(ids.length, nCols) * CELL_STEP - 4,
+    focus: { x: w / 2, y: (y0 + h + 6) / 2 },
+    need: { w: w + 2, h: h + 6 - y0 },
+  };
 }

@@ -4765,12 +4765,6 @@
       "file": "ui-2b3abb55a6.mp3"
     },
     {
-      "id": "ui-160ceaa03e",
-      "voice": "ui",
-      "text": "Quanto é?",
-      "file": "ui-160ceaa03e.mp3"
-    },
-    {
       "id": "ui-b24e2e3654",
       "voice": "ui",
       "text": "Oi! Bom te ver no balcão.",
@@ -4897,16 +4891,10 @@
       "file": "ui-35e83a717f.mp3"
     },
     {
-      "id": "ui-a62694a5c7",
+      "id": "ui-afc2753a56",
       "voice": "ui",
-      "text": "Dois pães,",
-      "file": "ui-a62694a5c7.mp3"
-    },
-    {
-      "id": "ui-7c7f022c56",
-      "voice": "ui",
-      "text": "por favor.",
-      "file": "ui-7c7f022c56.mp3"
+      "text": "Pode ser um pão?",
+      "file": "ui-afc2753a56.mp3"
     },
     {
       "id": "ui-ea8df12e39",
@@ -4915,10 +4903,10 @@
       "file": "ui-ea8df12e39.mp3"
     },
     {
-      "id": "ui-78a7dcbba5",
+      "id": "ui-ec86d92ad9",
       "voice": "ui",
-      "text": "e é pra viagem!",
-      "file": "ui-78a7dcbba5.mp3"
+      "text": "e é pra comer aqui!",
+      "file": "ui-ec86d92ad9.mp3"
     },
     {
       "id": "ui-bea3abb07f",
@@ -4927,16 +4915,10 @@
       "file": "ui-bea3abb07f.mp3"
     },
     {
-      "id": "ui-995514c33f",
+      "id": "ui-633c6705b6",
       "voice": "ui",
-      "text": "pra viagem.",
-      "file": "ui-995514c33f.mp3"
-    },
-    {
-      "id": "ui-ceb5527eb2",
-      "voice": "ui",
-      "text": "e mais um pão na chapa!",
-      "file": "ui-ceb5527eb2.mp3"
+      "text": "pra comer aqui.",
+      "file": "ui-633c6705b6.mp3"
     },
     {
       "id": "ui-ea399d9a0b",
@@ -4951,10 +4933,10 @@
       "file": "ui-82643dfe91.mp3"
     },
     {
-      "id": "ui-e1b2352921",
+      "id": "ui-a026f0714a",
       "voice": "ui",
-      "text": "me vê dois pães",
-      "file": "ui-e1b2352921.mp3"
+      "text": "me vê um pão",
+      "file": "ui-a026f0714a.mp3"
     },
     {
       "id": "ui-2c1328a2de",
@@ -4963,16 +4945,28 @@
       "file": "ui-2c1328a2de.mp3"
     },
     {
-      "id": "ui-05a9987582",
+      "id": "ui-7c7f022c56",
       "voice": "ui",
-      "text": "e mais um pão!",
-      "file": "ui-05a9987582.mp3"
+      "text": "por favor.",
+      "file": "ui-7c7f022c56.mp3"
     },
     {
-      "id": "ui-eb90099617",
+      "id": "ui-99ca36d8f6",
       "voice": "ui",
-      "text": "me vê duas coxinhas,",
-      "file": "ui-eb90099617.mp3"
+      "text": "Não,",
+      "file": "ui-99ca36d8f6.mp3"
+    },
+    {
+      "id": "ui-332381b6eb",
+      "voice": "ui",
+      "text": "uma água em vez do café.",
+      "file": "ui-332381b6eb.mp3"
+    },
+    {
+      "id": "ui-addd5464b6",
+      "voice": "ui",
+      "text": "me vê uma coxinha,",
+      "file": "ui-addd5464b6.mp3"
     },
     {
       "id": "ui-2e624bfb1b",
@@ -4987,130 +4981,28 @@
       "file": "ui-c702c31f5d.mp3"
     },
     {
-      "id": "ui-087b8caede",
+      "id": "ui-58d9f343d4",
       "voice": "ui",
-      "text": "e mais um suco de laranja!",
-      "file": "ui-087b8caede.mp3"
+      "text": "um café em vez do suco de laranja.",
+      "file": "ui-58d9f343d4.mp3"
     },
     {
-      "id": "ui-6d81e19ebe",
+      "id": "ui-75cb876b7f",
       "voice": "ui",
-      "text": "Um café,",
-      "file": "ui-6d81e19ebe.mp3"
+      "text": "Boa noite!",
+      "file": "ui-75cb876b7f.mp3"
     },
     {
-      "id": "ui-99ca36d8f6",
+      "id": "ui-e1e61696fa",
       "voice": "ui",
-      "text": "Não,",
-      "file": "ui-99ca36d8f6.mp3"
-    },
-    {
-      "id": "ui-3f5a601e88",
-      "voice": "ui",
-      "text": "um guaraná em vez do café.",
-      "file": "ui-3f5a601e88.mp3"
-    },
-    {
-      "id": "ui-ea31821b4b",
-      "voice": "ui",
-      "text": "Me vê um café com leite,",
-      "file": "ui-ea31821b4b.mp3"
-    },
-    {
-      "id": "ui-633c6705b6",
-      "voice": "ui",
-      "text": "pra comer aqui.",
-      "file": "ui-633c6705b6.mp3"
-    },
-    {
-      "id": "ui-396150eadc",
-      "voice": "ui",
-      "text": "e mais um café com leite!",
-      "file": "ui-396150eadc.mp3"
-    },
-    {
-      "id": "ui-5c519d90af",
-      "voice": "ui",
-      "text": "Me vê dois pães",
-      "file": "ui-5c519d90af.mp3"
-    },
-    {
-      "id": "ui-1543763fda",
-      "voice": "ui",
-      "text": "Me vê uma coxinha,",
-      "file": "ui-1543763fda.mp3"
-    },
-    {
-      "id": "ui-1dbe448ca2",
-      "voice": "ui",
-      "text": "e mais uma coxinha!",
-      "file": "ui-1dbe448ca2.mp3"
-    },
-    {
-      "id": "ui-52f4c46551",
-      "voice": "ui",
-      "text": "e dois cafés.",
-      "file": "ui-52f4c46551.mp3"
-    },
-    {
-      "id": "ui-ec86d92ad9",
-      "voice": "ui",
-      "text": "e é pra comer aqui!",
-      "file": "ui-ec86d92ad9.mp3"
-    },
-    {
-      "id": "ui-1dd14cf807",
-      "voice": "ui",
-      "text": "me vê dois pães na chapa,",
-      "file": "ui-1dd14cf807.mp3"
-    },
-    {
-      "id": "ui-8f57ab7cdf",
-      "voice": "ui",
-      "text": "duas águas",
-      "file": "ui-8f57ab7cdf.mp3"
-    },
-    {
-      "id": "ui-1f2dbac7ef",
-      "voice": "ui",
-      "text": "e duas coxinhas pra comer aqui,",
-      "file": "ui-1f2dbac7ef.mp3"
-    },
-    {
-      "id": "ui-75a77811ce",
-      "voice": "ui",
-      "text": "Café sem açúcar,",
-      "file": "ui-75a77811ce.mp3"
-    },
-    {
-      "id": "ui-f34a28a9ca",
-      "voice": "ui",
-      "text": "bem quente.",
-      "file": "ui-f34a28a9ca.mp3"
+      "text": "Eu queria um café extra quente.",
+      "file": "ui-e1e61696fa.mp3"
     },
     {
       "id": "ui-0db170842d",
       "voice": "ui",
       "text": "um suco de laranja em vez do café.",
       "file": "ui-0db170842d.mp3"
-    },
-    {
-      "id": "ui-9fe2f68818",
-      "voice": "ui",
-      "text": "e mais um bolo!",
-      "file": "ui-9fe2f68818.mp3"
-    },
-    {
-      "id": "ui-7dd6b2982f",
-      "voice": "ui",
-      "text": "bem quente,",
-      "file": "ui-7dd6b2982f.mp3"
-    },
-    {
-      "id": "ui-2bc8ff9a2e",
-      "voice": "ui",
-      "text": "e mais um café!",
-      "file": "ui-2bc8ff9a2e.mp3"
     },
     {
       "id": "ui-254cebd2d3",
@@ -5125,64 +5017,10 @@
       "file": "ui-2384df30a7.mp3"
     },
     {
-      "id": "ui-52e604cf96",
+      "id": "ui-995514c33f",
       "voice": "ui",
-      "text": "um guaraná em vez do suco de laranja.",
-      "file": "ui-52e604cf96.mp3"
-    },
-    {
-      "id": "ui-f241fdd597",
-      "voice": "ui",
-      "text": "Me vê três cafés",
-      "file": "ui-f241fdd597.mp3"
-    },
-    {
-      "id": "ui-ac335755fd",
-      "voice": "ui",
-      "text": "e dois pães,",
-      "file": "ui-ac335755fd.mp3"
-    },
-    {
-      "id": "ui-eef548f2ca",
-      "voice": "ui",
-      "text": "Me vê um pastel,",
-      "file": "ui-eef548f2ca.mp3"
-    },
-    {
-      "id": "ui-4dc005a2fe",
-      "voice": "ui",
-      "text": "e mais um pastel!",
-      "file": "ui-4dc005a2fe.mp3"
-    },
-    {
-      "id": "ui-a676688384",
-      "voice": "ui",
-      "text": "Dois cafés",
-      "file": "ui-a676688384.mp3"
-    },
-    {
-      "id": "ui-b2306e7117",
-      "voice": "ui",
-      "text": "Me vê dois pães,",
-      "file": "ui-b2306e7117.mp3"
-    },
-    {
-      "id": "ui-eff9d04264",
-      "voice": "ui",
-      "text": "Um suco de laranja,",
-      "file": "ui-eff9d04264.mp3"
-    },
-    {
-      "id": "ui-525158804f",
-      "voice": "ui",
-      "text": "por favor,",
-      "file": "ui-525158804f.mp3"
-    },
-    {
-      "id": "ui-58d9f343d4",
-      "voice": "ui",
-      "text": "um café em vez do suco de laranja.",
-      "file": "ui-58d9f343d4.mp3"
+      "text": "pra viagem.",
+      "file": "ui-995514c33f.mp3"
     },
     {
       "id": "ui-67c629dd29",
@@ -5191,316 +5029,28 @@
       "file": "ui-67c629dd29.mp3"
     },
     {
-      "id": "ui-15b198d203",
+      "id": "ui-80c2c538e1",
       "voice": "ui",
-      "text": "me vê dois cafés",
-      "file": "ui-15b198d203.mp3"
+      "text": "Oi!",
+      "file": "ui-80c2c538e1.mp3"
     },
     {
-      "id": "ui-2b2b461c2e",
+      "id": "ui-1f95a3baa7",
       "voice": "ui",
-      "text": "e um pão,",
-      "file": "ui-2b2b461c2e.mp3"
+      "text": "Me vê um café extra quente?",
+      "file": "ui-1f95a3baa7.mp3"
     },
     {
-      "id": "ui-325c8c95c1",
+      "id": "ui-3f5a601e88",
       "voice": "ui",
-      "text": "me vê dois cafés com leite,",
-      "file": "ui-325c8c95c1.mp3"
+      "text": "um guaraná em vez do café.",
+      "file": "ui-3f5a601e88.mp3"
     },
     {
-      "id": "ui-a8b215061f",
+      "id": "ui-2a781fef1e",
       "voice": "ui",
-      "text": "um pão na chapa",
-      "file": "ui-a8b215061f.mp3"
-    },
-    {
-      "id": "ui-d4e9051999",
-      "voice": "ui",
-      "text": "e duas águas pra comer aqui,",
-      "file": "ui-d4e9051999.mp3"
-    },
-    {
-      "id": "ui-9269d62140",
-      "voice": "ui",
-      "text": "Dois pães na chapa",
-      "file": "ui-9269d62140.mp3"
-    },
-    {
-      "id": "ui-bbd5d25a4a",
-      "voice": "ui",
-      "text": "e um café com leite,",
-      "file": "ui-bbd5d25a4a.mp3"
-    },
-    {
-      "id": "ui-303bab599c",
-      "voice": "ui",
-      "text": "um café com leite em vez do café.",
-      "file": "ui-303bab599c.mp3"
-    },
-    {
-      "id": "ui-a598fcb20a",
-      "voice": "ui",
-      "text": "um café em vez do café com leite.",
-      "file": "ui-a598fcb20a.mp3"
-    },
-    {
-      "id": "ui-a026f0714a",
-      "voice": "ui",
-      "text": "me vê um pão",
-      "file": "ui-a026f0714a.mp3"
-    },
-    {
-      "id": "ui-41343c219a",
-      "voice": "ui",
-      "text": "me vê um bolo,",
-      "file": "ui-41343c219a.mp3"
-    },
-    {
-      "id": "ui-728499b566",
-      "voice": "ui",
-      "text": "dois pastéis",
-      "file": "ui-728499b566.mp3"
-    },
-    {
-      "id": "ui-2506858d24",
-      "voice": "ui",
-      "text": "e um guaraná pra viagem.",
-      "file": "ui-2506858d24.mp3"
-    },
-    {
-      "id": "ui-fd27d02d32",
-      "voice": "ui",
-      "text": "Me vê dois pães de queijo",
-      "file": "ui-fd27d02d32.mp3"
-    },
-    {
-      "id": "ui-d888fb0c21",
-      "voice": "ui",
-      "text": "e uma coxinha pra comer aqui,",
-      "file": "ui-d888fb0c21.mp3"
-    },
-    {
-      "id": "ui-83fd5d8ea5",
-      "voice": "ui",
-      "text": "e mais um pão de queijo!",
-      "file": "ui-83fd5d8ea5.mp3"
-    },
-    {
-      "id": "ui-4100b9266b",
-      "voice": "ui",
-      "text": "e um café.",
-      "file": "ui-4100b9266b.mp3"
-    },
-    {
-      "id": "ui-314666c7cb",
-      "voice": "ui",
-      "text": "Bom dia!",
-      "file": "ui-314666c7cb.mp3"
-    },
-    {
-      "id": "ui-717eb917d8",
-      "voice": "ui",
-      "text": "Me vê dois bolos",
-      "file": "ui-717eb917d8.mp3"
-    },
-    {
-      "id": "ui-92cd8e0fc5",
-      "voice": "ui",
-      "text": "sem açúcar pra comer aqui.",
-      "file": "ui-92cd8e0fc5.mp3"
-    },
-    {
-      "id": "ui-75cb876b7f",
-      "voice": "ui",
-      "text": "Boa noite!",
-      "file": "ui-75cb876b7f.mp3"
-    },
-    {
-      "id": "ui-4e4f5e9501",
-      "voice": "ui",
-      "text": "Dois pastéis,",
-      "file": "ui-4e4f5e9501.mp3"
-    },
-    {
-      "id": "ui-7e197020ca",
-      "voice": "ui",
-      "text": "e um pão de queijo pra viagem,",
-      "file": "ui-7e197020ca.mp3"
-    },
-    {
-      "id": "ui-cb69a42a62",
-      "voice": "ui",
-      "text": "um café com leite em vez do suco de laranja.",
-      "file": "ui-cb69a42a62.mp3"
-    },
-    {
-      "id": "ui-44087e967b",
-      "voice": "ui",
-      "text": "um guaraná em vez do café com leite.",
-      "file": "ui-44087e967b.mp3"
-    },
-    {
-      "id": "ui-0526ff5f01",
-      "voice": "ui",
-      "text": "me vê um café",
-      "file": "ui-0526ff5f01.mp3"
-    },
-    {
-      "id": "ui-f98eb9da35",
-      "voice": "ui",
-      "text": "me vê um café com leite,",
-      "file": "ui-f98eb9da35.mp3"
-    },
-    {
-      "id": "ui-1d96a5e80a",
-      "voice": "ui",
-      "text": "dois pães de queijo",
-      "file": "ui-1d96a5e80a.mp3"
-    },
-    {
-      "id": "ui-83a2856a3c",
-      "voice": "ui",
-      "text": "e uma água pra comer aqui.",
-      "file": "ui-83a2856a3c.mp3"
-    },
-    {
-      "id": "ui-f98ec44f0b",
-      "voice": "ui",
-      "text": "um suco de laranja em vez do café com leite.",
-      "file": "ui-f98ec44f0b.mp3"
-    },
-    {
-      "id": "ui-a8266aad6f",
-      "voice": "ui",
-      "text": "Dois pães",
-      "file": "ui-a8266aad6f.mp3"
-    },
-    {
-      "id": "ui-0a5dbc3c09",
-      "voice": "ui",
-      "text": "e três cafés,",
-      "file": "ui-0a5dbc3c09.mp3"
-    },
-    {
-      "id": "ui-585aa4db20",
-      "voice": "ui",
-      "text": "Duas coxinhas",
-      "file": "ui-585aa4db20.mp3"
-    },
-    {
-      "id": "ui-3f4dfa56ca",
-      "voice": "ui",
-      "text": "e três pães de queijo pra comer aqui,",
-      "file": "ui-3f4dfa56ca.mp3"
-    },
-    {
-      "id": "ui-b7acb9aaa3",
-      "voice": "ui",
-      "text": "e três pães,",
-      "file": "ui-b7acb9aaa3.mp3"
-    },
-    {
-      "id": "ui-5ab930490f",
-      "voice": "ui",
-      "text": "Me vê dois sucos de laranja",
-      "file": "ui-5ab930490f.mp3"
-    },
-    {
-      "id": "ui-e6b0364178",
-      "voice": "ui",
-      "text": "e três pastéis pra comer aqui,",
-      "file": "ui-e6b0364178.mp3"
-    },
-    {
-      "id": "ui-9a0d3f33ec",
-      "voice": "ui",
-      "text": "me vê dois cafés,",
-      "file": "ui-9a0d3f33ec.mp3"
-    },
-    {
-      "id": "ui-bedf1e285b",
-      "voice": "ui",
-      "text": "um guaraná",
-      "file": "ui-bedf1e285b.mp3"
-    },
-    {
-      "id": "ui-212a937bf3",
-      "voice": "ui",
-      "text": "e dois sucos de laranja pra comer aqui,",
-      "file": "ui-212a937bf3.mp3"
-    },
-    {
-      "id": "ui-517717e1bc",
-      "voice": "ui",
-      "text": "e mais um guaraná!",
-      "file": "ui-517717e1bc.mp3"
-    },
-    {
-      "id": "ui-35f25ae402",
-      "voice": "ui",
-      "text": "e dois cafés,",
-      "file": "ui-35f25ae402.mp3"
-    },
-    {
-      "id": "ui-87dc22b4ff",
-      "voice": "ui",
-      "text": "Me vê dois bolos,",
-      "file": "ui-87dc22b4ff.mp3"
-    },
-    {
-      "id": "ui-90ae82f807",
-      "voice": "ui",
-      "text": "duas coxinhas",
-      "file": "ui-90ae82f807.mp3"
-    },
-    {
-      "id": "ui-c1eeed8c95",
-      "voice": "ui",
-      "text": "e três pães na chapa pra viagem.",
-      "file": "ui-c1eeed8c95.mp3"
-    },
-    {
-      "id": "ui-9cb0f89166",
-      "voice": "ui",
-      "text": "Me vê um café.",
-      "file": "ui-9cb0f89166.mp3"
-    },
-    {
-      "id": "ui-4ec091b263",
-      "voice": "ui",
-      "text": "Uma água,",
-      "file": "ui-4ec091b263.mp3"
-    },
-    {
-      "id": "ui-99ddbafb71",
-      "voice": "ui",
-      "text": "e mais uma água!",
-      "file": "ui-99ddbafb71.mp3"
-    },
-    {
-      "id": "ui-3e641bd662",
-      "voice": "ui",
-      "text": "Me vê um pão,",
-      "file": "ui-3e641bd662.mp3"
-    },
-    {
-      "id": "ui-27fc53fe8f",
-      "voice": "ui",
-      "text": "Me vê um café,",
-      "file": "ui-27fc53fe8f.mp3"
-    },
-    {
-      "id": "ui-2de22586d5",
-      "voice": "ui",
-      "text": "Me vê um pão",
-      "file": "ui-2de22586d5.mp3"
-    },
-    {
-      "id": "ui-a834598990",
-      "voice": "ui",
-      "text": "Três pães",
-      "file": "ui-a834598990.mp3"
+      "text": "Um café",
+      "file": "ui-2a781fef1e.mp3"
     },
     {
       "id": "ui-5253ea52f4",
@@ -5509,16 +5059,34 @@
       "file": "ui-5253ea52f4.mp3"
     },
     {
-      "id": "ui-01b31ebcc4",
+      "id": "ui-8844ed928e",
       "voice": "ui",
-      "text": "um café em vez da água.",
-      "file": "ui-01b31ebcc4.mp3"
+      "text": "um suco de laranja em vez da água.",
+      "file": "ui-8844ed928e.mp3"
     },
     {
-      "id": "ui-e7ca63bdfb",
+      "id": "ui-4100b9266b",
       "voice": "ui",
-      "text": "Me vê dois cafés.",
-      "file": "ui-e7ca63bdfb.mp3"
+      "text": "e um café.",
+      "file": "ui-4100b9266b.mp3"
+    },
+    {
+      "id": "ui-7ba7598614",
+      "voice": "ui",
+      "text": "me vê um pão na chapa,",
+      "file": "ui-7ba7598614.mp3"
+    },
+    {
+      "id": "ui-22e9b1ffff",
+      "voice": "ui",
+      "text": "uma água",
+      "file": "ui-22e9b1ffff.mp3"
+    },
+    {
+      "id": "ui-d888fb0c21",
+      "voice": "ui",
+      "text": "e uma coxinha pra comer aqui,",
+      "file": "ui-d888fb0c21.mp3"
     },
     {
       "id": "ui-d36873b197",
@@ -5527,46 +5095,70 @@
       "file": "ui-d36873b197.mp3"
     },
     {
+      "id": "ui-32a2105735",
+      "voice": "ui",
+      "text": "Eu quero um café",
+      "file": "ui-32a2105735.mp3"
+    },
+    {
+      "id": "ui-2b2b461c2e",
+      "voice": "ui",
+      "text": "e um pão,",
+      "file": "ui-2b2b461c2e.mp3"
+    },
+    {
+      "id": "ui-78a7dcbba5",
+      "voice": "ui",
+      "text": "e é pra viagem!",
+      "file": "ui-78a7dcbba5.mp3"
+    },
+    {
+      "id": "ui-e3800374d2",
+      "voice": "ui",
+      "text": "Eu quero uma água",
+      "file": "ui-e3800374d2.mp3"
+    },
+    {
+      "id": "ui-7557c16af7",
+      "voice": "ui",
+      "text": "e um pão de queijo,",
+      "file": "ui-7557c16af7.mp3"
+    },
+    {
+      "id": "ui-525158804f",
+      "voice": "ui",
+      "text": "por favor,",
+      "file": "ui-525158804f.mp3"
+    },
+    {
+      "id": "ui-01b31ebcc4",
+      "voice": "ui",
+      "text": "um café em vez da água.",
+      "file": "ui-01b31ebcc4.mp3"
+    },
+    {
+      "id": "ui-314666c7cb",
+      "voice": "ui",
+      "text": "Bom dia!",
+      "file": "ui-314666c7cb.mp3"
+    },
+    {
       "id": "ui-f093c1bcda",
       "voice": "ui",
       "text": "Boa tarde!",
       "file": "ui-f093c1bcda.mp3"
     },
     {
-      "id": "ui-80820e22a7",
+      "id": "ui-b11e14d845",
       "voice": "ui",
-      "text": "Me vê três pães.",
-      "file": "ui-80820e22a7.mp3"
+      "text": "Me vê um pão de queijo",
+      "file": "ui-b11e14d845.mp3"
     },
     {
-      "id": "ui-f608bf30f0",
+      "id": "ui-e4c7e43dac",
       "voice": "ui",
-      "text": "e três cafés.",
-      "file": "ui-f608bf30f0.mp3"
-    },
-    {
-      "id": "ui-66639771b7",
-      "voice": "ui",
-      "text": "um café com leite em vez da água.",
-      "file": "ui-66639771b7.mp3"
-    },
-    {
-      "id": "ui-09857a3905",
-      "voice": "ui",
-      "text": "Um pão",
-      "file": "ui-09857a3905.mp3"
-    },
-    {
-      "id": "ui-3957b92636",
-      "voice": "ui",
-      "text": "Um pastel",
-      "file": "ui-3957b92636.mp3"
-    },
-    {
-      "id": "ui-aa765baf54",
-      "voice": "ui",
-      "text": "e três cafés pra comer aqui,",
-      "file": "ui-aa765baf54.mp3"
+      "text": "Eu queria um café",
+      "file": "ui-e4c7e43dac.mp3"
     },
     {
       "id": "ui-7ec2f1bb22",
@@ -5575,10 +5167,418 @@
       "file": "ui-7ec2f1bb22.mp3"
     },
     {
-      "id": "ui-332381b6eb",
+      "id": "ui-0da6842cc7",
       "voice": "ui",
-      "text": "uma água em vez do café.",
-      "file": "ui-332381b6eb.mp3"
+      "text": "Eu quero um suco de laranja",
+      "file": "ui-0da6842cc7.mp3"
+    },
+    {
+      "id": "ui-bbd5d25a4a",
+      "voice": "ui",
+      "text": "e um café com leite,",
+      "file": "ui-bbd5d25a4a.mp3"
+    },
+    {
+      "id": "ui-c5f4ad9d21",
+      "voice": "ui",
+      "text": "uma água em vez do café com leite.",
+      "file": "ui-c5f4ad9d21.mp3"
+    },
+    {
+      "id": "ui-549c2d0493",
+      "voice": "ui",
+      "text": "Eu queria um café.",
+      "file": "ui-549c2d0493.mp3"
+    },
+    {
+      "id": "ui-0a44d377df",
+      "voice": "ui",
+      "text": "Eu queria um suco de laranja,",
+      "file": "ui-0a44d377df.mp3"
+    },
+    {
+      "id": "ui-6ed5c1513a",
+      "voice": "ui",
+      "text": "Vou querer um pão.",
+      "file": "ui-6ed5c1513a.mp3"
+    },
+    {
+      "id": "ui-0526ff5f01",
+      "voice": "ui",
+      "text": "me vê um café",
+      "file": "ui-0526ff5f01.mp3"
+    },
+    {
+      "id": "ui-303bab599c",
+      "voice": "ui",
+      "text": "um café com leite em vez do café.",
+      "file": "ui-303bab599c.mp3"
+    },
+    {
+      "id": "ui-f98eb9da35",
+      "voice": "ui",
+      "text": "me vê um café com leite,",
+      "file": "ui-f98eb9da35.mp3"
+    },
+    {
+      "id": "ui-a8b215061f",
+      "voice": "ui",
+      "text": "um pão na chapa",
+      "file": "ui-a8b215061f.mp3"
+    },
+    {
+      "id": "ui-1c36c13a7d",
+      "voice": "ui",
+      "text": "e uma água pra comer aqui,",
+      "file": "ui-1c36c13a7d.mp3"
+    },
+    {
+      "id": "ui-f98ec44f0b",
+      "voice": "ui",
+      "text": "um suco de laranja em vez do café com leite.",
+      "file": "ui-f98ec44f0b.mp3"
+    },
+    {
+      "id": "ui-2de22586d5",
+      "voice": "ui",
+      "text": "Me vê um pão",
+      "file": "ui-2de22586d5.mp3"
+    },
+    {
+      "id": "ui-98dc34d39d",
+      "voice": "ui",
+      "text": "e um café extra quente,",
+      "file": "ui-98dc34d39d.mp3"
+    },
+    {
+      "id": "ui-3e641bd662",
+      "voice": "ui",
+      "text": "Me vê um pão,",
+      "file": "ui-3e641bd662.mp3"
+    },
+    {
+      "id": "ui-da5cd74494",
+      "voice": "ui",
+      "text": "Eu quero um pão,",
+      "file": "ui-da5cd74494.mp3"
+    },
+    {
+      "id": "ui-ea31821b4b",
+      "voice": "ui",
+      "text": "Me vê um café com leite,",
+      "file": "ui-ea31821b4b.mp3"
+    },
+    {
+      "id": "ui-44087e967b",
+      "voice": "ui",
+      "text": "um guaraná em vez do café com leite.",
+      "file": "ui-44087e967b.mp3"
+    },
+    {
+      "id": "ui-d396adcb22",
+      "voice": "ui",
+      "text": "e um pão na chapa,",
+      "file": "ui-d396adcb22.mp3"
+    },
+    {
+      "id": "ui-1a4ce10b49",
+      "voice": "ui",
+      "text": "Me vê um café extra quente",
+      "file": "ui-1a4ce10b49.mp3"
+    },
+    {
+      "id": "ui-b8351c64fc",
+      "voice": "ui",
+      "text": "Me vê um bolo",
+      "file": "ui-b8351c64fc.mp3"
+    },
+    {
+      "id": "ui-a39e63a8fe",
+      "voice": "ui",
+      "text": "e um pastel,",
+      "file": "ui-a39e63a8fe.mp3"
+    },
+    {
+      "id": "ui-09857a3905",
+      "voice": "ui",
+      "text": "Um pão",
+      "file": "ui-09857a3905.mp3"
+    },
+    {
+      "id": "ui-eef548f2ca",
+      "voice": "ui",
+      "text": "Me vê um pastel,",
+      "file": "ui-eef548f2ca.mp3"
+    },
+    {
+      "id": "ui-13c448128b",
+      "voice": "ui",
+      "text": "Me vê um café com leite extra quente",
+      "file": "ui-13c448128b.mp3"
+    },
+    {
+      "id": "ui-ad188dd625",
+      "voice": "ui",
+      "text": "e uma coxinha,",
+      "file": "ui-ad188dd625.mp3"
+    },
+    {
+      "id": "ui-41343c219a",
+      "voice": "ui",
+      "text": "me vê um bolo,",
+      "file": "ui-41343c219a.mp3"
+    },
+    {
+      "id": "ui-c819ce2def",
+      "voice": "ui",
+      "text": "um pastel",
+      "file": "ui-c819ce2def.mp3"
+    },
+    {
+      "id": "ui-2506858d24",
+      "voice": "ui",
+      "text": "e um guaraná pra viagem.",
+      "file": "ui-2506858d24.mp3"
+    },
+    {
+      "id": "ui-ea84c71647",
+      "voice": "ui",
+      "text": "um suco de laranja em vez do guaraná.",
+      "file": "ui-ea84c71647.mp3"
+    },
+    {
+      "id": "ui-c2947a8d37",
+      "voice": "ui",
+      "text": "e um bolo,",
+      "file": "ui-c2947a8d37.mp3"
+    },
+    {
+      "id": "ui-65f98fc235",
+      "voice": "ui",
+      "text": "pra viagem?",
+      "file": "ui-65f98fc235.mp3"
+    },
+    {
+      "id": "ui-a67f31a951",
+      "voice": "ui",
+      "text": "e um pão?",
+      "file": "ui-a67f31a951.mp3"
+    },
+    {
+      "id": "ui-1543763fda",
+      "voice": "ui",
+      "text": "Me vê uma coxinha,",
+      "file": "ui-1543763fda.mp3"
+    },
+    {
+      "id": "ui-d27845026a",
+      "voice": "ui",
+      "text": "Eu queria um café extra quente",
+      "file": "ui-d27845026a.mp3"
+    },
+    {
+      "id": "ui-06e1454cc0",
+      "voice": "ui",
+      "text": "Eu quero um café com leite",
+      "file": "ui-06e1454cc0.mp3"
+    },
+    {
+      "id": "ui-c0c7cea0e5",
+      "voice": "ui",
+      "text": "um pão de queijo",
+      "file": "ui-c0c7cea0e5.mp3"
+    },
+    {
+      "id": "ui-83a2856a3c",
+      "voice": "ui",
+      "text": "e uma água pra comer aqui.",
+      "file": "ui-83a2856a3c.mp3"
+    },
+    {
+      "id": "ui-11cabf25f2",
+      "voice": "ui",
+      "text": "Pode ser um pão",
+      "file": "ui-11cabf25f2.mp3"
+    },
+    {
+      "id": "ui-d322ea92e7",
+      "voice": "ui",
+      "text": "e um café?",
+      "file": "ui-d322ea92e7.mp3"
+    },
+    {
+      "id": "ui-4ec091b263",
+      "voice": "ui",
+      "text": "Uma água,",
+      "file": "ui-4ec091b263.mp3"
+    },
+    {
+      "id": "ui-66639771b7",
+      "voice": "ui",
+      "text": "um café com leite em vez da água.",
+      "file": "ui-66639771b7.mp3"
+    },
+    {
+      "id": "ui-c23b38457e",
+      "voice": "ui",
+      "text": "e um misto-quente,",
+      "file": "ui-c23b38457e.mp3"
+    },
+    {
+      "id": "ui-f53249e27c",
+      "voice": "ui",
+      "text": "me vê um café,",
+      "file": "ui-f53249e27c.mp3"
+    },
+    {
+      "id": "ui-bedf1e285b",
+      "voice": "ui",
+      "text": "um guaraná",
+      "file": "ui-bedf1e285b.mp3"
+    },
+    {
+      "id": "ui-5cd6bac7ea",
+      "voice": "ui",
+      "text": "e um suco de laranja pra comer aqui,",
+      "file": "ui-5cd6bac7ea.mp3"
+    },
+    {
+      "id": "ui-c7ccba5166",
+      "voice": "ui",
+      "text": "um café com leite em vez do guaraná.",
+      "file": "ui-c7ccba5166.mp3"
+    },
+    {
+      "id": "ui-67d10dd7ef",
+      "voice": "ui",
+      "text": "e um café extra quente.",
+      "file": "ui-67d10dd7ef.mp3"
+    },
+    {
+      "id": "ui-e0caf925d2",
+      "voice": "ui",
+      "text": "Me vê um suco de laranja",
+      "file": "ui-e0caf925d2.mp3"
+    },
+    {
+      "id": "ui-cb69a42a62",
+      "voice": "ui",
+      "text": "um café com leite em vez do suco de laranja.",
+      "file": "ui-cb69a42a62.mp3"
+    },
+    {
+      "id": "ui-9cb0f89166",
+      "voice": "ui",
+      "text": "Me vê um café.",
+      "file": "ui-9cb0f89166.mp3"
+    },
+    {
+      "id": "ui-59452e2d01",
+      "voice": "ui",
+      "text": "Me vê um bolo,",
+      "file": "ui-59452e2d01.mp3"
+    },
+    {
+      "id": "ui-750311cd4a",
+      "voice": "ui",
+      "text": "Me vê um pão.",
+      "file": "ui-750311cd4a.mp3"
+    },
+    {
+      "id": "ui-add28ac743",
+      "voice": "ui",
+      "text": "Me vê um pão de queijo,",
+      "file": "ui-add28ac743.mp3"
+    },
+    {
+      "id": "ui-3df7642bfe",
+      "voice": "ui",
+      "text": "Me vê um café extra quente,",
+      "file": "ui-3df7642bfe.mp3"
+    },
+    {
+      "id": "ui-e87f805ce5",
+      "voice": "ui",
+      "text": "Me vê um café com leite extra quente,",
+      "file": "ui-e87f805ce5.mp3"
+    },
+    {
+      "id": "ui-f948636138",
+      "voice": "ui",
+      "text": "Eu queria um café com leite extra quente,",
+      "file": "ui-f948636138.mp3"
+    },
+    {
+      "id": "ui-a598fcb20a",
+      "voice": "ui",
+      "text": "um café em vez do café com leite.",
+      "file": "ui-a598fcb20a.mp3"
+    },
+    {
+      "id": "ui-b5146fa6ca",
+      "voice": "ui",
+      "text": "Me vê um café extra quente.",
+      "file": "ui-b5146fa6ca.mp3"
+    },
+    {
+      "id": "ui-abbea7bb02",
+      "voice": "ui",
+      "text": "Me vê uma coxinha",
+      "file": "ui-abbea7bb02.mp3"
+    },
+    {
+      "id": "ui-6e1d5b4881",
+      "voice": "ui",
+      "text": "pra comer aqui?",
+      "file": "ui-6e1d5b4881.mp3"
+    },
+    {
+      "id": "ui-eff9d04264",
+      "voice": "ui",
+      "text": "Um suco de laranja,",
+      "file": "ui-eff9d04264.mp3"
+    },
+    {
+      "id": "ui-52e604cf96",
+      "voice": "ui",
+      "text": "um guaraná em vez do suco de laranja.",
+      "file": "ui-52e604cf96.mp3"
+    },
+    {
+      "id": "ui-0e5155d9ef",
+      "voice": "ui",
+      "text": "Eu quero um bolo,",
+      "file": "ui-0e5155d9ef.mp3"
+    },
+    {
+      "id": "ui-e53c834285",
+      "voice": "ui",
+      "text": "Me vê um café",
+      "file": "ui-e53c834285.mp3"
+    },
+    {
+      "id": "ui-ad5d14f97e",
+      "voice": "ui",
+      "text": "Eu quero um pão",
+      "file": "ui-ad5d14f97e.mp3"
+    },
+    {
+      "id": "ui-c539084a3b",
+      "voice": "ui",
+      "text": "Pode ser uma coxinha",
+      "file": "ui-c539084a3b.mp3"
+    },
+    {
+      "id": "ui-aa9f5d4f1b",
+      "voice": "ui",
+      "text": "Eu queria um bolo",
+      "file": "ui-aa9f5d4f1b.mp3"
+    },
+    {
+      "id": "ui-0e05216dc8",
+      "voice": "ui",
+      "text": "Me vê um pastel",
+      "file": "ui-0e05216dc8.mp3"
     },
     {
       "id": "ui-332e015550",
@@ -5593,22 +5593,10 @@
       "file": "ui-70175b797a.mp3"
     },
     {
-      "id": "ui-68fc8804aa",
+      "id": "ui-e18bcf16ac",
       "voice": "ui",
-      "text": "e dois cafés com leite pra viagem,",
-      "file": "ui-68fc8804aa.mp3"
-    },
-    {
-      "id": "ui-26bd937eef",
-      "voice": "ui",
-      "text": "e um bolo pra comer aqui.",
-      "file": "ui-26bd937eef.mp3"
-    },
-    {
-      "id": "ui-addd5464b6",
-      "voice": "ui",
-      "text": "me vê uma coxinha,",
-      "file": "ui-addd5464b6.mp3"
+      "text": "e um café com leite pra viagem,",
+      "file": "ui-e18bcf16ac.mp3"
     },
     {
       "id": "ui-92a907467f",
@@ -5623,112 +5611,82 @@
       "file": "ui-3b2f3b3bf1.mp3"
     },
     {
-      "id": "ui-ad414d9223",
+      "id": "ui-bed7ded6db",
       "voice": "ui",
-      "text": "Me vê dois cafés",
-      "file": "ui-ad414d9223.mp3"
+      "text": "Eu quero um café extra quente",
+      "file": "ui-bed7ded6db.mp3"
     },
     {
-      "id": "ui-c047293706",
+      "id": "ui-32f470f752",
       "voice": "ui",
-      "text": "Me vê dois pães de queijo,",
-      "file": "ui-c047293706.mp3"
+      "text": "um pão",
+      "file": "ui-32f470f752.mp3"
     },
     {
-      "id": "ui-22e9b1ffff",
+      "id": "ui-59a9afde7f",
       "voice": "ui",
-      "text": "uma água",
-      "file": "ui-22e9b1ffff.mp3"
+      "text": "Me vê uma água",
+      "file": "ui-59a9afde7f.mp3"
     },
     {
-      "id": "ui-3cf520a969",
+      "id": "ui-2073afd4cd",
       "voice": "ui",
-      "text": "e dois pães na chapa pra viagem.",
-      "file": "ui-3cf520a969.mp3"
+      "text": "um misto-quente",
+      "file": "ui-2073afd4cd.mp3"
     },
     {
-      "id": "ui-2a781fef1e",
+      "id": "ui-fb5e53537a",
       "voice": "ui",
-      "text": "Um café",
-      "file": "ui-2a781fef1e.mp3"
+      "text": "Me vê uma água,",
+      "file": "ui-fb5e53537a.mp3"
     },
     {
-      "id": "ui-45482cc59d",
+      "id": "ui-90f4c329a4",
       "voice": "ui",
-      "text": "dois mistos-quentes",
-      "file": "ui-45482cc59d.mp3"
+      "text": "Pode ser um café com leite,",
+      "file": "ui-90f4c329a4.mp3"
     },
     {
-      "id": "ui-75c5f5bf63",
+      "id": "ui-192b1f1c63",
       "voice": "ui",
-      "text": "e três guaranás,",
-      "file": "ui-75c5f5bf63.mp3"
+      "text": "Um pão,",
+      "file": "ui-192b1f1c63.mp3"
     },
     {
-      "id": "ui-cb2a6502fa",
+      "id": "ui-34a7a915aa",
       "voice": "ui",
-      "text": "bem quente pra comer aqui.",
-      "file": "ui-cb2a6502fa.mp3"
+      "text": "Eu quero uma coxinha",
+      "file": "ui-34a7a915aa.mp3"
     },
     {
-      "id": "ui-e87dd5fac5",
+      "id": "ui-27fc53fe8f",
       "voice": "ui",
-      "text": "Me vê três cafés com leite,",
-      "file": "ui-e87dd5fac5.mp3"
+      "text": "Me vê um café,",
+      "file": "ui-27fc53fe8f.mp3"
     },
     {
-      "id": "ui-e8dbd2ce66",
+      "id": "ui-e31fefb504",
       "voice": "ui",
-      "text": "e dois cafés pra viagem,",
-      "file": "ui-e8dbd2ce66.mp3"
+      "text": "Me vê um café?",
+      "file": "ui-e31fefb504.mp3"
     },
     {
-      "id": "ui-f2c19b2f1d",
+      "id": "ui-09c8689bc3",
       "voice": "ui",
-      "text": "e três pães.",
-      "file": "ui-f2c19b2f1d.mp3"
+      "text": "Uma água",
+      "file": "ui-09c8689bc3.mp3"
     },
     {
-      "id": "ui-5fbdc1ae09",
+      "id": "ui-42570996ac",
       "voice": "ui",
-      "text": "Me vê duas águas,",
-      "file": "ui-5fbdc1ae09.mp3"
+      "text": "Eu queria um pão",
+      "file": "ui-42570996ac.mp3"
     },
     {
-      "id": "ui-4d677867e2",
+      "id": "ui-1b2b6c6fea",
       "voice": "ui",
-      "text": "três pães",
-      "file": "ui-4d677867e2.mp3"
-    },
-    {
-      "id": "ui-111fe9b6ec",
-      "voice": "ui",
-      "text": "e três cafés com leite pra comer aqui.",
-      "file": "ui-111fe9b6ec.mp3"
-    },
-    {
-      "id": "ui-bf6bd51bec",
-      "voice": "ui",
-      "text": "e um misto-quente pra viagem.",
-      "file": "ui-bf6bd51bec.mp3"
-    },
-    {
-      "id": "ui-750311cd4a",
-      "voice": "ui",
-      "text": "Me vê um pão.",
-      "file": "ui-750311cd4a.mp3"
-    },
-    {
-      "id": "ui-951ab88fcf",
-      "voice": "ui",
-      "text": "Me vê dois pães.",
-      "file": "ui-951ab88fcf.mp3"
-    },
-    {
-      "id": "ui-d16f19e59a",
-      "voice": "ui",
-      "text": "Dois pães na chapa,",
-      "file": "ui-d16f19e59a.mp3"
+      "text": "Um café extra quente",
+      "file": "ui-1b2b6c6fea.mp3"
     },
     {
       "id": "ui-854af980ad",
@@ -5743,202 +5701,28 @@
       "file": "ui-b60626a907.mp3"
     },
     {
-      "id": "ui-31983608b2",
+      "id": "ui-748d5278fb",
       "voice": "ui",
-      "text": "dois pães na chapa",
-      "file": "ui-31983608b2.mp3"
+      "text": "Eu queria um café,",
+      "file": "ui-748d5278fb.mp3"
     },
     {
-      "id": "ui-6c932213f2",
+      "id": "ui-92ada01267",
       "voice": "ui",
-      "text": "e dois mistos-quentes pra viagem.",
-      "file": "ui-6c932213f2.mp3"
+      "text": "Pode ser um pão,",
+      "file": "ui-92ada01267.mp3"
     },
     {
-      "id": "ui-36f1623939",
+      "id": "ui-28e9fa9ac5",
       "voice": "ui",
-      "text": "Me vê um pão na chapa",
-      "file": "ui-36f1623939.mp3"
+      "text": "um café extra quente",
+      "file": "ui-28e9fa9ac5.mp3"
     },
     {
-      "id": "ui-79495a9787",
+      "id": "ui-96f7ba5c26",
       "voice": "ui",
-      "text": "e duas coxinhas pra viagem.",
-      "file": "ui-79495a9787.mp3"
-    },
-    {
-      "id": "ui-389d7897a7",
-      "voice": "ui",
-      "text": "Três mistos-quentes,",
-      "file": "ui-389d7897a7.mp3"
-    },
-    {
-      "id": "ui-4997d7f61c",
-      "voice": "ui",
-      "text": "dois pães",
-      "file": "ui-4997d7f61c.mp3"
-    },
-    {
-      "id": "ui-af429feebe",
-      "voice": "ui",
-      "text": "e um bolo pra comer aqui,",
-      "file": "ui-af429feebe.mp3"
-    },
-    {
-      "id": "ui-8748af8aca",
-      "voice": "ui",
-      "text": "e dois pães pra comer aqui.",
-      "file": "ui-8748af8aca.mp3"
-    },
-    {
-      "id": "ui-ea3ce38b53",
-      "voice": "ui",
-      "text": "e dois pães.",
-      "file": "ui-ea3ce38b53.mp3"
-    },
-    {
-      "id": "ui-36df157b4e",
-      "voice": "ui",
-      "text": "e um misto-quente pra comer aqui.",
-      "file": "ui-36df157b4e.mp3"
-    },
-    {
-      "id": "ui-265235d726",
-      "voice": "ui",
-      "text": "e mais um misto-quente!",
-      "file": "ui-265235d726.mp3"
-    },
-    {
-      "id": "ui-e53c834285",
-      "voice": "ui",
-      "text": "Me vê um café",
-      "file": "ui-e53c834285.mp3"
-    },
-    {
-      "id": "ui-fc6d999373",
-      "voice": "ui",
-      "text": "Um pão de queijo",
-      "file": "ui-fc6d999373.mp3"
-    },
-    {
-      "id": "ui-ee406e93f3",
-      "voice": "ui",
-      "text": "e dois mistos-quentes pra viagem,",
-      "file": "ui-ee406e93f3.mp3"
-    },
-    {
-      "id": "ui-e902fec030",
-      "voice": "ui",
-      "text": "Me vê um suco de laranja,",
-      "file": "ui-e902fec030.mp3"
-    },
-    {
-      "id": "ui-0ed85f3e2d",
-      "voice": "ui",
-      "text": "três bolos",
-      "file": "ui-0ed85f3e2d.mp3"
-    },
-    {
-      "id": "ui-5b3ae0cc85",
-      "voice": "ui",
-      "text": "e dois pastéis pra comer aqui.",
-      "file": "ui-5b3ae0cc85.mp3"
-    },
-    {
-      "id": "ui-add28ac743",
-      "voice": "ui",
-      "text": "Me vê um pão de queijo,",
-      "file": "ui-add28ac743.mp3"
-    },
-    {
-      "id": "ui-12de9369a5",
-      "voice": "ui",
-      "text": "um bolo",
-      "file": "ui-12de9369a5.mp3"
-    },
-    {
-      "id": "ui-a24abcf18d",
-      "voice": "ui",
-      "text": "e duas águas pra viagem.",
-      "file": "ui-a24abcf18d.mp3"
-    },
-    {
-      "id": "ui-e5e7839af3",
-      "voice": "ui",
-      "text": "me vê duas águas,",
-      "file": "ui-e5e7839af3.mp3"
-    },
-    {
-      "id": "ui-a1e57b8242",
-      "voice": "ui",
-      "text": "e duas coxinhas pra viagem,",
-      "file": "ui-a1e57b8242.mp3"
-    },
-    {
-      "id": "ui-6f7df10ab6",
-      "voice": "ui",
-      "text": "Uma coxinha,",
-      "file": "ui-6f7df10ab6.mp3"
-    },
-    {
-      "id": "ui-8736f81b3b",
-      "voice": "ui",
-      "text": "três pães de queijo",
-      "file": "ui-8736f81b3b.mp3"
-    },
-    {
-      "id": "ui-c712e51bcb",
-      "voice": "ui",
-      "text": "e três cafés com leite pra viagem,",
-      "file": "ui-c712e51bcb.mp3"
-    },
-    {
-      "id": "ui-59a9afde7f",
-      "voice": "ui",
-      "text": "Me vê uma água",
-      "file": "ui-59a9afde7f.mp3"
-    },
-    {
-      "id": "ui-fe53503033",
-      "voice": "ui",
-      "text": "e um café com leite pra comer aqui.",
-      "file": "ui-fe53503033.mp3"
-    },
-    {
-      "id": "ui-d9849daf61",
-      "voice": "ui",
-      "text": "Me vê um guaraná,",
-      "file": "ui-d9849daf61.mp3"
-    },
-    {
-      "id": "ui-571ed89f3a",
-      "voice": "ui",
-      "text": "e um café pra comer aqui.",
-      "file": "ui-571ed89f3a.mp3"
-    },
-    {
-      "id": "ui-ea84c71647",
-      "voice": "ui",
-      "text": "um suco de laranja em vez do guaraná.",
-      "file": "ui-ea84c71647.mp3"
-    },
-    {
-      "id": "ui-9e3d003b22",
-      "voice": "ui",
-      "text": "Me vê três pães",
-      "file": "ui-9e3d003b22.mp3"
-    },
-    {
-      "id": "ui-ef160197d8",
-      "voice": "ui",
-      "text": "Três pães,",
-      "file": "ui-ef160197d8.mp3"
-    },
-    {
-      "id": "ui-5ceddffc83",
-      "voice": "ui",
-      "text": "bem quente pra viagem,",
-      "file": "ui-5ceddffc83.mp3"
+      "text": "Vou querer um café",
+      "file": "ui-96f7ba5c26.mp3"
     },
     {
       "id": "ui-a4b7463795",
@@ -5947,232 +5731,34 @@
       "file": "ui-a4b7463795.mp3"
     },
     {
-      "id": "ui-c5f4ad9d21",
+      "id": "ui-12c396727a",
       "voice": "ui",
-      "text": "uma água em vez do café com leite.",
-      "file": "ui-c5f4ad9d21.mp3"
+      "text": "Vou querer um pão,",
+      "file": "ui-12c396727a.mp3"
     },
     {
-      "id": "ui-e5b2d02bf4",
+      "id": "ui-daa725c7cd",
       "voice": "ui",
-      "text": "e três pães pra viagem.",
-      "file": "ui-e5b2d02bf4.mp3"
+      "text": "Eu quero um pão na chapa,",
+      "file": "ui-daa725c7cd.mp3"
     },
     {
-      "id": "ui-8a8888076c",
+      "id": "ui-ed954d9ff7",
       "voice": "ui",
-      "text": "Me vê três pães,",
-      "file": "ui-8a8888076c.mp3"
+      "text": "Vou querer uma coxinha",
+      "file": "ui-ed954d9ff7.mp3"
     },
     {
-      "id": "ui-1c36c13a7d",
+      "id": "ui-dc8fb141c4",
       "voice": "ui",
-      "text": "e uma água pra comer aqui,",
-      "file": "ui-1c36c13a7d.mp3"
+      "text": "e um café extra quente?",
+      "file": "ui-dc8fb141c4.mp3"
     },
     {
-      "id": "ui-bf525a8c8f",
+      "id": "ui-36f1623939",
       "voice": "ui",
-      "text": "sem açúcar,",
-      "file": "ui-bf525a8c8f.mp3"
-    },
-    {
-      "id": "ui-973069b791",
-      "voice": "ui",
-      "text": "dois sucos de laranja",
-      "file": "ui-973069b791.mp3"
-    },
-    {
-      "id": "ui-1571787ca9",
-      "voice": "ui",
-      "text": "Me vê dois sucos de laranja,",
-      "file": "ui-1571787ca9.mp3"
-    },
-    {
-      "id": "ui-79cfb30db3",
-      "voice": "ui",
-      "text": "e dois guaranás pra comer aqui.",
-      "file": "ui-79cfb30db3.mp3"
-    },
-    {
-      "id": "ui-be29fd00a8",
-      "voice": "ui",
-      "text": "Três cafés",
-      "file": "ui-be29fd00a8.mp3"
-    },
-    {
-      "id": "ui-5734ebc542",
-      "voice": "ui",
-      "text": "Me vê três mistos-quentes",
-      "file": "ui-5734ebc542.mp3"
-    },
-    {
-      "id": "ui-f763dd5e6d",
-      "voice": "ui",
-      "text": "e dois pães na chapa pra comer aqui.",
-      "file": "ui-f763dd5e6d.mp3"
-    },
-    {
-      "id": "ui-185a5e15fe",
-      "voice": "ui",
-      "text": "e dois sucos de laranja pra viagem,",
-      "file": "ui-185a5e15fe.mp3"
-    },
-    {
-      "id": "ui-35fa5b941f",
-      "voice": "ui",
-      "text": "Me vê duas coxinhas,",
-      "file": "ui-35fa5b941f.mp3"
-    },
-    {
-      "id": "ui-32f470f752",
-      "voice": "ui",
-      "text": "um pão",
-      "file": "ui-32f470f752.mp3"
-    },
-    {
-      "id": "ui-2dce0cdca1",
-      "voice": "ui",
-      "text": "e um pão de queijo pra comer aqui,",
-      "file": "ui-2dce0cdca1.mp3"
-    },
-    {
-      "id": "ui-8e7edb0242",
-      "voice": "ui",
-      "text": "Três mistos-quentes",
-      "file": "ui-8e7edb0242.mp3"
-    },
-    {
-      "id": "ui-4afe07747c",
-      "voice": "ui",
-      "text": "e dois bolos pra viagem,",
-      "file": "ui-4afe07747c.mp3"
-    },
-    {
-      "id": "ui-2c874f2ec3",
-      "voice": "ui",
-      "text": "me vê um pão de queijo,",
-      "file": "ui-2c874f2ec3.mp3"
-    },
-    {
-      "id": "ui-bf199f5ba0",
-      "voice": "ui",
-      "text": "e dois pães pra comer aqui,",
-      "file": "ui-bf199f5ba0.mp3"
-    },
-    {
-      "id": "ui-c819ce2def",
-      "voice": "ui",
-      "text": "um pastel",
-      "file": "ui-c819ce2def.mp3"
-    },
-    {
-      "id": "ui-45de70bf5e",
-      "voice": "ui",
-      "text": "dois cafés com leite",
-      "file": "ui-45de70bf5e.mp3"
-    },
-    {
-      "id": "ui-0b0c69477f",
-      "voice": "ui",
-      "text": "e três águas pra viagem,",
-      "file": "ui-0b0c69477f.mp3"
-    },
-    {
-      "id": "ui-78a8b3daca",
-      "voice": "ui",
-      "text": "Me vê dois mistos-quentes",
-      "file": "ui-78a8b3daca.mp3"
-    },
-    {
-      "id": "ui-23395b65dc",
-      "voice": "ui",
-      "text": "e dois cafés com leite pra comer aqui,",
-      "file": "ui-23395b65dc.mp3"
-    },
-    {
-      "id": "ui-c23b38457e",
-      "voice": "ui",
-      "text": "e um misto-quente,",
-      "file": "ui-c23b38457e.mp3"
-    },
-    {
-      "id": "ui-1d94a02685",
-      "voice": "ui",
-      "text": "Dois cafés,",
-      "file": "ui-1d94a02685.mp3"
-    },
-    {
-      "id": "ui-8844ed928e",
-      "voice": "ui",
-      "text": "um suco de laranja em vez da água.",
-      "file": "ui-8844ed928e.mp3"
-    },
-    {
-      "id": "ui-d8028a5eae",
-      "voice": "ui",
-      "text": "Me vê dois cafés,",
-      "file": "ui-d8028a5eae.mp3"
-    },
-    {
-      "id": "ui-b8351c64fc",
-      "voice": "ui",
-      "text": "Me vê um bolo",
-      "file": "ui-b8351c64fc.mp3"
-    },
-    {
-      "id": "ui-f65d2faf83",
-      "voice": "ui",
-      "text": "e um pão na chapa pra viagem.",
-      "file": "ui-f65d2faf83.mp3"
-    },
-    {
-      "id": "ui-fb76821825",
-      "voice": "ui",
-      "text": "me vê dois pães,",
-      "file": "ui-fb76821825.mp3"
-    },
-    {
-      "id": "ui-bd4f097675",
-      "voice": "ui",
-      "text": "e dois pastéis pra comer aqui,",
-      "file": "ui-bd4f097675.mp3"
-    },
-    {
-      "id": "ui-b11e14d845",
-      "voice": "ui",
-      "text": "Me vê um pão de queijo",
-      "file": "ui-b11e14d845.mp3"
-    },
-    {
-      "id": "ui-320240cccf",
-      "voice": "ui",
-      "text": "dois bolos",
-      "file": "ui-320240cccf.mp3"
-    },
-    {
-      "id": "ui-59cf7235b8",
-      "voice": "ui",
-      "text": "Um suco de laranja",
-      "file": "ui-59cf7235b8.mp3"
-    },
-    {
-      "id": "ui-f22a2a7d62",
-      "voice": "ui",
-      "text": "e um café pra comer aqui,",
-      "file": "ui-f22a2a7d62.mp3"
-    },
-    {
-      "id": "ui-461daa3f8a",
-      "voice": "ui",
-      "text": "Três águas,",
-      "file": "ui-461daa3f8a.mp3"
-    },
-    {
-      "id": "ui-e18bcf16ac",
-      "voice": "ui",
-      "text": "e um café com leite pra viagem,",
-      "file": "ui-e18bcf16ac.mp3"
+      "text": "Me vê um pão na chapa",
+      "file": "ui-36f1623939.mp3"
     },
     {
       "id": "ui-5d64959f69",
@@ -6181,550 +5767,10 @@
       "file": "ui-5d64959f69.mp3"
     },
     {
-      "id": "ui-d972c643ef",
+      "id": "ui-12de9369a5",
       "voice": "ui",
-      "text": "e uma água pra viagem.",
-      "file": "ui-d972c643ef.mp3"
-    },
-    {
-      "id": "ui-fb5e53537a",
-      "voice": "ui",
-      "text": "Me vê uma água,",
-      "file": "ui-fb5e53537a.mp3"
-    },
-    {
-      "id": "ui-f969ba09ad",
-      "voice": "ui",
-      "text": "e três bolos pra viagem.",
-      "file": "ui-f969ba09ad.mp3"
-    },
-    {
-      "id": "ui-e0caf925d2",
-      "voice": "ui",
-      "text": "Me vê um suco de laranja",
-      "file": "ui-e0caf925d2.mp3"
-    },
-    {
-      "id": "ui-082e19ed1d",
-      "voice": "ui",
-      "text": "me vê dois pastéis,",
-      "file": "ui-082e19ed1d.mp3"
-    },
-    {
-      "id": "ui-bff21062c3",
-      "voice": "ui",
-      "text": "e dois mistos-quentes pra comer aqui,",
-      "file": "ui-bff21062c3.mp3"
-    },
-    {
-      "id": "ui-c0c7cea0e5",
-      "voice": "ui",
-      "text": "um pão de queijo",
-      "file": "ui-c0c7cea0e5.mp3"
-    },
-    {
-      "id": "ui-d18f27829c",
-      "voice": "ui",
-      "text": "e dois pastéis pra viagem,",
-      "file": "ui-d18f27829c.mp3"
-    },
-    {
-      "id": "ui-0e05216dc8",
-      "voice": "ui",
-      "text": "Me vê um pastel",
-      "file": "ui-0e05216dc8.mp3"
-    },
-    {
-      "id": "ui-58e4d73a21",
-      "voice": "ui",
-      "text": "e dois sucos de laranja pra comer aqui.",
-      "file": "ui-58e4d73a21.mp3"
-    },
-    {
-      "id": "ui-90fbb1ce6e",
-      "voice": "ui",
-      "text": "Me vê três mistos-quentes,",
-      "file": "ui-90fbb1ce6e.mp3"
-    },
-    {
-      "id": "ui-26dd82c7a7",
-      "voice": "ui",
-      "text": "e dois cafés com leite pra comer aqui.",
-      "file": "ui-26dd82c7a7.mp3"
-    },
-    {
-      "id": "ui-b8369d3728",
-      "voice": "ui",
-      "text": "e três coxinhas pra comer aqui.",
-      "file": "ui-b8369d3728.mp3"
-    },
-    {
-      "id": "ui-192b1f1c63",
-      "voice": "ui",
-      "text": "Um pão,",
-      "file": "ui-192b1f1c63.mp3"
-    },
-    {
-      "id": "ui-9eeb46c82d",
-      "voice": "ui",
-      "text": "dois cafés",
-      "file": "ui-9eeb46c82d.mp3"
-    },
-    {
-      "id": "ui-cda591639c",
-      "voice": "ui",
-      "text": "e três mistos-quentes pra viagem.",
-      "file": "ui-cda591639c.mp3"
-    },
-    {
-      "id": "ui-134eecc412",
-      "voice": "ui",
-      "text": "me vê dois sucos de laranja,",
-      "file": "ui-134eecc412.mp3"
-    },
-    {
-      "id": "ui-0e7ce99bfb",
-      "voice": "ui",
-      "text": "e dois guaranás pra viagem,",
-      "file": "ui-0e7ce99bfb.mp3"
-    },
-    {
-      "id": "ui-8036b15a23",
-      "voice": "ui",
-      "text": "e dois pães de queijo pra comer aqui.",
-      "file": "ui-8036b15a23.mp3"
-    },
-    {
-      "id": "ui-b6c35b27e4",
-      "voice": "ui",
-      "text": "e um pão pra viagem,",
-      "file": "ui-b6c35b27e4.mp3"
-    },
-    {
-      "id": "ui-0c405e0898",
-      "voice": "ui",
-      "text": "e dois pães de queijo pra comer aqui,",
-      "file": "ui-0c405e0898.mp3"
-    },
-    {
-      "id": "ui-a52b909319",
-      "voice": "ui",
-      "text": "Dois cafés com leite",
-      "file": "ui-a52b909319.mp3"
-    },
-    {
-      "id": "ui-297abded6a",
-      "voice": "ui",
-      "text": "e três coxinhas pra viagem,",
-      "file": "ui-297abded6a.mp3"
-    },
-    {
-      "id": "ui-abbea7bb02",
-      "voice": "ui",
-      "text": "Me vê uma coxinha",
-      "file": "ui-abbea7bb02.mp3"
-    },
-    {
-      "id": "ui-90eff0c007",
-      "voice": "ui",
-      "text": "Me vê três pães de queijo",
-      "file": "ui-90eff0c007.mp3"
-    },
-    {
-      "id": "ui-6026a05842",
-      "voice": "ui",
-      "text": "e três guaranás pra comer aqui,",
-      "file": "ui-6026a05842.mp3"
-    },
-    {
-      "id": "ui-1bd7ec9c16",
-      "voice": "ui",
-      "text": "Me vê dois pães na chapa,",
-      "file": "ui-1bd7ec9c16.mp3"
-    },
-    {
-      "id": "ui-69e74fec68",
-      "voice": "ui",
-      "text": "e um pastel pra viagem.",
-      "file": "ui-69e74fec68.mp3"
-    },
-    {
-      "id": "ui-6c7871b0eb",
-      "voice": "ui",
-      "text": "três pastéis",
-      "file": "ui-6c7871b0eb.mp3"
-    },
-    {
-      "id": "ui-796b9eae2b",
-      "voice": "ui",
-      "text": "me vê dois guaranás,",
-      "file": "ui-796b9eae2b.mp3"
-    },
-    {
-      "id": "ui-6e1be336e3",
-      "voice": "ui",
-      "text": "Me vê três águas",
-      "file": "ui-6e1be336e3.mp3"
-    },
-    {
-      "id": "ui-27c003def9",
-      "voice": "ui",
-      "text": "e dois cafés pra comer aqui,",
-      "file": "ui-27c003def9.mp3"
-    },
-    {
-      "id": "ui-d7ee3bf500",
-      "voice": "ui",
-      "text": "me vê um misto-quente,",
-      "file": "ui-d7ee3bf500.mp3"
-    },
-    {
-      "id": "ui-6a1d20cae6",
-      "voice": "ui",
-      "text": "e dois guaranás pra viagem.",
-      "file": "ui-6a1d20cae6.mp3"
-    },
-    {
-      "id": "ui-b590e5b74a",
-      "voice": "ui",
-      "text": "e três pastéis pra comer aqui.",
-      "file": "ui-b590e5b74a.mp3"
-    },
-    {
-      "id": "ui-409a9afc97",
-      "voice": "ui",
-      "text": "Três cafés,",
-      "file": "ui-409a9afc97.mp3"
-    },
-    {
-      "id": "ui-1989402660",
-      "voice": "ui",
-      "text": "e três guaranás pra viagem.",
-      "file": "ui-1989402660.mp3"
-    },
-    {
-      "id": "ui-0586abadb4",
-      "voice": "ui",
-      "text": "Me vê três guaranás",
-      "file": "ui-0586abadb4.mp3"
-    },
-    {
-      "id": "ui-0c99272f62",
-      "voice": "ui",
-      "text": "e três bolos pra viagem,",
-      "file": "ui-0c99272f62.mp3"
-    },
-    {
-      "id": "ui-d226e8a025",
-      "voice": "ui",
-      "text": "Me vê dois cafés com leite,",
-      "file": "ui-d226e8a025.mp3"
-    },
-    {
-      "id": "ui-f29e1a704a",
-      "voice": "ui",
-      "text": "sem açúcar.",
-      "file": "ui-f29e1a704a.mp3"
-    },
-    {
-      "id": "ui-08c01383c8",
-      "voice": "ui",
-      "text": "e um pão pra comer aqui,",
-      "file": "ui-08c01383c8.mp3"
-    },
-    {
-      "id": "ui-3efce1d5db",
-      "voice": "ui",
-      "text": "Dois mistos-quentes,",
-      "file": "ui-3efce1d5db.mp3"
-    },
-    {
-      "id": "ui-cafa6f093e",
-      "voice": "ui",
-      "text": "Me vê dois cafés com leite",
-      "file": "ui-cafa6f093e.mp3"
-    },
-    {
-      "id": "ui-c657faa7a6",
-      "voice": "ui",
-      "text": "e duas águas pra viagem,",
-      "file": "ui-c657faa7a6.mp3"
-    },
-    {
-      "id": "ui-72b6f09a50",
-      "voice": "ui",
-      "text": "Me vê três bolos",
-      "file": "ui-72b6f09a50.mp3"
-    },
-    {
-      "id": "ui-4774fc5487",
-      "voice": "ui",
-      "text": "me vê dois pães de queijo,",
-      "file": "ui-4774fc5487.mp3"
-    },
-    {
-      "id": "ui-7feef40c84",
-      "voice": "ui",
-      "text": "e dois bolos pra comer aqui,",
-      "file": "ui-7feef40c84.mp3"
-    },
-    {
-      "id": "ui-c6a09033fe",
-      "voice": "ui",
-      "text": "me vê dois bolos,",
-      "file": "ui-c6a09033fe.mp3"
-    },
-    {
-      "id": "ui-5102e4c874",
-      "voice": "ui",
-      "text": "e um café com leite pra viagem.",
-      "file": "ui-5102e4c874.mp3"
-    },
-    {
-      "id": "ui-cba57f848a",
-      "voice": "ui",
-      "text": "Me vê três pastéis,",
-      "file": "ui-cba57f848a.mp3"
-    },
-    {
-      "id": "ui-b2fb713586",
-      "voice": "ui",
-      "text": "e três pães na chapa pra comer aqui,",
-      "file": "ui-b2fb713586.mp3"
-    },
-    {
-      "id": "ui-94f1d26668",
-      "voice": "ui",
-      "text": "e um pastel pra comer aqui.",
-      "file": "ui-94f1d26668.mp3"
-    },
-    {
-      "id": "ui-a405408552",
-      "voice": "ui",
-      "text": "e três bolos pra comer aqui,",
-      "file": "ui-a405408552.mp3"
-    },
-    {
-      "id": "ui-96414201c8",
-      "voice": "ui",
-      "text": "Me vê três cafés,",
-      "file": "ui-96414201c8.mp3"
-    },
-    {
-      "id": "ui-4f1404038f",
-      "voice": "ui",
-      "text": "Me vê dois mistos-quentes,",
-      "file": "ui-4f1404038f.mp3"
-    },
-    {
-      "id": "ui-d56d30720c",
-      "voice": "ui",
-      "text": "e três pães de queijo pra viagem.",
-      "file": "ui-d56d30720c.mp3"
-    },
-    {
-      "id": "ui-a1889c71e2",
-      "voice": "ui",
-      "text": "me vê dois mistos-quentes,",
-      "file": "ui-a1889c71e2.mp3"
-    },
-    {
-      "id": "ui-14fef89342",
-      "voice": "ui",
-      "text": "dois guaranás",
-      "file": "ui-14fef89342.mp3"
-    },
-    {
-      "id": "ui-fd7e760c01",
-      "voice": "ui",
-      "text": "e três mistos-quentes pra comer aqui.",
-      "file": "ui-fd7e760c01.mp3"
-    },
-    {
-      "id": "ui-aba4e34cb5",
-      "voice": "ui",
-      "text": "Me vê três coxinhas,",
-      "file": "ui-aba4e34cb5.mp3"
-    },
-    {
-      "id": "ui-fa22e7eb79",
-      "voice": "ui",
-      "text": "Um pão na chapa",
-      "file": "ui-fa22e7eb79.mp3"
-    },
-    {
-      "id": "ui-ecf7ad3e57",
-      "voice": "ui",
-      "text": "e três mistos-quentes pra comer aqui,",
-      "file": "ui-ecf7ad3e57.mp3"
-    },
-    {
-      "id": "ui-d65a3ef17f",
-      "voice": "ui",
-      "text": "e um pão na chapa pra comer aqui.",
-      "file": "ui-d65a3ef17f.mp3"
-    },
-    {
-      "id": "ui-7fe8a44f5a",
-      "voice": "ui",
-      "text": "e um suco de laranja pra viagem,",
-      "file": "ui-7fe8a44f5a.mp3"
-    },
-    {
-      "id": "ui-70f43e8767",
-      "voice": "ui",
-      "text": "e dois sucos de laranja pra viagem.",
-      "file": "ui-70f43e8767.mp3"
-    },
-    {
-      "id": "ui-db95f0a969",
-      "voice": "ui",
-      "text": "Três pães de queijo,",
-      "file": "ui-db95f0a969.mp3"
-    },
-    {
-      "id": "ui-9d5236f25d",
-      "voice": "ui",
-      "text": "três guaranás",
-      "file": "ui-9d5236f25d.mp3"
-    },
-    {
-      "id": "ui-b152933763",
-      "voice": "ui",
-      "text": "Me vê um guaraná",
-      "file": "ui-b152933763.mp3"
-    },
-    {
-      "id": "ui-39517164b0",
-      "voice": "ui",
-      "text": "um café em vez do guaraná.",
-      "file": "ui-39517164b0.mp3"
-    },
-    {
-      "id": "ui-ee90cf6873",
-      "voice": "ui",
-      "text": "Me vê três guaranás,",
-      "file": "ui-ee90cf6873.mp3"
-    },
-    {
-      "id": "ui-07470495b0",
-      "voice": "ui",
-      "text": "e três pães pra viagem,",
-      "file": "ui-07470495b0.mp3"
-    },
-    {
-      "id": "ui-8631013fd7",
-      "voice": "ui",
-      "text": "e dois pães de queijo pra viagem.",
-      "file": "ui-8631013fd7.mp3"
-    },
-    {
-      "id": "ui-16df083b26",
-      "voice": "ui",
-      "text": "e dois pães de queijo pra viagem,",
-      "file": "ui-16df083b26.mp3"
-    },
-    {
-      "id": "ui-8e1e134cb5",
-      "voice": "ui",
-      "text": "Me vê três bolos,",
-      "file": "ui-8e1e134cb5.mp3"
-    },
-    {
-      "id": "ui-b3fe336f32",
-      "voice": "ui",
-      "text": "três cafés com leite",
-      "file": "ui-b3fe336f32.mp3"
-    },
-    {
-      "id": "ui-e1abfe03e0",
-      "voice": "ui",
-      "text": "e uma coxinha pra viagem.",
-      "file": "ui-e1abfe03e0.mp3"
-    },
-    {
-      "id": "ui-f8e868750a",
-      "voice": "ui",
-      "text": "e um café pra viagem,",
-      "file": "ui-f8e868750a.mp3"
-    },
-    {
-      "id": "ui-7c6504f4b0",
-      "voice": "ui",
-      "text": "e dois cafés com leite pra viagem.",
-      "file": "ui-7c6504f4b0.mp3"
-    },
-    {
-      "id": "ui-3c94178958",
-      "voice": "ui",
-      "text": "três pães na chapa",
-      "file": "ui-3c94178958.mp3"
-    },
-    {
-      "id": "ui-26f96d661a",
-      "voice": "ui",
-      "text": "Três pães de queijo",
-      "file": "ui-26f96d661a.mp3"
-    },
-    {
-      "id": "ui-d2d6209e15",
-      "voice": "ui",
-      "text": "e dois pastéis pra viagem.",
-      "file": "ui-d2d6209e15.mp3"
-    },
-    {
-      "id": "ui-9ce033b65e",
-      "voice": "ui",
-      "text": "me vê um guaraná,",
-      "file": "ui-9ce033b65e.mp3"
-    },
-    {
-      "id": "ui-fcc1859dac",
-      "voice": "ui",
-      "text": "uma água em vez do guaraná.",
-      "file": "ui-fcc1859dac.mp3"
-    },
-    {
-      "id": "ui-ebe30c68d6",
-      "voice": "ui",
-      "text": "e duas águas pra comer aqui.",
-      "file": "ui-ebe30c68d6.mp3"
-    },
-    {
-      "id": "ui-55beebea88",
-      "voice": "ui",
-      "text": "três sucos de laranja",
-      "file": "ui-55beebea88.mp3"
-    },
-    {
-      "id": "ui-3128da84db",
-      "voice": "ui",
-      "text": "e um misto-quente pra comer aqui,",
-      "file": "ui-3128da84db.mp3"
-    },
-    {
-      "id": "ui-8e216f5c21",
-      "voice": "ui",
-      "text": "e um pão de queijo pra viagem.",
-      "file": "ui-8e216f5c21.mp3"
-    },
-    {
-      "id": "ui-15e66602b9",
-      "voice": "ui",
-      "text": "Me vê dois guaranás",
-      "file": "ui-15e66602b9.mp3"
-    },
-    {
-      "id": "ui-121544c326",
-      "voice": "ui",
-      "text": "e três pães de queijo pra comer aqui.",
-      "file": "ui-121544c326.mp3"
-    },
-    {
-      "id": "ui-e8b2ef0ecf",
-      "voice": "ui",
-      "text": "Três guaranás",
-      "file": "ui-e8b2ef0ecf.mp3"
+      "text": "um bolo",
+      "file": "ui-12de9369a5.mp3"
     },
     {
       "id": "ui-7d25bb7248",
@@ -6733,322 +5779,52 @@
       "file": "ui-7d25bb7248.mp3"
     },
     {
-      "id": "ui-4047f954ce",
+      "id": "ui-4d9ede715f",
       "voice": "ui",
-      "text": "Me vê dois pastéis,",
-      "file": "ui-4047f954ce.mp3"
+      "text": "Eu queria um pão na chapa",
+      "file": "ui-4d9ede715f.mp3"
     },
     {
-      "id": "ui-619b19a91c",
+      "id": "ui-cf0eb94f12",
       "voice": "ui",
-      "text": "e um café com leite pra comer aqui,",
-      "file": "ui-619b19a91c.mp3"
+      "text": "Eu queria uma coxinha,",
+      "file": "ui-cf0eb94f12.mp3"
     },
     {
-      "id": "ui-574dee35c6",
+      "id": "ui-d215660eac",
       "voice": "ui",
-      "text": "e três bolos pra comer aqui.",
-      "file": "ui-574dee35c6.mp3"
+      "text": "Vou querer um pão",
+      "file": "ui-d215660eac.mp3"
     },
     {
-      "id": "ui-ffed491272",
+      "id": "ui-e87a36869f",
       "voice": "ui",
-      "text": "três cafés",
-      "file": "ui-ffed491272.mp3"
+      "text": "Vou querer uma água",
+      "file": "ui-e87a36869f.mp3"
     },
     {
-      "id": "ui-b56b00456e",
+      "id": "ui-2569c5f1b4",
       "voice": "ui",
-      "text": "e três cafés pra comer aqui.",
-      "file": "ui-b56b00456e.mp3"
+      "text": "Eu queria um pão na chapa,",
+      "file": "ui-2569c5f1b4.mp3"
     },
     {
-      "id": "ui-aa66ef263d",
+      "id": "ui-3bec80b5aa",
       "voice": "ui",
-      "text": "e um pão pra viagem.",
-      "file": "ui-aa66ef263d.mp3"
+      "text": "Eu queria uma coxinha",
+      "file": "ui-3bec80b5aa.mp3"
     },
     {
-      "id": "ui-7ba7598614",
+      "id": "ui-70c6abf423",
       "voice": "ui",
-      "text": "me vê um pão na chapa,",
-      "file": "ui-7ba7598614.mp3"
+      "text": "Eu queria um pão de queijo,",
+      "file": "ui-70c6abf423.mp3"
     },
     {
-      "id": "ui-2ca4f68bfb",
+      "id": "ui-a262a3d90a",
       "voice": "ui",
-      "text": "e três pães de queijo pra viagem,",
-      "file": "ui-2ca4f68bfb.mp3"
-    },
-    {
-      "id": "ui-cf6c933192",
-      "voice": "ui",
-      "text": "Me vê três cafés.",
-      "file": "ui-cf6c933192.mp3"
-    },
-    {
-      "id": "ui-bdf145e848",
-      "voice": "ui",
-      "text": "e um pastel pra viagem,",
-      "file": "ui-bdf145e848.mp3"
-    },
-    {
-      "id": "ui-b1d54de326",
-      "voice": "ui",
-      "text": "e um bolo pra viagem.",
-      "file": "ui-b1d54de326.mp3"
-    },
-    {
-      "id": "ui-59452e2d01",
-      "voice": "ui",
-      "text": "Me vê um bolo,",
-      "file": "ui-59452e2d01.mp3"
-    },
-    {
-      "id": "ui-5d2c179a10",
-      "voice": "ui",
-      "text": "e um suco de laranja pra viagem.",
-      "file": "ui-5d2c179a10.mp3"
-    },
-    {
-      "id": "ui-41c6759f2c",
-      "voice": "ui",
-      "text": "e três cafés com leite pra viagem.",
-      "file": "ui-41c6759f2c.mp3"
-    },
-    {
-      "id": "ui-2073afd4cd",
-      "voice": "ui",
-      "text": "um misto-quente",
-      "file": "ui-2073afd4cd.mp3"
-    },
-    {
-      "id": "ui-4ea8482113",
-      "voice": "ui",
-      "text": "e três sucos de laranja pra comer aqui.",
-      "file": "ui-4ea8482113.mp3"
-    },
-    {
-      "id": "ui-db5a03a707",
-      "voice": "ui",
-      "text": "e duas coxinhas pra comer aqui.",
-      "file": "ui-db5a03a707.mp3"
-    },
-    {
-      "id": "ui-921e61422c",
-      "voice": "ui",
-      "text": "Me vê três sucos de laranja,",
-      "file": "ui-921e61422c.mp3"
-    },
-    {
-      "id": "ui-ec13f5956a",
-      "voice": "ui",
-      "text": "me vê um pastel,",
-      "file": "ui-ec13f5956a.mp3"
-    },
-    {
-      "id": "ui-629efde5f2",
-      "voice": "ui",
-      "text": "e três cafés pra viagem.",
-      "file": "ui-629efde5f2.mp3"
-    },
-    {
-      "id": "ui-fea79c3516",
-      "voice": "ui",
-      "text": "Me vê dois pães na chapa",
-      "file": "ui-fea79c3516.mp3"
-    },
-    {
-      "id": "ui-4d81a619b3",
-      "voice": "ui",
-      "text": "Me vê três pastéis",
-      "file": "ui-4d81a619b3.mp3"
-    },
-    {
-      "id": "ui-3a51f58256",
-      "voice": "ui",
-      "text": "e dois cafés pra viagem.",
-      "file": "ui-3a51f58256.mp3"
-    },
-    {
-      "id": "ui-d4c9e5b518",
-      "voice": "ui",
-      "text": "e três sucos de laranja pra viagem,",
-      "file": "ui-d4c9e5b518.mp3"
-    },
-    {
-      "id": "ui-51cfd4d035",
-      "voice": "ui",
-      "text": "e três sucos de laranja pra comer aqui,",
-      "file": "ui-51cfd4d035.mp3"
-    },
-    {
-      "id": "ui-6e54ae317d",
-      "voice": "ui",
-      "text": "e três pães de queijo,",
-      "file": "ui-6e54ae317d.mp3"
-    },
-    {
-      "id": "ui-e9c5173e96",
-      "voice": "ui",
-      "text": "bem quente pra comer aqui,",
-      "file": "ui-e9c5173e96.mp3"
-    },
-    {
-      "id": "ui-c2ed55a901",
-      "voice": "ui",
-      "text": "e três águas pra comer aqui.",
-      "file": "ui-c2ed55a901.mp3"
-    },
-    {
-      "id": "ui-1978d5c3f9",
-      "voice": "ui",
-      "text": "Três pães na chapa,",
-      "file": "ui-1978d5c3f9.mp3"
-    },
-    {
-      "id": "ui-ef1a2a6fba",
-      "voice": "ui",
-      "text": "e três pastéis pra viagem,",
-      "file": "ui-ef1a2a6fba.mp3"
-    },
-    {
-      "id": "ui-c2947a8d37",
-      "voice": "ui",
-      "text": "e um bolo,",
-      "file": "ui-c2947a8d37.mp3"
-    },
-    {
-      "id": "ui-55b8e1f207",
-      "voice": "ui",
-      "text": "Me vê um misto-quente",
-      "file": "ui-55b8e1f207.mp3"
-    },
-    {
-      "id": "ui-a75edfdb31",
-      "voice": "ui",
-      "text": "três águas",
-      "file": "ui-a75edfdb31.mp3"
-    },
-    {
-      "id": "ui-1855f92b98",
-      "voice": "ui",
-      "text": "Me vê dois guaranás,",
-      "file": "ui-1855f92b98.mp3"
-    },
-    {
-      "id": "ui-2c41fdf5a5",
-      "voice": "ui",
-      "text": "Dois cafés com leite,",
-      "file": "ui-2c41fdf5a5.mp3"
-    },
-    {
-      "id": "ui-301e7f0b89",
-      "voice": "ui",
-      "text": "Três sucos de laranja,",
-      "file": "ui-301e7f0b89.mp3"
-    },
-    {
-      "id": "ui-c4dbadda88",
-      "voice": "ui",
-      "text": "Me vê duas águas",
-      "file": "ui-c4dbadda88.mp3"
-    },
-    {
-      "id": "ui-8786475fea",
-      "voice": "ui",
-      "text": "e um pão de queijo pra comer aqui.",
-      "file": "ui-8786475fea.mp3"
-    },
-    {
-      "id": "ui-c7ccba5166",
-      "voice": "ui",
-      "text": "um café com leite em vez do guaraná.",
-      "file": "ui-c7ccba5166.mp3"
-    },
-    {
-      "id": "ui-96c4009380",
-      "voice": "ui",
-      "text": "Me vê três pães na chapa,",
-      "file": "ui-96c4009380.mp3"
-    },
-    {
-      "id": "ui-72b4241d6c",
-      "voice": "ui",
-      "text": "Um misto-quente",
-      "file": "ui-72b4241d6c.mp3"
-    },
-    {
-      "id": "ui-c5b940a788",
-      "voice": "ui",
-      "text": "e três cafés pra viagem,",
-      "file": "ui-c5b940a788.mp3"
-    },
-    {
-      "id": "ui-d671d534c6",
-      "voice": "ui",
-      "text": "e três sucos de laranja pra viagem.",
-      "file": "ui-d671d534c6.mp3"
-    },
-    {
-      "id": "ui-d3f770b17e",
-      "voice": "ui",
-      "text": "e dois pães pra viagem.",
-      "file": "ui-d3f770b17e.mp3"
-    },
-    {
-      "id": "ui-9b3f6b126b",
-      "voice": "ui",
-      "text": "Me vê três sucos de laranja",
-      "file": "ui-9b3f6b126b.mp3"
-    },
-    {
-      "id": "ui-8914c88e3c",
-      "voice": "ui",
-      "text": "Três bolos,",
-      "file": "ui-8914c88e3c.mp3"
-    },
-    {
-      "id": "ui-5cd6bac7ea",
-      "voice": "ui",
-      "text": "e um suco de laranja pra comer aqui,",
-      "file": "ui-5cd6bac7ea.mp3"
-    },
-    {
-      "id": "ui-b8c7dab271",
-      "voice": "ui",
-      "text": "Três águas",
-      "file": "ui-b8c7dab271.mp3"
-    },
-    {
-      "id": "ui-2fb9c463f4",
-      "voice": "ui",
-      "text": "e um café pra viagem.",
-      "file": "ui-2fb9c463f4.mp3"
-    },
-    {
-      "id": "ui-ba82cd4d05",
-      "voice": "ui",
-      "text": "Me vê três coxinhas",
-      "file": "ui-ba82cd4d05.mp3"
-    },
-    {
-      "id": "ui-ed193a2a54",
-      "voice": "ui",
-      "text": "três coxinhas",
-      "file": "ui-ed193a2a54.mp3"
-    },
-    {
-      "id": "ui-9c7f0458b0",
-      "voice": "ui",
-      "text": "Três bolos",
-      "file": "ui-9c7f0458b0.mp3"
-    },
-    {
-      "id": "ui-7d6e47ef2c",
-      "voice": "ui",
-      "text": "e dois cafés pra comer aqui.",
-      "file": "ui-7d6e47ef2c.mp3"
+      "text": "Pode ser um café com leite",
+      "file": "ui-a262a3d90a.mp3"
     },
     {
       "id": "ui-5c0c2cca2c",
@@ -7057,298 +5833,64 @@
       "file": "ui-5c0c2cca2c.mp3"
     },
     {
-      "id": "ui-f53249e27c",
+      "id": "ui-dae4421d36",
       "voice": "ui",
-      "text": "me vê um café,",
-      "file": "ui-f53249e27c.mp3"
+      "text": "Vou querer uma água,",
+      "file": "ui-dae4421d36.mp3"
     },
     {
-      "id": "ui-3f0f5489ec",
+      "id": "ui-40e596a38f",
       "voice": "ui",
-      "text": "e dois mistos-quentes pra comer aqui.",
-      "file": "ui-3f0f5489ec.mp3"
+      "text": "e um café com leite extra quente,",
+      "file": "ui-40e596a38f.mp3"
     },
     {
-      "id": "ui-195e35a218",
+      "id": "ui-55b8e1f207",
       "voice": "ui",
-      "text": "Dois bolos",
-      "file": "ui-195e35a218.mp3"
+      "text": "Me vê um misto-quente",
+      "file": "ui-55b8e1f207.mp3"
     },
     {
-      "id": "ui-cc6fd51ccc",
+      "id": "ui-2c874f2ec3",
       "voice": "ui",
-      "text": "Me vê três cafés com leite",
-      "file": "ui-cc6fd51ccc.mp3"
+      "text": "me vê um pão de queijo,",
+      "file": "ui-2c874f2ec3.mp3"
     },
     {
-      "id": "ui-c9fcb2c887",
+      "id": "ui-08c01383c8",
       "voice": "ui",
-      "text": "e um guaraná pra viagem,",
-      "file": "ui-c9fcb2c887.mp3"
+      "text": "e um pão pra comer aqui,",
+      "file": "ui-08c01383c8.mp3"
     },
     {
-      "id": "ui-66b7528095",
+      "id": "ui-4856a50297",
       "voice": "ui",
-      "text": "e um pão na chapa pra viagem,",
-      "file": "ui-66b7528095.mp3"
+      "text": "Eu queria um pão.",
+      "file": "ui-4856a50297.mp3"
     },
     {
-      "id": "ui-ad188dd625",
+      "id": "ui-31d85c01a2",
       "voice": "ui",
-      "text": "e uma coxinha,",
-      "file": "ui-ad188dd625.mp3"
+      "text": "Eu queria um pão,",
+      "file": "ui-31d85c01a2.mp3"
     },
     {
-      "id": "ui-2732bd0701",
+      "id": "ui-e1b3a2eacb",
       "voice": "ui",
-      "text": "sem açúcar pra viagem.",
-      "file": "ui-2732bd0701.mp3"
+      "text": "Eu quero um café,",
+      "file": "ui-e1b3a2eacb.mp3"
     },
     {
-      "id": "ui-84bb31cbd5",
+      "id": "ui-08bcf9cbbb",
       "voice": "ui",
-      "text": "e dois pães na chapa pra viagem,",
-      "file": "ui-84bb31cbd5.mp3"
+      "text": "Eu quero um pão de queijo",
+      "file": "ui-08bcf9cbbb.mp3"
     },
     {
-      "id": "ui-3be3d754ae",
+      "id": "ui-fe53503033",
       "voice": "ui",
-      "text": "Três coxinhas,",
-      "file": "ui-3be3d754ae.mp3"
-    },
-    {
-      "id": "ui-bbd645534d",
-      "voice": "ui",
-      "text": "três mistos-quentes",
-      "file": "ui-bbd645534d.mp3"
-    },
-    {
-      "id": "ui-d939807ae3",
-      "voice": "ui",
-      "text": "e três pães na chapa pra viagem,",
-      "file": "ui-d939807ae3.mp3"
-    },
-    {
-      "id": "ui-5ebb671932",
-      "voice": "ui",
-      "text": "Dois bolos,",
-      "file": "ui-5ebb671932.mp3"
-    },
-    {
-      "id": "ui-42091ec109",
-      "voice": "ui",
-      "text": "e uma água pra viagem,",
-      "file": "ui-42091ec109.mp3"
-    },
-    {
-      "id": "ui-955caacd4a",
-      "voice": "ui",
-      "text": "e uma coxinha pra comer aqui.",
-      "file": "ui-955caacd4a.mp3"
-    },
-    {
-      "id": "ui-a6163ab3b2",
-      "voice": "ui",
-      "text": "e um pão na chapa pra comer aqui,",
-      "file": "ui-a6163ab3b2.mp3"
-    },
-    {
-      "id": "ui-4e3f8d0793",
-      "voice": "ui",
-      "text": "e três guaranás pra comer aqui.",
-      "file": "ui-4e3f8d0793.mp3"
-    },
-    {
-      "id": "ui-f90912a3e5",
-      "voice": "ui",
-      "text": "Três pastéis,",
-      "file": "ui-f90912a3e5.mp3"
-    },
-    {
-      "id": "ui-8603065fa5",
-      "voice": "ui",
-      "text": "Me vê três pães de queijo,",
-      "file": "ui-8603065fa5.mp3"
-    },
-    {
-      "id": "ui-7a84e99fe1",
-      "voice": "ui",
-      "text": "e três coxinhas pra comer aqui,",
-      "file": "ui-7a84e99fe1.mp3"
-    },
-    {
-      "id": "ui-683ce046de",
-      "voice": "ui",
-      "text": "e três coxinhas pra viagem.",
-      "file": "ui-683ce046de.mp3"
-    },
-    {
-      "id": "ui-54bec39f62",
-      "voice": "ui",
-      "text": "sem açúcar pra comer aqui,",
-      "file": "ui-54bec39f62.mp3"
-    },
-    {
-      "id": "ui-5afef596b4",
-      "voice": "ui",
-      "text": "e três cafés com leite pra comer aqui,",
-      "file": "ui-5afef596b4.mp3"
-    },
-    {
-      "id": "ui-dbb3989f74",
-      "voice": "ui",
-      "text": "Um café com leite,",
-      "file": "ui-dbb3989f74.mp3"
-    },
-    {
-      "id": "ui-beda72052f",
-      "voice": "ui",
-      "text": "e dois pães na chapa,",
-      "file": "ui-beda72052f.mp3"
-    },
-    {
-      "id": "ui-38ad900477",
-      "voice": "ui",
-      "text": "Dois guaranás",
-      "file": "ui-38ad900477.mp3"
-    },
-    {
-      "id": "ui-6b987a0d5e",
-      "voice": "ui",
-      "text": "Um guaraná,",
-      "file": "ui-6b987a0d5e.mp3"
-    },
-    {
-      "id": "ui-d7a551a64a",
-      "voice": "ui",
-      "text": "Um guaraná",
-      "file": "ui-d7a551a64a.mp3"
-    },
-    {
-      "id": "ui-e4dfa6c35b",
-      "voice": "ui",
-      "text": "Dois pães de queijo",
-      "file": "ui-e4dfa6c35b.mp3"
-    },
-    {
-      "id": "ui-ed65b5176d",
-      "voice": "ui",
-      "text": "Dois sucos de laranja,",
-      "file": "ui-ed65b5176d.mp3"
-    },
-    {
-      "id": "ui-3d0bd77f53",
-      "voice": "ui",
-      "text": "e dois guaranás pra comer aqui,",
-      "file": "ui-3d0bd77f53.mp3"
-    },
-    {
-      "id": "ui-da8fa6ce47",
-      "voice": "ui",
-      "text": "e um suco de laranja pra comer aqui.",
-      "file": "ui-da8fa6ce47.mp3"
-    },
-    {
-      "id": "ui-2ad4c2c569",
-      "voice": "ui",
-      "text": "e dois bolos pra comer aqui.",
-      "file": "ui-2ad4c2c569.mp3"
-    },
-    {
-      "id": "ui-8affaec86e",
-      "voice": "ui",
-      "text": "Me vê dois pastéis",
-      "file": "ui-8affaec86e.mp3"
-    },
-    {
-      "id": "ui-9a3b46c11a",
-      "voice": "ui",
-      "text": "Me vê duas coxinhas",
-      "file": "ui-9a3b46c11a.mp3"
-    },
-    {
-      "id": "ui-2725427fe2",
-      "voice": "ui",
-      "text": "e três mistos-quentes pra viagem,",
-      "file": "ui-2725427fe2.mp3"
-    },
-    {
-      "id": "ui-d01cd1d3a2",
-      "voice": "ui",
-      "text": "Me vê um café com leite",
-      "file": "ui-d01cd1d3a2.mp3"
-    },
-    {
-      "id": "ui-dec7e5111b",
-      "voice": "ui",
-      "text": "e três águas,",
-      "file": "ui-dec7e5111b.mp3"
-    },
-    {
-      "id": "ui-0491abef7e",
-      "voice": "ui",
-      "text": "e três águas pra viagem.",
-      "file": "ui-0491abef7e.mp3"
-    },
-    {
-      "id": "ui-77bf69ef70",
-      "voice": "ui",
-      "text": "Dois sucos de laranja",
-      "file": "ui-77bf69ef70.mp3"
-    },
-    {
-      "id": "ui-9dd2cd7ffa",
-      "voice": "ui",
-      "text": "e três guaranás pra viagem,",
-      "file": "ui-9dd2cd7ffa.mp3"
-    },
-    {
-      "id": "ui-dea06112c5",
-      "voice": "ui",
-      "text": "sem açúcar pra viagem,",
-      "file": "ui-dea06112c5.mp3"
-    },
-    {
-      "id": "ui-bd378ac9ea",
-      "voice": "ui",
-      "text": "Dois guaranás,",
-      "file": "ui-bd378ac9ea.mp3"
-    },
-    {
-      "id": "ui-e1899bb13d",
-      "voice": "ui",
-      "text": "Dois pastéis",
-      "file": "ui-e1899bb13d.mp3"
-    },
-    {
-      "id": "ui-95589291d0",
-      "voice": "ui",
-      "text": "Três cafés com leite,",
-      "file": "ui-95589291d0.mp3"
-    },
-    {
-      "id": "ui-8abe55a2d3",
-      "voice": "ui",
-      "text": "Três cafés com leite",
-      "file": "ui-8abe55a2d3.mp3"
-    },
-    {
-      "id": "ui-07844a4fc5",
-      "voice": "ui",
-      "text": "e três águas pra comer aqui,",
-      "file": "ui-07844a4fc5.mp3"
-    },
-    {
-      "id": "ui-57219bf759",
-      "voice": "ui",
-      "text": "e um guaraná pra comer aqui.",
-      "file": "ui-57219bf759.mp3"
-    },
-    {
-      "id": "ui-55443bf6b8",
-      "voice": "ui",
-      "text": "e três bolos,",
-      "file": "ui-55443bf6b8.mp3"
+      "text": "e um café com leite pra comer aqui.",
+      "file": "ui-fe53503033.mp3"
     },
     {
       "id": "ui-bc8dcceec9",
@@ -7357,202 +5899,112 @@
       "file": "ui-bc8dcceec9.mp3"
     },
     {
-      "id": "ui-b9d4508919",
+      "id": "ui-7fe8a44f5a",
       "voice": "ui",
-      "text": "Um misto-quente,",
-      "file": "ui-b9d4508919.mp3"
+      "text": "e um suco de laranja pra viagem,",
+      "file": "ui-7fe8a44f5a.mp3"
     },
     {
-      "id": "ui-8067ebdbaa",
+      "id": "ui-7dbfea6cd1",
       "voice": "ui",
-      "text": "e dois pães pra viagem,",
-      "file": "ui-8067ebdbaa.mp3"
+      "text": "Eu quero uma água,",
+      "file": "ui-7dbfea6cd1.mp3"
     },
     {
-      "id": "ui-b8ab2125da",
+      "id": "ui-9404949502",
       "voice": "ui",
-      "text": "e três pães pra comer aqui,",
-      "file": "ui-b8ab2125da.mp3"
+      "text": "Pode ser um café extra quente?",
+      "file": "ui-9404949502.mp3"
     },
     {
-      "id": "ui-ab91649219",
+      "id": "ui-5609007092",
       "voice": "ui",
-      "text": "Dois mistos-quentes",
-      "file": "ui-ab91649219.mp3"
+      "text": "Eu quero um café extra quente,",
+      "file": "ui-5609007092.mp3"
     },
     {
-      "id": "ui-6a417ad1df",
+      "id": "ui-f5c9712e3a",
       "voice": "ui",
-      "text": "e três pastéis pra viagem.",
-      "file": "ui-6a417ad1df.mp3"
+      "text": "Me vê um pão?",
+      "file": "ui-f5c9712e3a.mp3"
     },
     {
-      "id": "ui-2ead35251e",
+      "id": "ui-95cef1f930",
       "voice": "ui",
-      "text": "Me vê três pães na chapa",
-      "file": "ui-2ead35251e.mp3"
+      "text": "Eu quero um pão na chapa",
+      "file": "ui-95cef1f930.mp3"
     },
     {
-      "id": "ui-3d2b58071d",
+      "id": "ui-1ae1039f18",
       "voice": "ui",
-      "text": "Um pão de queijo,",
-      "file": "ui-3d2b58071d.mp3"
+      "text": "Vou querer uma coxinha,",
+      "file": "ui-1ae1039f18.mp3"
     },
     {
-      "id": "ui-7ebee2689c",
+      "id": "ui-e37c447dcc",
       "voice": "ui",
-      "text": "e um guaraná pra comer aqui,",
-      "file": "ui-7ebee2689c.mp3"
+      "text": "Eu queria uma água",
+      "file": "ui-e37c447dcc.mp3"
     },
     {
-      "id": "ui-d396adcb22",
+      "id": "ui-c46289f294",
       "voice": "ui",
-      "text": "e um pão na chapa,",
-      "file": "ui-d396adcb22.mp3"
+      "text": "Vou querer um pastel",
+      "file": "ui-c46289f294.mp3"
     },
     {
-      "id": "ui-4233376f28",
+      "id": "ui-ec13f5956a",
       "voice": "ui",
-      "text": "Me vê três águas,",
-      "file": "ui-4233376f28.mp3"
+      "text": "me vê um pastel,",
+      "file": "ui-ec13f5956a.mp3"
     },
     {
-      "id": "ui-c2275b3fc9",
+      "id": "ui-3128da84db",
       "voice": "ui",
-      "text": "Dois pães de queijo,",
-      "file": "ui-c2275b3fc9.mp3"
+      "text": "e um misto-quente pra comer aqui,",
+      "file": "ui-3128da84db.mp3"
     },
     {
-      "id": "ui-3d4a4a6155",
+      "id": "ui-3957b92636",
       "voice": "ui",
-      "text": "e três pães na chapa pra comer aqui.",
-      "file": "ui-3d4a4a6155.mp3"
+      "text": "Um pastel",
+      "file": "ui-3957b92636.mp3"
     },
     {
-      "id": "ui-9160f15bf1",
+      "id": "ui-9a20221a39",
       "voice": "ui",
-      "text": "Duas coxinhas,",
-      "file": "ui-9160f15bf1.mp3"
+      "text": "Vou querer um pão na chapa,",
+      "file": "ui-9a20221a39.mp3"
     },
     {
-      "id": "ui-f849b814c0",
+      "id": "ui-a1f8acaa2f",
       "voice": "ui",
-      "text": "e dois pães na chapa pra comer aqui,",
-      "file": "ui-f849b814c0.mp3"
+      "text": "Vou querer um pastel,",
+      "file": "ui-a1f8acaa2f.mp3"
     },
     {
-      "id": "ui-09c8689bc3",
+      "id": "ui-bdf145e848",
       "voice": "ui",
-      "text": "Uma água",
-      "file": "ui-09c8689bc3.mp3"
+      "text": "e um pastel pra viagem,",
+      "file": "ui-bdf145e848.mp3"
     },
     {
-      "id": "ui-9773625b0f",
+      "id": "ui-baf63c7ec9",
       "voice": "ui",
-      "text": "Um pastel,",
-      "file": "ui-9773625b0f.mp3"
+      "text": "Pode ser um café",
+      "file": "ui-baf63c7ec9.mp3"
     },
     {
-      "id": "ui-31e4630572",
+      "id": "ui-9c0dbc190f",
       "voice": "ui",
-      "text": "e dois bolos pra viagem.",
-      "file": "ui-31e4630572.mp3"
+      "text": "Pode ser um suco de laranja",
+      "file": "ui-9c0dbc190f.mp3"
     },
     {
-      "id": "ui-dd5b8587d2",
+      "id": "ui-c9fcb2c887",
       "voice": "ui",
-      "text": "e três pães pra comer aqui.",
-      "file": "ui-dd5b8587d2.mp3"
-    },
-    {
-      "id": "ui-6de52c19ad",
-      "voice": "ui",
-      "text": "Duas águas",
-      "file": "ui-6de52c19ad.mp3"
-    },
-    {
-      "id": "ui-03b65ab8c2",
-      "voice": "ui",
-      "text": "e três coxinhas,",
-      "file": "ui-03b65ab8c2.mp3"
-    },
-    {
-      "id": "ui-615767c478",
-      "voice": "ui",
-      "text": "Três pastéis",
-      "file": "ui-615767c478.mp3"
-    },
-    {
-      "id": "ui-4a69a194a6",
-      "voice": "ui",
-      "text": "Três pães na chapa",
-      "file": "ui-4a69a194a6.mp3"
-    },
-    {
-      "id": "ui-133e995d0a",
-      "voice": "ui",
-      "text": "Três guaranás,",
-      "file": "ui-133e995d0a.mp3"
-    },
-    {
-      "id": "ui-9c9f45486f",
-      "voice": "ui",
-      "text": "Um bolo",
-      "file": "ui-9c9f45486f.mp3"
-    },
-    {
-      "id": "ui-fc6eac3bea",
-      "voice": "ui",
-      "text": "Três sucos de laranja",
-      "file": "ui-fc6eac3bea.mp3"
-    },
-    {
-      "id": "ui-a87b7c7405",
-      "voice": "ui",
-      "text": "Um bolo,",
-      "file": "ui-a87b7c7405.mp3"
-    },
-    {
-      "id": "ui-cf6bf3ca3d",
-      "voice": "ui",
-      "text": "e três pães na chapa,",
-      "file": "ui-cf6bf3ca3d.mp3"
-    },
-    {
-      "id": "ui-bdbf0267b9",
-      "voice": "ui",
-      "text": "bem quente pra viagem.",
-      "file": "ui-bdbf0267b9.mp3"
-    },
-    {
-      "id": "ui-9d2d1e2f33",
-      "voice": "ui",
-      "text": "Duas águas,",
-      "file": "ui-9d2d1e2f33.mp3"
-    },
-    {
-      "id": "ui-a9ca0a979a",
-      "voice": "ui",
-      "text": "Um pão na chapa,",
-      "file": "ui-a9ca0a979a.mp3"
-    },
-    {
-      "id": "ui-4c7bba6ff4",
-      "voice": "ui",
-      "text": "e dois guaranás,",
-      "file": "ui-4c7bba6ff4.mp3"
-    },
-    {
-      "id": "ui-5cf1a5aa29",
-      "voice": "ui",
-      "text": "e dois sucos de laranja,",
-      "file": "ui-5cf1a5aa29.mp3"
-    },
-    {
-      "id": "ui-f36673ed5f",
-      "voice": "ui",
-      "text": "Três coxinhas",
-      "file": "ui-f36673ed5f.mp3"
+      "text": "e um guaraná pra viagem,",
+      "file": "ui-c9fcb2c887.mp3"
     },
     {
       "id": "ui-1e3ddade42",
@@ -7561,22 +6013,10 @@
       "file": "ui-1e3ddade42.mp3"
     },
     {
-      "id": "ui-d3b6f4dda8",
+      "id": "ui-b6c35b27e4",
       "voice": "ui",
-      "text": "e dois bolos,",
-      "file": "ui-d3b6f4dda8.mp3"
-    },
-    {
-      "id": "ui-7542b011b7",
-      "voice": "ui",
-      "text": "e três mistos-quentes,",
-      "file": "ui-7542b011b7.mp3"
-    },
-    {
-      "id": "ui-ac3e3bded2",
-      "voice": "ui",
-      "text": "e duas águas,",
-      "file": "ui-ac3e3bded2.mp3"
+      "text": "e um pão pra viagem,",
+      "file": "ui-b6c35b27e4.mp3"
     },
     {
       "id": "ui-9b20686b7b",
@@ -7585,22 +6025,760 @@
       "file": "ui-9b20686b7b.mp3"
     },
     {
-      "id": "ui-4259ca4ee4",
+      "id": "ui-619b19a91c",
       "voice": "ui",
-      "text": "e dois pastéis,",
-      "file": "ui-4259ca4ee4.mp3"
+      "text": "e um café com leite pra comer aqui,",
+      "file": "ui-619b19a91c.mp3"
     },
     {
-      "id": "ui-b7191fbcba",
+      "id": "ui-80b1018f63",
       "voice": "ui",
-      "text": "e dois pães de queijo,",
-      "file": "ui-b7191fbcba.mp3"
+      "text": "Vou querer um pão de queijo,",
+      "file": "ui-80b1018f63.mp3"
     },
     {
-      "id": "ui-e206d51950",
+      "id": "ui-4a71f976ec",
       "voice": "ui",
-      "text": "e três sucos de laranja,",
-      "file": "ui-e206d51950.mp3"
+      "text": "Pode ser uma coxinha,",
+      "file": "ui-4a71f976ec.mp3"
+    },
+    {
+      "id": "ui-dbb3989f74",
+      "voice": "ui",
+      "text": "Um café com leite,",
+      "file": "ui-dbb3989f74.mp3"
+    },
+    {
+      "id": "ui-6d81e19ebe",
+      "voice": "ui",
+      "text": "Um café,",
+      "file": "ui-6d81e19ebe.mp3"
+    },
+    {
+      "id": "ui-aa24cc18bb",
+      "voice": "ui",
+      "text": "Pode ser um pão na chapa,",
+      "file": "ui-aa24cc18bb.mp3"
+    },
+    {
+      "id": "ui-80689ab98f",
+      "voice": "ui",
+      "text": "Eu quero uma coxinha,",
+      "file": "ui-80689ab98f.mp3"
+    },
+    {
+      "id": "ui-454b12bd80",
+      "voice": "ui",
+      "text": "Eu queria um pão de queijo",
+      "file": "ui-454b12bd80.mp3"
+    },
+    {
+      "id": "ui-d9849daf61",
+      "voice": "ui",
+      "text": "Me vê um guaraná,",
+      "file": "ui-d9849daf61.mp3"
+    },
+    {
+      "id": "ui-9773625b0f",
+      "voice": "ui",
+      "text": "Um pastel,",
+      "file": "ui-9773625b0f.mp3"
+    },
+    {
+      "id": "ui-9ce033b65e",
+      "voice": "ui",
+      "text": "me vê um guaraná,",
+      "file": "ui-9ce033b65e.mp3"
+    },
+    {
+      "id": "ui-2dce0cdca1",
+      "voice": "ui",
+      "text": "e um pão de queijo pra comer aqui,",
+      "file": "ui-2dce0cdca1.mp3"
+    },
+    {
+      "id": "ui-39517164b0",
+      "voice": "ui",
+      "text": "um café em vez do guaraná.",
+      "file": "ui-39517164b0.mp3"
+    },
+    {
+      "id": "ui-d7ee3bf500",
+      "voice": "ui",
+      "text": "me vê um misto-quente,",
+      "file": "ui-d7ee3bf500.mp3"
+    },
+    {
+      "id": "ui-01dc00b758",
+      "voice": "ui",
+      "text": "Pode ser um café extra quente",
+      "file": "ui-01dc00b758.mp3"
+    },
+    {
+      "id": "ui-02c156e7ab",
+      "voice": "ui",
+      "text": "Eu quero um pão de queijo,",
+      "file": "ui-02c156e7ab.mp3"
+    },
+    {
+      "id": "ui-e902fec030",
+      "voice": "ui",
+      "text": "Me vê um suco de laranja,",
+      "file": "ui-e902fec030.mp3"
+    },
+    {
+      "id": "ui-80622e42b9",
+      "voice": "ui",
+      "text": "Eu queria um guaraná",
+      "file": "ui-80622e42b9.mp3"
+    },
+    {
+      "id": "ui-fcc1859dac",
+      "voice": "ui",
+      "text": "uma água em vez do guaraná.",
+      "file": "ui-fcc1859dac.mp3"
+    },
+    {
+      "id": "ui-1d09771a0f",
+      "voice": "ui",
+      "text": "Eu quero um pastel",
+      "file": "ui-1d09771a0f.mp3"
+    },
+    {
+      "id": "ui-bd57539149",
+      "voice": "ui",
+      "text": "Pode ser um pão de queijo",
+      "file": "ui-bd57539149.mp3"
+    },
+    {
+      "id": "ui-bbdeb11201",
+      "voice": "ui",
+      "text": "Pode ser um pastel,",
+      "file": "ui-bbdeb11201.mp3"
+    },
+    {
+      "id": "ui-07c3d5f765",
+      "voice": "ui",
+      "text": "Pode ser um bolo",
+      "file": "ui-07c3d5f765.mp3"
+    },
+    {
+      "id": "ui-2baa3803a8",
+      "voice": "ui",
+      "text": "Eu queria uma água,",
+      "file": "ui-2baa3803a8.mp3"
+    },
+    {
+      "id": "ui-49d8386d63",
+      "voice": "ui",
+      "text": "Pode ser um café com leite extra quente",
+      "file": "ui-49d8386d63.mp3"
+    },
+    {
+      "id": "ui-61f312a94d",
+      "voice": "ui",
+      "text": "Pode ser um suco de laranja,",
+      "file": "ui-61f312a94d.mp3"
+    },
+    {
+      "id": "ui-f4ee600561",
+      "voice": "ui",
+      "text": "Vou querer um bolo,",
+      "file": "ui-f4ee600561.mp3"
+    },
+    {
+      "id": "ui-d01cd1d3a2",
+      "voice": "ui",
+      "text": "Me vê um café com leite",
+      "file": "ui-d01cd1d3a2.mp3"
+    },
+    {
+      "id": "ui-1b2454069d",
+      "voice": "ui",
+      "text": "Vou querer um café.",
+      "file": "ui-1b2454069d.mp3"
+    },
+    {
+      "id": "ui-dc4d609d47",
+      "voice": "ui",
+      "text": "Eu quero um misto-quente,",
+      "file": "ui-dc4d609d47.mp3"
+    },
+    {
+      "id": "ui-e9e312324c",
+      "voice": "ui",
+      "text": "um café com leite extra quente",
+      "file": "ui-e9e312324c.mp3"
+    },
+    {
+      "id": "ui-af429feebe",
+      "voice": "ui",
+      "text": "e um bolo pra comer aqui,",
+      "file": "ui-af429feebe.mp3"
+    },
+    {
+      "id": "ui-5102e4c874",
+      "voice": "ui",
+      "text": "e um café com leite pra viagem.",
+      "file": "ui-5102e4c874.mp3"
+    },
+    {
+      "id": "ui-9cd2e36782",
+      "voice": "ui",
+      "text": "Eu quero um bolo",
+      "file": "ui-9cd2e36782.mp3"
+    },
+    {
+      "id": "ui-d1a0498ac9",
+      "voice": "ui",
+      "text": "Eu quero um café com leite extra quente",
+      "file": "ui-d1a0498ac9.mp3"
+    },
+    {
+      "id": "ui-3027e57d17",
+      "voice": "ui",
+      "text": "Vou querer um café extra quente.",
+      "file": "ui-3027e57d17.mp3"
+    },
+    {
+      "id": "ui-d7a551a64a",
+      "voice": "ui",
+      "text": "Um guaraná",
+      "file": "ui-d7a551a64a.mp3"
+    },
+    {
+      "id": "ui-f1634be78f",
+      "voice": "ui",
+      "text": "Pode ser um misto-quente,",
+      "file": "ui-f1634be78f.mp3"
+    },
+    {
+      "id": "ui-e1abfe03e0",
+      "voice": "ui",
+      "text": "e uma coxinha pra viagem.",
+      "file": "ui-e1abfe03e0.mp3"
+    },
+    {
+      "id": "ui-fbc32ca8ed",
+      "voice": "ui",
+      "text": "Pode ser um guaraná",
+      "file": "ui-fbc32ca8ed.mp3"
+    },
+    {
+      "id": "ui-6b987a0d5e",
+      "voice": "ui",
+      "text": "Um guaraná,",
+      "file": "ui-6b987a0d5e.mp3"
+    },
+    {
+      "id": "ui-0e0d7831fb",
+      "voice": "ui",
+      "text": "Eu quero um misto-quente",
+      "file": "ui-0e0d7831fb.mp3"
+    },
+    {
+      "id": "ui-d65a3ef17f",
+      "voice": "ui",
+      "text": "e um pão na chapa pra comer aqui.",
+      "file": "ui-d65a3ef17f.mp3"
+    },
+    {
+      "id": "ui-5d2c179a10",
+      "voice": "ui",
+      "text": "e um suco de laranja pra viagem.",
+      "file": "ui-5d2c179a10.mp3"
+    },
+    {
+      "id": "ui-b152933763",
+      "voice": "ui",
+      "text": "Me vê um guaraná",
+      "file": "ui-b152933763.mp3"
+    },
+    {
+      "id": "ui-e718c352a8",
+      "voice": "ui",
+      "text": "Pode ser um pão de queijo,",
+      "file": "ui-e718c352a8.mp3"
+    },
+    {
+      "id": "ui-c58108f11c",
+      "voice": "ui",
+      "text": "Eu queria um pastel",
+      "file": "ui-c58108f11c.mp3"
+    },
+    {
+      "id": "ui-8e216f5c21",
+      "voice": "ui",
+      "text": "e um pão de queijo pra viagem.",
+      "file": "ui-8e216f5c21.mp3"
+    },
+    {
+      "id": "ui-cb4d8691ff",
+      "voice": "ui",
+      "text": "Eu quero um pastel,",
+      "file": "ui-cb4d8691ff.mp3"
+    },
+    {
+      "id": "ui-7e197020ca",
+      "voice": "ui",
+      "text": "e um pão de queijo pra viagem,",
+      "file": "ui-7e197020ca.mp3"
+    },
+    {
+      "id": "ui-228359133b",
+      "voice": "ui",
+      "text": "Pode ser um café com leite extra quente,",
+      "file": "ui-228359133b.mp3"
+    },
+    {
+      "id": "ui-e5f62ab650",
+      "voice": "ui",
+      "text": "Eu quero um suco de laranja,",
+      "file": "ui-e5f62ab650.mp3"
+    },
+    {
+      "id": "ui-f63590056c",
+      "voice": "ui",
+      "text": "Pode ser um café?",
+      "file": "ui-f63590056c.mp3"
+    },
+    {
+      "id": "ui-59cf7235b8",
+      "voice": "ui",
+      "text": "Um suco de laranja",
+      "file": "ui-59cf7235b8.mp3"
+    },
+    {
+      "id": "ui-a9ca0a979a",
+      "voice": "ui",
+      "text": "Um pão na chapa,",
+      "file": "ui-a9ca0a979a.mp3"
+    },
+    {
+      "id": "ui-1d8295483f",
+      "voice": "ui",
+      "text": "Vou querer um café extra quente",
+      "file": "ui-1d8295483f.mp3"
+    },
+    {
+      "id": "ui-0e964415ee",
+      "voice": "ui",
+      "text": "Pode ser uma água,",
+      "file": "ui-0e964415ee.mp3"
+    },
+    {
+      "id": "ui-96f8795cfc",
+      "voice": "ui",
+      "text": "Pode ser um café extra quente,",
+      "file": "ui-96f8795cfc.mp3"
+    },
+    {
+      "id": "ui-739d28793a",
+      "voice": "ui",
+      "text": "Vou querer um café com leite,",
+      "file": "ui-739d28793a.mp3"
+    },
+    {
+      "id": "ui-ad7b4e3b9f",
+      "voice": "ui",
+      "text": "Vou querer um misto-quente",
+      "file": "ui-ad7b4e3b9f.mp3"
+    },
+    {
+      "id": "ui-94f1d26668",
+      "voice": "ui",
+      "text": "e um pastel pra comer aqui.",
+      "file": "ui-94f1d26668.mp3"
+    },
+    {
+      "id": "ui-fa22e7eb79",
+      "voice": "ui",
+      "text": "Um pão na chapa",
+      "file": "ui-fa22e7eb79.mp3"
+    },
+    {
+      "id": "ui-529f206097",
+      "voice": "ui",
+      "text": "Vou querer um pão de queijo",
+      "file": "ui-529f206097.mp3"
+    },
+    {
+      "id": "ui-8cb5dfeb16",
+      "voice": "ui",
+      "text": "Vou querer um café extra quente,",
+      "file": "ui-8cb5dfeb16.mp3"
+    },
+    {
+      "id": "ui-fc6d999373",
+      "voice": "ui",
+      "text": "Um pão de queijo",
+      "file": "ui-fc6d999373.mp3"
+    },
+    {
+      "id": "ui-f65d2faf83",
+      "voice": "ui",
+      "text": "e um pão na chapa pra viagem.",
+      "file": "ui-f65d2faf83.mp3"
+    },
+    {
+      "id": "ui-d65882b428",
+      "voice": "ui",
+      "text": "Eu quero um guaraná",
+      "file": "ui-d65882b428.mp3"
+    },
+    {
+      "id": "ui-72b4241d6c",
+      "voice": "ui",
+      "text": "Um misto-quente",
+      "file": "ui-72b4241d6c.mp3"
+    },
+    {
+      "id": "ui-571ed89f3a",
+      "voice": "ui",
+      "text": "e um café pra comer aqui.",
+      "file": "ui-571ed89f3a.mp3"
+    },
+    {
+      "id": "ui-9cf6b8e7b6",
+      "voice": "ui",
+      "text": "Eu queria um misto-quente,",
+      "file": "ui-9cf6b8e7b6.mp3"
+    },
+    {
+      "id": "ui-71f2d32482",
+      "voice": "ui",
+      "text": "Eu quero um guaraná,",
+      "file": "ui-71f2d32482.mp3"
+    },
+    {
+      "id": "ui-af44290cd8",
+      "voice": "ui",
+      "text": "Vou querer um guaraná,",
+      "file": "ui-af44290cd8.mp3"
+    },
+    {
+      "id": "ui-2fb9c463f4",
+      "voice": "ui",
+      "text": "e um café pra viagem.",
+      "file": "ui-2fb9c463f4.mp3"
+    },
+    {
+      "id": "ui-f8a73b8c88",
+      "voice": "ui",
+      "text": "Pode ser um guaraná,",
+      "file": "ui-f8a73b8c88.mp3"
+    },
+    {
+      "id": "ui-d972c643ef",
+      "voice": "ui",
+      "text": "e uma água pra viagem.",
+      "file": "ui-d972c643ef.mp3"
+    },
+    {
+      "id": "ui-a56f5727f9",
+      "voice": "ui",
+      "text": "Vou querer um pão na chapa",
+      "file": "ui-a56f5727f9.mp3"
+    },
+    {
+      "id": "ui-591e29b967",
+      "voice": "ui",
+      "text": "Um café extra quente,",
+      "file": "ui-591e29b967.mp3"
+    },
+    {
+      "id": "ui-07efb86074",
+      "voice": "ui",
+      "text": "Vou querer um suco de laranja,",
+      "file": "ui-07efb86074.mp3"
+    },
+    {
+      "id": "ui-fb9b6aa313",
+      "voice": "ui",
+      "text": "Eu queria um café extra quente,",
+      "file": "ui-fb9b6aa313.mp3"
+    },
+    {
+      "id": "ui-6f7df10ab6",
+      "voice": "ui",
+      "text": "Uma coxinha,",
+      "file": "ui-6f7df10ab6.mp3"
+    },
+    {
+      "id": "ui-30c3adb802",
+      "voice": "ui",
+      "text": "Eu queria um suco de laranja",
+      "file": "ui-30c3adb802.mp3"
+    },
+    {
+      "id": "ui-4c1b832204",
+      "voice": "ui",
+      "text": "Vou querer um guaraná",
+      "file": "ui-4c1b832204.mp3"
+    },
+    {
+      "id": "ui-90a8ddd157",
+      "voice": "ui",
+      "text": "Eu queria um guaraná,",
+      "file": "ui-90a8ddd157.mp3"
+    },
+    {
+      "id": "ui-bf0799ecf0",
+      "voice": "ui",
+      "text": "Eu quero um café com leite,",
+      "file": "ui-bf0799ecf0.mp3"
+    },
+    {
+      "id": "ui-a87b7c7405",
+      "voice": "ui",
+      "text": "Um bolo,",
+      "file": "ui-a87b7c7405.mp3"
+    },
+    {
+      "id": "ui-9b2ec09383",
+      "voice": "ui",
+      "text": "Eu queria um café com leite,",
+      "file": "ui-9b2ec09383.mp3"
+    },
+    {
+      "id": "ui-3c9d712be7",
+      "voice": "ui",
+      "text": "Vou querer um suco de laranja",
+      "file": "ui-3c9d712be7.mp3"
+    },
+    {
+      "id": "ui-4d6efbc54a",
+      "voice": "ui",
+      "text": "Vou querer um bolo",
+      "file": "ui-4d6efbc54a.mp3"
+    },
+    {
+      "id": "ui-6b8f66e906",
+      "voice": "ui",
+      "text": "Vou querer um café com leite extra quente",
+      "file": "ui-6b8f66e906.mp3"
+    },
+    {
+      "id": "ui-64c912e5d5",
+      "voice": "ui",
+      "text": "Pode ser um café,",
+      "file": "ui-64c912e5d5.mp3"
+    },
+    {
+      "id": "ui-2f29add5fd",
+      "voice": "ui",
+      "text": "Eu queria um bolo,",
+      "file": "ui-2f29add5fd.mp3"
+    },
+    {
+      "id": "ui-f22a2a7d62",
+      "voice": "ui",
+      "text": "e um café pra comer aqui,",
+      "file": "ui-f22a2a7d62.mp3"
+    },
+    {
+      "id": "ui-69e74fec68",
+      "voice": "ui",
+      "text": "e um pastel pra viagem.",
+      "file": "ui-69e74fec68.mp3"
+    },
+    {
+      "id": "ui-36df157b4e",
+      "voice": "ui",
+      "text": "e um misto-quente pra comer aqui.",
+      "file": "ui-36df157b4e.mp3"
+    },
+    {
+      "id": "ui-b9d4508919",
+      "voice": "ui",
+      "text": "Um misto-quente,",
+      "file": "ui-b9d4508919.mp3"
+    },
+    {
+      "id": "ui-8a656137ba",
+      "voice": "ui",
+      "text": "Eu queria um café com leite",
+      "file": "ui-8a656137ba.mp3"
+    },
+    {
+      "id": "ui-dc8da5177e",
+      "voice": "ui",
+      "text": "Pode ser um bolo,",
+      "file": "ui-dc8da5177e.mp3"
+    },
+    {
+      "id": "ui-3d2b58071d",
+      "voice": "ui",
+      "text": "Um pão de queijo,",
+      "file": "ui-3d2b58071d.mp3"
+    },
+    {
+      "id": "ui-9c9f45486f",
+      "voice": "ui",
+      "text": "Um bolo",
+      "file": "ui-9c9f45486f.mp3"
+    },
+    {
+      "id": "ui-955caacd4a",
+      "voice": "ui",
+      "text": "e uma coxinha pra comer aqui.",
+      "file": "ui-955caacd4a.mp3"
+    },
+    {
+      "id": "ui-b1d54de326",
+      "voice": "ui",
+      "text": "e um bolo pra viagem.",
+      "file": "ui-b1d54de326.mp3"
+    },
+    {
+      "id": "ui-554327bfec",
+      "voice": "ui",
+      "text": "Pode ser um pastel",
+      "file": "ui-554327bfec.mp3"
+    },
+    {
+      "id": "ui-42091ec109",
+      "voice": "ui",
+      "text": "e uma água pra viagem,",
+      "file": "ui-42091ec109.mp3"
+    },
+    {
+      "id": "ui-2bd5f0be1c",
+      "voice": "ui",
+      "text": "Eu queria um pastel,",
+      "file": "ui-2bd5f0be1c.mp3"
+    },
+    {
+      "id": "ui-66b7528095",
+      "voice": "ui",
+      "text": "e um pão na chapa pra viagem,",
+      "file": "ui-66b7528095.mp3"
+    },
+    {
+      "id": "ui-356ea333a0",
+      "voice": "ui",
+      "text": "Vou querer um café com leite",
+      "file": "ui-356ea333a0.mp3"
+    },
+    {
+      "id": "ui-bf6bd51bec",
+      "voice": "ui",
+      "text": "e um misto-quente pra viagem.",
+      "file": "ui-bf6bd51bec.mp3"
+    },
+    {
+      "id": "ui-7f74b97fe9",
+      "voice": "ui",
+      "text": "Vou querer um café com leite extra quente,",
+      "file": "ui-7f74b97fe9.mp3"
+    },
+    {
+      "id": "ui-35061c9364",
+      "voice": "ui",
+      "text": "Eu queria um misto-quente",
+      "file": "ui-35061c9364.mp3"
+    },
+    {
+      "id": "ui-1b8e3a8f2e",
+      "voice": "ui",
+      "text": "Pode ser um misto-quente",
+      "file": "ui-1b8e3a8f2e.mp3"
+    },
+    {
+      "id": "ui-1aadc20865",
+      "voice": "ui",
+      "text": "Pode ser um pão na chapa",
+      "file": "ui-1aadc20865.mp3"
+    },
+    {
+      "id": "ui-f8e868750a",
+      "voice": "ui",
+      "text": "e um café pra viagem,",
+      "file": "ui-f8e868750a.mp3"
+    },
+    {
+      "id": "ui-7334a54558",
+      "voice": "ui",
+      "text": "Um café com leite extra quente,",
+      "file": "ui-7334a54558.mp3"
+    },
+    {
+      "id": "ui-8786475fea",
+      "voice": "ui",
+      "text": "e um pão de queijo pra comer aqui.",
+      "file": "ui-8786475fea.mp3"
+    },
+    {
+      "id": "ui-57219bf759",
+      "voice": "ui",
+      "text": "e um guaraná pra comer aqui.",
+      "file": "ui-57219bf759.mp3"
+    },
+    {
+      "id": "ui-6993c5c471",
+      "voice": "ui",
+      "text": "Pode ser uma água",
+      "file": "ui-6993c5c471.mp3"
+    },
+    {
+      "id": "ui-278c67c687",
+      "voice": "ui",
+      "text": "Vou querer um misto-quente,",
+      "file": "ui-278c67c687.mp3"
+    },
+    {
+      "id": "ui-da8fa6ce47",
+      "voice": "ui",
+      "text": "e um suco de laranja pra comer aqui.",
+      "file": "ui-da8fa6ce47.mp3"
+    },
+    {
+      "id": "ui-aa66ef263d",
+      "voice": "ui",
+      "text": "e um pão pra viagem.",
+      "file": "ui-aa66ef263d.mp3"
+    },
+    {
+      "id": "ui-7ebee2689c",
+      "voice": "ui",
+      "text": "e um guaraná pra comer aqui,",
+      "file": "ui-7ebee2689c.mp3"
+    },
+    {
+      "id": "ui-6f38f1300e",
+      "voice": "ui",
+      "text": "Vou querer um café,",
+      "file": "ui-6f38f1300e.mp3"
+    },
+    {
+      "id": "ui-26bd937eef",
+      "voice": "ui",
+      "text": "e um bolo pra comer aqui.",
+      "file": "ui-26bd937eef.mp3"
+    },
+    {
+      "id": "ui-a6163ab3b2",
+      "voice": "ui",
+      "text": "e um pão na chapa pra comer aqui,",
+      "file": "ui-a6163ab3b2.mp3"
+    },
+    {
+      "id": "ui-4810e2c15f",
+      "voice": "ui",
+      "text": "Eu quero um café com leite extra quente,",
+      "file": "ui-4810e2c15f.mp3"
+    },
+    {
+      "id": "ui-09408f949d",
+      "voice": "ui",
+      "text": "Um café com leite extra quente",
+      "file": "ui-09408f949d.mp3"
+    },
+    {
+      "id": "ui-ddb6d80f7b",
+      "voice": "ui",
+      "text": "Eu queria um café com leite extra quente",
+      "file": "ui-ddb6d80f7b.mp3"
     },
     {
       "id": "ui-4387ce3868",
@@ -7615,34 +6793,10 @@
       "file": "ui-c66de257fb.mp3"
     },
     {
-      "id": "ui-0e922b6387",
+      "id": "ui-476ee25f5b",
       "voice": "ui",
-      "text": "eu pedi UM pão…",
-      "file": "ui-0e922b6387.mp3"
-    },
-    {
-      "id": "ui-e523d98a9d",
-      "voice": "ui",
-      "text": "Faltou dois pães!",
-      "file": "ui-e523d98a9d.mp3"
-    },
-    {
-      "id": "ui-250e0085d0",
-      "voice": "ui",
-      "text": "eu pedi DOIS pães…",
-      "file": "ui-250e0085d0.mp3"
-    },
-    {
-      "id": "ui-9bc237a495",
-      "voice": "ui",
-      "text": "Faltou três pães!",
-      "file": "ui-9bc237a495.mp3"
-    },
-    {
-      "id": "ui-b9a22f637d",
-      "voice": "ui",
-      "text": "eu pedi TRÊS pães…",
-      "file": "ui-b9a22f637d.mp3"
+      "text": "Era só um pão!",
+      "file": "ui-476ee25f5b.mp3"
     },
     {
       "id": "ui-d0f9f7d613",
@@ -7657,34 +6811,10 @@
       "file": "ui-505f1774a9.mp3"
     },
     {
-      "id": "ui-d3f7881e71",
+      "id": "ui-e7d502d6a8",
       "voice": "ui",
-      "text": "eu pedi UM pão na chapa…",
-      "file": "ui-d3f7881e71.mp3"
-    },
-    {
-      "id": "ui-fa5a23cd60",
-      "voice": "ui",
-      "text": "Faltou dois pães na chapa!",
-      "file": "ui-fa5a23cd60.mp3"
-    },
-    {
-      "id": "ui-12158d8b54",
-      "voice": "ui",
-      "text": "eu pedi DOIS pães na chapa…",
-      "file": "ui-12158d8b54.mp3"
-    },
-    {
-      "id": "ui-98dff0c059",
-      "voice": "ui",
-      "text": "Faltou três pães na chapa!",
-      "file": "ui-98dff0c059.mp3"
-    },
-    {
-      "id": "ui-07ee12870c",
-      "voice": "ui",
-      "text": "eu pedi TRÊS pães na chapa…",
-      "file": "ui-07ee12870c.mp3"
+      "text": "Era só um pão na chapa!",
+      "file": "ui-e7d502d6a8.mp3"
     },
     {
       "id": "ui-28f4580cdd",
@@ -7699,34 +6829,10 @@
       "file": "ui-86a948efd0.mp3"
     },
     {
-      "id": "ui-fa77210cc5",
+      "id": "ui-5ded70c60f",
       "voice": "ui",
-      "text": "eu pedi UM pastel…",
-      "file": "ui-fa77210cc5.mp3"
-    },
-    {
-      "id": "ui-abd41efa9d",
-      "voice": "ui",
-      "text": "Faltou dois pastéis!",
-      "file": "ui-abd41efa9d.mp3"
-    },
-    {
-      "id": "ui-55da80f3c2",
-      "voice": "ui",
-      "text": "eu pedi DOIS pastéis…",
-      "file": "ui-55da80f3c2.mp3"
-    },
-    {
-      "id": "ui-af00d0c11f",
-      "voice": "ui",
-      "text": "Faltou três pastéis!",
-      "file": "ui-af00d0c11f.mp3"
-    },
-    {
-      "id": "ui-69c81b1f08",
-      "voice": "ui",
-      "text": "eu pedi TRÊS pastéis…",
-      "file": "ui-69c81b1f08.mp3"
+      "text": "Era só um pastel!",
+      "file": "ui-5ded70c60f.mp3"
     },
     {
       "id": "ui-87b4f17516",
@@ -7741,34 +6847,10 @@
       "file": "ui-8ed3f8fa7c.mp3"
     },
     {
-      "id": "ui-29fbd492b0",
+      "id": "ui-f1048eb2e8",
       "voice": "ui",
-      "text": "eu pedi UMA coxinha…",
-      "file": "ui-29fbd492b0.mp3"
-    },
-    {
-      "id": "ui-728086134b",
-      "voice": "ui",
-      "text": "Faltou duas coxinhas!",
-      "file": "ui-728086134b.mp3"
-    },
-    {
-      "id": "ui-4b87fe6776",
-      "voice": "ui",
-      "text": "eu pedi DUAS coxinhas…",
-      "file": "ui-4b87fe6776.mp3"
-    },
-    {
-      "id": "ui-9474335126",
-      "voice": "ui",
-      "text": "Faltou três coxinhas!",
-      "file": "ui-9474335126.mp3"
-    },
-    {
-      "id": "ui-58098edec4",
-      "voice": "ui",
-      "text": "eu pedi TRÊS coxinhas…",
-      "file": "ui-58098edec4.mp3"
+      "text": "Era só uma coxinha!",
+      "file": "ui-f1048eb2e8.mp3"
     },
     {
       "id": "ui-695bf38008",
@@ -7783,34 +6865,10 @@
       "file": "ui-93b656dd55.mp3"
     },
     {
-      "id": "ui-c344a7d138",
+      "id": "ui-8f4f461b46",
       "voice": "ui",
-      "text": "eu pedi UM bolo…",
-      "file": "ui-c344a7d138.mp3"
-    },
-    {
-      "id": "ui-73ddb52318",
-      "voice": "ui",
-      "text": "Faltou dois bolos!",
-      "file": "ui-73ddb52318.mp3"
-    },
-    {
-      "id": "ui-0822297723",
-      "voice": "ui",
-      "text": "eu pedi DOIS bolos…",
-      "file": "ui-0822297723.mp3"
-    },
-    {
-      "id": "ui-726262f1fc",
-      "voice": "ui",
-      "text": "Faltou três bolos!",
-      "file": "ui-726262f1fc.mp3"
-    },
-    {
-      "id": "ui-8214c72170",
-      "voice": "ui",
-      "text": "eu pedi TRÊS bolos…",
-      "file": "ui-8214c72170.mp3"
+      "text": "Era só um bolo!",
+      "file": "ui-8f4f461b46.mp3"
     },
     {
       "id": "ui-28d63ab91e",
@@ -7825,34 +6883,10 @@
       "file": "ui-e33e436732.mp3"
     },
     {
-      "id": "ui-f6b2637484",
+      "id": "ui-f91c89b12f",
       "voice": "ui",
-      "text": "eu pedi UM café…",
-      "file": "ui-f6b2637484.mp3"
-    },
-    {
-      "id": "ui-d4ace6f6fb",
-      "voice": "ui",
-      "text": "Faltou dois cafés!",
-      "file": "ui-d4ace6f6fb.mp3"
-    },
-    {
-      "id": "ui-dbea5f3916",
-      "voice": "ui",
-      "text": "eu pedi DOIS cafés…",
-      "file": "ui-dbea5f3916.mp3"
-    },
-    {
-      "id": "ui-734a43adee",
-      "voice": "ui",
-      "text": "Faltou três cafés!",
-      "file": "ui-734a43adee.mp3"
-    },
-    {
-      "id": "ui-af148ed1e0",
-      "voice": "ui",
-      "text": "eu pedi TRÊS cafés…",
-      "file": "ui-af148ed1e0.mp3"
+      "text": "Era só um café!",
+      "file": "ui-f91c89b12f.mp3"
     },
     {
       "id": "ui-95acc7dd15",
@@ -7867,34 +6901,10 @@
       "file": "ui-92dcb11c1d.mp3"
     },
     {
-      "id": "ui-a78dacb819",
+      "id": "ui-c9bcc26584",
       "voice": "ui",
-      "text": "eu pedi UM café com leite…",
-      "file": "ui-a78dacb819.mp3"
-    },
-    {
-      "id": "ui-4dd56543b1",
-      "voice": "ui",
-      "text": "Faltou dois cafés com leite!",
-      "file": "ui-4dd56543b1.mp3"
-    },
-    {
-      "id": "ui-85928fabeb",
-      "voice": "ui",
-      "text": "eu pedi DOIS cafés com leite…",
-      "file": "ui-85928fabeb.mp3"
-    },
-    {
-      "id": "ui-e8dda76286",
-      "voice": "ui",
-      "text": "Faltou três cafés com leite!",
-      "file": "ui-e8dda76286.mp3"
-    },
-    {
-      "id": "ui-8bf74039dd",
-      "voice": "ui",
-      "text": "eu pedi TRÊS cafés com leite…",
-      "file": "ui-8bf74039dd.mp3"
+      "text": "Era só um café com leite!",
+      "file": "ui-c9bcc26584.mp3"
     },
     {
       "id": "ui-587ec6d3d2",
@@ -7909,34 +6919,10 @@
       "file": "ui-92147fc25c.mp3"
     },
     {
-      "id": "ui-7a4cfbd848",
+      "id": "ui-3d82f9a52f",
       "voice": "ui",
-      "text": "eu pedi UM suco de laranja…",
-      "file": "ui-7a4cfbd848.mp3"
-    },
-    {
-      "id": "ui-c8c3cccada",
-      "voice": "ui",
-      "text": "Faltou dois sucos de laranja!",
-      "file": "ui-c8c3cccada.mp3"
-    },
-    {
-      "id": "ui-f37b678e09",
-      "voice": "ui",
-      "text": "eu pedi DOIS sucos de laranja…",
-      "file": "ui-f37b678e09.mp3"
-    },
-    {
-      "id": "ui-2d9db126cf",
-      "voice": "ui",
-      "text": "Faltou três sucos de laranja!",
-      "file": "ui-2d9db126cf.mp3"
-    },
-    {
-      "id": "ui-e7b19c1cb8",
-      "voice": "ui",
-      "text": "eu pedi TRÊS sucos de laranja…",
-      "file": "ui-e7b19c1cb8.mp3"
+      "text": "Era só um suco de laranja!",
+      "file": "ui-3d82f9a52f.mp3"
     },
     {
       "id": "ui-54fc9f340f",
@@ -7951,34 +6937,10 @@
       "file": "ui-4f0fd57ca7.mp3"
     },
     {
-      "id": "ui-5989a6c4ef",
+      "id": "ui-3ec7e0c5e7",
       "voice": "ui",
-      "text": "eu pedi UMA água…",
-      "file": "ui-5989a6c4ef.mp3"
-    },
-    {
-      "id": "ui-f51d2cded7",
-      "voice": "ui",
-      "text": "Faltou duas águas!",
-      "file": "ui-f51d2cded7.mp3"
-    },
-    {
-      "id": "ui-dad4aef738",
-      "voice": "ui",
-      "text": "eu pedi DUAS águas…",
-      "file": "ui-dad4aef738.mp3"
-    },
-    {
-      "id": "ui-dd64e9caca",
-      "voice": "ui",
-      "text": "Faltou três águas!",
-      "file": "ui-dd64e9caca.mp3"
-    },
-    {
-      "id": "ui-192d48f4c2",
-      "voice": "ui",
-      "text": "eu pedi TRÊS águas…",
-      "file": "ui-192d48f4c2.mp3"
+      "text": "Era só uma água!",
+      "file": "ui-3ec7e0c5e7.mp3"
     },
     {
       "id": "ui-9b9c4dce59",
@@ -7993,34 +6955,10 @@
       "file": "ui-4fa3e3d531.mp3"
     },
     {
-      "id": "ui-1ff90b9d2f",
+      "id": "ui-5294815c26",
       "voice": "ui",
-      "text": "eu pedi UM pão de queijo…",
-      "file": "ui-1ff90b9d2f.mp3"
-    },
-    {
-      "id": "ui-2930610198",
-      "voice": "ui",
-      "text": "Faltou dois pães de queijo!",
-      "file": "ui-2930610198.mp3"
-    },
-    {
-      "id": "ui-a645eb3fa4",
-      "voice": "ui",
-      "text": "eu pedi DOIS pães de queijo…",
-      "file": "ui-a645eb3fa4.mp3"
-    },
-    {
-      "id": "ui-12b3c81adb",
-      "voice": "ui",
-      "text": "Faltou três pães de queijo!",
-      "file": "ui-12b3c81adb.mp3"
-    },
-    {
-      "id": "ui-cbe8d4f688",
-      "voice": "ui",
-      "text": "eu pedi TRÊS pães de queijo…",
-      "file": "ui-cbe8d4f688.mp3"
+      "text": "Era só um pão de queijo!",
+      "file": "ui-5294815c26.mp3"
     },
     {
       "id": "ui-a4242bbb92",
@@ -8035,34 +6973,10 @@
       "file": "ui-55ff913a39.mp3"
     },
     {
-      "id": "ui-68f84a6c2e",
+      "id": "ui-abf6de046e",
       "voice": "ui",
-      "text": "eu pedi UM misto-quente…",
-      "file": "ui-68f84a6c2e.mp3"
-    },
-    {
-      "id": "ui-bf9696e041",
-      "voice": "ui",
-      "text": "Faltou dois mistos-quentes!",
-      "file": "ui-bf9696e041.mp3"
-    },
-    {
-      "id": "ui-1364c832ad",
-      "voice": "ui",
-      "text": "eu pedi DOIS mistos-quentes…",
-      "file": "ui-1364c832ad.mp3"
-    },
-    {
-      "id": "ui-f5284afcb1",
-      "voice": "ui",
-      "text": "Faltou três mistos-quentes!",
-      "file": "ui-f5284afcb1.mp3"
-    },
-    {
-      "id": "ui-98c639a682",
-      "voice": "ui",
-      "text": "eu pedi TRÊS mistos-quentes…",
-      "file": "ui-98c639a682.mp3"
+      "text": "Era só um misto-quente!",
+      "file": "ui-abf6de046e.mp3"
     },
     {
       "id": "ui-38cfd455c6",
@@ -8077,34 +6991,10 @@
       "file": "ui-bc6e3c669f.mp3"
     },
     {
-      "id": "ui-8ece38c8e8",
+      "id": "ui-5ea3bb15d9",
       "voice": "ui",
-      "text": "eu pedi UM guaraná…",
-      "file": "ui-8ece38c8e8.mp3"
-    },
-    {
-      "id": "ui-b4afd9136e",
-      "voice": "ui",
-      "text": "Faltou dois guaranás!",
-      "file": "ui-b4afd9136e.mp3"
-    },
-    {
-      "id": "ui-b80077b547",
-      "voice": "ui",
-      "text": "eu pedi DOIS guaranás…",
-      "file": "ui-b80077b547.mp3"
-    },
-    {
-      "id": "ui-13f206374b",
-      "voice": "ui",
-      "text": "Faltou três guaranás!",
-      "file": "ui-13f206374b.mp3"
-    },
-    {
-      "id": "ui-8984dff339",
-      "voice": "ui",
-      "text": "eu pedi TRÊS guaranás…",
-      "file": "ui-8984dff339.mp3"
+      "text": "Era só um guaraná!",
+      "file": "ui-5ea3bb15d9.mp3"
     },
     {
       "id": "ui-0113bec9e6",
@@ -8161,562 +7051,28 @@
       "file": "ui-e2b3ab6ebc.mp3"
     },
     {
-      "id": "ui-4a961b874e",
+      "id": "ui-f8c167d6e2",
       "voice": "ui",
-      "text": "Era bem quente!",
-      "file": "ui-4a961b874e.mp3"
+      "text": "Era extra quente!",
+      "file": "ui-f8c167d6e2.mp3"
     },
     {
-      "id": "ui-954292d881",
+      "id": "ui-95acc396d6",
       "voice": "ui",
-      "text": "Não era bem quente.",
-      "file": "ui-954292d881.mp3"
+      "text": "Não era extra quente.",
+      "file": "ui-95acc396d6.mp3"
     },
     {
-      "id": "ui-608957fafe",
+      "id": "ui-1ac1e98e7a",
       "voice": "ui",
-      "text": "Eu não pedi bem quente.",
-      "file": "ui-608957fafe.mp3"
+      "text": "Eu não pedi extra quente.",
+      "file": "ui-1ac1e98e7a.mp3"
     },
     {
       "id": "ui-e739d352bc",
       "voice": "ui",
       "text": "Hmm, não é bem isso.",
       "file": "ui-e739d352bc.mp3"
-    },
-    {
-      "id": "ui-aaa51a26ec",
-      "voice": "ui",
-      "text": "Isso!",
-      "file": "ui-aaa51a26ec.mp3"
-    },
-    {
-      "id": "ui-5436e5dc79",
-      "voice": "ui",
-      "text": "Um real.",
-      "file": "ui-5436e5dc79.mp3"
-    },
-    {
-      "id": "ui-659f0d9c10",
-      "voice": "ui",
-      "text": "Toma,",
-      "file": "ui-659f0d9c10.mp3"
-    },
-    {
-      "id": "ui-a5b998a280",
-      "voice": "ui",
-      "text": "cinco reais.",
-      "file": "ui-a5b998a280.mp3"
-    },
-    {
-      "id": "ui-ff70ecff42",
-      "voice": "ui",
-      "text": "Hm,",
-      "file": "ui-ff70ecff42.mp3"
-    },
-    {
-      "id": "ui-6591f66199",
-      "voice": "ui",
-      "text": "são um real.",
-      "file": "ui-6591f66199.mp3"
-    },
-    {
-      "id": "ui-322b9f0a7a",
-      "voice": "ui",
-      "text": "Dois reais.",
-      "file": "ui-322b9f0a7a.mp3"
-    },
-    {
-      "id": "ui-e2f3f8e336",
-      "voice": "ui",
-      "text": "são dois reais.",
-      "file": "ui-e2f3f8e336.mp3"
-    },
-    {
-      "id": "ui-afe72775c9",
-      "voice": "ui",
-      "text": "Três reais.",
-      "file": "ui-afe72775c9.mp3"
-    },
-    {
-      "id": "ui-aa46af526e",
-      "voice": "ui",
-      "text": "são três reais.",
-      "file": "ui-aa46af526e.mp3"
-    },
-    {
-      "id": "ui-ad839aa992",
-      "voice": "ui",
-      "text": "Quatro reais.",
-      "file": "ui-ad839aa992.mp3"
-    },
-    {
-      "id": "ui-c4652facd4",
-      "voice": "ui",
-      "text": "são quatro reais.",
-      "file": "ui-c4652facd4.mp3"
-    },
-    {
-      "id": "ui-d171a7ded5",
-      "voice": "ui",
-      "text": "Cinco reais.",
-      "file": "ui-d171a7ded5.mp3"
-    },
-    {
-      "id": "ui-e3c8166ee1",
-      "voice": "ui",
-      "text": "são cinco reais.",
-      "file": "ui-e3c8166ee1.mp3"
-    },
-    {
-      "id": "ui-96e7a8c91b",
-      "voice": "ui",
-      "text": "Seis reais.",
-      "file": "ui-96e7a8c91b.mp3"
-    },
-    {
-      "id": "ui-ecf431a797",
-      "voice": "ui",
-      "text": "dez reais.",
-      "file": "ui-ecf431a797.mp3"
-    },
-    {
-      "id": "ui-a1806171c5",
-      "voice": "ui",
-      "text": "são seis reais.",
-      "file": "ui-a1806171c5.mp3"
-    },
-    {
-      "id": "ui-b5f1161205",
-      "voice": "ui",
-      "text": "Sete reais.",
-      "file": "ui-b5f1161205.mp3"
-    },
-    {
-      "id": "ui-97225a83d0",
-      "voice": "ui",
-      "text": "são sete reais.",
-      "file": "ui-97225a83d0.mp3"
-    },
-    {
-      "id": "ui-e08888a4fc",
-      "voice": "ui",
-      "text": "Oito reais.",
-      "file": "ui-e08888a4fc.mp3"
-    },
-    {
-      "id": "ui-d4323123cf",
-      "voice": "ui",
-      "text": "são oito reais.",
-      "file": "ui-d4323123cf.mp3"
-    },
-    {
-      "id": "ui-9d8c83c28d",
-      "voice": "ui",
-      "text": "Nove reais.",
-      "file": "ui-9d8c83c28d.mp3"
-    },
-    {
-      "id": "ui-f532bea407",
-      "voice": "ui",
-      "text": "são nove reais.",
-      "file": "ui-f532bea407.mp3"
-    },
-    {
-      "id": "ui-4d26e4dc6f",
-      "voice": "ui",
-      "text": "Dez reais.",
-      "file": "ui-4d26e4dc6f.mp3"
-    },
-    {
-      "id": "ui-b84354cc30",
-      "voice": "ui",
-      "text": "são dez reais.",
-      "file": "ui-b84354cc30.mp3"
-    },
-    {
-      "id": "ui-c3f301087d",
-      "voice": "ui",
-      "text": "Onze reais.",
-      "file": "ui-c3f301087d.mp3"
-    },
-    {
-      "id": "ui-7ca2be2ca7",
-      "voice": "ui",
-      "text": "vinte reais.",
-      "file": "ui-7ca2be2ca7.mp3"
-    },
-    {
-      "id": "ui-32386d2407",
-      "voice": "ui",
-      "text": "são onze reais.",
-      "file": "ui-32386d2407.mp3"
-    },
-    {
-      "id": "ui-62cef66732",
-      "voice": "ui",
-      "text": "Doze reais.",
-      "file": "ui-62cef66732.mp3"
-    },
-    {
-      "id": "ui-600971b4f3",
-      "voice": "ui",
-      "text": "são doze reais.",
-      "file": "ui-600971b4f3.mp3"
-    },
-    {
-      "id": "ui-c2a7dfd393",
-      "voice": "ui",
-      "text": "Treze reais.",
-      "file": "ui-c2a7dfd393.mp3"
-    },
-    {
-      "id": "ui-67955a534b",
-      "voice": "ui",
-      "text": "são treze reais.",
-      "file": "ui-67955a534b.mp3"
-    },
-    {
-      "id": "ui-5495da9090",
-      "voice": "ui",
-      "text": "Catorze reais.",
-      "file": "ui-5495da9090.mp3"
-    },
-    {
-      "id": "ui-205804b0f2",
-      "voice": "ui",
-      "text": "são catorze reais.",
-      "file": "ui-205804b0f2.mp3"
-    },
-    {
-      "id": "ui-9f527e0a2f",
-      "voice": "ui",
-      "text": "Quinze reais.",
-      "file": "ui-9f527e0a2f.mp3"
-    },
-    {
-      "id": "ui-e2060ee55d",
-      "voice": "ui",
-      "text": "são quinze reais.",
-      "file": "ui-e2060ee55d.mp3"
-    },
-    {
-      "id": "ui-7ac065d49b",
-      "voice": "ui",
-      "text": "Dezesseis reais.",
-      "file": "ui-7ac065d49b.mp3"
-    },
-    {
-      "id": "ui-42062cc806",
-      "voice": "ui",
-      "text": "são dezesseis reais.",
-      "file": "ui-42062cc806.mp3"
-    },
-    {
-      "id": "ui-68a796d37e",
-      "voice": "ui",
-      "text": "Dezessete reais.",
-      "file": "ui-68a796d37e.mp3"
-    },
-    {
-      "id": "ui-f14ac4d562",
-      "voice": "ui",
-      "text": "são dezessete reais.",
-      "file": "ui-f14ac4d562.mp3"
-    },
-    {
-      "id": "ui-5db9afb412",
-      "voice": "ui",
-      "text": "Dezoito reais.",
-      "file": "ui-5db9afb412.mp3"
-    },
-    {
-      "id": "ui-702a4b2c46",
-      "voice": "ui",
-      "text": "são dezoito reais.",
-      "file": "ui-702a4b2c46.mp3"
-    },
-    {
-      "id": "ui-374ad9358c",
-      "voice": "ui",
-      "text": "Dezenove reais.",
-      "file": "ui-374ad9358c.mp3"
-    },
-    {
-      "id": "ui-ca285af09e",
-      "voice": "ui",
-      "text": "são dezenove reais.",
-      "file": "ui-ca285af09e.mp3"
-    },
-    {
-      "id": "ui-d53a7268d8",
-      "voice": "ui",
-      "text": "Vinte reais.",
-      "file": "ui-d53a7268d8.mp3"
-    },
-    {
-      "id": "ui-daabdd9214",
-      "voice": "ui",
-      "text": "são vinte reais.",
-      "file": "ui-daabdd9214.mp3"
-    },
-    {
-      "id": "ui-5d96345da5",
-      "voice": "ui",
-      "text": "Vinte",
-      "file": "ui-5d96345da5.mp3"
-    },
-    {
-      "id": "ui-71babcbb1c",
-      "voice": "ui",
-      "text": "e um reais.",
-      "file": "ui-71babcbb1c.mp3"
-    },
-    {
-      "id": "ui-3240ba0493",
-      "voice": "ui",
-      "text": "cinquenta reais.",
-      "file": "ui-3240ba0493.mp3"
-    },
-    {
-      "id": "ui-2b1ed2db84",
-      "voice": "ui",
-      "text": "são vinte",
-      "file": "ui-2b1ed2db84.mp3"
-    },
-    {
-      "id": "ui-cc0b6a0b89",
-      "voice": "ui",
-      "text": "e dois reais.",
-      "file": "ui-cc0b6a0b89.mp3"
-    },
-    {
-      "id": "ui-fb64c110f3",
-      "voice": "ui",
-      "text": "e três reais.",
-      "file": "ui-fb64c110f3.mp3"
-    },
-    {
-      "id": "ui-c6311089f0",
-      "voice": "ui",
-      "text": "e quatro reais.",
-      "file": "ui-c6311089f0.mp3"
-    },
-    {
-      "id": "ui-27ddc6a524",
-      "voice": "ui",
-      "text": "e cinco reais.",
-      "file": "ui-27ddc6a524.mp3"
-    },
-    {
-      "id": "ui-ac0a104484",
-      "voice": "ui",
-      "text": "e seis reais.",
-      "file": "ui-ac0a104484.mp3"
-    },
-    {
-      "id": "ui-114a4a37ff",
-      "voice": "ui",
-      "text": "e sete reais.",
-      "file": "ui-114a4a37ff.mp3"
-    },
-    {
-      "id": "ui-69c8527244",
-      "voice": "ui",
-      "text": "e oito reais.",
-      "file": "ui-69c8527244.mp3"
-    },
-    {
-      "id": "ui-1436b6b662",
-      "voice": "ui",
-      "text": "e nove reais.",
-      "file": "ui-1436b6b662.mp3"
-    },
-    {
-      "id": "ui-12d6df8b45",
-      "voice": "ui",
-      "text": "Trinta reais.",
-      "file": "ui-12d6df8b45.mp3"
-    },
-    {
-      "id": "ui-fbbe640cf1",
-      "voice": "ui",
-      "text": "são trinta reais.",
-      "file": "ui-fbbe640cf1.mp3"
-    },
-    {
-      "id": "ui-9573b8a3aa",
-      "voice": "ui",
-      "text": "Trinta",
-      "file": "ui-9573b8a3aa.mp3"
-    },
-    {
-      "id": "ui-07a29a2e57",
-      "voice": "ui",
-      "text": "são trinta",
-      "file": "ui-07a29a2e57.mp3"
-    },
-    {
-      "id": "ui-e403ca85e6",
-      "voice": "ui",
-      "text": "Quarenta reais.",
-      "file": "ui-e403ca85e6.mp3"
-    },
-    {
-      "id": "ui-3c5d7ea9e8",
-      "voice": "ui",
-      "text": "são quarenta reais.",
-      "file": "ui-3c5d7ea9e8.mp3"
-    },
-    {
-      "id": "ui-27163e784c",
-      "voice": "ui",
-      "text": "Quarenta",
-      "file": "ui-27163e784c.mp3"
-    },
-    {
-      "id": "ui-873a33d9ff",
-      "voice": "ui",
-      "text": "são quarenta",
-      "file": "ui-873a33d9ff.mp3"
-    },
-    {
-      "id": "ui-4c2cb711be",
-      "voice": "ui",
-      "text": "Cinquenta reais.",
-      "file": "ui-4c2cb711be.mp3"
-    },
-    {
-      "id": "ui-701f318656",
-      "voice": "ui",
-      "text": "são cinquenta reais.",
-      "file": "ui-701f318656.mp3"
-    },
-    {
-      "id": "ui-115fb54b11",
-      "voice": "ui",
-      "text": "Cinquenta",
-      "file": "ui-115fb54b11.mp3"
-    },
-    {
-      "id": "ui-d981740597",
-      "voice": "ui",
-      "text": "cem reais.",
-      "file": "ui-d981740597.mp3"
-    },
-    {
-      "id": "ui-f909afdac2",
-      "voice": "ui",
-      "text": "são cinquenta",
-      "file": "ui-f909afdac2.mp3"
-    },
-    {
-      "id": "ui-9e5d8c6b61",
-      "voice": "ui",
-      "text": "Sessenta reais.",
-      "file": "ui-9e5d8c6b61.mp3"
-    },
-    {
-      "id": "ui-e19347ed1d",
-      "voice": "ui",
-      "text": "são sessenta reais.",
-      "file": "ui-e19347ed1d.mp3"
-    },
-    {
-      "id": "ui-980bc42644",
-      "voice": "ui",
-      "text": "Sessenta",
-      "file": "ui-980bc42644.mp3"
-    },
-    {
-      "id": "ui-9780e029a0",
-      "voice": "ui",
-      "text": "são sessenta",
-      "file": "ui-9780e029a0.mp3"
-    },
-    {
-      "id": "ui-2fe4a39465",
-      "voice": "ui",
-      "text": "Setenta reais.",
-      "file": "ui-2fe4a39465.mp3"
-    },
-    {
-      "id": "ui-e3a6de7e88",
-      "voice": "ui",
-      "text": "são setenta reais.",
-      "file": "ui-e3a6de7e88.mp3"
-    },
-    {
-      "id": "ui-4be29d9885",
-      "voice": "ui",
-      "text": "Setenta",
-      "file": "ui-4be29d9885.mp3"
-    },
-    {
-      "id": "ui-06cb1d9c07",
-      "voice": "ui",
-      "text": "são setenta",
-      "file": "ui-06cb1d9c07.mp3"
-    },
-    {
-      "id": "ui-176d5d7a82",
-      "voice": "ui",
-      "text": "Oitenta reais.",
-      "file": "ui-176d5d7a82.mp3"
-    },
-    {
-      "id": "ui-5e65d24910",
-      "voice": "ui",
-      "text": "são oitenta reais.",
-      "file": "ui-5e65d24910.mp3"
-    },
-    {
-      "id": "ui-4be2ee82c8",
-      "voice": "ui",
-      "text": "Oitenta",
-      "file": "ui-4be2ee82c8.mp3"
-    },
-    {
-      "id": "ui-134b0acf53",
-      "voice": "ui",
-      "text": "são oitenta",
-      "file": "ui-134b0acf53.mp3"
-    },
-    {
-      "id": "ui-752bc9283c",
-      "voice": "ui",
-      "text": "Noventa reais.",
-      "file": "ui-752bc9283c.mp3"
-    },
-    {
-      "id": "ui-e7b79eed91",
-      "voice": "ui",
-      "text": "são noventa reais.",
-      "file": "ui-e7b79eed91.mp3"
-    },
-    {
-      "id": "ui-a9d94db724",
-      "voice": "ui",
-      "text": "Noventa",
-      "file": "ui-a9d94db724.mp3"
-    },
-    {
-      "id": "ui-920c37cc4a",
-      "voice": "ui",
-      "text": "são noventa",
-      "file": "ui-920c37cc4a.mp3"
-    },
-    {
-      "id": "ui-49b4bd55b8",
-      "voice": "ui",
-      "text": "Cem reais.",
-      "file": "ui-49b4bd55b8.mp3"
-    },
-    {
-      "id": "ui-c43840c0e5",
-      "voice": "ui",
-      "text": "são cem reais.",
-      "file": "ui-c43840c0e5.mp3"
     },
     {
       "id": "ui-18c0d2709b",

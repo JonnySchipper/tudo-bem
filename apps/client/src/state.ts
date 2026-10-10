@@ -1,5 +1,5 @@
 import type { BoardRow, EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
-import { feiraCartShown, feiraRoomFor, npcDefById, positionAlong, ROOMS } from '@tudobem/shared';
+import { feiraCartShown, feiraRoomFor, npcDefById, padariaCasaRoom, positionAlong, ROOMS } from '@tudobem/shared';
 import type { RecadoBoard } from './ui/recadoView';
 
 export interface Bubble {
@@ -79,6 +79,8 @@ class Game {
   designMode = false;
   /** Extra camera offset (world px) while designing, so a phone can pan props out from under the panel. */
   designPan = { x: 0, y: 0 };
+  /** Design mode zoom, in whole steps above (or below) the normal zoom. */
+  designZoom = 0;
   /** Bumped when a room's props change so the scene and walk grid rebuild. */
   layoutEpoch = 0;
   /** Last layout pushed by the server (the design editor listens). */
@@ -97,6 +99,8 @@ class Game {
     if (!this.room) return null;
     const base = ROOMS[this.room.room];
     if (this.designMode) return base;
+    // a player's padaria is its own room, sized by what the owner bought (the server walks the same def)
+    if (base.id === 'padaria' && this.room.padaria) return padariaCasaRoom(this.room.padaria.size);
     if (base.id !== 'feira') return base;
     const key = feiraCartShown(this.feiraCart) ? this.feiraCart!.game! : '';
     let view = this.feiraViews.get(key);

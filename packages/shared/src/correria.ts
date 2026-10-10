@@ -11,10 +11,9 @@
  */
 import { ECONOMY } from './constants.js';
 import { localizeGreeting } from './clock.js';
-import { moneyEn, moneyPt } from './feira.js';
 import { cpuLook, readsFeminine } from './looks.js';
 import { CPU_NAMES } from './ambiance.js';
-import { numberEn, numberPt } from './numbers.js';
+import { joinEn, joinPt, numberEn, numberPt } from './numbers.js';
 import { npcDefById, type NpcId } from './rooms.js';
 import type { Appearance, Bilingual, CorreriaProgress } from './types.js';
 import {
@@ -22,6 +21,7 @@ import {
   MG_ITEMS,
   MG_MAX_TRAY,
   MG_MODS,
+  OPENERS,
   checkTray,
   generateCombo,
   lineEn,
@@ -54,12 +54,17 @@ export const STEP_UP_MS = 900;
 export const QUEUE_DRAIN = 0.45;
 /** Closing tickets: a wrong tray costs this share of the customer's patience. */
 export const MISTAKE_COST = 0.15;
-/** How long "Quanto é?" waits for an answer. */
-export const ASK_MS = 15_000;
-
 export const CHAPA = { cookMs: 2400, burnMs: 5400, toleranceMs: 150, sizzleStepMs: 800 } as const;
-/** The cup fills on its own after the start tap. A second tap inside goodMin..spillAt lands it; past abortFactor it spills by itself, like the chapa burns. */
-export const POUR = { fullMs: 1800, fastMs: 1300, goodMin: 0.7, spillAt: 1.08, minHoldMs: 120, abortFactor: 1.7 } as const;
+/**
+ * The cup fills on its own after the start tap. A second tap in the green (goodMin..spillAt) lands a normal coffee; held on past the green,
+ * the cup keeps heating into the red (spillAt..hotMax), where a tap lands an extra-hot one. Past hotMax it is too late, and past abortFactor
+ * it spills by itself, like the chapa burns.
+ */
+export const POUR = { fullMs: 1800, fastMs: 1300, goodMin: 0.7, spillAt: 1.08, hotMax: 1.45, minHoldMs: 120, abortFactor: 1.6 } as const;
+/** The coffee mod an extra-hot pour puts on the tray (content id `bem_quente`; the game says "extra quente"). */
+export const HOT_MOD = 'bem_quente';
+/** needs_br: true */
+export const EXTRA_QUENTE: Bilingual = { pt: 'extra quente', en: 'extra hot' };
 
 /**
  * The espremedor automático (the Zummo-style juicer on every padaria counter). Each tap drops one orange: it rolls down, is cut, pressed,
@@ -122,7 +127,7 @@ export const SHELF_OF: Record<string, Shelf> = {
   pudim: 'vitrine',
 };
 
-/** Prices in whole reais (the totals stay under 100 so `numberPt` can say them). */
+/** Prices in whole reais: what the balcão da casa of an owned padaria charges (the counter game itself never asks for a total). */
 export const COUNTER_PRICES: Record<string, number> = {
   pao: 2,
   pao_na_chapa: 6,
@@ -147,11 +152,6 @@ export const COUNTER_PRICES: Record<string, number> = {
   pudim: 8,
 };
 
-export const orderTotal = (lines: readonly MgOrderLine[]): number => lines.reduce((s, l) => s + (COUNTER_PRICES[l.itemId] ?? 0) * l.qty, 0);
-
-/** The note a customer pays with: the smallest of 5 / 10 / 20 / 50 / 100 that covers the total. */
-export const payNote = (total: number): number => [5, 10, 20, 50, 100].find((n) => n >= total) ?? 100;
-
 // ---------------------------------------------------------------- levels and unlocks
 
 export interface CorreriaLevel {
@@ -162,24 +162,24 @@ export interface CorreriaLevel {
   patienceMul: number;
   /** Multiplies the gap between customers (bigger = slower). */
   gapMul: number;
-  /** Per wave: the chance an order is spoken only / has a follow-up / ends with "Quanto é?". */
+  /** Per wave: the chance an order is spoken only / has a follow-up. */
   listen: readonly [number, number, number];
   follow: readonly [number, number, number];
-  ask: readonly [number, number, number];
-  askType: 'choice' | 'type';
   /** Share of the customer's patience a listening replay costs. */
   replayCost: number;
   maxLines: number;
-  maxQty: number;
   /** English glosses are always on (the player can still hide them from level 1). */
   glossLocked: boolean;
 }
 
+/** No counting at the counter: every order line is one of something (a harder level asks for more different things, never "três pães"). */
+export const ORDER_QTY = 1;
+
 export const LEVELS: readonly CorreriaLevel[] = [
-  { id: 'verde', pt: 'Verde', en: 'Green', patienceMul: 1.6, gapMul: 1.35, listen: [0, 0.1, 0.2], follow: [0, 0, 0.1], ask: [0, 0.2, 0.3], askType: 'choice', replayCost: 0.04, maxLines: 2, maxQty: 2, glossLocked: true },
-  { id: 'jeito', pt: 'Pegando o jeito', en: 'Getting the hang of it', patienceMul: 1.25, gapMul: 1.1, listen: [0.1, 0.25, 0.35], follow: [0, 0.15, 0.25], ask: [0.15, 0.3, 0.4], askType: 'choice', replayCost: 0.07, maxLines: 2, maxQty: 3, glossLocked: false },
-  { id: 'correria', pt: 'Na correria', en: 'In the rush', patienceMul: 1, gapMul: 0.95, listen: [0.2, 0.35, 0.5], follow: [0.1, 0.25, 0.35], ask: [0.25, 0.4, 0.5], askType: 'type', replayCost: 0.08, maxLines: 3, maxQty: 3, glossLocked: false },
-  { id: 'mestre', pt: 'Mestre do balcão', en: 'Counter master', patienceMul: 0.85, gapMul: 0.85, listen: [0.3, 0.45, 0.6], follow: [0.15, 0.3, 0.4], ask: [0.3, 0.45, 0.55], askType: 'type', replayCost: 0.1, maxLines: 3, maxQty: 3, glossLocked: false },
+  { id: 'verde', pt: 'Verde', en: 'Green', patienceMul: 1.6, gapMul: 1.35, listen: [0, 0.1, 0.2], follow: [0, 0, 0.1], replayCost: 0.04, maxLines: 2, glossLocked: true },
+  { id: 'jeito', pt: 'Pegando o jeito', en: 'Getting the hang of it', patienceMul: 1.25, gapMul: 1.1, listen: [0.1, 0.25, 0.35], follow: [0, 0.15, 0.25], replayCost: 0.07, maxLines: 2, glossLocked: false },
+  { id: 'correria', pt: 'Na correria', en: 'In the rush', patienceMul: 1, gapMul: 0.95, listen: [0.2, 0.35, 0.5], follow: [0.1, 0.25, 0.35], replayCost: 0.08, maxLines: 3, glossLocked: false },
+  { id: 'mestre', pt: 'Mestre do balcão', en: 'Counter master', patienceMul: 0.85, gapMul: 0.85, listen: [0.3, 0.45, 0.6], follow: [0.15, 0.3, 0.4], replayCost: 0.1, maxLines: 3, glossLocked: false },
 ];
 
 /** Total shift stars at which the level steps up (index = level). */
@@ -373,14 +373,15 @@ export function chapaFrame(ageMs: number): ChapaFrame {
   return `sizzle_${i}` as ChapaFrame;
 }
 
-export type PourVerdict = 'ok' | 'short' | 'spill';
+/** `ok` a normal coffee (the green), `hot` an extra-hot one (the red), `short` too early, `spill` too late. */
+export type PourVerdict = 'ok' | 'hot' | 'short' | 'spill';
 export function pourVerdict(heldMs: number, fullMs: number = POUR.fullMs): { fill: number; verdict: PourVerdict } {
   const fill = Math.max(0, heldMs) / fullMs;
-  return { fill, verdict: fill < POUR.goodMin ? 'short' : fill > POUR.spillAt ? 'spill' : 'ok' };
+  return { fill, verdict: fill < POUR.goodMin ? 'short' : fill <= POUR.spillAt ? 'ok' : fill <= POUR.hotMax ? 'hot' : 'spill' };
 }
-/** What the machine shows while a pour runs: still filling, "Agora!" (a tap now lands it, same window as `pourVerdict`), or overflowing. */
-export type PourZone = 'filling' | 'agora' | 'over';
-export const pourZone = (fill: number): PourZone => (fill < POUR.goodMin ? 'filling' : fill <= POUR.spillAt ? 'agora' : 'over');
+/** What the machine shows while a pour runs: still filling, "Agora!" (the green), "Extra quente!" (the red), or overflowing. Same windows as `pourVerdict`. */
+export type PourZone = 'filling' | 'agora' | 'quente' | 'over';
+export const pourZone = (fill: number): PourZone => (fill < POUR.goodMin ? 'filling' : fill <= POUR.spillAt ? 'agora' : fill <= POUR.hotMax ? 'quente' : 'over');
 /** 0 = idle, 1..4 -> `coffee_pour_<0..3>` is `fill` bucket 0..3. */
 export const pourFrame = (fill: number): 0 | 1 | 2 | 3 => (fill < 0.25 ? 0 : fill < 0.5 ? 1 : fill < 0.75 ? 2 : 3);
 
@@ -399,54 +400,6 @@ export function replayPatiencePips(replaysSoFar: number): number | null {
 export const REPLAY_DENY_CARLOS: Bilingual = { pt: 'Ui… de novo não, tá?', en: 'Ugh… not again, okay?' };
 /** The tip jar's fill state 0..3 from the reais in it. */
 export const tipJarStage = (tips: number): 0 | 1 | 2 | 3 => (tips < 1 ? 0 : tips < 10 ? 1 : tips < 24 ? 2 : 3);
-
-const PT_NUMBERS = new Map<string, number>();
-for (let n = 0; n <= 100; n++) {
-  PT_NUMBERS.set(numberPt(n, 'm'), n);
-  PT_NUMBERS.set(numberPt(n, 'f'), n);
-}
-const strip = (s: string) =>
-  s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9 ]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-const PT_NUMBERS_STRIPPED = new Map([...PT_NUMBERS].map(([k, v]) => [strip(k), v]));
-/** "12", "R$ 12", "doze", "doze reais", "vinte e um" -> the number (0-100), else null. Accents optional; digits are fine. */
-export function parseNumberAnswer(raw: unknown): number | null {
-  if (typeof raw === 'number') return Number.isInteger(raw) && raw >= 0 && raw <= 100 ? raw : null;
-  if (typeof raw !== 'string' || raw.length > 40) return null;
-  const s = strip(raw)
-    .replace(/\br\b/g, ' ')
-    .replace(/\b(reais|real)\b/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (/^\d{1,3}$/.test(s)) {
-    const n = Number(s);
-    return n <= 100 ? n : null;
-  }
-  return PT_NUMBERS_STRIPPED.get(s) ?? null;
-}
-
-/** Three totals to choose from: the right one and two plausible slips, shuffled. */
-export function askOptions(rng: Rng, total: number): number[] {
-  const wrong = new Set<number>();
-  const cands = [1, -1, 2, -2, 10, -10, 5, -5, 3, -3];
-  const swap = total >= 10 && total < 100 ? Number(`${total % 10}${Math.floor(total / 10)}`) : -1;
-  if (swap > 0 && swap !== total) wrong.add(swap);
-  while (wrong.size < 2) {
-    const c = total + pick(rng, cands);
-    if (c > 0 && c <= 100 && c !== total) wrong.add(c);
-  }
-  const out = [total, ...[...wrong].slice(0, 2)];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [out[i], out[j]] = [out[j]!, out[i]!];
-  }
-  return out;
-}
 
 // ---------------------------------------------------------------- text
 
@@ -501,20 +454,15 @@ export const WAVE_CHEERS: Bilingual[] = [
   { pt: 'Mais uma rodada. Bora!', en: 'Another round. Let’s go!' },
   { pt: 'Última leva! Dá conta!', en: 'Last batch! You can do it!' },
 ];
-export const ASK_LINE: Bilingual = { pt: 'Quanto é?', en: 'How much is it?' };
+/** How a mod is said at the counter: the extra-hot coffee is "extra quente" (the content pack's word for its id is older). */
+export const modWords = (id: string): Bilingual | null => (id === HOT_MOD ? EXTRA_QUENTE : (mgModById(id) ?? null));
 
 /** The correction a customer gives for a wrong tray: the quantity first, then a missing item, an extra one, then the mods. */
 export function correctionFor(order: MgOrder, tray: Tray, check: TrayCheck): Bilingual {
-  // 1. a line that is there but with the wrong count: "Não, eu pedi DOIS pães…"
+  // 1. one of something that came twice: "Era só um pão!" (orders are one of each, so no count to say)
   for (const line of order.lines) {
     const have = tray[line.itemId] ?? 0;
-    if (have > 0 && have !== line.qty) {
-      const item = mgItemByIdAny(line.itemId)!;
-      const g = item.card.gender ?? 'm';
-      const noun = line.qty === 1 ? item.card.form : (item.card.plural ?? item.card.form);
-      const enNoun = line.qty === 1 ? (item.card.gloss_en_tray ?? item.card.gloss_en) : (item.card.gloss_en_plural ?? item.card.gloss_en);
-      return { pt: `Não, eu pedi ${numberPt(line.qty, g).toUpperCase()} ${noun}…`, en: `No, I ordered ${numberEn(line.qty).toUpperCase()} ${enNoun}…` };
-    }
+    if (have > line.qty) return { pt: `Era só ${linePt(line)}!`, en: `Just ${lineEn(line)}!` };
   }
   // 2. an item missing altogether
   const miss = check.missing.find((m) => !(tray[m.itemId] > 0));
@@ -531,13 +479,13 @@ export function correctionFor(order: MgOrder, tray: Tray, check: TrayCheck): Bil
   // 4. the mods
   const mm = check.missingMods[0];
   if (mm) {
-    const m = mgModById(mm)!;
+    const m = modWords(mm)!;
     return { pt: `Era ${m.pt}!`, en: `It was ${m.en}!` };
   }
   const em = check.extraMods[0];
   if (em) {
-    const m = mgModById(em)!;
-    return m.group === 'where' ? { pt: `Não era ${m.pt}.`, en: `It wasn’t ${m.en}.` } : { pt: `Eu não pedi ${m.pt}.`, en: `I didn’t ask for ${m.en}.` };
+    const m = modWords(em)!;
+    return mgModById(em)?.group === 'where' ? { pt: `Não era ${m.pt}.`, en: `It wasn’t ${m.en}.` } : { pt: `Eu não pedi ${m.pt}.`, en: `I didn’t ask for ${m.en}.` };
   }
   return { pt: 'Hmm, não é bem isso.', en: 'Hmm, that’s not quite it.' };
 }
@@ -559,12 +507,15 @@ const DRINKS = ['cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua', 'guarana'];
 const art = (item: MgItem) => ((item.card.gender ?? 'm') === 'f' ? 'da' : 'do');
 const enArt = (item: MgItem) => item.card.gloss_en_tray ?? item.card.gloss_en;
 
-/** "Ah, e pra viagem!" / "Ah, e mais um pão!" / "Não, um suco em vez do café." Always solvable from the new order. `where` adds a packing line only when the caller asks (the ladder puts it on the order itself once the menu is big enough). */
+/**
+ * "Ah, e pra viagem!" / "Não, um suco em vez do café." Always solvable from the new order, and never a count ("e mais um pão" made the
+ * player count, so it is gone). `where` adds a packing line only when the caller asks (the ladder puts it on the order itself once the menu
+ * is big enough).
+ */
 export function makeFollow(rng: Rng, order: MgOrder, items: readonly MgItem[], opts: { where?: boolean } = {}): Follow | null {
   const ids = new Set(items.map((i) => i.id));
-  const kinds: ('where' | 'more' | 'swap')[] = [];
+  const kinds: ('where' | 'swap')[] = [];
   if (opts.where && !order.mods.some((m) => mgModById(m)?.group === 'where')) kinds.push('where');
-  if (order.lines.some((l) => l.qty < 3)) kinds.push('more');
   if (order.lines.some((l) => l.qty === 1 && DRINKS.includes(l.itemId))) kinds.push('swap');
   if (!kinds.length) return null;
   const kind = pick(rng, kinds);
@@ -572,19 +523,13 @@ export function makeFollow(rng: Rng, order: MgOrder, items: readonly MgItem[], o
     const w = pick(rng, MG_MODS.filter((m) => m.group === 'where'));
     return { kind: 'extra', pt: w.id === 'pra_viagem' ? 'Ah, e é pra viagem!' : 'Ah, e é pra comer aqui!', en: w.id === 'pra_viagem' ? 'Oh, and it’s to go!' : 'Oh, and it’s for here!', lines: order.lines.map((l) => ({ ...l })), mods: [...order.mods, w.id] };
   }
-  if (kind === 'more') {
-    const cand = order.lines.filter((l) => l.qty < 3);
-    const line = pick(rng, cand);
-    const lines = order.lines.map((l) => (l === line ? { ...l, qty: l.qty + 1 } : { ...l }));
-    return { kind: 'extra', pt: `Ah, e mais ${linePt({ itemId: line.itemId, qty: 1 })}!`, en: `Oh, and one more ${enArt(mgItemByIdAny(line.itemId)!).replace(/^(a|an) /, '')}!`, lines, mods: [...order.mods] };
-  }
   const oldLine = pick(rng, order.lines.filter((l) => l.qty === 1 && DRINKS.includes(l.itemId)));
   const old = mgItemByIdAny(oldLine.itemId)!;
   const options = DRINKS.filter((d) => ids.has(d) && d !== oldLine.itemId && !order.lines.some((l) => l.itemId === d));
   if (!options.length) return null;
   const nu = mgItemByIdAny(pick(rng, options))!;
-  // the new drink keeps the spot of the old one; the coffee mods only make sense with coffee
-  const keepMods = CAFE_ITEMS.includes(nu.id) ? [...order.mods] : order.mods.filter((m) => mgModById(m)?.group !== 'coffee');
+  // the new drink keeps the spot of the old one; "extra quente" went with the old drink (the swap line does not say it again)
+  const keepMods = order.mods.filter((m) => mgModById(m)?.group !== 'coffee');
   const lines = order.lines.map((l) => (l === oldLine ? { itemId: nu.id, qty: 1 } : { ...l }));
   return {
     kind: 'swap',
@@ -609,57 +554,94 @@ export function withWhere<T extends MgOrder>(rng: Rng, order: T, required: boole
   return { ...order, mods, pt: stitch(order.pt, w.pt), en: stitch(order.en, w.en), timeMs: orderTimeMs(order.lines, mods) };
 }
 
-/** The order for a customer: authored tickets early, generated combos later, only items open on this shift's menu. Omitted `shifts` is the full ladder (old callers). */
+/** Phrasings of a generated order around its list ("um café e um pão"). The first four are the curriculum's openers; needs_br: true for the rest. */
+export const ORDER_OPENERS: { pt: (l: string) => string; en: (l: string) => string }[] = [
+  ...OPENERS,
+  { pt: (l) => `Eu quero ${l}, por favor.`, en: (l) => `I want ${l}, please.` },
+  { pt: (l) => `Vou querer ${l}.`, en: (l) => `I’ll have ${l}.` },
+  { pt: (l) => `Oi! Me vê ${l}?`, en: (l) => `Hi! Can I get ${l}?` },
+  { pt: (l) => `Bom dia! Eu queria ${l}.`, en: (l) => `Good morning! I’d like ${l}.` },
+  { pt: (l) => `Pode ser ${l}?`, en: (l) => `Could I get ${l}?` },
+];
+/** Chance a lone coffee is asked for extra quente (never on a player's very first shift). */
+export const HOT_CHANCE = 0.35;
+/** What an order wants, for "not the same order twice in a row": its items and mods, whatever the wording. */
+export const orderSig = (o: Pick<MgOrder, 'lines' | 'mods'>): string =>
+  `${o.lines
+    .map((l) => `${l.itemId}x${l.qty}`)
+    .sort()
+    .join('+')}|${[...o.mods].sort().join('+')}`;
+
+const hotLinePt = (l: MgOrderLine) => `${linePt(l)} ${EXTRA_QUENTE.pt}`;
+const hotLineEn = (l: MgOrderLine) => `an extra-hot ${enArt(mgItemByIdAny(l.itemId)!)}`;
+
+/** A fresh order: `n` different items (one of each), maybe a coffee extra quente, in one of the phrasings. */
+function freshOrder(rng: Rng, customer: string, items: readonly MgItem[], n: number, hotOK: boolean): MgOrder {
+  const pool = [...items];
+  const lines: MgOrderLine[] = [];
+  for (let i = 0; i < n && pool.length; i++) lines.push({ itemId: pool.splice(Math.floor(rng() * pool.length), 1)[0]!.id, qty: ORDER_QTY });
+  const hot = hotOK && lines.filter((l) => CAFE_ITEMS.includes(l.itemId)).length === 1 && rng() < HOT_CHANCE;
+  const isHot = (l: MgOrderLine) => hot && CAFE_ITEMS.includes(l.itemId);
+  const mods = hot ? [HOT_MOD] : [];
+  const opener = pick(rng, ORDER_OPENERS);
+  const pt = opener.pt(joinPt(lines.map((l) => (isHot(l) ? hotLinePt(l) : linePt(l)))));
+  const en = opener.en(joinEn(lines.map((l) => (isHot(l) ? hotLineEn(l) : lineEn(l)))));
+  return { customer, lines, mods, pt, en, timeMs: orderTimeMs(lines, mods), authored: false };
+}
+
+/**
+ * The order for a customer, only from items open on this shift's menu: a mix of the curriculum's authored tickets and fresh combos in many
+ * phrasings, one of each item (no counting), sometimes a coffee extra quente once the player has a shift behind them. Never the same order
+ * (items and mods) as the customer before (`last`), and a wording not heard yet this shift when the menu allows. Omitted `shifts` is the
+ * full ladder (old callers).
+ */
 export function makeCorrOrder(
   rng: Rng,
-  o: { level: number; wave: number; unlocked: readonly string[]; menuIds?: readonly string[]; shifts?: number; saturday: boolean; avoid: readonly string[]; minute?: number; customer?: string },
+  o: { level: number; wave: number; unlocked: readonly string[]; menuIds?: readonly string[]; shifts?: number; saturday: boolean; avoid: readonly string[]; last?: string; minute?: number; customer?: string },
 ): MgOrder & { special?: boolean } {
   const lv = LEVELS[Math.max(0, Math.min(LEVELS.length - 1, o.level))]!;
   const shifts = o.shifts ?? FULL_MENU_SHIFTS;
   const items = shiftItemPool({ shifts, menuIds: o.menuIds });
   const ids = new Set(items.map((i) => i.id));
   const whereOn = whereRequired(items.length);
+  const hotOK = shifts >= 1;
   const customer = o.customer ?? 'Cliente';
   const finish = <T extends MgOrder>(ord: T): T => (o.minute === undefined ? ord : { ...ord, ...localizeGreeting({ pt: ord.pt, en: ord.en }, o.minute) });
   const skip = new Set(o.avoid.map((pt) => localizeGreeting({ pt }, 600).pt));
   const seen = (pt: string) => skip.has(localizeGreeting({ pt }, 600).pt);
   const wave = Math.max(0, Math.min(2, o.wave));
-  const comboOpts = { pool: items, minLines: lv.maxLines >= 3 ? 2 : 1, maxLines: lv.maxLines, maxQty: lv.maxQty, coffeeModChance: o.level >= 2 ? 0.3 : 0, whereChance: whereOn ? 1 : 0 };
   // Saturday: some customers bring a big order (unlocked with the stars; it pays +50%)
   if (o.saturday && o.unlocked.includes('sabado') && rng() < 0.4) {
-    const c = withWhere(rng, generateCombo(rng, customer, { pool: items, minLines: 3, maxLines: 3, maxQty: 2, whereChance: whereOn ? 1 : 0 }), whereOn);
+    const c = withWhere(rng, generateCombo(rng, customer, { pool: items, minLines: 3, maxLines: 3, maxQty: ORDER_QTY, whereChance: whereOn ? 1 : 0 }), whereOn);
     const body = c.pt.replace(/^(Bom dia|Boa tarde|Boa noite)! /, '').replace(/^Me vê /, '');
     return finish({ ...c, pt: `Sábado! Hoje é festa: me vê ${body.replace(/^[A-ZÀ-Ú]/, (m) => m.toLowerCase())}`, en: `Saturday! Party day: I’ll take ${c.en.replace(/^(Good (morning|afternoon|evening)! )?(I’ll take )?/i, '').replace(/^[A-Z]/, (m) => m.toLowerCase())}`, special: true });
   }
-  const roundByLevel: number[][] = [
-    [0, wave === 1 ? 1 : 2, 2],
-    [0, 2, 2],
-    [2, 2, 4],
-    [2, 4, 4],
-  ];
-  const r0 = roundByLevel[Math.min(o.level, 3)]![wave]!;
-  // wave 1 of Verde is the easy pool only; later waves may mix in the harder authored tickets, level 2+ also generated combos
-  let round = r0;
-  if (o.level <= 1 && wave === 1) round = rng() < 0.5 ? 0 : 2;
-  if (o.level === 2 && wave === 1) round = rng() < 0.5 ? 2 : 4;
-  const pool = AUTHORED_ORDERS.filter((a) => (round < 2 ? a.level === 'verde' : a.level === 'bump') && a.lines?.length && a.lines.every(([id]) => ids.has(id)) && (whereOn || !hasWhere(a.mods ?? [])));
-  if (round < 4 && pool.length) {
-    const choices = [...pool];
-    let fallback: (MgOrder & { special?: boolean }) | null = null;
-    while (choices.length) {
-      const a = choices.splice(Math.floor(rng() * choices.length), 1)[0]!;
-      const lines = a.lines.map(([itemId, qty]) => ({ itemId, qty }));
-      const mods = [...(a.mods ?? [])];
-      const done = finish(withWhere(rng, { customer, lines, mods, pt: a.pt, en: a.en, timeMs: orderTimeMs(lines, mods), authored: true }, whereOn));
-      if (!fallback) fallback = done;
-      if (!seen(done.pt)) return done;
-    }
-    if (fallback && !seen(fallback.pt)) return fallback;
+  // the authored tickets that fit: this menu, one of each, and no mod the counter no longer makes (only pra viagem / pra comer aqui)
+  const authored = AUTHORED_ORDERS.filter(
+    (a) => a.lines?.length && a.lines.every(([id, qty]) => ids.has(id) && qty === ORDER_QTY) && (a.mods ?? []).every((m) => mgModById(m)?.group === 'where') && (whereOn || !hasWhere(a.mods ?? [])),
+  );
+  const fromPack = (): MgOrder => {
+    const a = pick(rng, authored);
+    const lines = a.lines.map(([itemId, qty]) => ({ itemId, qty }));
+    const mods = [...(a.mods ?? [])];
+    return withWhere(rng, { customer, lines, mods, pt: a.pt, en: a.en, timeMs: orderTimeMs(lines, mods), authored: true }, whereOn);
+  };
+  // how many different things: one at first, more as the waves and the level climb (a harder level always asks for at least two)
+  const most = Math.max(1, Math.min(lv.maxLines, items.length));
+  const least = Math.min(most, o.level >= 2 ? 2 : 1);
+  const fresh = (): MgOrder => {
+    const n = least + Math.floor(Math.pow(rng(), wave === 0 ? 1.8 : 1) * (most - least + 1));
+    return withWhere(rng, freshOrder(rng, customer, items, Math.min(most, n), hotOK), whereOn);
+  };
+  const last = o.last ?? '';
+  let best: MgOrder | null = null;
+  for (let i = 0; i < 16; i++) {
+    const c = authored.length && rng() < 0.3 ? fromPack() : fresh();
+    if (last && orderSig(c) === last) continue;
+    best ??= c;
+    if (!seen(c.pt)) return finish(c);
   }
-  const bake = () => finish(withWhere(rng, generateCombo(rng, customer, comboOpts), whereOn));
-  let made = bake();
-  for (let i = 1; i < 8 && seen(made.pt); i++) made = bake();
-  return made;
+  return finish(best ?? fresh());
 }
 
 // ---------------------------------------------------------------- customers
@@ -685,16 +667,7 @@ export function whoAppearance(w: Pick<Who, 'name' | 'npc'>): { appearance: Appea
 /** Regulars eligible for a shift (friends at 1+ heart; bakers are behind the counter, not customers). */
 export const REGULAR_NPCS: readonly NpcId[] = ['nanda', 'julia', 'prof', 'ze', 'chico', 'rosa', 'tia_lu'];
 
-export type CState = 'walk' | 'queue' | 'front' | 'asking';
-
-export interface AskState {
-  total: number;
-  options: number[];
-  type: 'choice' | 'type';
-  /** Shift time (ms) it closes at. */
-  deadline: number;
-  pay: number;
-}
+export type CState = 'walk' | 'queue' | 'front';
 
 export interface Customer {
   id: number;
@@ -719,7 +692,6 @@ export interface Customer {
   patience: number;
   mistakes: number;
   replays: number;
-  ask: AskState | null;
 }
 
 export interface ChapaSlot {
@@ -737,8 +709,6 @@ export interface ShiftStats {
   tips: number;
   combo: number;
   bestCombo: number;
-  askRight: number;
-  askTotal: number;
   regulars: string[];
   /** Cards of the served orders (the end card lists the ones new to the Caderno). */
   words: string[];
@@ -790,6 +760,8 @@ export interface Shift {
   oranges: number;
   stats: ShiftStats;
   served: string[];
+  /** `orderSig` of the last order made: the next customer never wants exactly the same. */
+  lastSig: string;
   usedNames: string[];
   usedRegulars: string[];
   over: boolean;
@@ -809,20 +781,17 @@ export type CEvent =
   | { k: 'chapa_burnt'; slot: number }
   | { k: 'chapa_trash'; slot: number }
   | { k: 'pour_start'; item: string }
-  | { k: 'pour_ok'; item: string; fill: number }
+  | { k: 'pour_ok'; item: string; fill: number; hot: boolean }
   | { k: 'pour_bad'; why: 'short' | 'spill'; fill: number }
   | { k: 'juice_drop'; size: OrangeSize; fill: number }
   | { k: 'juice_ok'; item: string; fill: number }
   | { k: 'juice_bad'; why: 'short' | 'spill'; fill: number }
   | { k: 'pack'; kind: 'bag' | 'plate' | null }
-  | { k: 'mod'; id: string; on: boolean }
   | { k: 'clear' }
   | { k: 'replay'; id: number }
   | { k: 'replay_deny'; id: number; line: Bilingual }
   | { k: 'serve'; id: number; outcome: 'perfeito' | 'segunda'; line: Bilingual; emote: string; points: number; tip: number; combo: number; speed: number }
   | { k: 'correct'; id: number; line: Bilingual }
-  | { k: 'ask'; id: number; line: Bilingual }
-  | { k: 'ask_result'; id: number; ok: boolean; total: number; line: Bilingual; pay: number; change: number; points: number }
   | { k: 'leave'; id: number; why: 'tempo' | 'errou'; line: Bilingual; emote: string }
   | { k: 'cheer'; line: Bilingual }
   | { k: 'no'; why: string; line: Bilingual }
@@ -837,11 +806,9 @@ export type CAct =
   | { a: 'juice_drop' }
   | { a: 'juice_take' }
   | { a: 'pack'; kind: 'bag' | 'plate' | null }
-  | { a: 'mod'; id: string }
   | { a: 'clear' }
   | { a: 'serve' }
-  | { a: 'replay' }
-  | { a: 'answer'; value: string | number };
+  | { a: 'replay' };
 
 /** Parse an action from the wire; null when it is not one of ours. */
 export function sanitizeAct(raw: unknown): CAct | null {
@@ -875,16 +842,12 @@ export function sanitizeAct(raw: unknown): CAct | null {
       return { a: 'juice_take' };
     case 'pack':
       return r.kind === 'bag' || r.kind === 'plate' ? { a: 'pack', kind: r.kind } : r.kind === null ? { a: 'pack', kind: null } : null;
-    case 'mod':
-      return typeof r.id === 'string' && mgModById(r.id)?.group === 'coffee' ? { a: 'mod', id: r.id } : null;
     case 'clear':
       return { a: 'clear' };
     case 'serve':
       return { a: 'serve' };
     case 'replay':
       return { a: 'replay' };
-    case 'answer':
-      return typeof r.value === 'string' || typeof r.value === 'number' ? { a: 'answer', value: typeof r.value === 'string' ? r.value.slice(0, 40) : r.value } : null;
     default:
       return null;
   }
@@ -922,8 +885,9 @@ export function newShift(ctx: ShiftCtx): Shift {
     pour: null,
     juice: null,
     oranges: 0,
-    stats: { served: 0, perfect: 0, second: 0, left: 0, points: 0, tips: 0, combo: 0, bestCombo: 0, askRight: 0, askTotal: 0, regulars: [], words: [], items: [] },
+    stats: { served: 0, perfect: 0, second: 0, left: 0, points: 0, tips: 0, combo: 0, bestCombo: 0, regulars: [], words: [], items: [] },
     served: [],
+    lastSig: '',
     usedNames: [],
     usedRegulars: [],
     over: false,
@@ -931,25 +895,24 @@ export function newShift(ctx: ShiftCtx): Shift {
   };
 }
 
-/** The practice order of the first-time tutorial: café, pão francês and suco, one item per station. */
-export const PRACTICE_MENU: readonly string[] = ['cafe', 'pao', 'suco_de_laranja'];
+/** The practice order of the first-time tutorial: what a new counter has, café and pão francês (one tap station, one shelf grab). */
+export const PRACTICE_MENU: readonly string[] = ['cafe', 'pao'];
 /** Practice patience: the client tops it up every tick, so the customer never walks out. */
 export const PRACTICE_PATIENCE_MS = 100_000;
 
 /**
- * The first-time tutorial's shift: one written order (a coffee, a French roll, an orange juice) already at the counter, no queue behind it,
- * level Verde (no "Quanto é?"). The client runs it locally with `shiftAct` / `shiftAdvance`; it never reaches the server and pays no RV.
+ * The first-time tutorial's shift: one written order (a coffee and a French roll) already at the counter, no queue behind it, level Verde.
+ * The client runs it locally with `shiftAct` / `shiftAdvance`; it never reaches the server and pays no RV.
  */
 export function practiceShift(seed: number, baker: 'carlos' | 'graca' = 'carlos'): Shift {
-  const sh = newShift({ seed, level: 0, unlocked: [], shifts: FULL_MENU_SHIFTS, menuIds: PRACTICE_MENU, saturday: false, minute: 9 * 60, baker, regulars: [] });
+  const sh = newShift({ seed, level: 0, unlocked: [], shifts: 0, menuIds: PRACTICE_MENU, saturday: false, minute: 9 * 60, baker, regulars: [] });
   const lines: MgOrderLine[] = PRACTICE_MENU.map((itemId) => ({ itemId, qty: 1 }));
-  const [a, b, c] = lines as [MgOrderLine, MgOrderLine, MgOrderLine];
   const order: MgOrder = {
     customer: 'Ana',
     lines,
     mods: [],
-    pt: `Bom dia! Me vê ${linePt(a)}, ${linePt(b)} e ${linePt(c)}, por favor.`,
-    en: `Good morning! I’ll have ${lineEn(a)}, ${lineEn(b)} and ${lineEn(c)}, please.`,
+    pt: `Bom dia! Me vê ${joinPt(lines.map(linePt))}, por favor.`,
+    en: `Good morning! I’ll have ${joinEn(lines.map(lineEn))}, please.`,
     timeMs: orderTimeMs(lines, []),
     authored: true,
   };
@@ -974,7 +937,6 @@ export function practiceShift(seed: number, baker: 'carlos' | 'graca' = 'carlos'
     patience: PRACTICE_PATIENCE_MS,
     mistakes: 0,
     replays: 0,
-    ask: null,
   });
   // nobody else comes: the shift is over once Ana is served
   sh.spawned = CORRERIA_TOTAL;
@@ -1004,7 +966,7 @@ export function waveOf(index: number): number {
   return WAVE_SIZES.length - 1;
 }
 
-const front = (sh: Shift) => sh.customers.find((c) => c.state === 'front' || c.state === 'asking');
+const front = (sh: Shift) => sh.customers.find((c) => c.state === 'front');
 
 function pickWho(sh: Shift): Who {
   const { rng } = sh;
@@ -1038,8 +1000,9 @@ function spawn(sh: Shift, ev: CEvent[]): void {
   const lv = levelOf(sh);
   const who = pickWho(sh);
   const pool = shiftItemPool(sh.ctx);
-  const order = makeCorrOrder(sh.rng, { level: sh.ctx.level, wave, unlocked: sh.ctx.unlocked, menuIds: sh.ctx.menuIds, shifts: sh.ctx.shifts ?? 0, saturday: sh.ctx.saturday, avoid: sh.served, minute: sh.ctx.minute, customer: who.name });
+  const order = makeCorrOrder(sh.rng, { level: sh.ctx.level, wave, unlocked: sh.ctx.unlocked, menuIds: sh.ctx.menuIds, shifts: sh.ctx.shifts ?? 0, saturday: sh.ctx.saturday, avoid: sh.served, last: sh.lastSig, minute: sh.ctx.minute, customer: who.name });
   sh.served.push(order.pt);
+  sh.lastSig = orderSig(order);
   const regular = !!who.npc;
   const mode: OrderMode = sh.rng() < lv.listen[wave]! ? 'listening' : 'written';
   // Packing is on the order itself once the menu is big enough, and absent before that — a follow-up does not sneak it in early.
@@ -1066,7 +1029,6 @@ function spawn(sh: Shift, ev: CEvent[]): void {
     patience: pMax,
     mistakes: 0,
     replays: 0,
-    ask: null,
   };
   sh.customers.push(c);
   sh.spawned++;
@@ -1141,8 +1103,6 @@ function tickOnce(sh: Shift, dt: number, ev: CEvent[]): void {
     f.order = { ...f.order, lines: f.follow.lines.map((l) => ({ ...l })), mods: [...f.follow.mods] };
     ev.push({ k: 'follow', id: f.id, pt: f.follow.pt, en: f.follow.en });
   }
-  // "Quanto é?" ran out
-  if (f && f.state === 'asking' && f.ask && sh.t >= f.ask.deadline) resolveAsk(sh, f, null, ev);
   // the chapa burns
   sh.chapa.forEach((s, i) => {
     if (s && !s.burnt && sh.t - s.at > CHAPA.burnMs) {
@@ -1173,33 +1133,6 @@ const trayCounts = (sh: Shift): Tray => {
 function cheerFor(sh: Shift, combo: number, ev: CEvent[]): void {
   if (combo === 3 || combo === 5 || combo === 8 || combo === 12) ev.push({ k: 'cheer', line: pick(sh.rng, CHEERS) });
 }
-
-function resolveAsk(sh: Shift, c: Customer, answer: unknown, ev: CEvent[]): void {
-  const ask = c.ask!;
-  const n = ask.type === 'choice' ? (typeof answer === 'number' ? answer : parseNumberAnswer(answer)) : parseNumberAnswer(answer);
-  const ok = n === ask.total;
-  sh.stats.askTotal++;
-  let points = 0;
-  if (ok) {
-    sh.stats.askRight++;
-    points = 3 + (c.regular ? 1 : 0);
-    sh.stats.tips += 1;
-    points += 1;
-    sh.stats.points += points;
-  }
-  const change = ask.pay - ask.total;
-  const line = askResultLine(ok, ask.total, ask.pay);
-  sh.customers = sh.customers.filter((x) => x !== c);
-  sh.nextFrontAt = Math.max(sh.nextFrontAt, sh.t + STEP_UP_MS);
-  ev.push({ k: 'ask_result', id: c.id, ok, total: ask.total, line, pay: ask.pay, change, points });
-}
-/** What the customer says after "Quanto é?": the total and the note they hand over. */
-export function askResultLine(ok: boolean, total: number, pay: number): Bilingual {
-  return ok
-    ? { pt: `Isso! ${cap1(moneyPt(total * 100))}. Toma, ${numberPt(pay)} reais.`, en: `Right! ${moneyEn(total * 100)}. Here, ${numberEn(pay)} reais.` }
-    : { pt: `Hm, são ${moneyPt(total * 100)}. Toma, ${numberPt(pay)} reais.`, en: `Hm, it’s ${moneyEn(total * 100)}. Here, ${numberEn(pay)} reais.` };
-}
-const cap1 = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1) : s);
 
 function doServe(sh: Shift, ev: CEvent[]): void {
   const c = front(sh);
@@ -1260,15 +1193,6 @@ function doServe(sh: Shift, ev: CEvent[]): void {
   sh.mods = [];
   ev.push({ k: 'serve', id: c.id, outcome: perfect ? 'perfeito' : 'segunda', line, emote, points, tip, combo: sh.stats.combo, speed: frac });
   if (perfect) cheerFor(sh, sh.stats.combo, ev);
-  // maybe "Quanto é?"
-  const lv = levelOf(sh);
-  if (sh.rng() < lv.ask[c.wave]!) {
-    const total = orderTotal(c.order.lines);
-    c.state = 'asking';
-    c.ask = { total, options: askOptions(sh.rng, total), type: lv.askType, deadline: sh.t + ASK_MS, pay: payNote(total) };
-    ev.push({ k: 'ask', id: c.id, line: ASK_LINE });
-    return;
-  }
   sh.customers = sh.customers.filter((x) => x !== c);
   sh.nextFrontAt = Math.max(sh.nextFrontAt, sh.t + STEP_UP_MS);
 }
@@ -1336,8 +1260,11 @@ export function shiftAct(sh: Shift, a: CAct): CEvent[] {
       if (held < POUR.minHoldMs || verdict === 'short') ev.push({ k: 'pour_bad', why: 'short', fill });
       else if (verdict === 'spill') ev.push({ k: 'pour_bad', why: 'spill', fill });
       else {
+        // a tap in the red is an extra-hot coffee: the tray carries it as the order's mod (the customer judges it like pra viagem)
+        const hot = verdict === 'hot';
+        if (hot && !sh.mods.includes(HOT_MOD)) sh.mods = [...sh.mods, HOT_MOD];
         sh.tray.push(p.itemId);
-        ev.push({ k: 'pour_ok', item: p.itemId, fill });
+        ev.push({ k: 'pour_ok', item: p.itemId, fill, hot });
       }
       return ev;
     }
@@ -1376,12 +1303,6 @@ export function shiftAct(sh: Shift, a: CAct): CEvent[] {
       sh.pack = a.kind;
       ev.push({ k: 'pack', kind: a.kind });
       return ev;
-    case 'mod': {
-      const on = !sh.mods.includes(a.id);
-      sh.mods = on ? [...sh.mods, a.id] : sh.mods.filter((m) => m !== a.id);
-      ev.push({ k: 'mod', id: a.id, on });
-      return ev;
-    }
     case 'clear':
       sh.tray = [];
       sh.pack = null;
@@ -1404,12 +1325,6 @@ export function shiftAct(sh: Shift, a: CAct): CEvent[] {
       ev.push({ k: 'replay', id: c.id });
       if (c.patience <= 0) leave(sh, c, 'tempo', ev);
       return ev;
-    }
-    case 'answer': {
-      const c = front(sh);
-      if (!c || c.state !== 'asking' || !c.ask) return ev;
-      resolveAsk(sh, c, a.value, ev);
-      break;
     }
   }
   if (!sh.over && sh.spawned >= CORRERIA_TOTAL && !sh.customers.length) {
@@ -1439,7 +1354,10 @@ export interface CustomerView {
   rate: number;
   mistakes: number;
   replays: number;
-  ask: { type: 'choice' | 'type'; options: number[]; ms: number; items: { itemId: string; qty: number; price: number }[] } | null;
+  /** A written order that wants its coffee extra quente (the ticket and the name tag show 🔥; a listening order keeps it in the voice). */
+  hot: boolean;
+  /** What a written order at the counter wants (it is on the ticket anyway): the coach marks point at the next thing to make. Null when listening. */
+  want: { items: string[]; mods: string[] } | null;
   /** Test hook only. */
   debug?: { lines: MgOrderLine[]; mods: string[] };
 }
@@ -1499,7 +1417,8 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
       rate: c.state === 'front' ? 1 : c.state === 'queue' ? QUEUE_DRAIN : 0,
       mistakes: c.mistakes,
       replays: c.replays,
-      ask: c.ask ? { type: c.ask.type, options: c.ask.options, ms: Math.max(0, c.ask.deadline - sh.t), items: c.order.lines.map((l) => ({ itemId: l.itemId, qty: l.qty, price: COUNTER_PRICES[l.itemId] ?? 0 })) } : null,
+      hot: c.mode === 'written' && c.order.mods.includes(HOT_MOD),
+      want: c.mode === 'written' && c.state === 'front' ? { items: c.order.lines.map((l) => l.itemId), mods: [...c.order.mods] } : null,
       ...(sh.debug ? { debug: { lines: c.order.lines.map((l) => ({ ...l })), mods: [...c.order.mods] } } : {}),
     }));
   return {
@@ -1590,8 +1509,6 @@ export interface ShiftSummary {
   bestCombo: number;
   stars: 0 | 1 | 2 | 3;
   coins: number;
-  askRight: number;
-  askTotal: number;
   words: string[];
   /** Item ids this shift served, once each (Seu Carlos can teach the word of one after a win). */
   items: string[];
@@ -1609,8 +1526,6 @@ export function summarizeShift(sh: Shift): ShiftSummary {
     bestCombo: s.bestCombo,
     stars: starsFor(s.points),
     coins: correriaPayout(s.points, s.served, shiftItemPool(sh.ctx).length),
-    askRight: s.askRight,
-    askTotal: s.askTotal,
     words: [...s.words],
     items: [...s.items],
     regulars: [...s.regulars],

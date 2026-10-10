@@ -215,8 +215,9 @@ export function readSpot(
   const w = Math.max(1, h.w ?? 1);
   const hh = Math.max(1, h.h ?? 1);
   let best: { t: Tile; d: number; e: number; sign: number } | null = null;
-  for (let y = h.y - range; y <= h.y + hh - 1 + range; y++) {
-    for (let x = h.x - range; x <= h.x + w - 1 + range; x++) {
+  // whole tiles only, also round a box with fractional edges (a part of the airport's plane)
+  for (let y = Math.floor(h.y - range); y <= Math.ceil(h.y + hh - 1 + range); y++) {
+    for (let x = Math.floor(h.x - range); x <= Math.ceil(h.x + w - 1 + range); x++) {
       if (x < 0 || y < 0 || !walkable(x, y)) continue;
       const t = { x, y };
       const sign = hotspotDistance(h, t);

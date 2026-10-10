@@ -78,6 +78,10 @@ export interface AppOptions {
   sqliteBackups?: boolean;
   /** WebSocket abuse limits (wsLimits.ts). Omit to read the env (`TB_WS_*`). */
   wsLimits?: Partial<WsLimitConfig>;
+  /** Design mode's pull requests. Omit to read `TB_GITHUB_TOKEN`; `null` turns them off (tests). */
+  githubToken?: string | null;
+  /** Test double for the GitHub API. */
+  githubFetch?: typeof fetch;
 }
 
 /** Server chat safety: the Jev model behind the stub when a model folder is configured, else the stub alone. */
@@ -141,7 +145,7 @@ export function createApp(opts: AppOptions) {
       student: new InMemoryStudentModel(),
       moderation,
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, adminGuard, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts, config },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, adminGuard, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts, config, githubToken: opts.githubToken, githubFetch: opts.githubFetch },
   );
   const handleAdminApi = createAdminApi({
     ctx: {

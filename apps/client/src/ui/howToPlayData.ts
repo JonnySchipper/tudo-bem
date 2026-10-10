@@ -25,22 +25,8 @@ export interface HowToPlay {
   quietIn?: readonly string[];
 }
 
+// (Correria no Balcão has no card: it teaches by doing, one coach mark per new action, ui/correriaPracticeLogic.ts)
 export const HOW_TO_PLAY: readonly HowToPlay[] = [
-  {
-    id: 'correria',
-    selector: '#correria:not(.cr-practice)',
-    pt: 'Correria no Balcão',
-    en: 'Rush at the bakery counter',
-    goal: 'Customers order in Portuguese. Make what they ask for and serve it before they run out of patience.',
-    steps: [
-      'Listen to (or read) the order on the ticket.',
-      'Grab items from the shelves, use the griddle (chapa), the juicer and the coffee machine.',
-      'Pick the coffee options the customer asked for, then serve.',
-      'When they ask “Quanto é?”, choose the right price.',
-    ],
-    desktop: 'Click the counter to grab and make things. Enter serves, C clears the tray, R repeats the order.',
-    phone: 'Tap the counter to grab and make things, then tap Entregar to serve.',
-  },
   {
     id: 'tapioca',
     selector: '#tapioca-root',
@@ -142,7 +128,7 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
       'Each chip is an order, like “Me vê um pão na chapa”, with its price in reais virtuais (RV), the game’s play money.',
       'Pick one: you pay, and it goes into your bag (Favores → Mochila). Favors sometimes ask you to bring one to a neighbour.',
       'Bater papo (have a chat) opens a bate-papo with the baker: a short ready-made chat. It is never graded.',
-      'The bakery game, Correria no Balcão, is at the order rail next to the counter.',
+      'The bakery game, Correria no Balcão, starts at the display case (vitrine) next to the counter.',
     ],
     desktop: 'Click a chip or press its number. Esc closes.',
     phone: 'Tap a chip.',

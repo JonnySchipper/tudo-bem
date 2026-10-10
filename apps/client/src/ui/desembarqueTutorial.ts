@@ -12,7 +12,7 @@ import { ambience } from '../ambience';
 import { h, ui } from './dom';
 import { toast } from './hud';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
-import { DESEMB_STEPS, RV_EXPLAINER, desembDone, drankWater, nextDesembStep, type DesembFlags, type DesembGuide, type DesembStepId } from './desembarqueLogic';
+import { DESEMB_STEPS, RV_EXPLAINER, desembDone, desembGateHint as gateHint, drankWater, nextDesembStep, type DesembFlags, type DesembGuide, type DesembStepId } from './desembarqueLogic';
 
 export { DESEMB_STEPS } from './desembarqueLogic';
 
@@ -68,6 +68,15 @@ export function resetDesembTutorial(): void {
 export function desembGuide(): DesembGuide | null {
   if (!inDesembarque()) return null;
   return nextDesembStep(desembDone(currentFlags()))?.guide ?? null;
+}
+
+/**
+ * The doors to the airport are shut while a step is left: the hint to show (PT + EN), or null when they are open. Only in the hall, and
+ * only for an account still in it (a returning player who replays the tutorial from Ajustes is never locked in).
+ */
+export function desembGateHint(): { pt: string; en: string } | null {
+  if (!inDesembarque() || game.profile?.desembarqueDone !== false) return null;
+  return gateHint(desembDone(currentFlags()));
 }
 
 const phone = () => window.matchMedia(COMPACT_QUERY).matches || window.matchMedia('(pointer: coarse)').matches;

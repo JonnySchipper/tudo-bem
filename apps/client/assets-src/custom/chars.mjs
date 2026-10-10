@@ -27,7 +27,7 @@ export const BOTTOMS = ['calca', 'bermuda', 'saia'];
 export const BODY_TYPES = ['esguio', 'medio', 'forte'];
 
 /** creator hair style -> LimeZu hairstyle number (or a derived style, see buildHairs) */
-export const HAIR_BASE = { curto: '12', raspado: '20', undercut: '26', cacheado: '25', black: '25', ondulado: '07', longo: '15', coque: '16', trancas: '16' };
+export const HAIR_BASE = { curto: '12', raspado: '20', undercut: '26', cacheado: '25', black: '25', ondulado: '07', longo: '27', coque: '16', trancas: '16' };
 
 /** face style -> LimeZu eyes number (the pack's eyes differ by iris color only; since wave 3 the eyes are authored, see charart.mjs EYE_ART) */
 export const EYES_BASE = { suave: '01', marcante: '04', doce: '02', maduro: '05' };

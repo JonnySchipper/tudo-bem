@@ -1296,18 +1296,20 @@ describe('design mode admin guard', () => {
     revertRoomProps('praca');
   });
 
-  it('ignores layout saves until the socket has the admin password', async () => {
+  it('never takes a layout write from a game socket, even one with the admin password (only the audited dashboard API writes)', async () => {
     const { world } = makeWorld(8, { adminPassword: 'tb-admin-praca', githubToken: null });
-    const player = await client(world, 'Lia');
+    const admin = await client(world, 'Admin');
+    const other = await client(world, 'Lia');
+    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
     const before = ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x;
     const objects = ROOMS.praca.props.map((p) => (p.id === 'banco_4' ? { ...p, x: before + 1 } : p));
-    await player.send({ t: 'admin', action: 'layoutSave', room: 'praca', objects });
-    expect(player.last('admin')).toMatchObject({ phase: 'auth', ok: false });
+    // the pre-overhaul messages, as an old client would still send them
+    for (const action of ['layoutSave', 'layoutRevert', 'layoutPublish']) await admin.send({ t: 'admin', action, room: 'praca', objects } as never);
     expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before);
-    expect(player.all('layout')).toHaveLength(0);
+    expect(other.all('layout')).toHaveLength(0);
   });
 
-  it('saves for everyone, survives a restart, and rejects an unknown type', async () => {
+  it('the dashboard host puts a stored layout live for everyone, and it survives a restart', async () => {
     const disk: { state: unknown } = { state: null };
     const io = {
       load: () => disk.state,
@@ -1315,20 +1317,14 @@ describe('design mode admin guard', () => {
         disk.state = state;
       },
     };
-    const { world } = makeWorld(8, { adminPassword: 'tb-admin-praca', githubToken: null, layouts: new LayoutStore(io) });
-    const admin = await client(world, 'Admin');
+    const { world } = makeWorld(8, { githubToken: null, layouts: new LayoutStore(io) });
     const other = await client(world, 'Lia');
+    const host = world.adminHost();
     const before = ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x;
-    const moved = () => ROOMS.praca.props.map((p) => (p.id === 'banco_4' ? { ...p, x: before + 1 } : p));
+    const moved = ROOMS.praca.props.map((p) => (p.id === 'banco_4' ? { ...p, x: before + 1 } : p));
 
-    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
-    await admin.send({ t: 'admin', action: 'layoutSave', room: 'praca', objects: [{ id: 'x', kind: 'dragao', x: 1, y: 1, blocks: true }] });
-    expect(admin.last('error')).toMatchObject({ code: 'admin' });
-    expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before);
-
-    await admin.send({ t: 'admin', action: 'layoutSave', room: 'praca', objects: moved() });
-    expect(admin.last('admin')).toMatchObject({ phase: 'layout', room: 'praca', source: 'override' });
-    expect(other.last('layout')).toMatchObject({ room: 'praca' });
+    host.layouts().publish('praca', moved, 'Jonny');
+    host.applyLayout('praca', moved);
     const live = other.last('layout');
     expect(live && live.t === 'layout' && live.objects?.find((p) => p.id === 'banco_4')?.x).toBe(before + 1);
 
@@ -1336,26 +1332,10 @@ describe('design mode admin guard', () => {
     makeWorld(8, { githubToken: null, layouts: new LayoutStore(io) });
     expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before + 1);
 
-    await admin.send({ t: 'admin', action: 'layoutRevert', room: 'praca' });
-    expect(admin.last('admin')).toMatchObject({ phase: 'layout', source: 'code' });
+    // the dashboard's reset keeps what was live in the history, so it can be reverted
+    expect(host.revertLayout('praca')).toBe(true);
     expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before);
     expect(other.all('layout').at(-1)).toMatchObject({ room: 'praca', objects: null });
-  });
-
-  it('asks the client to download the layout when TB_GITHUB_TOKEN is unset', async () => {
-    let called = false;
-    const { world } = makeWorld(8, {
-      adminPassword: 'tb-admin-praca',
-      githubToken: null,
-      githubFetch: () => {
-        called = true;
-        return Promise.resolve(new Response('{}'));
-      },
-    });
-    const admin = await client(world, 'Admin');
-    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
-    await admin.send({ t: 'admin', action: 'layoutPublish', room: 'praca', objects: ROOMS.praca.props });
-    expect(admin.last('admin')).toMatchObject({ phase: 'layoutPublished', fallback: true });
-    expect(called).toBe(false);
+    expect(host.layouts().history('praca').at(-1)?.objects?.find((p) => p.id === 'banco_4')?.x).toBe(before + 1);
   });
 });

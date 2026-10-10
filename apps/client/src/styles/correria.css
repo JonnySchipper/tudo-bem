@@ -1,7 +1,8 @@
 /*
  * Correria no Balcão: the overlay of the padaria counter game (ui/correria.ts) and the DOM pieces glued to the world (render/pixel/correriaStage.ts:
- * the transparent taps over the shelves, the speech bubbles, the emote pops). Not a modal: the work board is in the world and this is a compact
- * strip along the bottom (under 35% of a phone screen) with a pinned HUD at the top. The HUD of the game steps aside while it is up (`body.cr-on`).
+ * the transparent taps over the shelves, the speech bubbles, the emote pops). Not a modal: the work board is in the world and this is a slim
+ * strip along the bottom (the order on one line, the tray, Entregar) with a pinned HUD at the top, so the board gets most of the screen. The
+ * HUD of the game steps aside while it is up (`body.cr-on`). No lesson cards: a small coach mark (`.cr-mark`) points at the next new thing.
  */
 
 :root {
@@ -22,6 +23,7 @@ body.cr-on .hud-scrim,
 body.cr-on .rtrack,
 body.cr-on .hud-solo,
 body.cr-on .mission-banner,
+body.cr-on .room-intro,
 body.cr-on .hover-label {
   display: none !important;
 }
@@ -31,31 +33,6 @@ body.cr-ended .cr-hot,
 body.cr-ended .cr-pops .cr-bubble,
 body.cr-ended .cr-pops .cr-tag {
   display: none !important;
-}
-
-/* #cr-hot is a body sibling (z-index 12) and paints over #ui; lift the overlay while a step lesson is open (see correria.ts `cr-lesson-open`). */
-body.cr-lesson-open #ui {
-  z-index: 13;
-}
-
-/*
- * #ui > * sets pointer-events: auto on .cr-root; let shelf taps reach #cr-hot under the lesson card while the
- * HUD, Entendi, and the bottom strip (Quanto é?, tray, Entregar) stay interactive.
- */
-body.cr-lesson-open #ui > .cr-root {
-  pointer-events: none;
-}
-
-body.cr-lesson-open #cr-top,
-body.cr-lesson-open #cr-top *,
-body.cr-lesson-open #cr-panel,
-body.cr-lesson-open #cr-panel *,
-body.cr-lesson-open .cr-lesson-ok {
-  pointer-events: auto;
-}
-
-body.cr-lesson-open .cr-lesson {
-  pointer-events: none;
 }
 
 body.cr-on #world-labels,
@@ -229,13 +206,13 @@ body.cr-on .toasts {
 .cr-panel {
   position: absolute;
   left: 50%;
-  bottom: calc(10px + var(--safe-bottom));
+  bottom: calc(8px + var(--safe-bottom));
   transform: translateX(-50%);
   width: min(820px, calc(100vw - 16px));
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px 10px;
+  gap: 4px;
+  padding: 5px 8px 6px;
   background: var(--cr-paper);
   border: 3px solid var(--cr-ink);
   box-shadow: inset 0 0 0 2px var(--cr-paper-lo), 0 5px 0 rgba(20, 16, 26, 0.35);
@@ -247,12 +224,12 @@ body.cr-on .toasts {
   display: none;
 }
 
-/* the order ticket: a white paper slip with dark ink, big enough to read at arm's length on a phone */
+/* the order ticket: a white paper slip with dark ink, one line of order (its gloss under it) and a thin patience bar */
 .cr-mirror {
-  min-height: 52px;
+  min-height: 0;
   display: grid;
-  gap: 6px;
-  padding: 7px 10px 8px;
+  gap: 4px;
+  padding: 4px 8px 5px;
   background: #fffdf7;
   border: 3px solid var(--cr-ink);
   border-top: 4px dashed #8a6a48;
@@ -285,22 +262,46 @@ body.cr-on .toasts {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 2px 10px;
+  gap: 0 8px;
 }
 
 .cr-who {
   font-family: var(--font-pixel);
-  font-size: 16px;
+  font-size: 14px;
   background: var(--cr-ink);
   color: #ffe9a8;
-  padding: 2px 8px;
+  padding: 1px 6px;
 }
 
 .cr-say-pt {
   font-weight: 900;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1.2;
   color: #14101a;
+}
+
+/* "extra quente": a red-hot tag on the ticket, the same red as the meter's band */
+.cr-hot-tag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 1px 7px;
+  background: #ff5a36;
+  color: #fff;
+  border: 2px solid #7a1c0e;
+  font-weight: 900;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.cr-root .cr-hot-tag .en {
+  display: inline;
+  color: #ffe2d8;
+  font-size: 12px;
+}
+
+.cr-root.cr-noen .cr-hot-tag .en {
+  display: none;
 }
 
 .cr-mirror[data-mode='listening'] .cr-say-pt {
@@ -309,7 +310,7 @@ body.cr-on .toasts {
 
 .cr-line .en {
   flex-basis: 100%;
-  font-size: 16px;
+  font-size: 14px;
   color: #3a322e;
 }
 
@@ -337,7 +338,7 @@ body.cr-on .toasts {
 }
 
 .cr-patience {
-  height: 8px;
+  height: 5px;
   background: #d9c6a6;
   border: 1px solid var(--cr-ink);
   overflow: hidden;
@@ -356,21 +357,26 @@ body.cr-on .toasts {
   background: var(--cr-red);
 }
 
+/* what a customer or the game just said: a toast floating just over the strip, so it never pushes the board up */
 .cr-say {
-  min-height: 0;
-  max-height: 0;
-  overflow: hidden;
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--cr-panel-h, 90px) + 14px + var(--safe-bottom));
+  transform: translateX(-50%);
+  max-width: min(640px, calc(100vw - 24px));
   opacity: 0;
-  transition: opacity 0.15s, max-height 0.15s;
+  transition: opacity 0.15s;
   font-size: 15px;
+  padding: 3px 10px;
+  background: #e5f4e9;
+  border: 2px solid var(--cr-ink);
+  border-left: 5px solid var(--cr-green);
+  box-shadow: 0 3px 0 rgba(20, 16, 26, 0.3);
+  pointer-events: none;
 }
 
 .cr-say.on {
-  max-height: 60px;
   opacity: 1;
-  padding: 3px 8px;
-  background: #e5f4e9;
-  border-left: 4px solid var(--cr-green);
 }
 
 .cr-say.bad {
@@ -380,16 +386,16 @@ body.cr-on .toasts {
 
 .cr-build {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: 6px;
 }
 
 .cr-tray {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  flex: 1 1 200px;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 30px;
   align-items: center;
@@ -419,26 +425,6 @@ body.cr-on .toasts {
   display: flex;
   gap: 6px;
   align-items: baseline;
-}
-
-.cr-mods {
-  display: flex;
-  gap: 4px;
-}
-
-.cr-mod {
-  padding: 2px 8px;
-  background: #fff;
-  border: 2px solid var(--cr-ink);
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  line-height: 1.1;
-  text-align: left;
-}
-
-.cr-mod[aria-pressed='true'] {
-  background: var(--cr-gold);
 }
 
 .cr-actions {
@@ -477,85 +463,89 @@ body.cr-on .toasts {
   cursor: default;
 }
 
-/* "Quanto é?" */
-.cr-ask {
-  display: grid;
-  gap: 5px;
-}
-
-.cr-ask:empty {
+/* the practice is served: one line and the way on, where the order ticket was */
+.cr-panel.done .cr-mirror,
+.cr-panel.done .cr-build {
   display: none;
 }
 
-.cr-panel.asking .cr-build,
-.cr-panel.asking .cr-say {
-  display: none;
-}
-
-.cr-ask-head {
+.cr-done {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-size: 20px;
-}
-
-.cr-ask-secs {
-  margin-left: auto;
-  font-family: var(--font-pixel);
-  font-size: 18px;
-  color: var(--cr-red);
-}
-
-.cr-ask-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  font-size: 14px;
-}
-
-.cr-ask-opts {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.cr-opt {
-  flex: 1 1 120px;
-  padding: 6px 10px;
-  background: #fff;
-  border: 3px solid var(--cr-ink);
-  font-weight: 800;
-  font-size: 15px;
-  cursor: pointer;
-  text-align: center;
-  line-height: 1.1;
-}
-
-.cr-opt:hover,
-.cr-opt:focus-visible {
-  background: var(--cr-gold);
-}
-
-.cr-opt.go {
-  flex: 0 0 auto;
-  background: var(--cr-green);
-  color: #fff;
-}
-
-.cr-ask-type {
-  display: flex;
-  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
+  gap: 6px 10px;
 }
 
-.cr-ask-input {
-  flex: 1 1 160px;
-  padding: 7px 10px;
-  border: 3px solid var(--cr-ink);
-  font-size: 18px;
-  font-weight: 800;
-  background: #fff;
+.cr-done p {
+  margin: 0;
+  flex: 1 1 200px;
+  font-size: 19px;
+}
+
+.cr-done-go {
+  font-size: 17px;
+}
+
+/* the coach mark: a small bubble pinned over (or under) what to tap now, with a tail pointing at it. Never in the way of the taps. */
+.cr-mark {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 70;
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 5px 10px 6px;
+  background: var(--cr-ink);
+  color: #fff6dc;
+  border: 2px solid #14101a;
+  box-shadow: inset 0 0 0 2px var(--cr-gold), 0 4px 0 rgba(20, 16, 26, 0.4);
+  font-size: 15px;
+  line-height: 1.2;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.cr-mark.on {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cr-mark .pt {
+  display: block;
+}
+
+.cr-root .cr-mark .gloss {
+  color: #9fe7b4;
+  font-size: 0.82em;
+}
+
+.cr-mark::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--cr-mark-arrow, 50%) - 7px);
+  border: 7px solid transparent;
+}
+
+.cr-mark[data-side='above']::after {
+  top: 100%;
+  border-top-color: var(--cr-gold);
+}
+
+.cr-mark[data-side='below']::after {
+  bottom: 100%;
+  border-bottom-color: var(--cr-gold);
+}
+
+.cr-skip {
+  align-self: center;
+  height: 30px;
+  padding: 0 10px;
+  background: var(--cr-gold);
+  color: #14101a;
+  border: 2px solid #14101a;
+  font-weight: 900;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 /* ---------------------------------------------------------------- the wave banner */
@@ -592,112 +582,6 @@ body.cr-on .toasts {
 
 .cr-wave.on {
   animation: cr-banner 1.9s ease-out forwards;
-}
-
-/* One-time how-to at the start of a shift. Sits over the counter, does not push the order strip. Tall enough that Entendi stays inside the card. */
-.cr-lesson {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 12%;
-  margin-inline: auto;
-  width: min(420px, calc(100vw - 24px));
-  max-height: min(72vh, 520px);
-  overflow: auto;
-  pointer-events: auto;
-  z-index: 20;
-  padding: 10px 14px 12px;
-  background: var(--cr-paper);
-  color: var(--cr-ink);
-  border: 3px solid var(--cr-ink);
-  box-shadow: 4px 4px 0 #14101a;
-}
-
-.cr-lesson h3 {
-  margin: 0 0 6px;
-  font-size: 16px;
-}
-
-.cr-lesson h3 .gloss,
-.cr-lesson-ok .gloss,
-.cr-end-bump .gloss {
-  display: inline;
-  margin: 0 0 0 6px;
-}
-
-.cr-lesson ol {
-  margin: 0;
-  padding-left: 18px;
-}
-
-.cr-lesson li {
-  margin: 5px 0;
-}
-
-.cr-lesson li .pt,
-.cr-lesson .cr-bump {
-  display: block;
-  font-weight: 800;
-}
-
-.cr-lesson .cr-bump {
-  margin: 8px 0 0;
-}
-
-.cr-lesson-ok {
-  margin-top: 8px;
-  padding: 6px 12px;
-  background: var(--cr-green);
-  color: #fff;
-  border: 3px solid var(--cr-ink);
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.cr-lesson-ok .gloss {
-  color: #d8ffe6;
-}
-
-/* "Como jogar": dim everything behind the card so the counter does not show through and compete with the text */
-.cr-lesson.cr-help-card {
-  box-shadow:
-    4px 4px 0 #14101a,
-    0 0 0 100vmax rgba(20, 16, 26, 0.82);
-}
-
-/* a shift that opened an item: gold edge and a kicker over the title */
-.cr-lesson.grew {
-  border-color: #7a5a10;
-  box-shadow:
-    0 0 0 3px var(--cr-gold),
-    4px 4px 0 3px #14101a;
-  animation: cr-lesson-in 0.32s ease-out;
-}
-
-.cr-kicker {
-  margin: 0 0 2px;
-  font-family: var(--font-pixel);
-  font-size: 12px;
-  letter-spacing: 0.5px;
-  color: #8a5a00;
-}
-
-.cr-kicker .gloss {
-  display: inline;
-  margin-left: 6px;
-  font-family: var(--font-body);
-  letter-spacing: 0;
-}
-
-@keyframes cr-lesson-in {
-  0% {
-    opacity: 0;
-    transform: translateY(8px) scale(0.96);
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 /* the menu ladder: open items as chips, NOVO in gold, the next one dashed with its countdown under the row */
@@ -827,12 +711,6 @@ body.cr-on .toasts {
   font-weight: 600;
 }
 
-/* a long card scrolls under Entendi, which stays on screen */
-.cr-lesson .cr-lesson-ok {
-  position: sticky;
-  bottom: 0;
-}
-
 @media (max-width: 640px), (max-height: 520px) {
   .cr-ladder .cr-ladder-item {
     font-size: 12px;
@@ -841,12 +719,6 @@ body.cr-on .toasts {
   .cr-root .cr-ladder .cr-ladder-item .en,
   .cr-root .cr-ladder-next .gloss {
     display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cr-lesson.grew {
-    animation: none;
   }
 }
 
@@ -1453,50 +1325,46 @@ body.cr-on .toasts {
     display: none;
   }
   .cr-panel {
-    padding: 6px 8px 8px;
-    gap: 4px;
+    padding: 4px 6px 5px;
+    gap: 3px;
   }
   .cr-mirror {
     min-height: 0;
-    padding: 5px 8px 6px;
-    gap: 4px;
+    padding: 3px 6px 4px;
+    gap: 3px;
   }
   .cr-who {
-    font-size: 14px;
+    font-size: 12px;
   }
   .cr-say-pt {
-    font-size: 20px;
+    font-size: 17px;
   }
   .cr-line .en {
-    font-size: 14px;
+    font-size: 12px;
+  }
+  .cr-hot-tag {
+    font-size: 13px;
   }
   .cr-build {
-    gap: 4px 6px;
+    gap: 4px;
   }
   .cr-tray {
-    flex-basis: 100%;
-    order: 1;
     min-height: 26px;
-  }
-  .cr-mods {
-    order: 2;
-  }
-  .cr-actions {
-    order: 3;
-    flex: 1;
   }
   .cr-serve,
   .cr-clear {
     padding: 4px 10px;
     font-size: 14px;
   }
-  .cr-serve {
-    flex: 1;
-  }
   .cr-serve .en,
-  .cr-clear .en,
-  .cr-mod .en {
+  .cr-clear .en {
     display: none;
+  }
+  .cr-mark {
+    font-size: 14px;
+  }
+  .cr-done p {
+    font-size: 16px;
   }
   .cr-bubble {
     font-size: 11px;
@@ -1525,15 +1393,8 @@ body.cr-on .toasts {
     padding: 3px 8px 4px;
     gap: 2px;
   }
-  .cr-panel.asking .cr-mirror {
-    display: none;
-  }
   .cr-who {
     font-size: 12px;
-  }
-  .cr-mod {
-    padding: 1px 6px;
-    font-size: 11px;
   }
   .cr-serve,
   .cr-clear {
@@ -1546,23 +1407,12 @@ body.cr-on .toasts {
   .cr-empty .en,
   .cr-say .en,
   .cr-serve .en,
-  .cr-clear .en,
-  .cr-mod .en,
-  .cr-ask-head .en,
-  .cr-ask-type .en,
-  .cr-opt .en {
+  .cr-clear .en {
     display: none;
   }
   .cr-say.on {
     padding: 1px 8px;
     font-size: 13px;
-  }
-  .cr-ask-head {
-    font-size: 16px;
-  }
-  .cr-ask-input {
-    padding: 3px 8px;
-    font-size: 15px;
   }
   .cr-serve,
   .cr-clear {
@@ -1635,164 +1485,6 @@ body.cr-on .toasts {
   flex-wrap: wrap;
 }
 
-.cr-lesson-alt {
-  margin-left: 6px;
-  background: var(--cr-gold);
-  color: #14101a;
-}
-
-.cr-lesson-alt .gloss {
-  color: #4a3410;
-}
-
-/* the coach card: on top of the order strip, one step at a time, English always under the Portuguese */
-.cr-coach {
-  display: grid;
-  gap: 4px;
-  padding: 7px 10px 8px;
-  background: var(--cr-ink);
-  color: #fff6dc;
-  border: 3px solid #14101a;
-  box-shadow: inset 0 0 0 2px var(--cr-gold);
-  animation: cr-lesson-in 0.25s ease-out;
-}
-
-.cr-root .cr-coach .gloss {
-  color: #9fe7b4;
-}
-
-.cr-coach-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cr-coach-n {
-  font-family: var(--font-pixel);
-  font-weight: 400;
-  font-size: 14px;
-  padding: 1px 6px;
-  color: #14101a;
-  background: var(--cr-gold);
-}
-
-.cr-coach-kick {
-  font-family: var(--font-pixel);
-  font-size: 13px;
-  color: #ffe9a8;
-}
-
-.cr-root .cr-coach-kick .gloss {
-  display: inline;
-  margin-left: 6px;
-  font-family: var(--font-body);
-}
-
-.cr-coach-title {
-  margin: 0;
-  font-size: 19px;
-  line-height: 1.15;
-}
-
-.cr-root .cr-coach-title .gloss {
-  display: inline;
-  margin-left: 8px;
-  font-size: 15px;
-}
-
-.cr-coach-body,
-.cr-coach-hint {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.25;
-}
-
-.cr-coach-body .pt {
-  display: block;
-  font-weight: 800;
-}
-
-.cr-coach-hint {
-  padding: 3px 8px;
-  color: #14101a;
-  background: #ffe9a8;
-  border-left: 5px solid var(--cr-gold);
-}
-
-.cr-coach-hint .pt {
-  display: block;
-}
-
-.cr-root .cr-coach-hint .gloss {
-  color: #5a4210;
-}
-
-.cr-coach-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.cr-coach-btn {
-  padding: 6px 14px;
-  border: 3px solid #14101a;
-  background: #fff6dc;
-  color: var(--cr-ink);
-  font-weight: 900;
-  font-size: 15px;
-  line-height: 1.1;
-  cursor: pointer;
-  text-align: center;
-}
-
-.cr-coach-btn.next {
-  background: var(--cr-green);
-  color: #fff;
-}
-
-.cr-root .cr-coach-btn .gloss {
-  display: block;
-  color: inherit;
-  opacity: 0.85;
-}
-
-.cr-coach-btn.skip {
-  margin-left: auto;
-  padding: 2px 8px;
-  font-size: 12px;
-  border-width: 2px;
-  background: transparent;
-  color: #fff6dc;
-  border-color: #6a5a80;
-}
-
-.cr-root .cr-coach-btn.skip .gloss {
-  display: inline;
-  margin-left: 4px;
-}
-
-.cr-coach-dots {
-  display: flex;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.cr-coach-dots li {
-  flex: 1;
-  height: 5px;
-  background: #4a3f5c;
-}
-
-.cr-coach-dots li.done {
-  background: var(--cr-green);
-}
-
-.cr-coach-dots li.on {
-  background: var(--cr-gold);
-}
-
 /* what to tap now: a gold ring that breathes, and a finger under the counter taps */
 .cr-root .cr-coach-lit,
 .cr-hot .cr-coach-lit {
@@ -1845,31 +1537,7 @@ body.cr-on .toasts {
   }
 }
 
-@media (max-width: 640px) {
-  .cr-coach {
-    padding: 5px 8px 6px;
-    gap: 3px;
-  }
-  .cr-coach-title {
-    font-size: 17px;
-  }
-  .cr-root .cr-coach-title .gloss {
-    display: block;
-    margin: 0;
-    font-size: 13px;
-  }
-  .cr-coach-body,
-  .cr-coach-hint {
-    font-size: 14px;
-  }
-  .cr-coach-btn {
-    padding: 4px 10px;
-    font-size: 14px;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .cr-coach,
   .cr-root .cr-coach-lit:not(.cr-mirror),
   .cr-hot .cr-coach-lit::after {
     animation: none;

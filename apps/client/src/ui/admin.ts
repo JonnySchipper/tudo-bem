@@ -31,30 +31,17 @@ export function isAdminUnlocked(): boolean {
   return unlocked;
 }
 
-let onDesignAdmin: ((m: Extract<ServerMsg, { t: 'admin' }>) => void) | null = null;
-
-/** Design mode (lazy chunk) hears admin replies without living in the main bundle. */
-export function bindDesignAdmin(fn: (m: Extract<ServerMsg, { t: 'admin' }>) => void): void {
-  onDesignAdmin = fn;
-}
-
-/** Set by the dashboard's design link: the next successful admin login opens design mode instead of the panel. */
-let designOnUnlock = false;
-
-/** `/?design=<room>` (designLink.ts): ask for the admin password, then go straight into design mode. */
-export function openDesignFromLink(): void {
-  if (unlocked) return void openDesignMode();
-  designOnUnlock = true;
-  openAdminLogin();
-}
-
-async function openDesignMode(): Promise<void> {
-  if (!sendAdmin) return;
-  const send = sendAdmin;
+/**
+ * `/?design=<room>` (designLink.ts) and the panel's button: the level editor, in its own lazy chunk. It signs in with the admin
+ * dashboard's session (asking for the password when this browser has none), not with this socket's admin flag.
+ */
+export async function openDesignMode(): Promise<void> {
   closeModal();
   const { toggleDesignMode } = await import('./designMode.js');
-  toggleDesignMode(send);
+  toggleDesignMode();
 }
+
+export const openDesignFromLink = (): void => void openDesignMode();
 
 /** Handle `admin` and `sky` server messages. */
 export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>): void {
@@ -63,7 +50,6 @@ export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>)
     clock.setWeather(m.weather);
     return;
   }
-  onDesignAdmin?.(m);
   if (m.phase === 'disabled') {
     unlocked = false;
     showAuthError(m.pt);
@@ -71,10 +57,7 @@ export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>)
   }
   if (m.phase === 'auth') {
     unlocked = m.ok;
-    if (m.ok && designOnUnlock) {
-      designOnUnlock = false;
-      void openDesignMode();
-    } else if (m.ok) openAdminPanel();
+    if (m.ok) openAdminPanel();
     else if (authError) showAuthError(m.pt);
     else if (modalId() === 'admin') {
       // Socket lost its admin flag (reconnect): bounce back to the password form.
@@ -211,7 +194,7 @@ function openAdminPanel(): void {
     (subsEl = h('div', { class: 'admin-subs', id: 'admin-subs' }, h('p', { class: 'admin-empty' }, '…'))),
     h('button', { class: 'ghost', id: 'admin-subs-refresh', type: 'button', onclick: () => sendAdmin?.({ t: 'admin', action: 'subscribers' }) }, 'Atualizar assinaturas'),
     h('h3', null, 'Modo design'),
-    en('Move props in this room. Other players see it when you save.', true),
+    en('Level editor for this room. Players see it only when you publish (audited).', true),
     h('button', { type: 'button', class: 'primary', id: 'admin-design-toggle', onclick: () => void openDesignMode() }, 'Modo design'),
     adminTestesSection(),
     h('h3', null, 'Reais virtuais'),

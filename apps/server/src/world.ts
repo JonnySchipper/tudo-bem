@@ -40,7 +40,6 @@ import {
   withoutHiddenFeiraCart,
   installRoomProps,
   revertRoomProps,
-  validateRoomLayout,
   isRoomId,
   key,
   MAX_CHAT_LEN,
@@ -136,6 +135,8 @@ import {
   padariaDoorState,
   isPadariaDoorRoom,
   padariaIdFromInstance,
+  padariaCasaRoom,
+  isWalkable,
   padariaInstanceId,
   validatePadariaName,
   PADARIA_FOUNDER_HAT,
@@ -937,10 +938,25 @@ export class World {
     this.padarias.save();
     this.store.save(p.id);
     this.pushProfile(s);
-    this.pushPadariaFloor(row.id);
+    // a new size is a bigger room: everyone inside walks into it (the join carries the new card); a sweet only updates the floor
+    if (kind === 'size2' || kind === 'size3') this.regrowPadaria(row.id);
+    else this.pushPadariaFloor(row.id);
     if (kind === 'size2' || kind === 'size3')
       s.send({ t: 'notice', level: 'reward', pt: `${row.name} cresceu: agora é ${check.label.pt}!`, en: `${row.name} grew: now a ${check.label.en.toLowerCase()}!` });
     else s.send({ t: 'notice', level: 'reward', pt: `${check.label.pt} na vitrine!`, en: `${check.label.en} in the case!` });
+  }
+
+  /** The padaria grew: whoever is in it moves into the bigger room, where they stood if that tile is still free, else at the door. */
+  private regrowPadaria(padariaId: string) {
+    const inst = this.instances.get(padariaInstanceId(padariaId));
+    const row = this.padarias.get(padariaId);
+    if (!inst || !row) return;
+    const grid = buildGrid(padariaCasaRoom(row.size));
+    for (const m of [...inst.members.values()]) {
+      const here = m.avatar ? this.currentTile(m) : null;
+      const stay = here && isWalkable(grid, here.tile.x, here.tile.y) ? { tile: here.tile, dir: here.dir } : undefined;
+      this.join(m, 'padaria', { padariaId }, stay);
+    }
   }
 
   private pushPadariaFloor(padariaId: string) {
@@ -1183,9 +1199,12 @@ export class World {
         const row = this.padarias.get(pid);
         if (!row) return { error: { pt: 'Essa padaria não existe.', en: 'That bakery does not exist.' } };
         const id = padariaInstanceId(row.id);
+        // a player's padaria is its own room, sized by what the owner bought (not a copy of Seu Carlos's)
+        const casa = padariaCasaRoom(row.size);
         let inst = this.instances.get(id);
-        if (!inst) {
-          inst = new Instance(id, def, row.name, row.ownerId);
+        // a padaria that grew is a new room: a fresh instance (whoever is inside walks into it, `regrowPadaria`)
+        if (!inst || inst.def !== casa) {
+          inst = new Instance(id, casa, row.name, row.ownerId);
           this.instances.set(id, inst);
         }
         if (inst.members.size >= this.cap) return { error: { pt: 'A padaria está lotada!', en: 'The bakery is full!' } };
@@ -1482,10 +1501,6 @@ export class World {
     if (msg.action === 'subscribers') return this.adminSubscribers(s);
     if (msg.action === 'grantSub') return this.adminGrantSub(s, msg.targetId);
     if (msg.action === 'revokeSub') return this.adminRevokeSub(s, msg.targetId);
-    if (msg.action === 'layoutGet') return this.adminLayoutGet(s, msg.room);
-    if (msg.action === 'layoutSave') return this.adminLayoutSave(s, msg.room, msg.objects);
-    if (msg.action === 'layoutRevert') return this.adminLayoutRevert(s, msg.room);
-    if (msg.action === 'layoutPublish') return this.adminLayoutPublish(s, msg.room, msg.objects);
     if (isAdminTestAction(msg.action)) return handleAdminTest(this.adminTestHost(), s, msg);
   }
 
@@ -1547,54 +1562,12 @@ export class World {
     for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
   }
 
-  private adminLayoutGet(s: Session, roomId: string) {
-    if (!isRoomId(roomId)) return this.err(s, 'admin', 'Sala desconhecida.', 'Unknown room.');
-    s.send({ t: 'admin', phase: 'layout', room: roomId, source: this.layouts.has(roomId) ? 'override' : 'code' });
-  }
-
-  private adminLayoutSave(s: Session, roomId: string, objects: unknown) {
-    const v = validateRoomLayout(roomId, objects);
-    if (!v.ok) return this.err(s, 'admin', v.pt, v.en);
-    installRoomProps(v.room, v.objects);
-    this.noteLayout(v.room);
-    this.layouts.set(v.room, v.objects);
-    this.broadcastLayout(v.room, v.objects);
-    s.send({ t: 'admin', phase: 'layout', room: v.room, source: 'override' });
-    s.send({ t: 'notice', level: 'info', pt: 'Layout salvo. Todo mundo já vê.', en: 'Layout saved. Everyone can see it.' });
-  }
-
-  private adminLayoutRevert(s: Session, roomId: string) {
-    if (!isRoomId(roomId)) return this.err(s, 'admin', 'Sala desconhecida.', 'Unknown room.');
-    revertRoomProps(roomId);
-    this.noteLayout(roomId);
-    this.layouts.set(roomId, null);
-    this.broadcastLayout(roomId, null);
-    s.send({ t: 'admin', phase: 'layout', room: roomId, source: 'code' });
-    s.send({ t: 'notice', level: 'info', pt: 'Sala de volta ao código.', en: 'Room is back to the code layout.' });
-  }
-
-  private adminLayoutPublish(s: Session, roomId: string, objects: unknown) {
-    const v = validateRoomLayout(roomId, objects);
-    if (!v.ok) return this.err(s, 'admin', v.pt, v.en);
-    return publishLayoutPullRequest({ token: this.githubToken, room: v.room, objects: v.objects, fetch: this.githubFetch }).then((r) => {
-      if (this.sessions.get(s.id) !== s) return;
-      if (r.ok) {
-        s.send({ t: 'admin', phase: 'layoutPublished', room: v.room, url: r.url, fallback: false, pt: 'Pull request aberto.', en: 'Pull request opened.' });
-        return;
-      }
-      if (r.reason === 'no-token') {
-        s.send({
-          t: 'admin',
-          phase: 'layoutPublished',
-          room: v.room,
-          fallback: true,
-          pt: 'O token do GitHub não está configurado. Baixe o arquivo e guarde no repositório.',
-          en: 'The GitHub token is not configured. Download the file and commit it in the repo.',
-        });
-        return;
-      }
-      s.send({ t: 'notice', level: 'warn', pt: 'Não consegui abrir o pull request.', en: 'Could not open the pull request.' });
-    });
+  /** Put a layout live in this process and on every client. The caller has already stored it (designOps.ts). `null`: the code layout. */
+  private applyLayout(room: import('@tudobem/shared').RoomId, objects: import('@tudobem/shared').PropDef[] | null) {
+    if (objects) installRoomProps(room, objects);
+    else revertRoomProps(room);
+    this.noteLayout(room);
+    this.broadcastLayout(room, objects);
   }
 
   private adminFeiraCart(s: Session) {
@@ -1730,12 +1703,14 @@ export class World {
       layoutOverrides: () => this.layouts.overrides().map((o) => ({ room: o.room, objects: o.objects.length })),
       revertLayout: (room) => {
         if (!this.layouts.has(room)) return false;
-        revertRoomProps(room);
-        this.noteLayout(room);
-        this.layouts.set(room, null);
-        this.broadcastLayout(room, null);
+        this.layouts.publish(room, null, 'dashboard');
+        this.applyLayout(room, null);
         return true;
       },
+      layouts: () => this.layouts,
+      applyLayout: (room, objects) => this.applyLayout(room, objects),
+      githubConfigured: () => !!this.githubToken,
+      layoutPullRequest: (room, objects) => publishLayoutPullRequest({ token: this.githubToken, room, objects, fetch: this.githubFetch }),
       markBoardsDirty: () => this.leaderboards.markDirty(),
       now: () => this.now(),
     });
@@ -1797,8 +1772,9 @@ export class World {
     inst.members.delete(s.id);
     s.instance = undefined;
     if (s.profile) this.broadcast(inst, { t: 'avatarLeft', id: s.profile.id });
-    // Idle overflow instances sleep (are dropped); the first public instance always stays.
-    if (inst.members.size === 0 && !inst.id.endsWith('#1')) {
+    // Idle overflow instances sleep (are dropped); the first public instance always stays. A padaria that grew has a new instance under
+    // the same id by now: only the old one goes.
+    if (inst.members.size === 0 && !inst.id.endsWith('#1') && this.instances.get(inst.id) === inst) {
       inst.crowd?.stop();
       this.instances.delete(inst.id);
     } else inst.crowd?.sync();

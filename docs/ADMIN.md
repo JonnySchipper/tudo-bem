@@ -23,7 +23,7 @@ Every `/api/admin/*` route checks the cookie on the server (`apps/server/src/adm
 | Subscriptions | See Lemon Squeezy subscribers and the webhook event history. Grant or revoke a **comp**. |
 | Moderation | See `moderation.jsonl` and reports, filtered by kind or text. See who is muted or banned now. Mute or ban from any row. |
 | Feedback | Mark each in-game note new, seen or done, and add a note. |
-| World & areas | Switch feira carts off, on or rotation. Set the room cap. Open each room in design mode. Reset a room's layout override. |
+| World & areas | Switch feira carts off, on or rotation. Set the room cap. Open each room in design mode (the level editor, see [DESIGN-MODE.md](DESIGN-MODE.md)). Reset a room's layout override. |
 | Game variables | Edit the values below. |
 | Data | Make a backup now, list and download backups, and export accounts or profiles as CSV. |
 | Audit log | See every admin change. Look at a snapshot, and restore a reset or a delete. |
