@@ -85,29 +85,32 @@
   font-family: var(--font-pixel);
 }
 
+/* the parrot bust stands in for the banner only where the plate hides the banner (it already has the parrot) */
 .brand .mark {
-  display: grid;
+  display: none;
   place-items: center;
   flex: none;
 }
 
-.brand .mark .ico {
-  filter: drop-shadow(0 2px 0 rgba(44, 28, 20, 0.22));
+.brand .mark img {
+  width: 32px;
+  height: 32px;
 }
 
 .brand .logo {
-  font-family: var(--font-pixel);
-  font-weight: 700;
-  font-size: 18px;
-  line-height: 1;
-  color: var(--terracota);
-  letter-spacing: 0;
-  white-space: nowrap;
-  text-shadow: 0 2px 0 var(--hud-paper-hi);
+  flex: none;
+  line-height: 0;
 }
 
-.brand .logo span {
-  color: var(--verde);
+.brand .logo img {
+  width: auto;
+  height: 34px;
+}
+
+.brand img {
+  /* the brand art is drawn large: shrunk this far, smooth sampling reads better than nearest-pixel */
+  image-rendering: auto;
+  filter: drop-shadow(0 2px 0 rgba(44, 28, 20, 0.22));
 }
 
 .brand .room {
@@ -925,6 +928,10 @@ body:has(.dbx) .bottombar {
     display: none;
   }
 
+  .brand .mark {
+    display: grid;
+  }
+
   .brand .room {
     padding-left: 0;
     border-left: 0;
@@ -1307,6 +1314,10 @@ body:has(.hud-actions.open) .toasts {
 @media (min-width: 1200px) and (max-width: 1799px) and (min-height: 760px) {
   .brand .logo {
     display: none;
+  }
+
+  .brand .mark {
+    display: grid;
   }
 }
 
