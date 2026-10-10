@@ -188,7 +188,7 @@ async function run(name) {
     await setLadder(page, 3, ['cafe', 'pao', 'agua']);
     await startShift(page);
     await serveOneAndEnd(page);
-    await page.waitForSelector('#cr-end-ladder.grew', { timeout: 4000 });
+    await page.waitForSelector('#cr-end-next', { timeout: 4000 });
     await shot('end_card_next_shift_opens');
     await page.evaluate(() => window.__tb.correria.ui?.destroy());
     await sleep(400);

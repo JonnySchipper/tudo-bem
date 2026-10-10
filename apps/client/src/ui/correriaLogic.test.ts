@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { menuLadder, newShift, shiftAct, shiftAdvance, shiftSnapshot, type CEvent, type CorreriaEnd, type CorreriaSnap } from '@tudobem/shared';
-import { cueFor, endModel, frontOf, glossOn, hud, ladderEnd, ladderNext, ladderStrip, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
+import { cueFor, endModel, frontOf, glossOn, endNext, hud, ladderEnd, ladderNext, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
 
 const shiftAt = (seed: number, level = 0): CorreriaSnap => {
   const sh = newShift({ seed, level, unlocked: [], saturday: false, minute: 540, baker: 'carlos', regulars: [] });
@@ -68,7 +68,10 @@ describe('the Correria overlay view-model', () => {
   it('the HUD labels the wave, the customers done, the combo and the tips in reais', () => {
     const snap = { ...shiftAt(2), wave: 1 };
     snap.stats = { served: 3, perfect: 2, left: 1, points: 55, tips: 7, combo: 2, bestCombo: 2 };
-    expect(hud(snap)).toMatchObject({ wave: 'Onda 2/3', left: '4/15', points: 55, combo: 2, tips: 'R$ 7', level: 'Verde' });
+    // a profile's first shift is two waves of nine customers
+    expect(hud(snap)).toMatchObject({ wave: 'Onda 2/2', left: '4/9', points: 55, combo: 2, tips: 'R$ 7', level: 'Verde' });
+    const later = shiftSnapshot(newShift({ seed: 2, level: 0, unlocked: [], shifts: 1, saturday: false, minute: 540, baker: 'carlos', regulars: [] }));
+    expect(hud({ ...later, wave: 1 })).toMatchObject({ wave: 'Onda 2/3', left: '0/15' });
   });
 
   it('events make the right sound and toast: ding on a serve, a nope on a correction, burnt in red, a flame on an extra-hot pour', () => {
@@ -89,17 +92,20 @@ describe('the Correria overlay view-model', () => {
     expect(cueFor({ k: 'over' })).toEqual({});
   });
 
-  it('the end card model: RV headline, stars, rows, new words and unlocks (glossed)', () => {
+  it('the end card model: RV, stars, the new words and one next line (no stat rows, no ladder strip)', () => {
     const end: CorreriaEnd = {
       served: 13, perfect: 9, second: 4, left: 2, points: 210, tips: 21, bestCombo: 5, stars: 2, coins: 17, dailyBlocked: false,
       words: [{ pt: 'coxinha', en: 'coxinha' }], newUnlocks: [{ id: 'chapa2', pt: 'Segunda chapa', en: 'A second grill spot' }], totalStars: 5, level: 1, regulars: ['Nanda'],
+      ladder: menuLadder(3),
     };
     const m = endModel(end, { pt: 'Valeu pela ajuda!', en: 'Thanks for the help!' });
     expect(m.big).toBe('+17 RV');
     expect(m.stars).toBe('★★☆');
-    // no "Quanto é?" row: the counter asks for no sums
-    expect(m.rows.map((r) => r.value)).toEqual(['13/15', '9', 'x5', 'R$ 21']);
-    expect(m.unlocks[0]).toEqual({ pt: 'A chapa agora tem dois lugares.', en: 'The grill has two spots now.' });
+    expect(m.words).toEqual([{ pt: 'coxinha', en: 'coxinha' }]);
+    expect(m.note).toEqual({ pt: 'Valeu pela ajuda!', en: 'Thanks for the help!' });
+    // the card is RV, stars, words and one line: the old rows and the separate unlock notice are gone
+    expect(Object.keys(m).sort()).toEqual(['big', 'next', 'note', 'stars', 'words']);
+    expect(m.next).toEqual({ pt: 'A chapa agora tem dois lugares.', en: 'The grill has two spots now.', tone: 'new' });
     expect(endModel({ ...end, coins: 0, stars: 0 }, { pt: '', en: '' })).toMatchObject({ big: '0 RV', stars: '☆☆☆' });
   });
 
@@ -111,26 +117,6 @@ describe('the Correria overlay view-model', () => {
 });
 
 describe('the menu ladder on the counter', () => {
-  it('the strip lists what is open, marks what just opened, and ends on the next item', () => {
-    expect(ladderStrip(undefined)).toEqual([]);
-    const strip = ladderStrip(menuLadder(2));
-    expect(strip.map((c) => [c.id, c.state])).toEqual([
-      ['cafe', 'open'],
-      ['pao', 'open'],
-      ['agua', 'new'],
-      ['pao_de_queijo', 'next'],
-    ]);
-    expect(strip[1]).toMatchObject({ pt: 'pão', en: expect.any(String) });
-    // a long menu folds its oldest items into one "+N" chip and stays six chips long
-    const full = ladderStrip(menuLadder(99));
-    expect(full).toHaveLength(6);
-    expect(full[0]).toMatchObject({ id: 'more', pt: '+7', state: 'more' });
-    expect(full.slice(1).every((c) => c.state === 'open')).toBe(true);
-    expect(full[5]!.id).toBe('misto_quente');
-    const mid = ladderStrip(menuLadder(10));
-    expect(mid.map((c) => c.state)).toEqual(['more', 'open', 'open', 'open', 'new', 'next']);
-  });
-
   it('the next line counts shifts in Portuguese, singular and plural', () => {
     expect(ladderNext(menuLadder(0))?.pt).toBe('Próximo: água em 2 turnos');
     expect(ladderNext(menuLadder(1))?.pt).toBe('Próximo: água em 1 turno');
@@ -143,5 +129,14 @@ describe('the menu ladder on the counter', () => {
     expect(ladderEnd(menuLadder(2)).fresh?.pt).toBe('Próximo turno: água no cardápio!');
     expect(ladderEnd(menuLadder(3)).fresh).toBeNull();
     expect(ladderEnd(menuLadder(3)).next?.pt).toMatch(/em 1 turno$/);
+  });
+
+  it('the one next line: a new unlock first, then the item the next shift opens, then the countdown, then the full-menu line', () => {
+    const unlock = [{ id: 'cafe_rapido' as const, pt: 'Cafeteira mais rápida', en: 'A faster coffee machine' }];
+    expect(endNext({ newUnlocks: unlock, ladder: menuLadder(2) })).toEqual({ pt: 'A cafeteira novinha enche mais rápido.', en: 'The new machine fills faster.', tone: 'new' });
+    expect(endNext({ newUnlocks: [], ladder: menuLadder(2) })).toMatchObject({ pt: 'Próximo turno: água no cardápio!', tone: 'new' });
+    expect(endNext({ newUnlocks: [], ladder: menuLadder(3) })).toMatchObject({ pt: 'Próximo: pão de queijo em 1 turno', tone: 'plain' });
+    expect(endNext({ newUnlocks: [], ladder: menuLadder(99) })).toMatchObject({ pt: expect.stringMatching(/^Cardápio completo/), tone: 'plain' });
+    expect(endNext({ newUnlocks: [], ladder: undefined })).toBeNull();
   });
 });

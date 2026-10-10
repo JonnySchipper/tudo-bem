@@ -2,7 +2,7 @@
  * "Correria no Balcão" (EN "Counter Rush"): the padaria counter game, formerly "Me vê um…". Pure rules shared by the server (the
  * authority) and the tests. No timers, no I/O: a shift is a plain object, `advance` lets time pass, `act` applies one player action.
  *
- * A shift is three waves (4 + 5 + 6 = 15 customers, about three real minutes). Customers queue at the counter with a patience meter,
+ * A shift is three waves (4 + 5 + 6 = 15 customers, about three real minutes); a profile's very first shift is two (4 + 5). Customers queue at the counter with a patience meter,
  * order in a speech bubble (written) or by voice only (listening), may add something or change their mind, and the player builds the
  * tray in the world: shelves, the estufa, the chapa (a cooking window that ends in a burn), the coffee pour (tap to start, tap again in the window),
  * the espremedor (one tap = one orange through the juicer; stop at the line on the glass), a bag or a plate.
@@ -44,6 +44,12 @@ export const CORRERIA_WAVES = 3;
 /** Customers per wave. */
 export const WAVE_SIZES: readonly number[] = [4, 5, 6];
 export const CORRERIA_TOTAL = WAVE_SIZES.reduce((a, b) => a + b, 0);
+/** A profile's very first shift (no shift played before) is two waves: the third is for the second shift on. */
+export const FIRST_SHIFT_WAVE_SIZES: readonly number[] = [4, 5];
+/** The waves of a shift, given the shifts the profile has already played. */
+export const waveSizesFor = (shifts: number | undefined): readonly number[] => ((shifts ?? 0) <= 0 ? FIRST_SHIFT_WAVE_SIZES : WAVE_SIZES);
+/** Customers in a shift, given the shifts already played. */
+export const shiftTotalFor = (shifts: number | undefined): number => waveSizesFor(shifts).reduce((a, b) => a + b, 0);
 /** Most customers at the counter at once (the one being served plus the queue). */
 export const MAX_PRESENT = 3;
 /** A customer walks to the counter this long before they can order or lose patience. */
@@ -69,7 +75,7 @@ export const EXTRA_QUENTE: Bilingual = { pt: 'extra quente', en: 'extra hot' };
 /**
  * The espremedor automático (the Zummo-style juicer on every padaria counter). Each tap drops one orange: it rolls down, is cut, pressed,
  * and its juice runs into the glass. Oranges come in three sizes (the next one shows in the hopper), so a glass takes 2 to 4 of them,
- * usually 3. Taking the glass lands it between `goodMin` and `spillAt` of the line; under is short (thrown out, like a short coffee), and an
+ * usually 3 (until `cafe_rapido`, every orange is the standard size). Taking the glass lands it between `goodMin` and `spillAt` of the line; under is short (thrown out, like a short coffee), and an
  * orange that takes the glass past `spillAt` overflows at once. Every glass still under `goodMin` has room for the biggest orange, so
  * stopping at the line always works whatever comes next.
  */
@@ -77,8 +83,15 @@ export const JUICE = { cycleMs: 640, goodMin: 0.8, spillAt: 1.2, sizes: { p: 0.2
 export type OrangeSize = keyof typeof JUICE.sizes;
 /** How many oranges of the hopper the snapshot shows (the next one first). */
 export const HOPPER_SHOWN = 3;
-/** The size of the n-th orange of a shift (0-based), from the seed alone: the hopper is the same however the player taps. */
-export function orangeAt(seed: number, n: number): OrangeSize {
+/** The unlock after which the juicer's oranges come in three sizes. Before it every orange is the standard one (`m`): one decision less. */
+export const ORANGE_SIZES_UNLOCK: UnlockId = 'cafe_rapido';
+export const orangeSizesVary = (unlocked: readonly string[]): boolean => unlocked.includes(ORANGE_SIZES_UNLOCK);
+/**
+ * The size of the n-th orange of a shift (0-based), from the seed alone: the hopper is the same however the player taps. With `varied` false
+ * (the juicer's first weeks) every orange is the standard size.
+ */
+export function orangeAt(seed: number, n: number, varied = true): OrangeSize {
+  if (!varied) return 'm';
   let h = (Math.imul(seed >>> 0, 0x9e3779b1) ^ Math.imul(n + 1, 0x85ebca6b)) >>> 0;
   h = Math.imul(h ^ (h >>> 16), 0x7feb352d) >>> 0;
   h = Math.imul(h ^ (h >>> 15), 0x846ca68b) >>> 0;
@@ -162,7 +175,7 @@ export interface CorreriaLevel {
   patienceMul: number;
   /** Multiplies the gap between customers (bigger = slower). */
   gapMul: number;
-  /** Per wave: the chance an order is spoken only / has a follow-up. */
+  /** Per wave: the chance an order is spoken only (none at Verde) / has a follow-up. */
   listen: readonly [number, number, number];
   follow: readonly [number, number, number];
   /** Share of the customer's patience a listening replay costs. */
@@ -176,7 +189,7 @@ export interface CorreriaLevel {
 export const ORDER_QTY = 1;
 
 export const LEVELS: readonly CorreriaLevel[] = [
-  { id: 'verde', pt: 'Verde', en: 'Green', patienceMul: 1.6, gapMul: 1.35, listen: [0, 0.1, 0.2], follow: [0, 0, 0.1], replayCost: 0.04, maxLines: 2, glossLocked: true },
+  { id: 'verde', pt: 'Verde', en: 'Green', patienceMul: 1.6, gapMul: 1.35, listen: [0, 0, 0], follow: [0, 0, 0.1], replayCost: 0.04, maxLines: 2, glossLocked: true },
   { id: 'jeito', pt: 'Pegando o jeito', en: 'Getting the hang of it', patienceMul: 1.25, gapMul: 1.1, listen: [0.1, 0.25, 0.35], follow: [0, 0.15, 0.25], replayCost: 0.07, maxLines: 2, glossLocked: false },
   { id: 'correria', pt: 'Na correria', en: 'In the rush', patienceMul: 1, gapMul: 0.95, listen: [0.2, 0.35, 0.5], follow: [0.1, 0.25, 0.35], replayCost: 0.08, maxLines: 3, glossLocked: false },
   { id: 'mestre', pt: 'Mestre do balcão', en: 'Counter master', patienceMul: 0.85, gapMul: 0.85, listen: [0.3, 0.45, 0.6], follow: [0.15, 0.3, 0.4], replayCost: 0.1, maxLines: 3, glossLocked: false },
@@ -193,35 +206,49 @@ export const levelForStars = (stars: number): number => {
 export type UnlockId = 'salgados' | 'chapa2' | 'cafe_rapido' | 'sabado';
 export interface Unlock {
   id: UnlockId;
+  /** Completed shifts that open it: the one progression. They sit on the menu ladder below (the menu grows every `ITEM_EVERY_SHIFTS` shifts). */
+  shifts: number;
+  /** The old rule (total shift stars). It only grandfathers profiles that already earned the unlock; see `unlockedFor`. */
   stars: number;
   pt: string;
   en: string;
   hint: Bilingual;
 }
-/** Never pay-to-win: shift stars only, and each one is a new tool or a new kind of customer. Pastel and coxinha are on the shift ladder, not behind `salgados`. */
+/**
+ * Never pay-to-win; each one is a new tool or a new kind of customer. They are keyed on shifts played, on the same ladder as the menu
+ * (café, pão, água, pão de queijo, café com leite, pão na chapa at 8, suco at 10, coxinha at 12, pastel at 14):
+ *   chapa2      10  two shifts after pão na chapa opens (a second grill spot is only useful once there is a grill)
+ *   salgados    12  the shift coxinha joins the menu (pastel follows at 14); a hint only, the items come from the menu ladder
+ *   cafe_rapido 12  two shifts after suco opens: a faster coffee machine, and the oranges stop being one size
+ *   sabado      16  big Saturday orders, once the counter is nearly full
+ * The star numbers are what these unlocks used to cost. A profile keeps whatever either rule gives it, so nobody loses an unlock.
+ */
 export const UNLOCKS: readonly Unlock[] = [
-  { id: 'salgados', stars: 2, pt: 'Pastel e coxinha na estufa', en: 'Pastel and coxinha in the warmer', hint: { pt: 'Pastel e coxinha entram na estufa quando o cardápio chega neles.', en: 'Pastel and coxinha join the warmer when the menu reaches them.' } },
-  { id: 'chapa2', stars: 4, pt: 'Segunda chapa', en: 'A second grill spot', hint: { pt: 'A chapa agora tem dois lugares.', en: 'The grill has two spots now.' } },
-  { id: 'cafe_rapido', stars: 7, pt: 'Cafeteira mais rápida', en: 'A faster coffee machine', hint: { pt: 'A cafeteira novinha enche mais rápido.', en: 'The new machine fills faster.' } },
-  { id: 'sabado', stars: 10, pt: 'Pedidos de sábado', en: 'Saturday orders', hint: { pt: 'Aos sábados vêm pedidos grandes, com bônus.', en: 'On Saturdays, big orders come in with a bonus.' } },
+  { id: 'chapa2', shifts: 10, stars: 4, pt: 'Segunda chapa', en: 'A second grill spot', hint: { pt: 'A chapa agora tem dois lugares.', en: 'The grill has two spots now.' } },
+  { id: 'salgados', shifts: 12, stars: 2, pt: 'Pastel e coxinha na estufa', en: 'Pastel and coxinha in the warmer', hint: { pt: 'Pastel e coxinha entram na estufa quando o cardápio chega neles.', en: 'Pastel and coxinha join the warmer when the menu reaches them.' } },
+  { id: 'cafe_rapido', shifts: 12, stars: 7, pt: 'Cafeteira mais rápida', en: 'A faster coffee machine', hint: { pt: 'A cafeteira novinha enche mais rápido.', en: 'The new machine fills faster.' } },
+  { id: 'sabado', shifts: 16, stars: 10, pt: 'Pedidos de sábado', en: 'Saturday orders', hint: { pt: 'Aos sábados vêm pedidos grandes, com bônus.', en: 'On Saturdays, big orders come in with a bonus.' } },
 ];
-export const unlockedFor = (stars: number): UnlockId[] => UNLOCKS.filter((u) => stars >= u.stars).map((u) => u.id);
-export const newUnlocks = (before: number, after: number): Unlock[] => UNLOCKS.filter((u) => before < u.stars && after >= u.stars);
+const hasUnlock = (u: Unlock, stars: number, shifts: number): boolean => shifts >= u.shifts || stars >= u.stars;
+/** The unlocks a profile has: its shifts played (the ladder), or the total stars it already earned (the old rule, kept so nothing is taken away). */
+export const unlockedFor = (stars: number, shifts = 0): UnlockId[] => UNLOCKS.filter((u) => hasUnlock(u, stars, shifts)).map((u) => u.id);
+/** The unlocks gained going from (`before`, `shiftsBefore`) to (`after`, `shiftsAfter`) stars and shifts. */
+export const newUnlocks = (before: number, after: number, shiftsBefore = 0, shiftsAfter = 0): Unlock[] =>
+  UNLOCKS.filter((u) => !hasUnlock(u, before, shiftsBefore) && hasUnlock(u, after, shiftsAfter));
 
 /** Completed shifts between each new counter item. The first two are on the counter from the start. */
 export const ITEM_EVERY_SHIFTS = 2;
 /**
  * Teaching order. A new player has café and pão francês; one more item opens every `ITEM_EVERY_SHIFTS` completed shifts.
- * Pastel and coxinha sit on this ladder (the `salgados` star is only the milestone hint).
+ * Pastel and coxinha sit on this ladder (the `salgados` unlock is only the milestone hint).
  */
 export const MENU_LADDER = ['cafe', 'pao', 'agua', 'pao_de_queijo', 'cafe_com_leite', 'pao_na_chapa', 'suco_de_laranja', 'coxinha', 'pastel', 'bolo', 'guarana', 'misto_quente'] as const;
 /** Shifts that open the whole ladder. */
 export const FULL_MENU_SHIFTS = (MENU_LADDER.length - 2) * ITEM_EVERY_SHIFTS;
 /** From this many open items, every order says pra viagem or pra comer aqui. */
-export const WHERE_MENU_AT = 6;
-/** Lesson id for the packing card (not an item). */
+export const WHERE_MENU_AT = 8;
+/** Ids that old saves may hold in `CorreriaProgress.taught` (the one-time cards are gone; the list is only kept coherent). */
 export const WHERE_LESSON_ID = 'where';
-/** Lesson id of the juicer card. Its own key (not the item id), so a save that saw the old fridge-grab card for suco still gets it once. */
 export const JUICER_LESSON_ID = 'espremedor';
 /** Pay scale over today's 2-item payout: +6% of that base per extra item, 1.60 at the full menu (10 extras × 6). */
 export const PAY_STEP_PCT = 6;
@@ -294,57 +321,6 @@ export function menuLadder(shifts: number, menuIds?: readonly string[]): MenuLad
   };
 }
 
-/** One-time card at the start of the shift that first opens an item (or packing). On screen, not spoken. */
-export interface CounterLesson {
-  id: string;
-  title: Bilingual;
-  steps: Bilingual[];
-}
-const step = (pt: string, en: string): Bilingual => ({ pt, en });
-const LESSONS: Record<string, CounterLesson> = {
-  cafe: { id: 'cafe', title: step('Café', 'Coffee'), steps: [step('Toque na cafeteira para começar a servir.', 'Tap the coffee machine to start the pour.'), step('A xícara enche sozinha. Toque de novo quando ficar verde: “Agora!”', 'The cup fills on its own. Tap again when it turns green: “Agora!” (now!)'), step('Cedo demais fica curto; tarde demais derrama.', 'Too early comes up short; too late spills.')] },
-  pao: { id: 'pao', title: step('Pão francês', 'French bread roll'), steps: [step('Pegue o pão na vitrine.', 'Take the bread from the display case.'), step('Ponha na bandeja e entregue.', 'Put it on the tray and serve.')] },
-  agua: { id: 'agua', title: step('Água', 'Water'), steps: [step('A água fica na geladeira.', 'The water is in the fridge.'), step('Toque nela para pôr na bandeja.', 'Tap it to put it on the tray.')] },
-  pao_de_queijo: { id: 'pao_de_queijo', title: step('Pão de queijo', 'Cheese bread'), steps: [step('Pegue o pão de queijo na vitrine.', 'Take the cheese bread from the display case.')] },
-  cafe_com_leite: { id: 'cafe_com_leite', title: step('Café com leite', 'Coffee with milk'), steps: [step('O café com leite sai da cafeteira, como o café.', 'Coffee with milk comes from the machine, like coffee.'), step('Toque para começar e toque de novo no “Agora!”', 'Tap to start, then tap again at “Agora!” (now!)')] },
-  suco_de_laranja: {
-    id: JUICER_LESSON_ID,
-    title: step('Suco de laranja: o espremedor', 'Orange juice: the juicer'),
-    steps: [
-      step('Ponha as laranjas na máquina: cada toque, uma laranja.', 'Put the oranges in the machine: each tap, one orange.'),
-      step('Ela corta, espreme, e o suco cai no copo.', 'It cuts, squeezes, and the juice runs into the glass.'),
-      step('Pare na linha e toque no copo.', 'Stop at the line and tap the glass.'),
-      step('Pouco suco não serve; demais transborda.', 'Too little won’t do; too much overflows.'),
-    ],
-  },
-  pao_na_chapa: { id: 'pao_na_chapa', title: step('Pão na chapa', 'Grilled bread'), steps: [step('Ponha o pão na chapa.', 'Put the bread on the grill.'), step('Tire quando dourar. Se passar, queima.', 'Take it off when it browns. Leave it and it burns.')] },
-  coxinha: { id: 'coxinha', title: step('Coxinha', 'Coxinha'), steps: [step('Pegue a coxinha na estufa.', 'Take the coxinha from the warmer.')] },
-  pastel: { id: 'pastel', title: step('Pastel', 'Pastel'), steps: [step('Pegue o pastel na estufa.', 'Take the pastel from the warmer.')] },
-  bolo: { id: 'bolo', title: step('Bolo', 'Cake'), steps: [step('Pegue o bolo na vitrine.', 'Take the cake from the display case.')] },
-  guarana: { id: 'guarana', title: step('Guaraná', 'Guaraná soda'), steps: [step('Pegue o guaraná na geladeira.', 'Take the guaraná from the fridge.')] },
-  misto_quente: { id: 'misto_quente', title: step('Misto-quente', 'Ham and cheese toast'), steps: [step('Ponha o misto-quente na chapa.', 'Put the toastie on the grill.'), step('Tire quando dourar. Se passar, queima.', 'Take it off when it browns. Leave it and it burns.')] },
-};
-const WHERE_LESSON: CounterLesson = {
-  id: WHERE_LESSON_ID,
-  title: step('Pra viagem ou pra comer aqui', 'To go or for here'),
-  steps: [step('Agora todo pedido diz pra viagem ou pra comer aqui.', 'Every order now says to go or for here.'), step('Pra viagem = saquinho ou copo pra levar.', 'To go = a bag or a cup to take away.'), step('Pra comer aqui = prato ou xícara.', 'For here = a plate or a cup.')],
-};
-/** The earliest untaught item on this menu, or the packing card the shift it becomes mandatory. Null when everything here was already shown. */
-export function pendingLesson(menuIds: readonly string[], taught: readonly string[], whereOn: boolean): CounterLesson | null {
-  const seen = new Set(taught);
-  if (whereOn && !seen.has(WHERE_LESSON_ID)) return WHERE_LESSON;
-  for (const id of MENU_LADDER) {
-    const lesson = LESSONS[id];
-    if (!menuIds.includes(id) || !lesson || seen.has(lesson.id)) continue;
-    return lesson;
-  }
-  return null;
-}
-export function noteLesson(taught: readonly string[] | undefined, lesson: CounterLesson | null): string[] {
-  const out = [...(taught ?? [])];
-  if (lesson && !out.includes(lesson.id)) out.push(lesson.id);
-  return out;
-}
 /** The line when this shift's counter is bigger than the one before it. Null when nothing new opened. */
 export function payBump(shifts: number, menuIds?: readonly string[]): Bilingual | null {
   const n = Math.max(0, Math.floor(Number.isFinite(shifts) ? shifts : 0));
@@ -563,8 +539,11 @@ export const ORDER_OPENERS: { pt: (l: string) => string; en: (l: string) => stri
   { pt: (l) => `Bom dia! Eu queria ${l}.`, en: (l) => `Good morning! I’d like ${l}.` },
   { pt: (l) => `Pode ser ${l}?`, en: (l) => `Could I get ${l}?` },
 ];
-/** Chance a lone coffee is asked for extra quente (never on a player's very first shift). */
+/** Chance a lone coffee is asked for extra quente, from `HOT_FROM_LEVEL` up. */
 export const HOT_CHANCE = 0.35;
+/** Extra-hot orders start at level 2 (`correria`); at levels 0 and 1 the chance is 0, so a new player makes no coffee-temperature decision. */
+export const HOT_FROM_LEVEL = 2;
+export const hotChanceFor = (level: number): number => (level >= HOT_FROM_LEVEL ? HOT_CHANCE : 0);
 /** What an order wants, for "not the same order twice in a row": its items and mods, whatever the wording. */
 export const orderSig = (o: Pick<MgOrder, 'lines' | 'mods'>): string =>
   `${o.lines
@@ -576,11 +555,11 @@ const hotLinePt = (l: MgOrderLine) => `${linePt(l)} ${EXTRA_QUENTE.pt}`;
 const hotLineEn = (l: MgOrderLine) => `an extra-hot ${enArt(mgItemByIdAny(l.itemId)!)}`;
 
 /** A fresh order: `n` different items (one of each), maybe a coffee extra quente, in one of the phrasings. */
-function freshOrder(rng: Rng, customer: string, items: readonly MgItem[], n: number, hotOK: boolean): MgOrder {
+function freshOrder(rng: Rng, customer: string, items: readonly MgItem[], n: number, hotChance: number): MgOrder {
   const pool = [...items];
   const lines: MgOrderLine[] = [];
   for (let i = 0; i < n && pool.length; i++) lines.push({ itemId: pool.splice(Math.floor(rng() * pool.length), 1)[0]!.id, qty: ORDER_QTY });
-  const hot = hotOK && lines.filter((l) => CAFE_ITEMS.includes(l.itemId)).length === 1 && rng() < HOT_CHANCE;
+  const hot = hotChance > 0 && lines.filter((l) => CAFE_ITEMS.includes(l.itemId)).length === 1 && rng() < hotChance;
   const isHot = (l: MgOrderLine) => hot && CAFE_ITEMS.includes(l.itemId);
   const mods = hot ? [HOT_MOD] : [];
   const opener = pick(rng, ORDER_OPENERS);
@@ -591,7 +570,7 @@ function freshOrder(rng: Rng, customer: string, items: readonly MgItem[], n: num
 
 /**
  * The order for a customer, only from items open on this shift's menu: a mix of the curriculum's authored tickets and fresh combos in many
- * phrasings, one of each item (no counting), sometimes a coffee extra quente once the player has a shift behind them. Never the same order
+ * phrasings, one of each item (no counting), sometimes a coffee extra quente from level 2 on. Never the same order
  * (items and mods) as the customer before (`last`), and a wording not heard yet this shift when the menu allows. Omitted `shifts` is the
  * full ladder (old callers).
  */
@@ -604,7 +583,7 @@ export function makeCorrOrder(
   const items = shiftItemPool({ shifts, menuIds: o.menuIds });
   const ids = new Set(items.map((i) => i.id));
   const whereOn = whereRequired(items.length);
-  const hotOK = shifts >= 1;
+  const hotChance = shifts >= 1 ? hotChanceFor(o.level) : 0;
   const customer = o.customer ?? 'Cliente';
   const finish = <T extends MgOrder>(ord: T): T => (o.minute === undefined ? ord : { ...ord, ...localizeGreeting({ pt: ord.pt, en: ord.en }, o.minute) });
   const skip = new Set(o.avoid.map((pt) => localizeGreeting({ pt }, 600).pt));
@@ -631,7 +610,7 @@ export function makeCorrOrder(
   const least = Math.min(most, o.level >= 2 ? 2 : 1);
   const fresh = (): MgOrder => {
     const n = least + Math.floor(Math.pow(rng(), wave === 0 ? 1.8 : 1) * (most - least + 1));
-    return withWhere(rng, freshOrder(rng, customer, items, Math.min(most, n), hotOK), whereOn);
+    return withWhere(rng, freshOrder(rng, customer, items, Math.min(most, n), hotChance), whereOn);
   };
   const last = o.last ?? '';
   let best: MgOrder | null = null;
@@ -724,8 +703,6 @@ export interface ShiftCtx {
   shifts?: number;
   /** When set (owned size 1), orders only draw from these shared-shelf ids. */
   menuIds?: readonly string[];
-  /** One-time card for this shift, already marked taught by the server. */
-  lesson?: CounterLesson | null;
   /** Set when this shift's menu just grew. */
   bump?: Bilingual | null;
   saturday: boolean;
@@ -869,7 +846,7 @@ export function newShift(ctx: ShiftCtx): Shift {
   const rng = ctx.rng ?? mulberry(ctx.seed);
   return {
     v: 1,
-    ctx: { ...ctx, shifts: Math.max(0, Math.floor(ctx.shifts ?? 0)), unlocked: [...ctx.unlocked], regulars: ctx.regulars.map((r) => ({ ...r })), lesson: ctx.lesson ?? null, bump: ctx.bump ?? null },
+    ctx: { ...ctx, shifts: Math.max(0, Math.floor(ctx.shifts ?? 0)), unlocked: [...ctx.unlocked], regulars: ctx.regulars.map((r) => ({ ...r })), bump: ctx.bump ?? null },
     rng,
     t: 0,
     customers: [],
@@ -939,7 +916,7 @@ export function practiceShift(seed: number, baker: 'carlos' | 'graca' = 'carlos'
     replays: 0,
   });
   // nobody else comes: the shift is over once Ana is served
-  sh.spawned = CORRERIA_TOTAL;
+  sh.spawned = shiftTotal(sh);
   return sh;
 }
 
@@ -957,14 +934,17 @@ function mulberry(seed: number): Rng {
 const levelOf = (sh: Shift) => LEVELS[Math.max(0, Math.min(LEVELS.length - 1, sh.ctx.level))]!;
 
 /** Which wave the n-th customer (0-based) belongs to. */
-export function waveOf(index: number): number {
+export function waveOf(index: number, sizes: readonly number[] = WAVE_SIZES): number {
   let n = index;
-  for (let w = 0; w < WAVE_SIZES.length; w++) {
-    if (n < WAVE_SIZES[w]!) return w;
-    n -= WAVE_SIZES[w]!;
+  for (let w = 0; w < sizes.length; w++) {
+    if (n < sizes[w]!) return w;
+    n -= sizes[w]!;
   }
-  return WAVE_SIZES.length - 1;
+  return sizes.length - 1;
 }
+/** The waves and the customers of this shift (a profile's first shift is shorter). */
+const shiftWaves = (sh: Shift): readonly number[] => waveSizesFor(sh.ctx.shifts);
+const shiftTotal = (sh: Shift): number => shiftTotalFor(sh.ctx.shifts);
 
 const front = (sh: Shift) => sh.customers.find((c) => c.state === 'front');
 
@@ -996,7 +976,8 @@ function pickWho(sh: Shift): Who {
 
 function spawn(sh: Shift, ev: CEvent[]): void {
   const idx = sh.spawned;
-  const wave = waveOf(idx);
+  const sizes = shiftWaves(sh);
+  const wave = waveOf(idx, sizes);
   const lv = levelOf(sh);
   const who = pickWho(sh);
   const pool = shiftItemPool(sh.ctx);
@@ -1034,11 +1015,11 @@ function spawn(sh: Shift, ev: CEvent[]): void {
   sh.spawned++;
   if (wave !== sh.wave || idx === 0) {
     sh.wave = wave;
-    ev.push({ k: 'wave', wave, size: WAVE_SIZES[wave]!, line: WAVE_CHEERS[wave]! });
+    ev.push({ k: 'wave', wave, size: sizes[wave]!, line: WAVE_CHEERS[wave]! });
   }
   ev.push({ k: 'arrive', id: c.id });
   // the next one: faster each wave, kinder at the low levels, with a breather between waves
-  const lastOfWave = waveOf(idx + 1) !== wave && idx + 1 < CORRERIA_TOTAL;
+  const lastOfWave = waveOf(idx + 1, sizes) !== wave && idx + 1 < shiftTotal(sh);
   const base = WAVE_GAP_MS[wave]! * lv.gapMul * (0.85 + sh.rng() * 0.3);
   sh.nextSpawnAt = sh.t + Math.round(base + (lastOfWave ? 5000 : 0));
 }
@@ -1083,7 +1064,7 @@ export function shiftAdvance(sh: Shift, dtMs: number): CEvent[] {
 
 function tickOnce(sh: Shift, dt: number, ev: CEvent[]): void {
   // arrivals
-  if (sh.spawned < CORRERIA_TOTAL && sh.t >= sh.nextSpawnAt && sh.customers.length < MAX_PRESENT) spawn(sh, ev);
+  if (sh.spawned < shiftTotal(sh) && sh.t >= sh.nextSpawnAt && sh.customers.length < MAX_PRESENT) spawn(sh, ev);
   // walking customers reach the counter
   for (const c of sh.customers) if (c.state === 'walk' && sh.t >= c.readyAt) c.state = 'queue';
   promote(sh, ev);
@@ -1115,7 +1096,7 @@ function tickOnce(sh: Shift, dt: number, ev: CEvent[]): void {
     ev.push({ k: 'pour_bad', why: 'spill', fill: (sh.t - sh.pour.at) / pourMsFor(sh.ctx.unlocked) });
     sh.pour = null;
   }
-  if (sh.spawned >= CORRERIA_TOTAL && !sh.customers.length) {
+  if (sh.spawned >= shiftTotal(sh) && !sh.customers.length) {
     sh.over = true;
     ev.push({ k: 'over' });
   }
@@ -1273,7 +1254,7 @@ export function shiftAct(sh: Shift, a: CAct): CEvent[] {
       // one orange at a time: a tap while the machine still presses the last one does nothing
       if (sh.juice && sh.t - sh.juice.at < JUICE.cycleMs) return ev;
       if (sh.tray.length >= MG_MAX_TRAY) return no('full', 'A bandeja está cheia.', 'The tray is full.');
-      const size = orangeAt(sh.ctx.seed, sh.oranges);
+      const size = orangeAt(sh.ctx.seed, sh.oranges, orangeSizesVary(sh.ctx.unlocked));
       sh.oranges++;
       const prev = sh.juice?.fill ?? 0;
       const fill = Math.round((prev + JUICE.sizes[size]) * 100) / 100;
@@ -1327,7 +1308,7 @@ export function shiftAct(sh: Shift, a: CAct): CEvent[] {
       return ev;
     }
   }
-  if (!sh.over && sh.spawned >= CORRERIA_TOTAL && !sh.customers.length) {
+  if (!sh.over && sh.spawned >= shiftTotal(sh) && !sh.customers.length) {
     sh.over = true;
     ev.push({ k: 'over' });
   }
@@ -1389,8 +1370,6 @@ export interface CorreriaSnap {
   menu: string[];
   /** Payout scale for this menu (1 at two items, 1.6 at the full counter). */
   payMul: number;
-  /** One-time how-to for the item (or packing) that just opened. Null once it has been shown. */
-  lesson: CounterLesson | null;
   /** "+1 item no cardápio: pagamento +6%" when the menu grew this shift. */
   bump: Bilingual | null;
   /** The menu ladder for this shift: what is open, what just opened, what comes next. */
@@ -1426,9 +1405,9 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
     t: sh.t,
     level: sh.ctx.level,
     wave: sh.wave,
-    waves: CORRERIA_WAVES,
+    waves: shiftWaves(sh).length,
     spawned: sh.spawned,
-    total: CORRERIA_TOTAL,
+    total: shiftTotal(sh),
     baker: sh.ctx.baker,
     saturday: sh.ctx.saturday,
     customers,
@@ -1439,12 +1418,11 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
     pour: sh.pour ? { item: sh.pour.itemId, age: sh.t - sh.pour.at } : null,
     pourMs: pourMsFor(sh.ctx.unlocked),
     juice: sh.juice ? { fill: sh.juice.fill, prev: sh.juice.prev, oranges: sh.juice.oranges, age: sh.t - sh.juice.at, size: sh.juice.size } : null,
-    hopper: Array.from({ length: HOPPER_SHOWN }, (_, i) => orangeAt(sh.ctx.seed, sh.oranges + i)),
+    hopper: Array.from({ length: HOPPER_SHOWN }, (_, i) => orangeAt(sh.ctx.seed, sh.oranges + i, orangeSizesVary(sh.ctx.unlocked))),
     stats: { served: sh.stats.served, perfect: sh.stats.perfect, left: sh.stats.left, points: sh.stats.points, tips: sh.stats.tips, combo: sh.stats.combo, bestCombo: sh.stats.bestCombo },
     unlocked: [...sh.ctx.unlocked],
     menu: shiftItemPool(sh.ctx).map((i) => i.id),
     payMul: menuPayMul(shiftItemPool(sh.ctx).length),
-    lesson: sh.ctx.lesson ?? null,
     bump: sh.ctx.bump ?? null,
     ladder: menuLadder(sh.ctx.shifts ?? 0, sh.ctx.menuIds),
     over: sh.over,
@@ -1455,8 +1433,10 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
 
 /** The most points a flawless fast shift can reach (base 10, speed 5, tip 3 and a combo ramp), used for stars and RV. */
 export const MAX_SHIFT_POINTS = CORRERIA_TOTAL * 18 + 60;
-export function starsFor(points: number): 0 | 1 | 2 | 3 {
-  const r = points / MAX_SHIFT_POINTS;
+/** The same ceiling for a shift of `total` customers (the first shift has fewer). */
+export const maxShiftPoints = (total: number = CORRERIA_TOTAL): number => total * 18 + 60;
+export function starsFor(points: number, total: number = CORRERIA_TOTAL): 0 | 1 | 2 | 3 {
+  const r = points / maxShiftPoints(total);
   return r >= 0.7 ? 3 : r >= 0.5 ? 2 : r >= 0.28 ? 1 : 0;
 }
 /**
@@ -1464,19 +1444,19 @@ export function starsFor(points: number): 0 | 1 | 2 | 3 {
  * Two items pay today's amount; the full menu pays 1.6× that and no more. Nothing when nobody was served.
  * Omitted `itemCount` is the starter counter, so old callers keep today's coins.
  */
-export function correriaPayout(points: number, served: number, itemCount = 2): number {
+export function correriaPayout(points: number, served: number, itemCount = 2, total: number = CORRERIA_TOTAL): number {
   if (served <= 0) return 0;
-  const r = Math.max(0, Math.min(1, points / (MAX_SHIFT_POINTS * 0.85)));
+  const r = Math.max(0, Math.min(1, points / (maxShiftPoints(total) * 0.85)));
   const base = ECONOMY.minigameMin + Math.round((ECONOMY.minigameMax - ECONOMY.minigameMin) * r);
   const pct = menuPayPct(itemCount);
   const scaled = Math.round((base * (100 + pct)) / 100);
   const cap = Math.round((base * (100 + menuPayPct(MENU_LADDER.length))) / 100);
   return Math.min(scaled, cap);
 }
-const LESSON_IDS = new Set<string>([...MENU_LADDER, WHERE_LESSON_ID, ...Object.values(LESSONS).map((l) => l.id)]);
+const LESSON_IDS = new Set<string>([...MENU_LADDER, WHERE_LESSON_ID, JUICER_LESSON_ID]);
 /**
- * Old saves and hand-edited ones come back coherent. Never throws. A save from before the ladder (no `taught`, and shifts already played) is
- * marked as having seen every item's old card; the juicer card (`espremedor`) is new, so it still shows once when suco is on the counter.
+ * Old saves and hand-edited ones come back coherent. Never throws. `taught` (the one-time item cards, now gone) is kept only so old saves
+ * and the admin test tools stay readable; nothing reads or writes it any more.
  */
 export function normalizeCorreria(raw: unknown): CorreriaProgress {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
@@ -1524,8 +1504,8 @@ export function summarizeShift(sh: Shift): ShiftSummary {
     points: s.points,
     tips: s.tips,
     bestCombo: s.bestCombo,
-    stars: starsFor(s.points),
-    coins: correriaPayout(s.points, s.served, shiftItemPool(sh.ctx).length),
+    stars: starsFor(s.points, shiftTotal(sh)),
+    coins: correriaPayout(s.points, s.served, shiftItemPool(sh.ctx).length, shiftTotal(sh)),
     words: [...s.words],
     items: [...s.items],
     regulars: [...s.regulars],

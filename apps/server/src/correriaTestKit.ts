@@ -1,4 +1,4 @@
-import { CAFE_ITEMS, CHAPA, CHAPA_ITEMS, HOT_MOD, JUICE, POUR, SUCO_ITEMS, frontOf, type CAct, type ClientMsg } from '@tudobem/shared';
+import { CAFE_ITEMS, CHAPA, CHAPA_ITEMS, HOT_MOD, JUICE, POUR, SUCO_ITEMS, frontOf, pourMsFor, type CAct, type ClientMsg } from '@tudobem/shared';
 import type { Session, World } from './world.js';
 
 /** Test helpers: play the counter game through real `mg` messages (what a client sends), using the server's order as the test hook. */
@@ -34,7 +34,8 @@ export async function buildFront(world: World, a: KitClient, adv: (ms: number) =
         await act(a, { a: 'chapa_take', slot: 0 });
       } else if (CAFE_ITEMS.includes(l.itemId)) {
         await act(a, { a: 'pour_start', item: l.itemId });
-        adv(POUR.fullMs * (hot ? (POUR.spillAt + POUR.hotMax) / 2 : 0.85));
+        // the faster machine (cafe_rapido) fills sooner: aim by this shift's own pour time
+        adv(pourMsFor(world.debugShift(a.s)?.ctx.unlocked ?? []) * (hot ? (POUR.spillAt + POUR.hotMax) / 2 : 0.85));
         await act(a, { a: 'pour_end' });
       } else if (SUCO_ITEMS.includes(l.itemId)) {
         // one orange per tap until the glass reaches the line, then tap the glass
