@@ -44,7 +44,16 @@ interface Client {
   lastBout: () => Bout | undefined;
 }
 
-const WHITE = { belt: 'branca' as const, stripes: 0, wins: 1, unlocked: ['collar_tie' as const] };
+/**
+ * A white belt past the staged first wins (wins ≥ STAGED_BRACE_WINS: the defense pad is on) that won on the old day one, so it kept its
+ * six moves (Gancho, Postura and Braço moved to white stripes 1–3 in the staging). The staged match has its own tests below.
+ */
+const WHITE = {
+  belt: 'branca' as const,
+  stripes: 0,
+  wins: 3,
+  unlocked: ['collar_tie' as const, 'double_leg' as const, 'hook_sweep' as const, 'posture' as const, 'passar' as const, 'armbar' as const],
+};
 
 let n = 0;
 async function setup(extra: Partial<WorldOptions> = {}): Promise<{ world: World; a: Client }> {
@@ -172,7 +181,8 @@ describe('Treino no tatame v3 (server)', () => {
     expect(lobby.partners).toHaveLength(5);
     expect(lobby.partners.filter((p) => p.unlocked).map((p) => p.id)).toEqual(['mateus']);
     expect(lobby.level).toBe(0);
-    expect(lobby.bjj.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar']);
+    // the staged day one: a grip, Queda and Passar
+    expect(lobby.bjj.unlocked).toEqual(['collar_tie', 'double_leg', 'passar']);
     for (const p of lobby.partners) expect(JSON.stringify(p)).not.toMatch(/\boss\b|\brola\b|gracie/i);
   });
 
@@ -303,6 +313,58 @@ describe('Treino no tatame v3 (server)', () => {
     expect(r.grip).toContainEqual({ kind: 'defended', side: 'you', adv: true });
     advance(100);
     expect(a.last('pick')!.seq).toBeGreaterThan(d.seq);
+  });
+
+  it('the staged first wins: the partner\'s attack is braced for you (no defense beat, never a miss), and a defend sent anyway is ignored', async () => {
+    for (const wins of [0, 1, 2]) {
+      const { a } = await setup();
+      a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins, unlocked: ['collar_tie'] };
+      await start(a);
+      advance(1000);
+      a.s.bout!.rng = () => 0;
+      await pick(a, 'collar_tie');
+      await tapChain(a);
+      force(a, 'double_leg');
+      advance(100);
+      expect(a.bout().filter((m) => m.phase === 'defend'), `wins ${wins}`).toHaveLength(0);
+      const r = a.last('resolve')!;
+      expect(r).toMatchObject({ actor: 'partner', move: 'double_leg', landed: false, how: 'blocked', say: { pt: 'Vantagem!' } });
+      expect(r.st.adv).toEqual({ you: 1, partner: 0 });
+      expect(r.st.points.partner).toBe(0);
+      expect(r.grip).toContainEqual({ kind: 'blocked', side: 'you' });
+      // a client that sends a defense anyway changes nothing: there is no beat to answer
+      const count = a.bout().length;
+      await a.send({ t: 'bout', v: 2, action: 'defend', seq: r.seq ?? 0, step: 0, cmd: 'base', ms: 100 });
+      expect(a.bout()).toHaveLength(count);
+      expect(a.s.bout!.mat.adv).toEqual({ you: 1, them: 0 });
+      await a.send({ t: 'bout', v: 2, action: 'quit' });
+    }
+  });
+
+  it('the staged brace takes the partner\'s finish too; from the third win the defense beat is back', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie'] };
+    await start(a);
+    advance(1000);
+    a.s.bout!.rng = () => 0;
+    await pick(a, 'hold');
+    a.s.bout!.mat.position = { kind: 'mount', top: 'them' };
+    force(a, 'armbar');
+    advance(100);
+    expect(a.last('defend')).toBeUndefined();
+    expect(a.last('resolve')).toMatchObject({ actor: 'partner', move: 'armbar', landed: false, how: 'blocked' });
+    expect(a.s.bout!.mat.over).toBe(false);
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
+
+    a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 3, unlocked: ['collar_tie'] };
+    await start(a);
+    advance(1000);
+    a.s.bout!.rng = () => 0;
+    await pick(a, 'collar_tie');
+    await tapChain(a);
+    force(a, 'double_leg');
+    advance(100);
+    expect(a.last('defend')).toMatchObject({ move: { id: 'double_leg' }, call: 'base' });
   });
 
   it('a wrong or missing defense lets the attack land in full', async () => {
@@ -629,7 +691,7 @@ describe('Treino no tatame v3 (server)', () => {
     const end = a.last('end')!;
     expect(end).toMatchObject({ winner: 'you', reason: 'pontos', rv: ROLL_RV_WIN, word: { pt: 'academia', en: 'gym' }, stripeUp: false });
     expect(a.s.profile!.coins).toBe(coins0 + end.rv);
-    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 0, wins: 2 });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 0, wins: 4 });
     expect(a.s.profile!.diary).toEqual(['diary.rua.academia']);
     expect(a.s.bout).toBeUndefined();
   });
@@ -655,22 +717,40 @@ describe('Treino no tatame v3 (server)', () => {
     a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 4, unlocked: ['collar_tie'] };
     await start(a);
     await holdOut(a, 2, 0);
+    // stripe 1 teaches two moves: Gancho (off the staged day one) first, then the sleeve, each one its own drill
     const drill = a.last('chain')!;
-    expect(drill).toMatchObject({ drill: true, move: { id: 'sleeve_grip' }, cmds: ['pega'], windowMs: [0], line: { pt: 'Agora você.' } });
-    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 1, wins: 5, pendingDrill: 'sleeve_grip' });
+    expect(drill).toMatchObject({ drill: true, move: { id: 'hook_sweep' }, cmds: ['puxa', 'gira'], windowMs: [0, 0], line: { pt: 'Agora você.' } });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 1, wins: 5, pendingDrill: 'hook_sweep' });
     advance(60_000);
     expect(a.last('end')).toBeUndefined();
     // a wrong button is not the next step
-    await a.send({ t: 'bout', v: 2, action: 'tap', seq: drill.seq, step: 0, cmd: 'gira', ms: 0 });
-    expect(a.s.profile!.bjj?.pendingDrill).toBe('sleeve_grip');
     await a.send({ t: 'bout', v: 2, action: 'tap', seq: drill.seq, step: 0, cmd: 'pega', ms: 0 });
+    expect(a.s.profile!.bjj?.pendingDrill).toBe('hook_sweep');
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: drill.seq, step: 0, cmd: 'puxa', ms: 0 });
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: drill.seq, step: 1, cmd: 'gira', ms: 0 });
+    expect(a.s.profile!.bjj?.unlocked).toContain('hook_sweep');
+    expect(a.s.profile!.bjj?.pendingDrill).toBe('sleeve_grip');
+    advance(2000);
+    expect(a.last('end')).toBeUndefined();
+    const second = a.last('chain')!;
+    expect(second).toMatchObject({ drill: true, move: { id: 'sleeve_grip' }, cmds: ['pega'], windowMs: [0] });
+    await a.send({ t: 'bout', v: 2, action: 'tap', seq: second.seq, step: 0, cmd: 'pega', ms: 0 });
     advance(2000);
     const end = a.last('end')!;
     expect(end.stripeUp).toBe(true);
     expect(end.word).toEqual({ pt: 'academia', en: 'gym' });
-    expect(a.s.profile!.bjj?.unlocked).toContain('sleeve_grip');
+    expect(a.s.profile!.bjj?.unlocked).toEqual(expect.arrayContaining(['hook_sweep', 'sleeve_grip']));
     expect(a.s.profile!.bjj?.pendingDrill).toBeUndefined();
     expect(a.s.bout).toBeUndefined();
+  });
+
+  it('a profile that won on the old day one keeps its six moves; its fifth win drills only the sleeve', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { ...WHITE, wins: 4 };
+    await start(a);
+    await holdOut(a, 2, 0);
+    expect(a.last('chain')).toMatchObject({ drill: true, move: { id: 'sleeve_grip' } });
+    expect(a.s.profile!.bjj?.unlocked).toEqual(expect.arrayContaining(['hook_sweep', 'posture', 'armbar']));
   });
 
   it('a pending drill is still there on the next visit, and twenty wins put on the blue belt', async () => {

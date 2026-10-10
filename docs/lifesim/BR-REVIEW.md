@@ -35,6 +35,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [W. Bate-papos and the #229 wording sweep](#w-papos) (24)
 - [X. Praia: the beach, fishing, boats and the party boat](#x-praia) (33)
 - [Z. Chat hints](#z-chat-hints) (2)
+- [AA. Tatame staging](#aa-tatame-staging) (2)
 
 ## A. Time of day, weekdays and weather
 
@@ -882,6 +883,19 @@ The hint under the chat input while typing (`packages/shared/src/safety.ts` `CHA
 | 643 | Vai, mas com cuidado | It sends, but go easy | `CHAT_HINTS.warn` | message goes out; was "Vai com aviso" | |
 | 644 | Essa não dá, tenta de outro jeito | Not that one, try another way | `CHAT_HINTS.block` | block and escalate; was "Não pode" / "Vai pra revisão"; also `ESCALATE_NOTE` | |
 
+## AA. Tatame staging
+
+<a id="aa-tatame-staging"></a>
+The staged first matches on the mat (2026-10-10, `docs/lifesim/TATAME-V3.md` "Staging"): the lobby shows the suggested partner and folds
+the others, and the first match with the defense pad has its own coach notes. Read on screen, never spoken (no TTS). The pad match's
+other two notes reuse existing lines ("Ele vai atacar! Toque a defesa que a Bia falar." and the end-card tip "Contra o final, toque Sai!
+sem parar, rápido."). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+| --- | --- | --- | --- | --- | --- |
+| 645 | Mais parceiros | More partners | `apps/client/src/ui/bout.ts` lobby | the fold that reveals the other partners | |
+| 646 | Agora ele também ataca. O aviso diz o que vem. | Now they attack too. The warning says what is coming. | `apps/client/src/ui/boutLogic.ts` `PAD_COACH_NOTES.pick` | coach note at the first pick of the first match with the defense pad (wins 3) | |
+
 ## Totals
 
-644 numbered strings in sections A to Q, S, T, U, V, W, X, Y and Z, plus 9 proposed-card entries.
+646 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z and AA, plus 9 proposed-card entries.

@@ -21,8 +21,8 @@ import {
 } from './index.js';
 
 describe('belts, stripes and the profile', () => {
-  it('a fresh profile is a white belt with one move on each gag track, and no stripes', () => {
-    const starters = ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'];
+  it('a fresh profile is a white belt with the staged day one (a grip, Queda, Passar), and no stripes', () => {
+    const starters = ['collar_tie', 'double_leg', 'passar'];
     expect(normalizeBjj()).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: starters, lossStreak: 0 });
     expect(normalizeBjj(null)).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: starters, lossStreak: 0 });
     // the loss streak is kept, defaults to 0 and is never negative or fractional
@@ -59,7 +59,7 @@ describe('belts, stripes and the profile', () => {
   it('old saves follow the win count, and odd ones come back coherent', () => {
     expect(normalizeBjj({ belt: 'branca', stripes: 4, wins: 4 })).toMatchObject({ belt: 'branca', stripes: 0, wins: 4 });
     expect(normalizeBjj({ belt: 'branca', stripes: 2, wins: 2 })).toMatchObject({ belt: 'branca', stripes: 0, wins: 2 });
-    expect(normalizeBjj({ stripes: 4, wins: 0 })).toMatchObject({ belt: 'branca', stripes: 0, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'] });
+    expect(normalizeBjj({ stripes: 4, wins: 0 })).toMatchObject({ belt: 'branca', stripes: 0, unlocked: ['collar_tie', 'double_leg', 'passar'] });
     expect(normalizeBjj({ stripes: -3, wins: -9 } as never)).toMatchObject({ belt: 'branca', stripes: 0, wins: 0 });
     expect(normalizeBjj({ stripes: 'x', wins: 'y', belt: 'preta' } as never)).toMatchObject({ belt: 'branca', stripes: 0, wins: 0 });
     // 18 wins is still white, three stripes (blue is 20)

@@ -640,10 +640,12 @@ async function main() {
   assert(stage && stage.mode !== 'off', `the bout stage is on the mat (${JSON.stringify(stage)})`);
   assert(await page.evaluate(() => window.__tb.bout.feed.active), 'the bout feed is active');
   await shot(page, '09b3_bout_pick');
-  // Tatame v3: the control meter, the grip chips and the partner's telegraph are on the pick; at most four cards and no percentages
+  // Tatame v3, staged (TATAME-V3 "Staging"): no meters row before the first stripe; the partner's telegraph is on the pick; at most four
+  // cards and no percentages
+  const staged = (await profile(page)).bjj?.wins ?? 0;
   const hud = await readBoutHud(page);
-  assert(hud.meter !== null && Number.isFinite(hud.meter), `the control meter is up (${JSON.stringify(hud)})`);
-  assert((await page.$$('#bout-grips-you .grip-chip[data-grip]')).length === 2, 'your Gola and Manga chips are on the HUD');
+  assert(hud.meter === null, `no control meter before the first stripe (${JSON.stringify(hud)})`);
+  assert((await page.$$('#bout-grips-you .grip-chip[data-grip]')).length === 0, 'no grip chips before the first stripe');
   assert(hud.plan && hud.plan.text.includes('Mateus'), `the partner telegraphs its next move (${JSON.stringify(hud.plan)})`);
   assert(hud.cards.length >= 1 && hud.cards.length <= 4, `one to four cards on the pick (${hud.cards.join(', ')})`);
   assert(!(await page.evaluate(() => /\d+\s*%/.test(document.querySelector('#bout')?.textContent ?? ''))), 'no percentages on the overlay');
@@ -660,6 +662,8 @@ async function main() {
   assert(['you', 'partner', 'draw'].includes(result.winner), `the match ended with a result (${result.winner} / ${result.reason})`);
   assert(result.moves >= 2, `at least two picks were played (${result.moves}, ${result.winner} by ${result.reason})`);
   assert(sawChain && result.taps >= 2, `commands were tapped on the pad (${result.taps} taps, defense beats: ${sawDefend})`);
+  // the first wins have no defense pad: the partner's attacks are braced for you
+  assert(staged >= 3 || !sawDefend, `no defense beat in the staged first wins (wins ${staged})`);
   assert(await page.$('#bout-perfect'), 'the end card counts the perfect commands');
   assert(await page.$('#bout-today .bt-chip'), 'the end card lists the words of the day');
   const score = await page.evaluate(() => ({ you: document.querySelector('.bout-side.you .pts')?.textContent, them: document.querySelector('.bout-side.partner .pts')?.textContent }));

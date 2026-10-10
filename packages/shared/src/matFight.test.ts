@@ -15,12 +15,15 @@ import {
   EXCHANGE_CLOCK_MS,
   MAT_TURNS,
   MAT_WORD_IDS,
+  MAT_CALLS,
   MAX_CARDS,
   MOVE_LABEL,
   RITMO_RUN,
+  STAGED_BRACE_WINS,
   START_RATES,
   UNLOCK_ORDER,
   baseChain,
+  beltIndex,
   botCommit,
   botMoves,
   braceBlocks,
@@ -45,6 +48,7 @@ import {
   moveDoes,
   moveLegal,
   moveTaughtAt,
+  movesTaughtAt,
   movesThrough,
   newMat,
   nextMatWord,
@@ -59,6 +63,8 @@ import {
   resolveMat,
   saiCount,
   shouldFeint,
+  stagedBrace,
+  stagedBraceBlocks,
   withCombos,
   type GripFlags,
   type MatMoveId,
@@ -498,16 +504,16 @@ describe('move effects', () => {
 });
 
 describe('stripe unlock order', () => {
-  it('teaches one move per award, in order, and then stops', () => {
+  it('teaches the staged day one (three moves), then one or two moves per award, in order, and then stops', () => {
     expect(UNLOCK_ORDER.map((u) => u.move)).toEqual([
       'collar_tie',
       'double_leg',
-      'hook_sweep',
-      'posture',
       'passar',
-      'armbar',
+      'hook_sweep',
       'sleeve_grip',
+      'posture',
       'knee_on_belly',
+      'armbar',
       'body_lock',
       'sprawl',
       'scissor_sweep',
@@ -519,10 +525,15 @@ describe('stripe unlock order', () => {
       'back_take',
       'single_leg',
     ]);
+    expect(movesThrough('branca', 0)).toEqual(['collar_tie', 'double_leg', 'passar']);
+    expect(movesTaughtAt('branca', 1)).toEqual(['hook_sweep', 'sleeve_grip']);
+    expect(movesTaughtAt('branca', 2)).toEqual(['posture', 'knee_on_belly']);
+    expect(movesTaughtAt('branca', 3)).toEqual(['armbar', 'body_lock']);
+    expect(movesTaughtAt('branca', 4)).toEqual(['sprawl']);
     expect(moveTaughtAt('branca', 0)).toBe('collar_tie');
-    expect(moveTaughtAt('branca', 1)).toBe('sleeve_grip');
-    expect(moveTaughtAt('branca', 2)).toBe('knee_on_belly');
-    expect(moveTaughtAt('branca', 3)).toBe('body_lock');
+    expect(moveTaughtAt('branca', 1)).toBe('hook_sweep');
+    expect(moveTaughtAt('branca', 2)).toBe('posture');
+    expect(moveTaughtAt('branca', 3)).toBe('armbar');
     expect(moveTaughtAt('branca', 4)).toBe('sprawl');
     expect(moveTaughtAt('roxa', 0)).toBe('rnc');
     expect(moveTaughtAt('roxa', 1)).toBe('back_take');
@@ -532,21 +543,53 @@ describe('stripe unlock order', () => {
     expect(moveTaughtAt('preta', 0)).toBeNull();
   });
 
-  it('a win stores the stripe on the account and holds the new move for the drill', () => {
+  it('is monotonic: sorted by rank, so a later stripe never teaches a move an earlier one had', () => {
+    const rank = (u: (typeof UNLOCK_ORDER)[number]) => beltIndex(u.belt) * 10 + u.stripes;
+    for (let i = 1; i < UNLOCK_ORDER.length; i++) expect(rank(UNLOCK_ORDER[i]!)).toBeGreaterThanOrEqual(rank(UNLOCK_ORDER[i - 1]!));
+    expect(new Set(UNLOCK_ORDER.map((u) => u.move)).size).toBe(UNLOCK_ORDER.length);
+  });
+
+  it('a win stores the stripe on the account and holds the new moves for the drill, one after the other', () => {
     let p = normalizeBjj();
-    expect(p.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar']);
+    expect(p.unlocked).toEqual(['collar_tie', 'double_leg', 'passar']);
     for (let i = 0; i < 4; i++) p = recordWin(p).progress;
     const fifth = recordWin(p);
     expect(fifth.stripeUp).toBe(true);
-    expect(fifth.move).toBe('sleeve_grip');
-    expect(fifth.progress.pendingDrill).toBe('sleeve_grip');
-    expect(fifth.progress.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar']);
+    expect(fifth.move).toBe('hook_sweep');
+    expect(fifth.progress.pendingDrill).toBe('hook_sweep');
+    expect(fifth.progress.unlocked).toEqual(['collar_tie', 'double_leg', 'passar']);
     expect(fifth.progress).toMatchObject({ belt: 'branca', stripes: 1, wins: 5 });
-    const drilled = completeDrill(fifth.progress, 'sleeve_grip');
-    expect(drilled.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip']);
+    // the same stripe teaches the sleeve too: its drill is next
+    const first = completeDrill(fifth.progress, 'hook_sweep');
+    expect(first.unlocked).toEqual(['collar_tie', 'double_leg', 'passar', 'hook_sweep']);
+    expect(first.pendingDrill).toBe('sleeve_grip');
+    expect(normalizeBjj(first).pendingDrill).toBe('sleeve_grip');
+    const drilled = completeDrill(first, 'sleeve_grip');
+    expect(drilled.unlocked).toEqual(['collar_tie', 'double_leg', 'passar', 'hook_sweep', 'sleeve_grip']);
     expect(drilled.pendingDrill).toBeUndefined();
     const again = completeDrill(drilled, 'sleeve_grip');
-    expect(again.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip']);
+    expect(again.unlocked).toEqual(['collar_tie', 'double_leg', 'passar', 'hook_sweep', 'sleeve_grip']);
+  });
+
+  it('a profile that won on the old day one keeps Gancho, Postura and Braço; its stripes teach only what it lacks', () => {
+    const OLD_DAY_ONE = ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'] as const;
+    for (const wins of [1, 4, 5, 9, 10, 14, 15, 19, 20, 60]) {
+      const p = normalizeBjj({ wins, unlocked: [...OLD_DAY_ONE] });
+      expect(p.unlocked, `wins ${wins}`).toEqual(expect.arrayContaining([...OLD_DAY_ONE]));
+    }
+    // the old stripe 1 save, waiting for its sleeve drill, still waits for it
+    const s1 = normalizeBjj({ wins: 5, unlocked: [...OLD_DAY_ONE], pendingDrill: 'sleeve_grip' });
+    expect(s1.pendingDrill).toBe('sleeve_grip');
+    // at four wins, the fifth teaches the sleeve (Gancho is already there): no drill for a move it has
+    const w = recordWin({ wins: 4, unlocked: [...OLD_DAY_ONE] });
+    expect(w.move).toBe('sleeve_grip');
+    expect(completeDrill(w.progress, 'sleeve_grip').pendingDrill).toBeUndefined();
+    expect(recordWin({ wins: 9, unlocked: [...OLD_DAY_ONE, 'sleeve_grip'] }).move).toBe('knee_on_belly');
+    expect(recordWin({ wins: 14, unlocked: [...OLD_DAY_ONE, 'sleeve_grip', 'knee_on_belly'] }).move).toBe('body_lock');
+    // a save from before skills were stored keeps the old day one too
+    expect(normalizeBjj({ wins: 2 }).unlocked).toEqual(expect.arrayContaining([...OLD_DAY_ONE]));
+    // an empty white belt (no win yet) plays the staged day one
+    expect(normalizeBjj({ wins: 0, unlocked: [...OLD_DAY_ONE] }).unlocked).toEqual(['collar_tie', 'double_leg', 'passar']);
   });
 
   it('walks the belts: two takedowns by white, a second submission at blue, the choke at purple', () => {
@@ -555,14 +598,20 @@ describe('stripe unlock order', () => {
       let move: string | null = null;
       for (let i = 0; i < wins; i++) {
         const w = recordWin(p);
-        p = w.move ? completeDrill(w.progress, w.move) : w.progress;
+        p = w.progress;
+        // every drill this stripe holds, in order
+        while (p.pendingDrill) p = completeDrill(p, p.pendingDrill);
         move = w.move;
       }
       return { belt: p.belt, stripes: p.stripes, move, unlocked: p.unlocked };
     };
-    expect(at(0).unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar']);
-    expect(at(10)).toMatchObject({ belt: 'branca', stripes: 2, move: 'knee_on_belly' });
-    expect(at(15)).toMatchObject({ belt: 'branca', stripes: 3, move: 'body_lock' });
+    expect(at(0).unlocked).toEqual(['collar_tie', 'double_leg', 'passar']);
+    expect(at(5)).toMatchObject({ belt: 'branca', stripes: 1, move: 'hook_sweep' });
+    expect(at(5).unlocked).toEqual(['collar_tie', 'double_leg', 'passar', 'hook_sweep', 'sleeve_grip']);
+    expect(at(10)).toMatchObject({ belt: 'branca', stripes: 2, move: 'posture' });
+    expect(at(10).unlocked).toEqual(expect.arrayContaining(['posture', 'knee_on_belly']));
+    expect(at(15)).toMatchObject({ belt: 'branca', stripes: 3, move: 'armbar' });
+    expect(at(15).unlocked).toEqual(expect.arrayContaining(['armbar', 'body_lock']));
     expect(at(20)).toMatchObject({ belt: 'azul', stripes: 0, move: 'scissor_sweep' });
     expect(at(20).unlocked).toEqual(expect.arrayContaining(['sprawl', 'scissor_sweep']));
     expect(at(50)).toMatchObject({ belt: 'azul', stripes: 3, move: 'escape_back' });
@@ -577,18 +626,56 @@ describe('stripe unlock order', () => {
   });
 });
 
+describe('staging: the first wins have no defense pad (the staged brace)', () => {
+  it('braces every partner attack the pad would stop while wins < 3, and nothing after', () => {
+    expect(STAGED_BRACE_WINS).toBe(3);
+    expect([0, 1, 2, 3, 4, 5].map((w) => stagedBrace(w))).toEqual([true, true, true, false, false, false]);
+    expect(stagedBrace(undefined)).toBe(true);
+    const st: MatState = { ...newMat(), actor: 'them' };
+    expect(stagedBraceBlocks(st, 'them', 'double_leg', 0)).toBe(true);
+    expect(stagedBraceBlocks(st, 'them', 'collar_tie', 2)).toBe(true);
+    expect(stagedBraceBlocks(st, 'them', 'double_leg', 3)).toBe(false);
+    // only the partner's attacks, and only those with a defense (a hold or a brace has none)
+    expect(stagedBraceBlocks({ ...st, actor: 'you' }, 'you', 'double_leg', 0)).toBe(false);
+    expect(stagedBraceBlocks(st, 'them', 'hold', 0)).toBe(false);
+    expect(stagedBraceBlocks(st, 'them', 'posture', 0)).toBe(false);
+    const sub: MatState = { ...at('mount', 'them'), actor: 'them' };
+    expect(stagedBraceBlocks(sub, 'them', 'armbar', 1)).toBe(true);
+    expect(stagedBraceBlocks({ ...at('side_control', 'you'), actor: 'them' }, 'them', 'virar', 1)).toBe(true);
+  });
+
+  it('resolves as a brace, not a miss: no landing, the blocked event and your Vantagem', () => {
+    const st: MatState = { ...newMat(), actor: 'them' };
+    const r = resolveMat(st, 'them', 'double_leg', false, { staged: true });
+    expect(r.ok).toBe(true);
+    expect(r.landed).toBe(false);
+    expect(r.state.position).toEqual({ kind: 'standing' });
+    expect(r.state.adv).toEqual({ you: 1, them: 0 });
+    expect(r.events).toContainEqual({ kind: 'blocked', side: 'you' });
+    expect(r.line).toEqual(MAT_CALLS.vantagem);
+    // the same move missed without the staged brace is just a miss: no Vantagem
+    const miss = resolveMat(st, 'them', 'double_leg', false);
+    expect(miss.state.adv).toEqual({ you: 0, them: 0 });
+    // the partner's finish too: it does not land, it drops to the guard as a missed finish does
+    const sub = resolveMat({ ...at('mount', 'them'), actor: 'them' }, 'them', 'armbar', false, { staged: true });
+    expect(sub.submission).toBe(false);
+    expect(sub.state.over).toBe(false);
+    expect(sub.state.adv.you).toBe(1);
+  });
+});
+
 describe('cross-rank cap', () => {
   it('a brown belt against a white belt only gets the white pool', () => {
     const moves = fightMoves({ belt: 'marrom', unlocked: rankPool('marrom'), opponentBelt: 'branca' });
     expect(moves).toEqual([
       'collar_tie',
       'double_leg',
-      'hook_sweep',
-      'posture',
       'passar',
-      'armbar',
+      'hook_sweep',
       'sleeve_grip',
+      'posture',
       'knee_on_belly',
+      'armbar',
       'body_lock',
       'sprawl',
       'collar_drag',
