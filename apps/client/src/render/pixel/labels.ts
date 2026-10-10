@@ -45,6 +45,8 @@ export interface StackItem {
     subBadge?: boolean;
     /** Live Fada da Feira crown. A display overlay only — not a tier, belt or stripe. */
     feiraCrown?: boolean;
+    /** NPCs: a recado marker over the plate. `offer` a bouncing gold "!" (an errand for you), `step` a "?" (your current step is with them). */
+    marker?: 'offer' | 'step';
     /** Players: the nameplate colour earned in the escola (verde is the plain plate; the others add their colour and shape). */
     tier?: Nameplate;
     /** BJJ belt on the plate when the server sent one (gi, a test profile, or any rank past a fresh white belt). */
@@ -89,6 +91,8 @@ const TAIL_X = 9 * BUBBLE_SCALE;
 const BUBBLE_GAP = 1;
 /** CSS px between the head anchor and the bottom of the nameplate. */
 const PLATE_LIFT = 3;
+/** CSS px the recado marker (`.wl-quest`: 24 px, its 3 px gap, the 4 px bob) adds on top of a plate. */
+const QUEST_H = 31;
 
 /** Which side the tail (and so the anchor) is on for a speaker at screen x; `prev` gives hysteresis so a walker crossing the middle does not flicker. */
 export function bubbleSide(x: number, viewW: number, prev: 'left' | 'right'): 'left' | 'right' {
@@ -205,6 +209,7 @@ interface StackEl {
   founder: HTMLElement;
   subBadge: HTMLElement;
   crown: HTMLElement;
+  quest: HTMLElement;
   bubbles: BubbleEl[];
   side: 'left' | 'right';
   plateKey: string;
@@ -214,6 +219,8 @@ interface StackEl {
   hidden: boolean;
   /** true while a part of the stack would sit under the HUD (then the whole stack is not drawn) */
   occluded: boolean;
+  /** true while only the bubbles would sit under the HUD (they hide; the plate stays) */
+  bubblesOccluded: boolean;
   /** each bubble's `bottom` before any de-overlap lift (CSS px above the anchor) */
   baseBottoms: number[];
   plateBottom: string;
@@ -392,22 +399,24 @@ export class LabelLayer {
         .filter((r) => r.width > 0 && r.height > 0)
         .map((r) => ({ l: r.left, r: r.right, t: r.top, b: r.bottom }));
     }
+    const hit = (part: HTMLElement): boolean => {
+      if (!this.hudRects.length || part.style.display === 'none') return false;
+      const r = part.getBoundingClientRect();
+      return !!r.width && underHud({ l: r.left, r: r.right, t: r.top, b: r.bottom }, this.hudRects);
+    };
     for (const el of this.stacks.values()) {
       if (el.hidden) continue;
-      let under = false;
-      if (this.hudRects.length) {
-        for (const part of [el.plateRow, ...el.bubbles.map((b) => b.root)]) {
-          if (part.style.display === 'none') continue;
-          const r = part.getBoundingClientRect();
-          if (r.width && underHud({ l: r.left, r: r.right, t: r.top, b: r.bottom }, this.hudRects)) {
-            under = true;
-            break;
-          }
-        }
+      // the plate (and its recado marker) under the HUD: the whole stack goes. Only a bubble under it: just the bubbles go, so a neighbour's
+      // name and "!" stay readable while a line they say rises under the top bar.
+      const plateUnder = hit(el.plateRow) || (el.quest.style.display !== 'none' && hit(el.quest));
+      const bubblesUnder = !plateUnder && el.bubbles.some((b) => hit(b.root));
+      if (plateUnder !== el.occluded) {
+        el.occluded = plateUnder;
+        el.root.style.visibility = plateUnder ? 'hidden' : '';
       }
-      if (under !== el.occluded) {
-        el.occluded = under;
-        el.root.style.visibility = under ? 'hidden' : '';
+      if (bubblesUnder !== el.bubblesOccluded) {
+        el.bubblesOccluded = bubblesUnder;
+        for (const b of el.bubbles) b.root.style.visibility = bubblesUnder ? 'hidden' : '';
       }
     }
   }
@@ -430,9 +439,13 @@ export class LabelLayer {
     crown.className = 'wl-feira-crown';
     crown.style.display = 'none';
     crown.setAttribute('aria-hidden', 'true');
-    plateRow.append(crown, plate, subBadge, founder);
+    // the recado marker hangs above the plate (absolutely placed: it never changes the plate's measured width)
+    const quest = document.createElement('i');
+    quest.className = 'wl-quest';
+    quest.style.display = 'none';
+    plateRow.append(crown, plate, subBadge, founder, quest);
     root.appendChild(plateRow);
-    return { root, plateRow, plate, founder, subBadge, crown, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, baseBottoms: [], plateBottom: '' };
+    return { root, plateRow, plate, founder, subBadge, crown, quest, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, bubblesOccluded: false, baseBottoms: [], plateBottom: '' };
   }
 
   private createBubble(): BubbleEl {
@@ -476,7 +489,7 @@ export class LabelLayer {
 
     // nameplate: text and kind change rarely; measure only then
     const tier = s.plate && (s.plate.kind === 'player' || s.plate.kind === 'me') && s.plate.tier && s.plate.tier !== 'verde' ? s.plate.tier : null;
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}|${s.plate.belt ?? ''}|${s.plate.stripes ?? ''}|${s.plate.gloss ?? ''}` : '';
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}|${s.plate.belt ?? ''}|${s.plate.stripes ?? ''}|${s.plate.gloss ?? ''}|${s.plate.marker ?? ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
@@ -523,6 +536,11 @@ export class LabelLayer {
           el.crown.style.display = 'none';
           el.crown.removeAttribute('title');
         }
+        if (s.plate.marker) {
+          el.quest.style.display = '';
+          el.quest.className = `wl-quest wl-quest-${s.plate.marker}`;
+          el.quest.textContent = s.plate.marker === 'offer' ? '!' : '?';
+        } else el.quest.style.display = 'none';
         if (s.plate.founder) {
           el.founder.style.display = '';
           el.founder.setAttribute('role', 'img');
@@ -543,7 +561,8 @@ export class LabelLayer {
         }
         const w = el.plateRow.offsetWidth;
         el.plateW = w % 2 ? w + 1 : w;
-        el.plateH = el.plateRow.offsetHeight;
+        // the recado marker sits on top of the plate: bubbles and other plates keep clear of it too
+        el.plateH = el.plateRow.offsetHeight + (s.plate.marker ? QUEST_H : 0);
         el.plateRow.style.marginLeft = px(-el.plateW / 2);
       } else {
         el.plateRow.style.display = 'none';
@@ -562,6 +581,7 @@ export class LabelLayer {
       let be = el.bubbles[i];
       if (!be) {
         be = this.createBubble();
+        if (el.bubblesOccluded) be.root.style.visibility = 'hidden';
         el.bubbles[i] = be;
         el.root.appendChild(be.root);
       }

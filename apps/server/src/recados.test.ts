@@ -7,6 +7,7 @@ import {
   greetingFor,
   HOTSPOTS,
   RECADOS,
+  RECADO_DAY_BONUS_RV,
   ROOMS,
   type ClientMsg,
   type ServerMsg,
@@ -203,6 +204,52 @@ describe('recados on the server', () => {
     await a.send({ t: 'recados', action: 'accept', id: 'carlos_cafe_pra_nanda' });
     expect(errors(a).at(-1)).toBe('recado');
     expect(a.last('recados')!.offered.map((o) => o.id)).not.toContain('carlos_cafe_pra_nanda');
+  });
+
+  it('accepting says the first step; drop puts an errand back on the board, and it can be taken again', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    offer(a, 'nanda_coxinha');
+    await a.send({ t: 'recados', action: 'accept', id: 'nanda_coxinha' });
+    expect(a.all('notice').find((m) => m.tag === 'recado_accept')?.pt).toBe('Recado aceito: Coxinha da padaria → Peça 1× coxinha (Seu Carlos).');
+
+    await a.send({ t: 'recados', action: 'drop', id: 'nope' });
+    expect(errors(a)).toEqual(['recado']);
+    await a.send({ t: 'recados', action: 'drop', id: 'nanda_coxinha' });
+    expect(a.s.profile!.recados!.active).toEqual([]);
+    expect(a.last('recados')!.offered.map((o) => o.id)).toEqual(['nanda_coxinha']);
+    await a.send({ t: 'recados', action: 'accept', id: 'nanda_coxinha' });
+    expect(errors(a)).toEqual(['recado']);
+    expect(a.last('recados')!.active.map((r) => r.id)).toEqual(['nanda_coxinha']);
+  });
+
+  it('the third recado done in a game day pays the Vizinho do dia bonus, once', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    const p = a.s.profile!;
+    // two already done today
+    p.recados!.done = ['nanda_um_oi_pro_carlos', 'julia_cumprimento_certo'];
+    offer(a, 'carlos_cafe_pra_nanda');
+    await a.send({ t: 'recados', action: 'accept', id: 'carlos_cafe_pra_nanda' });
+    p.bag = { cafe_com_leite: 2 };
+    p.recados!.active = [{ id: 'carlos_cafe_pra_nanda', step: 1 }];
+    await walkTo(a, nanda.interact.x, nanda.interact.y);
+    const coinsBefore = p.coins;
+    await a.send({ t: 'give', npc: 'nanda', itemId: 'cafe_com_leite' });
+    expect(errors(a)).toEqual([]);
+    const def = RECADOS.find((d) => d.id === 'carlos_cafe_pra_nanda')!;
+    expect(p.coins).toBe(coinsBefore + def.reward.rv + RECADO_DAY_BONUS_RV);
+    expect(a.all('notice').filter((m) => m.tag === 'recado_bonus')).toHaveLength(1);
+    expect(p.recados!.bonus).toBe(true);
+    expect(a.last('recados')!.bonus).toBe(true);
+
+    // a fourth one the same day pays its own reward only
+    p.recados!.active = [{ id: 'nanda_coxinha', step: 1 }];
+    p.bag = { coxinha: 1 };
+    const mid = p.coins;
+    await a.send({ t: 'give', npc: 'nanda', itemId: 'coxinha' });
+    expect(p.coins).toBe(mid + RECADOS.find((d) => d.id === 'nanda_coxinha')!.reward.rv);
+    expect(a.all('notice').filter((m) => m.tag === 'recado_bonus')).toHaveLength(1);
   });
 
   it('a correct Me vê um order also puts the items in the bag and can complete an order step', async () => {

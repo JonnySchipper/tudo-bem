@@ -51,6 +51,8 @@ import {
   hotspotTitle,
   isCpuId,
   isWalkable,
+  nextPortalToward,
+  recadoById,
   readSpot,
   subjectChoices,
   VENDORS,
@@ -101,8 +103,8 @@ import { bindPetName, maybeAskPetName, openPetName, showPetNameError } from './u
 import { bindAdmin, onAdminMsg } from './ui/admin';
 import { applyServerLayout } from './ui/layoutSync';
 import { dialogueBoxKey, dialogueBoxNpc, isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
-import { mountTracker, openJournal, runPrelude } from './ui/recados';
-import { heartsWith } from './ui/recadoView';
+import { bindRecadoActions, mountTracker, openJournal, runPrelude } from './ui/recados';
+import { heartsWith, recadoFocus } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
 import { profileMetJulia } from './ui/juliaMet';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty } from './ui/feira';
@@ -811,6 +813,35 @@ function updateGuides() {
       add(guideAt('prop', 'elevador', 120, 'Elevador', 'Elevator'));
     }
   }
+  // the errand on top of the tracker: an arrow to the neighbour or the sign it needs, or to the door toward their room
+  const errand = recadoGuide();
+  // a sign already standing there (the tutorial's "Padaria: pela Rua ↑") points the same way: one label, not two on top of each other
+  if (errand && !renderer.guides.some((g) => Math.abs(g.x - errand.x) + Math.abs(g.y - errand.y) <= 3)) add(errand);
+}
+
+/** Where the first active recado's current step points: its NPC or sign in this room, else the way out toward their room. Nothing while they are at home. */
+function recadoGuide(): Guide | null {
+  const r = game.room;
+  const f = recadoFocus(game.board, clock.minutes());
+  if (!r || !f || f.away || !f.room) return null;
+  // needs_br: true
+  if (f.room === r.room) {
+    if (f.npc) return guideAt('npc', f.npc, 120, `Recado: ${f.label.pt}`, `Errand: ${f.label.en}`);
+    const step = game.board?.active[0];
+    const def = step ? hotspotById(recadoStepHotspot(step.id, step.step) ?? '') : undefined;
+    return def ? { x: def.x + ((def.w ?? 1) - 1) / 2, y: def.y + (def.h ?? 1) - 1, lift: 60, label: `Recado: ${f.label.pt}`, en: `Errand: ${f.label.en}` } : null;
+  }
+  const from = selfTile()?.tile;
+  const portal = from ? nextPortalToward(r.room, from, f.room) : null;
+  if (!portal) return null;
+  const to = ROOMS[f.room];
+  return { x: portal.doorAt?.x ?? portal.x, y: portal.doorAt?.y ?? portal.y, lift: 60, label: `Recado: ${to.name}`, en: `Errand: ${to.gloss}` };
+}
+
+/** The sign a recado's step asks to read (`ler`), if that is the step. */
+function recadoStepHotspot(id: string, step: number): string | null {
+  const s = recadoById(id)?.steps[step];
+  return s?.kind === 'ler' ? s.hotspotId : null;
 }
 
 // ---------------------------------------------------------------- server messages
@@ -1117,8 +1148,8 @@ net.on((m: ServerMsg) => {
       break;
     }
     case 'notice':
-      // a recado step and the giver's thanks have their own presentation (the tracker's ✓, the thanks card)
-      if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks') toast(m.level, m.pt, m.en);
+      // a recado step, the giver's thanks and the day bonus have their own presentation (the tracker's ✓, the thanks card)
+      if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks' && m.tag !== 'recado_bonus') toast(m.level, m.pt, m.en);
       break;
     case 'cartela': {
       const line = stampNotice(m.activity, m.stamps, m.paid);
@@ -1223,8 +1254,9 @@ net.on((m: ServerMsg) => {
       speak(m.word.pt);
       break;
     case 'recados':
-      game.board = { day: m.day, offered: m.offered, active: m.active, done: m.done };
+      game.board = { day: m.day, offered: m.offered, active: m.active, done: m.done, bonus: m.bonus };
       game.emit('recados');
+      updateGuides();
       break;
     case 'tutorial': {
       const s = TUTORIAL_STEPS.find((x) => x.id === m.step);
@@ -1361,6 +1393,10 @@ function startGame() {
             localStorage.removeItem(TOKEN_KEY);
             reloadToSignIn();
           },
+  });
+  bindRecadoActions({
+    accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
+    drop: (id) => net.send({ t: 'recados', action: 'drop', id }),
   });
   mountTracker(openJournal);
   mountAirportTutorial(updateGuides);

@@ -3,6 +3,9 @@ import {
   addBond,
   addToBag,
   advance,
+  dayBonusDue,
+  dropRecado,
+  RECADO_DAY_BONUS_RV,
   BOND_GAIN,
   furnitureById,
   giftFor,
@@ -119,6 +122,7 @@ export class RecadoTracker {
         return def ? [activeView(a, def)] : [];
       }),
       done: [...st.done],
+      bonus: !!st.bonus,
     });
   }
 
@@ -169,6 +173,12 @@ export class RecadoTracker {
     this.d.reward(s, def.reward.rv, { pt: `Recado: ${def.title.pt}`, en: `Errand: ${def.title.en}` });
     const who = npcName(def.giver);
     s.send({ t: 'notice', level: 'reward', pt: `${who}: “${def.thanks.pt}”`, en: `${who}: “${def.thanks.en}”`, tag: 'recado_thanks' });
+    // needs_br: true. Three recados in one game day: the neighbourhood's thank-you, once a day
+    if (dayBonusDue(st)) {
+      st.bonus = true;
+      this.d.reward(s, RECADO_DAY_BONUS_RV, { pt: 'Vizinho do dia', en: 'Neighbour of the day' });
+      s.send({ t: 'notice', level: 'reward', pt: `★ Vizinho do dia! +${RECADO_DAY_BONUS_RV} RV`, en: `★ Neighbour of the day! +${RECADO_DAY_BONUS_RV} RV`, tag: 'recado_bonus' });
+    }
   }
 
   /** Public door for other features (the academia bout) to pay friendship points; runs the same milestone effects and saves. */
@@ -272,17 +282,26 @@ export class RecadoTracker {
   }
 
   /**
-   * `recados`: 'list' resends the board; 'accept' starts one of today's offers (max 3 at once).
+   * `recados`: 'list' resends the board; 'accept' starts one of today's offers (max 3 at once); 'drop' gives an active one up (it goes back on
+   * today's offer, nothing earned is taken back).
    * The game day is 48 real minutes. The board the player is looking at was sent the last time they entered a room,
    * so an accept can arrive after midnight still naming yesterday's errand. That errand was offered to them: take it.
    * Rejecting it left the journal on the old board (the solo e2e hits this whenever the run crosses game midnight).
    */
-  request(s: Session, action: 'accept' | 'list', id?: unknown) {
+  request(s: Session, action: 'accept' | 'drop' | 'list', id?: unknown) {
     const p = s.profile;
     if (!p) return;
     const prevDay = p.recados?.day;
     const prevOffered = p.recados?.offered ?? [];
     const st = this.board(p);
+    if (action === 'drop') {
+      const next = typeof id === 'string' ? dropRecado(st, id) : null;
+      if (!next) return this.err(s, 'recado', 'Esse recado não está na sua lista.', 'That errand isn’t on your list.');
+      p.recados = next;
+      const def = recadoById(id, this.defs);
+      if (def) s.send({ t: 'notice', level: 'info', pt: `Recado deixado pra depois: ${def.title.pt}`, en: `Errand put aside: ${def.title.en}` });
+      return this.commit(s);
+    }
     if (action !== 'accept') return this.sendBoard(s);
     const def = recadoById(id, this.defs);
     const rolled = st.day !== prevDay;
@@ -295,7 +314,15 @@ export class RecadoTracker {
     if (st.active.length >= RECADO_MAX_ACTIVE)
       return this.err(s, 'recado', 'Termine um recado antes de pegar outro.', 'Finish an errand before taking another.');
     st.active.push({ id: def.id, step: 0 });
-    s.send({ t: 'notice', level: 'info', pt: `Recado aceito: ${def.title.pt}`, en: `Errand accepted: ${def.title.en}` });
+    // the first thing to do, right away: nobody should have to open the journal to find out
+    const first = def.steps[0] ? describeStep(def.steps[0]) : null;
+    s.send({
+      t: 'notice',
+      level: 'info',
+      pt: `Recado aceito: ${def.title.pt}${first ? ` → ${first.pt}` : ''}`,
+      en: `Errand accepted: ${def.title.en}${first ? ` → ${first.en}` : ''}`,
+      tag: 'recado_accept',
+    });
     this.commit(s);
   }
 
