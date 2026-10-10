@@ -116,6 +116,7 @@ import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { openLeaderboards } from './ui/leaderboards';
+import { checkersOpens, placarOpens } from './ui/s3Doors';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
 import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
@@ -584,7 +585,9 @@ function propAction(action: string, propId?: string) {
   else if (action === 'street_snack' && propId) openStreetSnack(propId, (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
   else if (action === 'beach_shop') openBeachRack();
   else if (action === 'pesca' || action === 'fish_sell' || action === 'boat_rental' || action === 'party_boat') praiaAction(action, propId);
-  else if (action === 'checkers') openCheckers();
+  else if (action === 'checkers') {
+    if (checkersOpens(game.profile)) openCheckers();
+  }
   else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
   else if (action === 'escola') openEscolaDesk();
@@ -595,7 +598,7 @@ function propAction(action: string, propId?: string) {
     const card = game.room?.room === 'andar' ? game.room.academy : undefined;
     if (card) openAcademyBoard(card);
   } else if (action === 'leaderboard') {
-    openLeaderboards(() => net.send({ t: 'leaderboards' }));
+    if (placarOpens(game.profile)) openLeaderboards(() => net.send({ t: 'leaderboards' }));
   } else if (action === 'padaria_door') {
     // inside an owned padaria the vaso is its book (Melhorias for the owner, the shop's card for a visitor)
     const own = game.room?.padaria;

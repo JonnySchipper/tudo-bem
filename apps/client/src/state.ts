@@ -1,6 +1,7 @@
 import type { BoardRow, EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
 import { feiraCartShown, feiraRoomFor, npcDefById, padariaCasaRoom, positionAlong, ROOMS } from '@tudobem/shared';
 import type { RecadoBoard } from './ui/recadoView';
+import { bindRvNoteProfile } from './ui/rvNote';
 
 export interface Bubble {
   text: string;
@@ -146,3 +147,4 @@ class Game {
 }
 
 export const game = new Game();
+bindRvNoteProfile(() => game.profile?.id);

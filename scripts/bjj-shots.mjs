@@ -107,11 +107,11 @@ async function run(name) {
       await sleep(1800);
       await shot('floor_owner');
       await page.evaluate(() => window.__tb.interact({ prop: 'andar_brasao' }));
-      await page.waitForSelector('.academy-look', { timeout: 15_000 });
-      await page.click('.academy-look button[data-id="azul"]');
+      // the crest and gi editor is hidden in the beta (BETA_HIDE.academyLook): the owner sees the team card
+      await page.waitForSelector('.academy-board', { timeout: 15_000 });
       await sleep(300);
-      await shot('floor_look_editor');
-      await page.click('.academy-look button[type="submit"]');
+      await shot('floor_team_card');
+      await page.keyboard.press('Escape');
       await sleep(800);
       // train on the academy's own mat
       await page.evaluate(() => window.__tb.interact({ prop: 'andar_tatame' }));

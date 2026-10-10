@@ -9,6 +9,8 @@ import {
   GI_COLORS,
   GI_COLOR_IDS,
   elevatorLayout,
+  showsAcademyLookEditor,
+  showsFundarAcademy,
   type AcademyCard,
   type CrestId,
   type GiColorId,
@@ -65,13 +67,15 @@ export function syncAcademyFloor() {
 
 /** The crest board on an academy floor: the owner edits crest and gi; anyone else sees the team and joins or leaves. */
 export function openAcademyBoard(card: AcademyCard) {
-  if (card.owner) return openLook(card);
+  if (card.owner && showsAcademyLookEditor()) return openLook(card);
   openModal('academy-board', boardPanel(card));
 }
 
 function boardPanel(card: AcademyCard) {
   const members = `${card.size} ${card.size === 1 ? 'membro' : 'membros'}`;
-  const action = card.member
+  const action = card.owner
+    ? null
+    : card.member
     ? h('button', { type: 'button', onclick: () => actions?.leave(card.id) }, bi('Sair da equipe', 'Leave the team'))
     : h('button', { type: 'button', class: 'green', id: 'academy-join', onclick: () => actions?.join(card.id) }, bi('Entrar na equipe', 'Join the team'));
   return h(
@@ -149,6 +153,8 @@ function rowEl(row: AcademyCard, stacked: boolean) {
 
 function foundBlock(canFound: boolean, ownedId: string | null, stacked: boolean) {
   if (ownedId) return h('p', { class: 'hint' }, 'Você já fundou uma academia.', en('You already founded an academy.'));
+  // the Fundar block (and its brown-belt rule) waits for purple belt: before that the elevator is just the list
+  if (!showsFundarAcademy(game.profile?.bjj)) return null;
   if (!canFound) return h('p', { class: 'hint' }, 'Fundar academia é da faixa marrom.', en('Founding an academy takes a brown belt.'));
   const name = h('input', { id: 'academy-name', maxlength: '24', placeholder: 'Equipe … (Team …)', autocomplete: 'off' }) as HTMLInputElement;
   const look: AcademyLook = { crest: 'ipe', giColor: 'branco', giStamp: 'ipe' };
@@ -170,7 +176,7 @@ function foundBlock(canFound: boolean, ownedId: string | null, stacked: boolean)
     en('Found an academy'),
     box,
     h('label', { class: 'field' }, h('span', null, 'Nome', en('Name')), name),
-    ...lookFields(look, paint),
+    ...(showsAcademyLookEditor() ? lookFields(look, paint) : []),
     h('button', { type: 'submit', class: 'green' }, bi('Fundar academia', 'Found academy')),
   );
 }

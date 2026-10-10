@@ -7,6 +7,7 @@ import { speak } from '../../audio';
 import { showDialogueBox, type BoxChip } from '../dialogue';
 import { closeDialogue } from '../panels';
 import { toast } from '../hud';
+import { visibleBoatTiers } from './barcoMenuLogic';
 
 type MenuMsg = Extract<ServerMsg, { t: 'barco'; phase: 'menu' }>;
 
@@ -39,7 +40,7 @@ export function onBarcoMsg(m: Extract<ServerMsg, { t: 'barco' }>) {
 }
 
 function openMenu(m: MenuMsg) {
-  const tiers = m.tiers;
+  const tiers = visibleBoatTiers(m.tiers);
   const chips: BoxChip[] = [];
   const actions: (() => void)[] = [];
   if (m.trip) {

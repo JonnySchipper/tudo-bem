@@ -7,6 +7,7 @@
  * needs_br: true
  */
 import {
+  CARLOS_POIS_NAO,
   COUNTER_PRICES,
   OWNED_SHELF,
   PADARIA_FOUNDER_HAT,
@@ -15,6 +16,9 @@ import {
   cardById,
   counterMenuForOwned,
   fundarCostRv,
+  npcDefById,
+  padariaDoorShowsMeter,
+  padariaOwnerMenu,
   upgradeSizeCostRv,
   sweetCostRv,
   type PadariaCard,
@@ -87,6 +91,8 @@ export function onPadariaDoor(enabled: boolean, door: PadariaDoorState, rows: Pa
   if (!wantDoor) return;
   wantDoor = false;
   if (!enabled) return;
+  // under 300 RV (and no padaria of your own) the door is plain: Seu Carlos answers and nothing else shows
+  if (!padariaDoorShowsMeter(door.coins, !!door.ownedId)) return lockedDoor();
   renderDoor(door, rows);
 }
 
@@ -152,7 +158,7 @@ function bookPanel(card: PadariaCard) {
   const tiers = h(
     'div',
     { class: 'pad-tiers' },
-    ...([1, 2, 3] as const).map((n) => {
+    ...padariaOwnerMenu().sizes.map((n) => {
       const state = card.size >= n ? 'done' : card.size === n - 1 ? 'next' : 'locked';
       const action = state === 'next' ? buyButton(n === 2 ? 'size2' : 'size3', upgradeSizeCostRv(n as 2 | 3)) : state === 'locked' ? h('p', { class: 'hint' }, bi(`Depois: ${upgradeSizeCostRv(n as 2 | 3)} RV`, `Later: ${upgradeSizeCostRv(n as 2 | 3)} RV`)) : null;
       return tierCard(PADARIA_SIZE_NAMES[n], SIZE_PERKS[n], state, action);
@@ -169,7 +175,7 @@ function bookPanel(card: PadariaCard) {
     }),
   );
   panel.append(
-    rvPriceNote(),
+    rvPriceNote() ?? '',
     h(
       'button',
       {
@@ -257,6 +263,19 @@ export function chooseBakery(own: { id: string; name: string; size: PadariaSize 
   openModal('padaria-choose', panel);
 }
 
+/** The door before the player has any reason to want one: Seu Carlos's own counter greeting, no meter, no Fundar. */
+function lockedDoor() {
+  showDialogue({
+    npc: npcDefById('carlos') ?? null,
+    speaker: 'Seu Carlos',
+    line: CARLOS_POIS_NAO,
+    chips: [{ pt: 'Agora não', en: 'Not now' }],
+    key: 'padaria-door-locked',
+    onChoose: closeDialogue,
+    onClose: closeDialogue,
+  });
+}
+
 function renderDoor(door: PadariaDoorState, rows: PadariaCard[]) {
   const pct = Math.min(100, Math.round((door.coins / door.goalRv) * 100));
   const meter = h('div', { class: 'padaria-meter', role: 'progressbar', 'aria-valuenow': String(pct), 'aria-valuemin': '0', 'aria-valuemax': '100' }, h('div', { class: 'padaria-meter-fill', style: `width:${pct}%` }));
@@ -272,7 +291,7 @@ function renderDoor(door: PadariaDoorState, rows: PadariaCard[]) {
       h('h3', null, 'Sua própria padaria'),
       en('Your own bakery'),
       h('p', null, 'Junte reais no balcão do Seu Carlos e abra a sua porta: nome na fachada, chapéu de dono e o seu balcão.', en('Save up at Seu Carlos’s counter and open your own door: your name, an owner’s hat and your own counter.')),
-      rvPriceNote(),
+      rvPriceNote() ?? '',
       h('p', { class: 'hint' }, bi(`${door.coins} / ${door.goalRv} RV na porta`, `${door.coins} / ${door.goalRv} RV toward the door`)),
       meter,
     );

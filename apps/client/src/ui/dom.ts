@@ -1,3 +1,5 @@
+import { rvNoteProfile, takeRvNote } from './rvNote';
+
 type Child = Node | string | null | undefined | false;
 type Props = Record<string, unknown> & { class?: string; style?: string };
 
@@ -29,11 +31,10 @@ export function en(text: string, plain = false) {
   return h('span', { class: plain ? 'en plain' : 'en' }, text);
 }
 
-/** The one-line "what is RV" note a shop shows above its first price (RV is earned only, never bought). */
-export const RV_PRICE_NOTE = { pt: 'Preços em reais virtuais (RV).', en: 'Prices in reais virtuais (RV), the game’s play money, earned by playing.' } as const;
-
-export function rvPriceNote() {
-  return h('p', { class: 'rv-price-note' }, h('span', { lang: 'pt-BR' }, RV_PRICE_NOTE.pt), ' ', en(RV_PRICE_NOTE.en, true));
+/** The one RV explainer (rvNote.ts): the first price list a profile opens shows it, every later one gets nothing. */
+export function rvPriceNote(): HTMLElement | undefined {
+  const text = takeRvNote(rvNoteProfile());
+  return text ? h('p', { class: 'rv-price-note' }, en(text, true)) : undefined;
 }
 
 export const ui = () => document.getElementById('ui')!;
