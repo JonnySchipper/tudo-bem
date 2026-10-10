@@ -7,6 +7,7 @@
 //   m  madeira/taco  herringbone parquet: the LimeZu chevron floor (Room_Builder_Floors 144,160) recolored to warm woods
 //   k  xadrez        black-and-white checker (8 px squares), authored
 //   j  tatame        blue / green foam puzzle mats with seams (32 px mats, 2x2 phases), authored
+//   v  vinílico      the pet shop: big vinyl tiles in a mint / cream checker (16 px, 2x2 phases), a soft bevel, authored (#234 visual pass)
 //   z  granilite     the airport terminal: big polished terrazzo slabs (32 px, 2x2 phases), pale grey with stone chips, authored
 import { blank, clone, crop } from '../../../../scripts/lib/pixel/img.mjs';
 import { C, K, put, fillRect, h2 } from './paint.mjs';
@@ -138,6 +139,25 @@ export function xadrez() {
   return [t];
 }
 
+// ------------------------------------------------------------------ v: vinílico (the pet shop)
+// Two-tone vinyl tiles, one per floor tile, alternating mint and cream (2 x 2 phases make the checker). A 1 px seam, lit top-left, a few
+// scuffs. Calm: the props and the animals have to read on it.
+export function vinilico() {
+  const tones = [
+    { base: '#e9e2cf', hi: '#f3eddd', lo: '#d6cdb6', fleck: '#ddd5bf' },
+    { base: '#c6dccd', hi: '#d5e6da', lo: '#afcbb9', fleck: '#bcd4c4' },
+  ];
+  const out = [];
+  for (let p = 0; p < 4; p++) {
+    const s = tones[((p & 1) + (p >> 1)) % 2];
+    const t = tile();
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) put(t, x, y, h2(x + p * 16, y, 21) < 0.05 ? s.fleck : s.base);
+    for (let i = 0; i < 16; i++) { put(t, i, 0, s.hi); put(t, 0, i, s.hi); put(t, i, 15, s.lo); put(t, 15, i, s.lo); }
+    out.push(t);
+  }
+  return out;
+}
+
 // ------------------------------------------------------------------ j: tatame
 // V3: interlocking EVA puzzle mats, 32 x 32 px (2 x 2 tiles) in two close blues, with a jigsaw tab on every seam. 4 x 4 tile phases = 2 x 2 mats.
 export function tatame() {
@@ -198,6 +218,7 @@ export const FLOORS = {
   xadrez: { fn: xadrez, phasesX: 1, phasesY: 1 },
   tatame: { fn: tatame, phasesX: 4, phasesY: 4 },
   granilite: { fn: granilite, phasesX: 4, phasesY: 4 },
+  vinilico: { fn: vinilico, phasesX: 2, phasesY: 2 },
   // the Praia (custom/praia.mjs): the sea (a `shore` terrain: foam where it meets anything) and the pier's planks
   agua: { fn: agua, phasesX: 2, phasesY: 2 },
   deque: { fn: deque, phasesX: 2, phasesY: 1 },

@@ -22,7 +22,7 @@
    "data": "atlas/petshop.json",
    "w": 512,
    "h": 192,
-   "frames": 52
+   "frames": 71
   },
   "praia": {
    "image": "atlas/praia.png",
@@ -38,7 +38,7 @@
   "margin": 1,
   "spacing": 2,
   "columns": 16,
-  "count": 956,
+  "count": 1020,
   "layers": {
    "c": {
     "name": "calcada",
@@ -127,10 +127,19 @@
     "variants": 1,
     "tiles": 256
    },
+   "v": {
+    "name": "vinilico",
+    "edge": "flush",
+    "first": 835,
+    "phases": 2,
+    "phasesY": 2,
+    "variants": 1,
+    "tiles": 64
+   },
    "s": {
     "name": "areia",
     "edge": "flat",
-    "first": 835,
+    "first": 899,
     "phases": 1,
     "variants": 10,
     "tiles": 25
@@ -138,7 +147,7 @@
    "o": {
     "name": "agua",
     "edge": "shore",
-    "first": 860,
+    "first": 924,
     "phases": 2,
     "phasesY": 2,
     "variants": 1,
@@ -147,7 +156,7 @@
    "b": {
     "name": "deque",
     "edge": "flush",
-    "first": 924,
+    "first": 988,
     "phases": 2,
     "phasesY": 1,
     "variants": 1,
@@ -21604,9 +21613,25 @@
    "atlas": "petshop",
    "frame": "props/cercadinho",
    "w": 48,
-   "h": 41,
+   "h": 49,
    "ax": 24,
-   "ay": 32,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "props/cercadinho_frente": {
+   "atlas": "petshop",
+   "frame": "props/cercadinho_frente",
+   "w": 48,
+   "h": 49,
+   "ax": 24,
+   "ay": 43,
    "footprint": [
     3,
     2
@@ -21619,9 +21644,25 @@
    "atlas": "petshop",
    "frame": "props/gatil",
    "w": 34,
-   "h": 45,
+   "h": 50,
    "ax": 17,
-   "ay": 44,
+   "ay": 45,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "props/gatil_frente": {
+   "atlas": "petshop",
+   "frame": "props/gatil_frente",
+   "w": 34,
+   "h": 50,
+   "ax": 17,
+   "ay": 45,
    "footprint": [
     2,
     2
@@ -21629,6 +21670,157 @@
    "anim": null,
    "overhead": null,
    "shadow": null
+  },
+  "props/balcao_pet_0_of_5": {
+   "atlas": "petshop",
+   "frame": "props/balcao_pet_0_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/balcao_pet_1_of_5": {
+   "atlas": "petshop",
+   "frame": "props/balcao_pet_1_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/balcao_pet_2_of_5": {
+   "atlas": "petshop",
+   "frame": "props/balcao_pet_2_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/balcao_pet_3_of_5": {
+   "atlas": "petshop",
+   "frame": "props/balcao_pet_3_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/balcao_pet_4_of_5": {
+   "atlas": "petshop",
+   "frame": "props/balcao_pet_4_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/expositor": {
+   "atlas": "petshop",
+   "frame": "props/expositor",
+   "w": 34,
+   "h": 31,
+   "ax": 17,
+   "ay": 29,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/expositor#cast",
+    "w": 48,
+    "h": 10,
+    "ax": 17,
+    "ay": 1
+   }
+  },
+  "props/tapete_pata": {
+   "atlas": "petshop",
+   "frame": "props/tapete_pata",
+   "w": 48,
+   "h": 30,
+   "ax": 24,
+   "ay": 30,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "props/piso_banho": {
+   "atlas": "petshop",
+   "frame": "props/piso_banho",
+   "w": 48,
+   "h": 48,
+   "ax": 24,
+   "ay": 48,
+   "footprint": [
+    3,
+    3
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "props/cercadinho_venda": {
+   "atlas": "petshop",
+   "frame": "props/cercadinho_venda",
+   "w": 18,
+   "h": 23,
+   "ax": 9,
+   "ay": 22,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "props/cercadinho_venda#cast",
+    "w": 29,
+    "h": 8,
+    "ax": 9,
+    "ay": 1
+   }
   },
   "props/arranhador": {
    "atlas": "petshop",
@@ -22095,6 +22287,21 @@
    "overhead": null,
    "shadow": null
   },
+  "walls/varal_patas": {
+   "atlas": "petshop",
+   "frame": "walls/varal_patas",
+   "w": 16,
+   "h": 12,
+   "ax": 0,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "fx/carinho": {
    "atlas": "petshop",
    "frame": "fx/carinho/0",
@@ -22169,6 +22376,81 @@
    "h": 6,
    "ax": 4,
    "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/north_petshop_l": {
+   "atlas": "petshop",
+   "frame": "walls/north_petshop_l",
+   "w": 16,
+   "h": 52,
+   "ax": 0,
+   "ay": 48,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/north_petshop_m": {
+   "atlas": "petshop",
+   "frame": "walls/north_petshop_m",
+   "w": 16,
+   "h": 52,
+   "ax": 0,
+   "ay": 48,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/north_petshop_r": {
+   "atlas": "petshop",
+   "frame": "walls/north_petshop_r",
+   "w": 16,
+   "h": 52,
+   "ax": 0,
+   "ay": 48,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/west_petshop": {
+   "atlas": "petshop",
+   "frame": "walls/west_petshop",
+   "w": 20,
+   "h": 16,
+   "ax": 16,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/west_petshop_b": {
+   "atlas": "petshop",
+   "frame": "walls/west_petshop_b",
+   "w": 20,
+   "h": 16,
+   "ax": 16,
+   "ay": 16,
    "footprint": [
     1,
     1

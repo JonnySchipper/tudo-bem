@@ -161,7 +161,7 @@ try {
     await page.waitForSelector('#petshop-pets', { timeout: 8_000 });
     await shot(page, `09-adopted-meus-pets-${vp.tag}`);
     await page.evaluate(() => {
-      const send = window.__tb.net.send;
+      const send = (m) => window.__tb.net.send(m);
       send({ t: 'pet', action: 'adopt', breed: 'siames', coat: 'seal', name: 'Mel' });
       send({ t: 'pet', action: 'adopt', breed: 'dachshund', coat: 'preto_castanho', name: 'Linguiça' });
     });
@@ -173,7 +173,7 @@ try {
     await page.waitForSelector('.petshop-shop', { timeout: 12_000 });
     await shot(page, `10-lojinha-${vp.tag}`);
     await page.evaluate(() => {
-      const send = window.__tb.net.send;
+      const send = (m) => window.__tb.net.send(m);
       for (const itemId of ['coleira_vermelha', 'bolinha', 'caminha_xadrez']) send({ t: 'pet', action: 'buy', itemId });
     });
     await page.waitForFunction(() => {
@@ -182,7 +182,7 @@ try {
     }, null, { timeout: 10_000 });
     const pacoca = await page.evaluate(() => window.__tb.game.profile.pets.find((q) => q.name === 'Paçoca').id);
     await page.evaluate((id) => {
-      const send = window.__tb.net.send;
+      const send = (m) => window.__tb.net.send(m);
       send({ t: 'pet', action: 'equip', petId: id, slot: 'collar', itemId: 'coleira_vermelha' });
       send({ t: 'pet', action: 'equip', petId: id, slot: 'toy', itemId: 'bolinha' });
       send({ t: 'pet', action: 'active', petId: id });

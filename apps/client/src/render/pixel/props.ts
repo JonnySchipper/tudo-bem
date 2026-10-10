@@ -71,7 +71,8 @@ const SLICED_W: Partial<Record<PropKind, number>> = { balcao: 5, banco_espectado
 
 /** The slice sprites of a sliced prop, left to right (a 1-tile-tall footprint), or null for a normal prop. */
 export function propSlices(p: PropDef): { key: string; x: number; y: number }[] | null {
-  const base = SLICED[p.kind];
+  // a counter may name its own slices (`art`: the pet shop's wooden counter instead of the padaria's glass case)
+  const base = (p.kind === 'balcao' && p.art) || SLICED[p.kind];
   if (!base) return null;
   const { w, h } = propSize(p);
   const n = SLICED_W[p.kind] ?? w;
