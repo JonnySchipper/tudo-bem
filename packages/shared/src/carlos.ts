@@ -334,12 +334,10 @@ export const TYPED_MISS_HINT: Bilingual = {
   en: 'I did not quite get that. For a real chat, close this and click me again.',
 };
 
-/** Scene clear payout (GDD §10.2: 6–14 RV) with daily decay per NPC. */
+/** Scene clear payout (GDD §10.2: 6–14 RV): the full amount for `ECONOMY.sceneFullPerDay` clears a day per NPC, then nothing (no halving). */
 export function scenePayout(scores: number[], clearsToday: number): number {
   if (!scores.length) return 0;
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
   const base = ECONOMY.sceneMin + Math.round(((ECONOMY.sceneMax - ECONOMY.sceneMin) * Math.max(0, avg - 1)) / 2);
-  if (clearsToday < ECONOMY.sceneFullPerDay) return base;
-  if (clearsToday < ECONOMY.sceneFullPerDay + 2) return Math.max(1, Math.floor(base / 2));
-  return 0;
+  return clearsToday < ECONOMY.sceneFullPerDay ? base : 0;
 }

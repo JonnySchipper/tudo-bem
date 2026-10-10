@@ -145,8 +145,10 @@ describe('Seu Carlos scene', () => {
     expect(viewNode('preco', { name: 'Ana', pronoun: 'ela' })!.chips[0].pt).toBe('Muito obrigada, Seu Carlos!');
   });
 
-  it('decays payouts after daily cap', () => {
-    expect(scenePayout([3, 3], 2)).toBe(7);
+  it('pays in full up to the daily cap, then nothing (no halving)', () => {
+    expect(scenePayout([3, 3], 0)).toBe(14);
+    expect(scenePayout([3, 3], 1)).toBe(14);
+    expect(scenePayout([3, 3], 2)).toBe(0);
     expect(scenePayout([3, 3], 9)).toBe(0);
   });
 
