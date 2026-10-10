@@ -22,11 +22,11 @@ const argv = process.argv.slice(2);
 const setIdx = argv.indexOf('--set');
 const SET = setIdx >= 0 ? argv.splice(setIdx, 2)[1] : 'art1';
 const ART3 = { floors: 'art3/floors.png', walls: 'art3/walls.png', padaria: 'art3/padaria.png', kitnet: 'art3/kitnet.png', academia: 'art3/academia.png', praca: 'art3/praca.png' };
-const DEFAULTS = { ...Object.fromEntries(Object.entries(ART3).map(([k, v]) => [k, [v, 4]])), art1: ['art1/pieces.png', 4], portraits: ['art2/portraits.png', 3], feira: ['art2/feira.png', 4], icons: ['art2/icons.png', 4], ui: ['art2/ui.png', 4], fixes: ['art2/fixes.png', 4] };
+const DEFAULTS = { ...Object.fromEntries(Object.entries(ART3).map(([k, v]) => [k, [v, 4]])), art1: ['art1/pieces.png', 4], portraits: ['art2/portraits.png', 3], feira: ['art2/feira.png', 4], icons: ['art2/icons.png', 4], ui: ['art2/ui.png', 4], fixes: ['art2/fixes.png', 4], petshop: ['petshop-art/pieces.png', 4] };
 if (!DEFAULTS[SET]) throw new Error('unknown --set ' + SET);
 const OUT = path.resolve(argv[0] ?? path.join(ROOT, 'docs/lifesim/shots', DEFAULTS[SET][0]));
 const S = Number(argv[1] ?? DEFAULTS[SET][1]);
-const MAX_W = { kitnet: 1500, floors: 2300, walls: 1900, portraits: 1120, icons: 1400, ui: 1000, feira: 900 }[SET] ?? 2300;
+const MAX_W = { kitnet: 1500, floors: 2300, walls: 1900, portraits: 1120, icons: 1400, ui: 1000, feira: 900, petshop: 1400 }[SET] ?? 2300;
 const BG = { r: 138, g: 138, b: 148 };
 
 const manifest = JSON.parse(fs.readFileSync(path.join(PIX, 'manifest.json'), 'utf8'));
@@ -130,7 +130,7 @@ async function buildCells() {
   if (SET === 'art1') return ART1.map((key) => ({ key, frames: cellImage(key) }));
   if (SET === 'portraits') {
     const out = [];
-    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa']) {
+    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa', 'dito']) {
       for (const e of ['neutro', 'feliz', 'surpreso', 'pensativo']) out.push({ key: `portraits/${npc}_${e}`, frames: [await fileImage(`portraits/${npc}_${e}`)] });
       // 1x and 2x references (what the DOM will show at those sizes)
       const ref = await fileImage(`portraits/${npc}_neutro`);
@@ -237,12 +237,13 @@ async function buildCells() {
     kitnet: (k) => /^props\/(cama|cozinha)/.test(k) || k.startsWith('furniture/'),
     academia: (k) => /^props\/(tatame|quadro_fila|parede_faixas|banco_espectador|vestiario|quadro_foto)/.test(k),
     praca: (k) => /^props\/(bicicletario|mesa_cafe|jornais)/.test(k),
+    petshop: (k) => manifest.sprites[k].atlas === 'petshop' || /^diary\/(cercadinho|peixe|bolinha|ossinho|pelucia|pata)$/.test(k),
   };
   if (A3[SET]) {
     const out = [];
     let last = '';
     for (const k of Object.keys(manifest.sprites).filter(A3[SET])) {
-      const g = SET === 'kitnet' && k.startsWith('furniture/') ? 'f' : SET === 'walls' ? (k.startsWith('walls/north') ? 'n:' + k.split('_')[1] : k.startsWith('walls/west') ? 'w' : 'x') : k.replace(/_(\d+_of_\d+|[0-9]|e|w|n|s|se|sw|ne|nw|lit)$/, '');
+      const g = SET === 'petshop' ? k.split('/')[0] : SET === 'kitnet' && k.startsWith('furniture/') ? 'f' : SET === 'walls' ? (k.startsWith('walls/north') ? 'n:' + k.split('_')[1] : k.startsWith('walls/west') ? 'w' : 'x') : k.replace(/_(\d+_of_\d+|[0-9]|e|w|n|s|se|sw|ne|nw|lit)$/, '');
       if (last && g !== last) out.push(NL);
       last = g;
       out.push({ key: k, frames: cellImage(k) });

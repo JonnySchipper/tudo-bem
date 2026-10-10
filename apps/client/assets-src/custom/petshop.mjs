@@ -2,7 +2,8 @@
 //
 //   the street      facades/petshop (+ _lit): LimeZu's STORE front (Modern Exteriors, 9_Shopping_Center_and_Markets) cut to 6 x 6 tiles:
 //                   the flat roof shortened to the terraço houses' 45 rows, the shop window widened by one 16 px band, the walls repainted
-//                   mustard, an sp-green scalloped awning, a PET SHOP board over the door, a bone sign, a paw decal, a sleeping dog in the
+//                   mustard, the PET SHOP · DO SEU DITO marquee on the wall panel, an sp-green scalloped awning, an ABERTO board over
+//                   the door, a bone sign, a paw decal, a sleeping dog in the
 //                   left pane and a cat loaf on a shelf in the right one. props/placa_petshop (the ADOTE sandwich board), props/tigela_calcada
 //   the interior    props/cercadinho, gatil, arranhador, prateleira_racao, cesto_brinquedos, caminha_xadrez / _azul / _cesta, pote_duplo,
 //                   saco_racao, balanca_pet, mesa_tosa, banheira_tosa (2 frames), secador, toalha_pet, aquario (2 frames)
@@ -15,6 +16,7 @@ import { put, fillRect, shape, flat, ell, box, or, and, not, mix, h2, NAVY } fro
 import { swap, stretchCols, outlineAround } from './kit.mjs';
 import { findGlass } from './shop.mjs';
 import { litOverlay } from './facades.mjs';
+import { drawText5, width5 } from './font5.mjs';
 import { soleira } from './v3.mjs';
 
 const MARKETS = 'ext:ME_Theme_Sorter_16x16/9_Shopping_Center_and_Markets_16x16.png';
@@ -185,14 +187,27 @@ async function facade(ctx) {
   const [gx, gy, gw, gh] = shop;
   const mid = gx + Math.floor(gw / 2);
   vline(b, mid - 1, gy, gh, NAVY); vline(b, mid, gy, gh, P.lav); vline(b, mid + 1, gy, gh, NAVY);
-  // PET SHOP board over the door, overhanging the left pillar: sp-green, mustard trim, cream letters
+  // the marquee on the wall panel (where the padaria carries its sign; the hotspot `petshop_letreiro` reads it): sp-green board,
+  // mustard trim, PET SHOP in the 5 px font with DO SEU DITO under it in 3x5, a paw at both ends
+  const mx = 8, my = 10, mw = 80, mh = 24;
+  rect(b, mx, my, mw, mh, NAVY);
+  rect(b, mx + 1, my + 1, mw - 2, mh - 2, P.sp1);
+  hline(b, mx + 1, my + 1, mw - 2, P.sp3); vline(b, mx + 1, my + 1, mh - 2, P.sp2);
+  hline(b, mx + 1, my + mh - 2, mw - 2, P.sp0); vline(b, mx + mw - 2, my + 1, mh - 2, P.sp0);
+  hline(b, mx + 3, my + 3, mw - 6, P.mu3); hline(b, mx + 3, my + mh - 4, mw - 6, P.mu3);
+  const title = 'PET SHOP';
+  drawText5(b, mx + Math.floor((mw - width5(title)) / 2), my + 5, title, P.cream, { shadow: P.sp0 });
+  const sub = 'DO SEU DITO';
+  text(b, mx + Math.floor((mw - textW(sub)) / 2), my + 14, sub, P.mu4);
+  paw(b, mx + 5, my + 8, P.mu3); paw(b, mx + mw - 10, my + 8, P.mu3);
+  // ABERTO board over the door, overhanging the left pillar (the shop is open at every hour): sp-green, mustard trim, cream letters
   const bx = 1, by = 46, bw = 39, bh = 15;
   rect(b, bx, by, bw, bh, NAVY);
   rect(b, bx + 1, by + 1, bw - 2, bh - 2, P.sp1);
   hline(b, bx + 1, by + 1, bw - 2, P.sp3); vline(b, bx + 1, by + 1, bh - 2, P.sp2);
   hline(b, bx + 1, by + bh - 2, bw - 2, P.sp0);
   hline(b, bx + 2, by + 3, bw - 4, P.mu3); hline(b, bx + 2, by + bh - 4, bw - 4, P.mu3);
-  const label = 'PET SHOP';
+  const label = 'ABERTO';
   text(b, bx + Math.floor((bw - textW(label)) / 2), by + 5, label, P.cream, P.sp0);
   // a bone-shaped sign hanging under the board at the left pillar
   vline(b, 4, 61, 2, P.slate); vline(b, 9, 61, 2, P.slate);
