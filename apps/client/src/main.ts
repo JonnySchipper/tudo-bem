@@ -30,7 +30,6 @@ import {
   DEFAULT_APPEARANCE,
   MISSION_COPY,
   ROOMS,
-  TUTORIAL_STEPS,
   buildGrid,
   cameraObjectIds,
   findPath,
@@ -1277,14 +1276,10 @@ net.on((m: ServerMsg) => {
       game.emit('recados');
       updateGuides();
       break;
-    case 'tutorial': {
-      const s = TUTORIAL_STEPS.find((x) => x.id === m.step);
-      // in the hall and the airport their own card ticks walking and saying hi (in its own words: not "pela praça"), so no second toast
-      const ticked = (inAirport() || inDesembarque()) && (m.step === 'andar' || m.step === 'sentar' || m.step === 'acenar' || m.step === 'conversar');
-      if (s && !ticked) toast('reward', `✓ ${s.pt}`, s.en);
+    case 'tutorial':
+      // the tracker row flash is the signal: no toast per step
       updateGuides();
       break;
-    }
   }
 });
 

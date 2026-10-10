@@ -51,7 +51,7 @@ export interface TrackerEntry {
   title: Bilingual;
   /** the current step, one line */
   step: Bilingual;
-  /** "3/8" for the welcome chain, "1/2" for a recado (step being worked on, out of all) */
+  /** "1/3" for the welcome chain, "1/2" for a recado (step being worked on, out of all) */
   progress: string;
   done: number;
   total: number;

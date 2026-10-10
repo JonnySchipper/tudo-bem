@@ -1,4 +1,4 @@
-import { applyPets, isBubbleStyle, isPetId,isSubscriptionStatus, normalizeFounderFlag, normalizePetNames, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
+import { applyPets, completeHallSteps, isBubbleStyle, isPetId,isSubscriptionStatus, normalizeFounderFlag, normalizePetNames, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
 import {
   freshMission,
   profileDay,
@@ -323,6 +323,9 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   const arrival = normalizeArrival(p);
   p.arrivalIntroDone = arrival.arrivalIntroDone;
   p.hasCamera = arrival.hasCamera;
+  // the welcome chain lost the hall-taught steps: a save that is past the hall has them done
+  if (!p.tutorial || typeof p.tutorial !== 'object') p.tutorial = {} as StoredProfile['tutorial'];
+  completeHallSteps(p);
   p.diary = normalizeDiary(p.diary);
   // saves from before the escola lessons: every diary word is learned (new), nothing mastered, the plate Verde
   p.escola = normalizeEscola(p.escola, p.diary);

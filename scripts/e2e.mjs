@@ -295,13 +295,14 @@ async function main() {
   await clickTile(page, 14, 6);
   await waitIdleAt(page, 14, 6);
   await clickTile(page, 12, 6, 4); // banco_1 (Praça Central, by the kiosk): a real click on a bench
-  await waitFor(page, () => window.__tb.game.profile?.tutorial.sentar, null, 8000, 'sat on bench');
+  // the welcome chain no longer has the hall-taught steps (done when the hall is): the avatar itself says it sat
+  await waitFor(page, () => { const me = window.__tb.game.avatars.get(window.__tb.game.room.selfId); return !!(me?.pub.sitting || me?.sitOnArrive); }, null, 8000, 'sat on bench');
   // a newcomer's emotes wait behind the smiley next to the chat field, on desktop too
   if (!(await page.isVisible('[data-emote="oi"]'))) await page.click('#btn-emotes');
   await page.click('[data-emote="oi"]');
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
   await page.press('#chat-input', 'Enter');
-  await waitFor(page, () => window.__tb.game.profile?.tutorial.conversar, null, 5000, 'chat step');
+  await waitFor(page, () => document.getElementById('chat-input')?.value === '', null, 5000, 'chat sent');
   // Alone with CPUs off there's nobody to greet yet, so Cumprimenta (and the mission) only complete with ambiance.
   if (AMBIANCE) await waitFor(page, () => window.__tb.game.profile?.mission?.steps.cumprimenta, null, 5000, 'mission: Cumprimenta');
   let pageB = null;
@@ -764,7 +765,8 @@ async function main() {
   }
 
   const final = await profile(page);
-  const missing = Object.entries(final.tutorial).filter(([, v]) => !v).map(([k]) => k);
+  // Júlia's welcome chain (TUTORIAL_STEPS): the padaria, a hat, a chair
+  const missing = ['carlos', 'chapeu', 'cadeira'].filter((k) => !final.tutorial[k]);
   log('final coins', final.coins, 'hat', final.hat, 'missing steps', missing.length ? missing : 'none', 'bonus', final.tutorialRewarded);
   assert(!missing.length && final.tutorialRewarded, 'all first steps done + bonus');
   assert(!errors.length, `no page errors: ${errors.join(' | ')}`);
