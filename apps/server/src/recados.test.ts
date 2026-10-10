@@ -354,6 +354,32 @@ describe('recados on the server', () => {
     expect(b.s.profile!.recados!.done).toEqual([]);
   });
 
+  it('the Oi! emote greets the NPC nearby, but never satisfies a timed greeting', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    const p = a.s.profile!;
+    offer(a, 'nanda_um_oi_pro_carlos', 'julia_cumprimento_certo');
+    await a.send({ t: 'recados', action: 'accept', id: 'nanda_um_oi_pro_carlos' });
+    await a.send({ t: 'recados', action: 'accept', id: 'julia_cumprimento_certo' });
+    await a.send({ t: 'join', room: 'padaria' });
+    expect(p.recados!.active.map((x) => x.id)).toEqual(['nanda_um_oi_pro_carlos', 'julia_cumprimento_certo']);
+
+    // A different emote is not a greeting.
+    await a.send({ t: 'emote', kind: 'valeu' });
+    expect(p.recados!.active.find((x) => x.id === 'nanda_um_oi_pro_carlos')).toBeTruthy();
+    // Out of reach of Seu Carlos the wave greets nobody; next to him it does.
+    await a.send({ t: 'emote', kind: 'oi' });
+    expect(p.recados!.done).not.toContain('nanda_um_oi_pro_carlos');
+    const carlos = world.npcs.whoIn('padaria').find((n) => n.id === 'carlos')!;
+    await walkTo(a, carlos.interact.x, carlos.interact.y);
+    await a.send({ t: 'emote', kind: 'oi' });
+    expect(p.recados!.done).toContain('nanda_um_oi_pro_carlos');
+    // The timed greeting (bom dia / boa tarde / boa noite by the hour) still needs the words.
+    expect(p.recados!.active).toEqual([{ id: 'julia_cumprimento_certo', step: 0 }]);
+    await a.send({ t: 'chat', text: `${greetingFor(gameMinutes(clock))[0]!.toUpperCase()}${greetingFor(gameMinutes(clock)).slice(1)}` });
+    expect(p.recados!.active).toEqual([{ id: 'julia_cumprimento_certo', step: 1 }]);
+  });
+
   it('the day rolls over by game day: new offer, done cleared, bond unlocks the next recado', async () => {
     const world = makeWorld();
     const a = await client(world);

@@ -2213,6 +2213,8 @@ export class World {
     this.completeStep(s, 'acenar');
     s.instance.crowd?.onWave(this.currentTile(s).tile);
     if (s.instance.def.outdoor && this.hasCompany(s.instance)) this.missionStep(s, 'cumprimenta');
+    // The Oi! button is a greeting like the typed one: a favor that asks you to greet someone counts it (the NPC nearby, or company).
+    this.recados.onEvent(s, { kind: 'greeted', text: 'Oi!', minute: gameMinutes(this.clockNow()), company: this.hasCompany(s.instance) });
   }
 
   // ---------- chat ----------
