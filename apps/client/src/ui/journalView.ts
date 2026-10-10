@@ -82,7 +82,7 @@ export interface JournalWord {
   due: boolean;
   /** Earned since the Diário was last opened. */
   fresh: boolean;
-  /** The latest photo the player took of it. */
+  /** The id of the latest photo the player took of it (its image is fetched when shown: `photoImageCache`). */
   photo?: string;
   /** Earned: how it was found ("Placa: PADARIA DO SEU CARLOS"). Not earned: how to find it, never the word. */
   how: Bilingual;
@@ -184,9 +184,9 @@ export function journalModel(input: JournalInput): JournalModel {
   const seen = Math.max(0, Math.min(held.length, Math.floor(input.seen)));
   const escola = normalizeEscola(input.escola, held);
   // the newest photo of each word (photos arrive newest first; keep the first one met). One shot of several things is the photo of every
-  // word it taught: they all point at the same stored image (an old save's photo names only its first word)
+  // word it taught: they all point at the same stored photo (an old save's photo names only its first word)
   const photoOf = new Map<string, string>();
-  for (const p of [...(input.photos ?? [])].sort((a, b) => b.at - a.at)) for (const id of photoWordIds(p)) if (!photoOf.has(id)) photoOf.set(id, p.image);
+  for (const p of [...(input.photos ?? [])].sort((a, b) => b.at - a.at)) for (const id of photoWordIds(p)) if (!photoOf.has(id)) photoOf.set(id, p.id);
 
   const areaIds = DIARY_AREAS.map((a) => a.id);
   for (const w of DIARY_WORDS) if (!areaIds.includes(w.area)) areaIds.push(w.area);

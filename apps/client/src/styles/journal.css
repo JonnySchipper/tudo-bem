@@ -1540,6 +1540,27 @@ html.px-ui .backdrop > .panel.jb,
   color: #8f3e15;
 }
 
+/* the photo wall's pager: older / newer, and where this spread sits */
+.jb-photo-pager {
+  margin: 10px 0 0;
+}
+
+.jb-photo-pager .jb-sort:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.jb-photo-range {
+  flex: 1.2 1 0;
+  text-align: center;
+  cursor: default;
+}
+
+/* a photo whose jpeg is still on its way */
+img.photo-loading {
+  background: repeating-linear-gradient(45deg, rgba(87, 60, 44, 0.08) 0 6px, rgba(87, 60, 44, 0.14) 6px 12px);
+}
+
 .jb-wall {
   display: flex;
   flex-wrap: wrap;

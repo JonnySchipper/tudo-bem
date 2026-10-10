@@ -105,6 +105,8 @@ export type ClientMsg =
   | { t: 'diary'; action: 'photo'; anchor?: string; anchors?: string[]; image?: string; frame?: import('./photoFrame.js').PhotoFrame }
   /** Buy a pack of film from Júlia. Virtual RV only. */
   | { t: 'diary'; action: 'buyFilm' }
+  /** The images of these kept photos (the photo wall's page, the stickers on screen, an opened print). At most `PHOTO_IMAGES_PER_REQUEST`. */
+  | { t: 'diary'; action: 'photoImages'; ids: string[] }
   /** Heard an NPC line (`npc.node`) that can teach a conversation word. */
   | { t: 'diary'; action: 'line'; anchor: string }
   /**
@@ -504,6 +506,8 @@ export type ServerMsg =
    * profile push made each reward, step and stamp carry ~100 KB.
    */
   | { t: 'photos'; photos: import('./diary.js').DiaryPhoto[] }
+  /** Images of the player's own photos, by id, answering `diary` `photoImages` (an id with no image left is missing from the list). */
+  | { t: 'photoImages'; images: { id: string; image: string }[] }
   | { t: 'needProfile' }
   /** Multiplayer needs an email + password account; this socket has no valid session cookie. */
   | { t: 'authRequired' }

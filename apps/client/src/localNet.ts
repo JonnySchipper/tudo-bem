@@ -1,7 +1,7 @@
 /**
  * Solo mode: runs the authoritative World (same code as the Node server) inside the page.
  * Used by the static deploy (GitHub Pages / any CDN) so the full Phase 0 play path works without a
- * WebSocket server. Profiles persist in localStorage. Other humans need the server build.
+ * WebSocket server. Profiles persist in localStorage, diary photo images in IndexedDB. Other humans need the server build.
  */
 import type { ClientMsg, ServerMsg } from '@tudobem/shared';
 import { World, type Session } from '@tudobem/server/world';
@@ -10,6 +10,7 @@ import { PadariaStore, type PadariaPersistence } from '@tudobem/server/padaria';
 import { ProfileStore, type PersistenceAdapter, type StoredProfile } from '@tudobem/server/store';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from '@tudobem/server/services';
 import type { NetLike, NetStatus } from './net';
+import { soloPhotoImages } from './soloPhotoImages';
 
 const KEY = 'tb_solo_profiles_v1';
 const ACADEMY_KEY = 'tb_solo_academies_v1';
@@ -25,6 +26,7 @@ const localAdapter: PersistenceAdapter = {
     }
   },
   save: (rows) => localStorage.setItem(KEY, JSON.stringify(rows)),
+  images: soloPhotoImages(),
 };
 
 const academyAdapter: AcademyPersistence = {

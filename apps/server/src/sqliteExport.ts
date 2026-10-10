@@ -24,8 +24,17 @@ export function exportSqliteToJson(db: Database, dataDir: string): number {
   let n = 0;
   const profiles = parsed(db, 'SELECT json FROM profiles ORDER BY id');
   const photos: Record<string, unknown> = {};
+  // the previous build keeps each photo's jpeg inline: put the `photo_images` rows back on their photos
+  const image = db.prepare('SELECT image FROM photo_images WHERE profile_id = ? AND photo_id = ?');
   for (const row of db.prepare('SELECT profile_id AS id, json FROM photos ORDER BY profile_id').all() as { id: string; json: string }[]) {
-    photos[row.id] = JSON.parse(row.json) as unknown;
+    const list = JSON.parse(row.json) as unknown;
+    photos[row.id] = Array.isArray(list)
+      ? list.map((ph: unknown) => {
+          if (!ph || typeof ph !== 'object' || 'image' in ph) return ph;
+          const hit = image.get(row.id, (ph as { id?: unknown }).id) as { image: string } | undefined;
+          return hit ? { ...ph, image: hit.image } : ph;
+        })
+      : list;
   }
   if (profiles.length || Object.keys(photos).length) {
     write(path.join(dir, 'profiles.json'), profiles);

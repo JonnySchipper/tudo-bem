@@ -15,6 +15,9 @@ import {
   normalizeArrival,
   normalizeDiary,
   PHOTO_KEEP,
+  PHOTO_IMAGES_PER_REQUEST,
+  inlinePhotoImages,
+  photoImageRequest,
   PHOTO_MAX_CHARS,
   addPhoto,
   normalizePhotos,
@@ -108,34 +111,59 @@ describe('language diary catalog', () => {
     expect(pickPhotoUrl([small, big])).toBe(small);
   });
 
-  it('keeps one image for a shot of several words, and shows it for each of them', () => {
-    const img = 'data:image/jpeg;base64,AAAA';
+  it('keeps one photo for a shot of several words, and shows it for each of them', () => {
     const [fonte, banco, telhado] = [...wordsForPhoto('fonte'), ...wordsForPhoto('banco_1'), ...wordsForPhoto('coreto')].map((w) => w.id);
-    const older = addPhoto([], { id: 'a', at: 1, image: 'data:image/jpeg;base64,BBBB', wordIds: [] });
-    const photos = addPhoto(older, { id: 'b', at: 2, image: img, wordIds: [fonte!, banco!, telhado!, fonte!, 'nada'] });
+    const older = addPhoto([], { id: 'a', at: 1, wordIds: [] }).photos;
+    const photos = addPhoto(older, { id: 'b', at: 2, wordIds: [fonte!, banco!, telhado!, fonte!, 'nada'] }).photos;
     expect(photos.map((p) => p.id)).toEqual(['b', 'a']);
-    // stored once, linked from every word the shot taught (in order, no repeats, no unknown ids); `wordId` stays the first for old clients
-    expect(photos[0]).toEqual({ id: 'b', at: 2, image: img, wordId: fonte, wordIds: [fonte, banco, telhado] });
-    expect(photos[1]).toEqual({ id: 'a', at: 1, image: 'data:image/jpeg;base64,BBBB' });
+    // linked from every word the shot taught (in order, no repeats, no unknown ids); `wordId` stays the first for old clients
+    expect(photos[0]).toEqual({ id: 'b', at: 2, wordId: fonte, wordIds: [fonte, banco, telhado] });
+    expect(photos[1]).toEqual({ id: 'a', at: 1 });
     for (const id of [fonte!, banco!, telhado!]) expect(photoForWord(photos, id)?.id).toBe('b');
     expect(photoForWord(photos, 'nada')).toBeUndefined();
     // a newer shot of the same thing is the one shown
-    const again = addPhoto(photos, { id: 'c', at: 3, image: img, wordIds: [banco!] });
+    const again = addPhoto(photos, { id: 'c', at: 3, wordIds: [banco!] }).photos;
     expect(photoForWord(again, banco!)?.id).toBe('c');
     expect(photoForWord(again, fonte!)?.id).toBe('b');
-    // the kept photos stay capped
-    let many = again;
-    for (let i = 0; i < PHOTO_KEEP + 3; i++) many = addPhoto(many, { id: `x${i}`, at: 10 + i, image: img, wordIds: [] });
-    expect(many).toHaveLength(PHOTO_KEEP);
   });
 
-  it('reads an old save’s one-word photo as the photo of that word', () => {
+  it('keeps every photo up to the disk guard, then names the oldest one dropped', () => {
+    expect(PHOTO_KEEP).toBeGreaterThanOrEqual(1000);
+    const full = Array.from({ length: PHOTO_KEEP }, (_, i) => ({ id: `x${i}`, at: PHOTO_KEEP - i }));
+    expect(normalizePhotos(full)).toHaveLength(PHOTO_KEEP);
+    const next = addPhoto(full, { id: 'new', at: PHOTO_KEEP + 1, wordIds: [] });
+    expect(next.photos).toHaveLength(PHOTO_KEEP);
+    expect(next.photos[0]!.id).toBe('new');
+    expect(next.dropped).toEqual([`x${PHOTO_KEEP - 1}`]);
+    expect(addPhoto([], { id: 'one', at: 1, wordIds: [] }).dropped).toEqual([]);
+  });
+
+  it('reads an old save: one-word photos, and jpegs kept inline (moved out by the store)', () => {
     const fonte = wordsForPhoto('fonte')[0]!.id;
-    const [old] = normalizePhotos([{ id: 'o', at: 5, image: 'data:image/jpeg;base64,AAAA', wordId: fonte }]);
-    expect(old).toEqual({ id: 'o', at: 5, image: 'data:image/jpeg;base64,AAAA', wordId: fonte, wordIds: [fonte] });
+    const raw = [
+      { id: 'o', at: 5, image: 'data:image/jpeg;base64,AAAA', wordId: fonte },
+      { id: 'n', at: 1, image: 'data:image/jpeg;base64,BBBB' },
+      { id: 'bad', at: 0, image: 'data:image/png;base64,CCCC' },
+      { id: 'o', at: 9 },
+    ];
+    expect(normalizePhotos(raw)).toEqual([
+      { id: 'o', at: 5, wordId: fonte, wordIds: [fonte] },
+      { id: 'n', at: 1 },
+    ]);
+    expect(inlinePhotoImages(raw)).toEqual([
+      { id: 'o', image: 'data:image/jpeg;base64,AAAA' },
+      { id: 'n', image: 'data:image/jpeg;base64,BBBB' },
+    ]);
+    expect(inlinePhotoImages([{ id: 'x', at: 1 }])).toEqual([]);
     expect(photoWordIds({ wordId: fonte })).toEqual([fonte]);
     expect(photoWordIds({ wordIds: 'nope', wordId: 'nada' })).toEqual([]);
-    expect(normalizePhotos([{ id: 'n', at: 1, image: 'data:image/jpeg;base64,AAAA' }])[0]).toEqual({ id: 'n', at: 1, image: 'data:image/jpeg;base64,AAAA' });
+  });
+
+  it('caps a photo image request', () => {
+    const ids = Array.from({ length: PHOTO_IMAGES_PER_REQUEST + 5 }, (_, i) => `p${i}`);
+    expect(photoImageRequest([...ids.slice(0, 3), 'p0', 7, '', 'x'.repeat(41)])).toEqual(['p0', 'p1', 'p2']);
+    expect(photoImageRequest(ids)).toHaveLength(PHOTO_IMAGES_PER_REQUEST);
+    expect(photoImageRequest('p0')).toEqual([]);
   });
 
   it('hands the cartela over with the camera, and treats a missing arrival flag as already home', () => {

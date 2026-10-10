@@ -14,10 +14,14 @@ import {
   earnedTier,
   normalizeFilm,
   normalizePhotos,
+  inlinePhotoImages,
   normalizePapos,
   normalizeRecados,
   type PrivateProfile,
 } from '@tudobem/shared';
+import { memoryPhotoImages, type PhotoImageStore } from './photoImages.js';
+
+export type { PhotoImageStore } from './photoImages.js';
 
 export interface StoredProfile extends PrivateProfile {
   token: string;
@@ -59,6 +63,8 @@ export interface PersistenceAdapter {
   /** Delete these ids. The only way a stored profile goes away. */
   remove?(ids: string[]): void;
   describe(): string;
+  /** Where diary photo images live (kept apart from the profiles). Without one they stay in memory. */
+  images?: PhotoImageStore;
 }
 
 /** What the last write did, for health checks. Times are epoch ms; null means it has not happened. */
@@ -108,7 +114,11 @@ export class ProfileStore {
   private sweep = false;
   private flushHealth: StoreFlushHealth = { lastFlushOk: null, lastFlushError: null, lastFlushErrorAt: null, failures: 0, pending: 0 };
 
+  /** The diary photo images (the profiles keep only the photos' ids, times and words). */
+  readonly images: PhotoImageStore;
+
   constructor(private adapter: PersistenceAdapter | null) {
+    this.images = adapter?.images ?? memoryPhotoImages();
     if (!adapter) return;
     // A failed read is fatal: starting empty would let the next save treat every stored player as gone.
     let rows: StoredProfile[];
@@ -120,9 +130,15 @@ export class ProfileStore {
     }
     for (const p of rows) this.index(p);
     if (rows.length) console.log(`[store] ${rows.length} perfis carregados (${adapter.describe()})`);
+    // profiles whose photo images just moved to the image store: write them without the inline jpegs
+    if (this.dirty.size) this.arm(STORE_SAVE_DEBOUNCE_MS);
   }
 
   private index(p: StoredProfile) {
+    // a save from before the image store kept each photo's jpeg inline: move them to the store, and write the profile without them
+    const inline = inlinePhotoImages(p.photos);
+    for (const { id, image } of inline) this.images.put(p.id, id, image);
+    if (inline.length) this.dirty.add(p.id);
     normalizeProfile(p);
     const before = this.byId.get(p.id);
     if (before && before.token !== p.token) this.byToken.delete(before.token);
@@ -171,6 +187,7 @@ export class ProfileStore {
     if (!p) return false;
     this.byId.delete(id);
     if (this.byToken.get(p.token) === id) this.byToken.delete(p.token);
+    this.images.removeProfile(id);
     this.dirty.delete(id);
     if (this.closed || !this.adapter) return true;
     this.removed.add(id);

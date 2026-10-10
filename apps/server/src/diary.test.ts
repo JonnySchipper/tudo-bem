@@ -8,6 +8,7 @@ import {
   GAME_DAY_MS,
   HOTSPOTS,
   MS_PER_GAME_MINUTE,
+  PHOTO_KEEP,
   ROOMS,
   buildGrid,
   dailyDiaryIds,
@@ -178,14 +179,36 @@ describe('arrival, camera, diary and the escola', () => {
     expect(home.all('error')).toHaveLength(0);
   });
 
-  it('sends photo images in their own message, never inside the profile', async () => {
+  it('keeps photo images apart: the photos message lists them, the image comes when asked for', async () => {
     const world = makeWorld();
     const a = await client(world);
     await a.send({ t: 'arrival', action: 'finish' });
     await a.send({ t: 'diary', action: 'photo', anchors: [], image: 'data:image/jpeg;base64,AAAA' });
-    expect(a.last('photos')?.photos.map((p) => p.image)).toEqual(['data:image/jpeg;base64,AAAA']);
+    const [shot] = a.last('photos')!.photos;
+    expect(shot).toBeDefined();
+    expect(shot).not.toHaveProperty('image');
     for (const m of a.all('profile')) expect(m.profile.photos).toBeUndefined();
-    expect(a.s.profile?.photos).toHaveLength(1);
+    expect(a.s.profile?.photos).toEqual([shot]);
+    // the image of an own photo, and nothing for an id that is not one
+    await a.send({ t: 'diary', action: 'photoImages', ids: [shot!.id, 'someone-else'] });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(a.last('photoImages')?.images).toEqual([{ id: shot!.id, image: 'data:image/jpeg;base64,AAAA' }]);
+  });
+
+  it('keeps every photo up to the disk guard, and drops the oldest image past it', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'finish' });
+    const p = a.s.profile!;
+    p.photos = Array.from({ length: PHOTO_KEEP }, (_, i) => ({ id: `old${i}`, at: i }));
+    const images = world.store.images;
+    images.put(p.id, `old${PHOTO_KEEP - 1}`, 'data:image/jpeg;base64,OLD');
+    p.film = 5;
+    await a.send({ t: 'diary', action: 'photo', anchors: [], image: 'data:image/jpeg;base64,NEW' });
+    expect(p.photos).toHaveLength(PHOTO_KEEP);
+    expect(p.photos.some((ph) => ph.id === `old${PHOTO_KEEP - 1}`)).toBe(false);
+    expect((await images.get(p.id, [`old${PHOTO_KEEP - 1}`])).size).toBe(0);
+    expect((await images.get(p.id, [p.photos[0]!.id])).get(p.photos[0]!.id)).toBe('data:image/jpeg;base64,NEW');
   });
 
   it('photographs, reads, and hears each seeded praça word once, and will not take it from another source', async () => {
@@ -302,11 +325,12 @@ describe('arrival, camera, diary and the escola', () => {
     expect(photos).toHaveLength(1);
     expect(ptOf(photos[0]!.wordIds)).toEqual(taught);
     expect(diaryWord(photos[0]!.wordId!)?.pt).toBe('fonte');
-    // the photos message carries the same single image, linked to all four words
+    // the photos message carries the one photo, linked to all four words, and its one stored image
     const sent = a.last('photos')!.photos;
     expect(sent).toHaveLength(1);
     expect(ptOf(sent[0]!.wordIds)).toEqual(taught);
-    for (const id of photos[0]!.wordIds!) expect(photoForWord(sent, id)?.image).toBe(image);
+    for (const id of photos[0]!.wordIds!) expect(photoForWord(sent, id)?.id).toBe(sent[0]!.id);
+    expect((await world.store.images.get(a.s.profile!.id, [sent[0]!.id])).get(sent[0]!.id)).toBe(image);
     // a shot that teaches nothing new keeps its picture without taking the words over
     await a.send({ t: 'diary', action: 'photo', anchors: ['fonte'], image });
     expect(a.s.profile?.photos?.[0]?.wordIds).toBeUndefined();

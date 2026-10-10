@@ -119,6 +119,7 @@ import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuid
 import { desembGateHint, desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
 import { firstRoom } from './ui/desembarqueLogic';
 import { designLinkRoom, watchDesignLink } from './ui/designLink';
+import { photoImages } from './ui/photoImageCache';
 import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
 import { shouldPlayFlightIntro } from './ui/flightIntroLogic';
 import { thanksFor } from './ui/airportTutorialLogic';
@@ -184,6 +185,7 @@ let net: NetLike;
 try {
   renderer = new (await pixelViewChunk).PixelView(canvas);
   net = localNetChunk ? new (await localNetChunk).LocalNet() : new Net(wsUrl());
+  photoImages.setSender((m) => net.send(m));
 } catch (e) {
   // a chunk that failed to download (flaky network, a deploy that replaced the hashed files) would leave a blank page
   console.error('[boot] failed to load the world', e);
@@ -979,6 +981,9 @@ net.on((m: ServerMsg) => {
     case 'photos':
       game.photos = m.photos;
       game.emit('profile');
+      break;
+    case 'photoImages':
+      photoImages.receive(m.images);
       break;
     case 'profile':
       game.profile = m.profile;
@@ -1914,6 +1919,8 @@ window.__tb = {
   renderer,
   net,
   rooms: ROOMS,
+  /** The diary photo image cache (shot scripts hand it images for photos they set on `game.photos`). */
+  photoImages,
   /** Play the new-account cutscene (the flight in) over whatever is on screen, for shots and checks. */
   flight: () => {
     renderer.hold?.(true);

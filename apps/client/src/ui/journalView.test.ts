@@ -60,24 +60,24 @@ describe('the Diário as a sticker album', () => {
 
   it('puts the newest photo of a word on its sticker, and none on a word not earned', () => {
     const photos = [
-      { id: 'a', at: 1, image: 'data:image/jpeg;old', wordId: 'diary.chegada.mala' },
-      { id: 'b', at: 2, image: 'data:image/jpeg;new', wordId: 'diary.chegada.mala' },
-      { id: 'c', at: 3, image: 'data:image/jpeg;x', wordId: 'diary.chegada.torre' },
+      { id: 'a', at: 1, wordId: 'diary.chegada.mala' },
+      { id: 'b', at: 2, wordId: 'diary.chegada.mala' },
+      { id: 'c', at: 3, wordId: 'diary.chegada.torre' },
     ];
     const m = model(['diary.chegada.mala'], { photos });
     const words = chapter(m, 'chegada').words;
-    expect(words.find((w) => w.id === 'diary.chegada.mala')!.photo).toBe('data:image/jpeg;new');
+    expect(words.find((w) => w.id === 'diary.chegada.mala')!.photo).toBe('b');
     expect(words.find((w) => w.id === 'diary.chegada.torre')!.photo).toBeUndefined();
   });
 
   it('puts one shot of several things on the sticker of every word it taught', () => {
     const ids = ['diary.chegada.mala', 'diary.chegada.esteira', 'diary.chegada.etiqueta'];
     const photos = [
-      { id: 'old', at: 1, image: 'data:image/jpeg;old', wordId: 'diary.chegada.esteira' },
-      { id: 'shot', at: 2, image: 'data:image/jpeg;shot', wordId: ids[0], wordIds: ids },
+      { id: 'old', at: 1, wordId: 'diary.chegada.esteira' },
+      { id: 'shot', at: 2, wordId: ids[0], wordIds: ids },
     ];
     const words = chapter(model(ids, { photos }), 'chegada').words;
-    for (const id of ids) expect(words.find((w) => w.id === id)!.photo).toBe('data:image/jpeg;shot');
+    for (const id of ids) expect(words.find((w) => w.id === id)!.photo).toBe('shot');
   });
 
   it('says how an earned word was found, with its line or sign, and how to find one still missing without giving it away', () => {
