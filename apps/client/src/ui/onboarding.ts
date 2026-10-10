@@ -64,7 +64,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
     walkBtn.replaceChildren(on ? '■ Parar' : '▶ Andar', en(on ? 'Stop' : 'Walk', true));
   });
 
-  const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →', en('Enter the Praça', true));
+  const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →', en('Enter the Praça (the square)', true));
   const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo… (e.g. Jonny, Bia, Leo…)', 'aria-label': 'Nome', id: 'avatar-name' });
   const nameErr = h('div', { class: 'feedback s1', style: 'display:none' });
   const setErr = (pt: string, enText: string) => {

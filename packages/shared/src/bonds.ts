@@ -4,8 +4,8 @@ import { furnitureById } from './catalog.js';
 
 /**
  * NPC friendship (HOWTO Phase 8 step 4). Points 0-100 per NPC; 10 points = 1 heart.
- * Pure rules only. The milestone effects (uses your name, a new Conversa subject, a furniture gift)
- * are data here and are wired by a later track.
+ * Pure rules only. The milestone effects (uses your name, tells you their story, a furniture gift)
+ * are data here; the server runs them (recados.ts `milestone`).
  */
 export const BOND_MAX = 100;
 export const POINTS_PER_HEART = 10;
@@ -14,8 +14,8 @@ export const POINTS_PER_HEART = 10;
 export const BOND_GAIN = {
   /** First talk with an NPC in a game day. */
   talk: 2,
-  /** A 'pass' Conversa grade (once per NPC per game day). */
-  conversaGood: 3,
+  /** A bate-papo (papos.ts) talked through to the end, once per NPC per game day. Never graded: finishing is enough. */
+  papo: 3,
 } as const;
 
 export type BondMap = Partial<Record<NpcId, number>>;
@@ -31,7 +31,7 @@ export const clampBond = (n: number): number => (Number.isFinite(n) ? Math.max(0
 /** Whole hearts for a point total (0-10). */
 export const hearts = (points: number): number => Math.floor(clampBond(points) / POINTS_PER_HEART);
 
-export type BondMilestoneKind = 'uses_name' | 'conversa_subject' | 'furniture_gift';
+export type BondMilestoneKind = 'uses_name' | 'story' | 'furniture_gift';
 
 export interface BondMilestone {
   hearts: number;
@@ -42,7 +42,7 @@ export interface BondMilestone {
 // needs_br: true (labels; listed for the native pass)
 export const BOND_MILESTONES: readonly BondMilestone[] = [
   { hearts: 2, kind: 'uses_name', label: { pt: 'Usa o seu nome e lembra de você', en: 'Uses your name and remembers you' } },
-  { hearts: 4, kind: 'conversa_subject', label: { pt: 'Novo assunto de Conversa', en: 'New Conversa subject' } },
+  { hearts: 4, kind: 'story', label: { pt: 'Conta a própria história pra você', en: 'Tells you their own story' } },
   { hearts: 6, kind: 'furniture_gift', label: { pt: 'Presente pra sua kitnet', en: 'A gift for your kitnet' } },
 ];
 

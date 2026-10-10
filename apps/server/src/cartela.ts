@@ -7,7 +7,6 @@ import {
   todayEastern,
   tryCartelaStamp,
   type CartelaActivity,
-  type ConversaGrade,
 } from '@tudobem/shared';
 import type { RoomId } from '@tudobem/shared';
 import type { ProfileStore } from './store.js';
@@ -77,8 +76,8 @@ export class CartelaTracker {
     if (room === 'feira') this.tryStamp(s, 'feira');
   }
 
-  /** Real Conversa in the praça (HTTP flow finished); small talk chips do not call this. */
-  onConversaEnd(s: Session, _grade: ConversaGrade) {
+  /** A bate-papo (a pre-made conversation) talked through to the end in the praça. Never graded: finishing it is the stamp. */
+  onPapoDone(s: Session) {
     if (s.instance?.def.id !== 'praca') return;
     this.tryStamp(s, 'conversa');
   }

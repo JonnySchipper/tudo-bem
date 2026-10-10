@@ -177,20 +177,10 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     expect((await post('/api/auth/login', { email: 'z@exemplo.com', password: 'senha-senha-1' })).status).toBe(429);
   });
 
-  it('binds /api/conversa to the signed-in player instead of the body playerId', async () => {
+  it('has no Conversa API any more (#229)', async () => {
     await start();
-    const anon = await post('/api/conversa', { action: 'start', npcId: 'carlos', playerId: 'someone-else', daily: {} });
-    expect(anon.status).toBe(401);
-    const reg = await post('/api/auth/register', { email: 'dona@exemplo.com', password: 'senha-senha-1' });
-    const a = wsClient(base, { cookie: cookieOf(reg) });
-    await a.open();
-    a.send({ t: 'hello' });
-    await a.waitFor('needProfile');
-    a.send({ t: 'createProfile', name: 'Dona', pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
-    await a.waitFor('welcome');
-    a.ws.close();
-    const mine = await post('/api/conversa', { action: 'start', npcId: 'carlos', playerId: 'someone-else', daily: {} }, { cookie: cookieOf(reg) });
-    expect(mine.status).toBe(200);
+    const r = await post('/api/conversa', { action: 'start', npcId: 'carlos' });
+    expect(r.status).not.toBe(200);
   });
 
   const smokeOn = (password = 'ops-smoke-test-password-1'): OpsSmokeConfig => ({

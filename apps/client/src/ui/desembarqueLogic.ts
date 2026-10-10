@@ -52,10 +52,10 @@ export const DESEMB_STEPS: readonly DesembStep[] = [
   },
   {
     id: 'diario',
-    en: 'Open your Diário',
+    en: 'Open your Diário (diary)',
     pt: 'o diário',
-    how: 'Your word is in the Diário now. Click Diário at the top right to see it.',
-    phone: 'Your word is in the Diário now. Tap ☰ at the top, then Diário.',
+    how: 'Your word is in your diary now. Click Diário at the top right to see it.',
+    phone: 'Your word is in your diary now. Tap ☰ at the top, then Diário.',
     guide: null,
     hud: '#btn-caderno, #btn-burger',
   },
@@ -160,7 +160,7 @@ export const RV_EXPLAINER = {
   title: { pt: 'Reais virtuais (RV)', en: 'Your money: reais virtuais (RV)' },
   lines: [
     { pt: 'R$ é o real, o dinheiro do Brasil.', en: 'R$ is the real, Brazil’s money. Here you use play money: RV.' },
-    { pt: 'Ganhe RV com recados, a cartela e os jogos.', en: 'Earn RV by doing errands (recados), filling your stamp card (cartela), and playing the minigames.' },
+    { pt: 'Ganhe RV com favores, a cartela e os jogos.', en: 'Earn RV by doing favors (favores), filling your stamp card (cartela), and playing the minigames.' },
     { pt: 'Gaste em lanches, chapéus, móveis e filme.', en: 'Spend it on snacks, hats, furniture and camera film.' },
   ],
   note: { pt: 'Aprender é sempre de graça.', en: 'Learning is always free. RV is only earned by playing, never bought.' },

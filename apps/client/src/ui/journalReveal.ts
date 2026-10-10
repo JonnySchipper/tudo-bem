@@ -88,7 +88,7 @@ export function revealJournal(m: WordMoment, done: () => void): void {
   const glow = h('div', { class: 'jr-glow', 'aria-hidden': 'true' });
   const motes = h('div', { class: 'jr-motes', 'aria-hidden': 'true' }, ...Array.from({ length: 18 }, (_, i) => h('i', { style: `--i:${i}` })));
   const stage = h('div', { class: 'jr-stage' }, glow, book);
-  const caption = h('div', { class: 'jr-caption' }, h('p', { lang: 'pt-BR' }, 'Seu diário'), en('Your Diário'), close);
+  const caption = h('div', { class: 'jr-caption' }, h('p', { lang: 'pt-BR' }, 'Seu diário'), en('Your diary'), close);
   const root = h('div', { id: 'photo-celebrate', class: `journal-reveal${still ? ' still' : ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': `Seu diário: ${m.pt} (${m.en})` }, motes, stage, caption);
   ui().append(root);
 

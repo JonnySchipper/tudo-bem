@@ -16,9 +16,9 @@ export const VILA_GUIDE = {
   title: { pt: 'Bem-vindo à Vila Ipê!', en: 'Welcome to Vila Ipê!' },
   lead: 'A neighbourhood in São Paulo where you learn Portuguese by living in it. There is no rush and nothing to lose: here is what there is to do.',
   lines: [
-    { pt: 'Recados', en: 'Look for a gold ! over a neighbour: they need a small favour. The Recados list near the top shows your next step and where to go. Errands pay RV and make friends (♥ hearts).' },
-    { pt: 'Diário', en: 'Every word you find is kept here: take photos, read signs, listen to people. Practise them in lessons at the Escola.' },
-    { pt: 'Cartela', en: `A stamp card: the bakery game, the Feira, jiu-jitsu and a Conversa each give a stamp a day. ${CARTELA_GOAL} stamps pay RV.` },
+    { pt: 'Favores', en: 'A gold ! over a neighbour: they need a small favor. The Favores list near the top shows your next step and where to go. Favors pay reais virtuais (RV), the play money, and make friends (♥ hearts).' },
+    { pt: 'Diário', en: 'Your diary. Every word you find is kept here: take photos, read signs, listen to people. Practise them in lessons at the Escola.' },
+    { pt: 'Cartela', en: `A stamp card: the bakery game, the Feira (market), jiu-jitsu and a bate-papo (chat) in the square each give a stamp a day. ${CARTELA_GOAL} stamps pay RV.` },
     { pt: 'Lugares', en: 'Padaria (order and play at the counter), Feira (the market), Academia (jiu-jitsu), Escola (lessons), and your own kitnet to decorate.' },
     { pt: 'Relógio', en: 'The Vila has its own clock: a whole day lasts 48 minutes. People keep hours, but there is always a way to play.' },
   ] satisfies VilaGuideLine[],

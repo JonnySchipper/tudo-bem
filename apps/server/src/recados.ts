@@ -9,7 +9,10 @@ import {
   BOND_GAIN,
   furnitureById,
   giftFor,
-  subjectChoices,
+  hearts,
+  papoById,
+  papoOpen,
+  storyOf,
   type BondMilestone,
   describeStep,
   gameDay,
@@ -31,8 +34,6 @@ import {
   tileDistance,
   type Bilingual,
   type HotspotDef,
-  type ConversaGrade,
-  type ConversaOrder,
   type NpcId,
   type RecadoDef,
   type RecadoEvent,
@@ -61,11 +62,6 @@ export interface RecadoDeps {
 /** Items a finished Carlos scene ordered ('nada' and unknown ids are dropped). */
 export function sceneItems(ctx: Pick<SceneCtx, 'food' | 'drink'>): { itemId: string; qty: number }[] {
   return [ctx.food, ctx.drink].filter((id): id is string => !!itemById(id)).map((itemId) => ({ itemId, qty: 1 }));
-}
-
-/** Items a Conversa order names (same ids as the padaria shelf). */
-export function conversaItems(order: ConversaOrder | undefined): { itemId: string; qty: number }[] {
-  return order ? sceneItems(order) : [];
 }
 
 /** Stable per (player, game day) so the daily offer does not change on reconnect. */
@@ -170,7 +166,7 @@ export class RecadoTracker {
     if (!st.done.includes(def.id)) st.done.push(def.id);
     this.gain(s, def.giver, def.reward.bond);
     if (def.reward.itemId) p.bag = addToBag(p.bag ?? {}, def.reward.itemId, 1);
-    this.d.reward(s, def.reward.rv, { pt: `Recado: ${def.title.pt}`, en: `Errand: ${def.title.en}` });
+    this.d.reward(s, def.reward.rv, { pt: `Favor: ${def.title.pt}`, en: `Favor: ${def.title.en}` });
     const who = npcName(def.giver);
     s.send({ t: 'notice', level: 'reward', pt: `${who}: “${def.thanks.pt}”`, en: `${who}: “${def.thanks.en}”`, tag: 'recado_thanks' });
     // needs_br: true. Three recados in one game day: the neighbourhood's thank-you, once a day
@@ -202,10 +198,10 @@ export class RecadoTracker {
     const who = npcName(npc);
     const say = (pt: string, en: string) => s.send({ t: 'notice', level: 'reward', pt: `♥ ${pt}`, en: `♥ ${en}`, tag: 'bond' });
     if (m.kind === 'uses_name') say(`${who} já sabe o seu nome e lembra de você!`, `${who} knows your name now and remembers you!`);
-    else if (m.kind === 'conversa_subject') {
-      // only NPCs with a Conversa have a subject to open
-      const extra = subjectChoices(npc, m.hearts).at(-1);
-      if (extra && subjectChoices(npc, m.hearts).length > 1) say(`${who} tem um assunto novo pra conversar: ${extra.title.pt}!`, `${who} has a new thing to chat about: ${extra.title.en}!`);
+    else if (m.kind === 'story') {
+      // only NPCs with a bate-papo have a story to tell; it is the next one they start
+      const story = storyOf(npc);
+      if (story) say(`${who} quer te contar uma história: “${story.title.pt}”. Vá bater um papo!`, `${who} wants to tell you a story: “${story.title.en}”. Go have a chat!`);
     } else if (m.kind === 'furniture_gift') {
       const given = (p.bondGifts ??= []);
       if (given.includes(npc)) return;
@@ -217,19 +213,28 @@ export class RecadoTracker {
     }
   }
 
-  /** The Conversa HTTP flow ended: it counts as a talk, may carry an order, and a 'pass' earns bond (once per NPC per game day). */
-  onConversaEnd(s: Session, npc: NpcId, grade: ConversaGrade, order?: ConversaOrder) {
+  /**
+   * `papo`: a bate-papo (papos.ts) was talked through to the end. Never graded: it counts as a talk, is remembered as heard (so the next
+   * one is new), and pays a little bond once per NPC per game day. The NPC must be in the room and near, and the papo open to the
+   * player's hearts. True when it counted.
+   */
+  papoDone(s: Session, npc: unknown, id: unknown): boolean {
     const p = s.profile;
-    if (!p) return;
-    this.onEvent(s, { kind: 'talked', npc });
-    const items = conversaItems(order);
-    if (items.length) this.onEvent(s, { kind: 'ordered', npc, items });
+    const papo = papoById(id);
+    if (!p || !s.instance || !papo || npc !== papo.npc) return false;
+    const def = this.d.npcsIn(s.instance.def.id).find((n) => n.id === papo.npc);
+    if (!def || !papoOpen(papo, hearts(p.bond?.[papo.npc] ?? 0))) return false;
+    const tile = this.d.tileOf(s);
+    if (tileDistance(tile, def.tile) > HOTSPOT_READ_RANGE && tileDistance(tile, def.interact) > HOTSPOT_READ_RANGE) return false;
+    if (!(p.papos ??= []).includes(papo.id)) p.papos.push(papo.id);
+    this.onEvent(s, { kind: 'talked', npc: papo.npc });
     const st = this.board(p);
-    if (grade === 'pass' && !st.graded?.includes(npc)) {
-      (st.graded ??= []).push(npc);
-      this.gain(s, npc, BOND_GAIN.conversaGood);
-      this.commit(s);
+    if (!st.graded?.includes(papo.npc)) {
+      (st.graded ??= []).push(papo.npc);
+      this.gain(s, papo.npc, BOND_GAIN.papo);
     }
+    this.commit(s);
+    return true;
   }
 
   /** `give`: hand what an active recado step asks for to an NPC next to you. Nothing is taken unless a step wants it. */
@@ -296,10 +301,10 @@ export class RecadoTracker {
     const st = this.board(p);
     if (action === 'drop') {
       const next = typeof id === 'string' ? dropRecado(st, id) : null;
-      if (!next) return this.err(s, 'recado', 'Esse recado não está na sua lista.', 'That errand isn’t on your list.');
+      if (!next) return this.err(s, 'recado', 'Esse favor não está na sua lista.', 'That favor isn’t on your list.');
       p.recados = next;
       const def = recadoById(id, this.defs);
-      if (def) s.send({ t: 'notice', level: 'info', pt: `Recado deixado pra depois: ${def.title.pt}`, en: `Errand put aside: ${def.title.en}` });
+      if (def) s.send({ t: 'notice', level: 'info', pt: `Favor deixado pra depois: ${def.title.pt}`, en: `Favor put aside: ${def.title.en}` });
       return this.commit(s);
     }
     if (action !== 'accept') return this.sendBoard(s);
@@ -309,18 +314,18 @@ export class RecadoTracker {
     if (!def || !onShownBoard || st.done.includes(def.id) || st.active.some((a) => a.id === def.id)) {
       // midnight just replaced the offer: tell the client, or the journal keeps showing errands that can no longer be taken
       if (rolled) this.sendBoard(s);
-      return this.err(s, 'recado', 'Esse recado não está disponível.', 'That errand isn’t available.');
+      return this.err(s, 'recado', 'Esse favor não está disponível.', 'That favor isn’t available.');
     }
     if (st.active.length >= RECADO_MAX_ACTIVE)
-      return this.err(s, 'recado', 'Termine um recado antes de pegar outro.', 'Finish an errand before taking another.');
+      return this.err(s, 'recado', 'Termine um favor antes de pegar outro.', 'Finish a favor before taking another.');
     st.active.push({ id: def.id, step: 0 });
     // the first thing to do, right away: nobody should have to open the journal to find out
     const first = def.steps[0] ? describeStep(def.steps[0]) : null;
     s.send({
       t: 'notice',
       level: 'info',
-      pt: `Recado aceito: ${def.title.pt}${first ? ` → ${first.pt}` : ''}`,
-      en: `Errand accepted: ${def.title.en}${first ? ` → ${first.en}` : ''}`,
+      pt: `Favor aceito: ${def.title.pt}${first ? ` → ${first.pt}` : ''}`,
+      en: `Favor accepted: ${def.title.en}${first ? ` → ${first.en}` : ''}`,
       tag: 'recado_accept',
     });
     this.commit(s);

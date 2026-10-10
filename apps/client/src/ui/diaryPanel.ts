@@ -271,7 +271,7 @@ export function showPhoto(m: ShotMsg) {
     print.classList.add(m.ok ? 'new-word' : m.empty ? 'saved' : 'known');
     const cap = print.querySelector('.print-cap');
     cap?.replaceChildren(
-      ...(m.ok || m.empty ? [] : [h('span', { class: 'print-kicker', title: 'Already in your Diário' }, 'Já no diário · already have it')]),
+      ...(m.ok || m.empty ? [] : [h('span', { class: 'print-kicker', title: 'Already in your diary' }, 'Já no diário · already have it')]),
       ...(words.length > 1 ? [h('span', { class: 'print-more' }, `+${words.length - 1}`)] : []),
       h('b', { class: 'print-pt', lang: 'pt-BR' }, m.pt),
       h('span', { class: 'print-en en plain' }, m.en),

@@ -3,7 +3,7 @@ import type { Bilingual } from './types.js';
 import { GREETING_EN, greetingCap, greetingFor } from './clock.js';
 
 /**
- * Short authored greetings for the NPCs that have no Conversa (Nanda, Júlia): 3 lines, two reply chips each, A1 informal Brazilian
+ * Short authored greetings (Nanda, Júlia, Dona Graça, Professora Bia): 3 lines, two reply chips each, A1 informal Brazilian
  * Portuguese. They are client-side flows (no rewards, no server authority); the client tells the server with a `talk` message so the
  * recado engine's `talked` event fires. Every PT string here is new content: `needs_br: true`.
  *
@@ -52,7 +52,7 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
       },
     },
   },
-  // Dona Graça (the night baker) has her Conversa at the counter; this greeting is the short fallback when a dialogue is opened without it
+  // Dona Graça (the night baker) has her counter and bate-papos; this greeting is the short fallback when a dialogue is opened without them
   graca: {
     start: 'oi',
     nodes: {

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { WS_MAX_PAYLOAD, conversaDateKey, type ClientMsg } from '@tudobem/shared';
+import { WS_MAX_PAYLOAD, type ClientMsg } from '@tudobem/shared';
 import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
@@ -21,8 +21,6 @@ import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGlo
 import { FileModerationQueue } from './services/fileModeration.js';
 import { JevModelSafety, jevSelfCheck, loadOnnxToxModel } from './services/jevModel.js';
 import type { ChatSafetyService } from './services/interfaces.js';
-import { handleConversaApi } from './conversaApi.js';
-import { ConversaMemory } from './conversaMemory.js';
 import { serveStatic } from './httpStatic.js';
 import { applySecurityHeaders } from './securityHeaders.js';
 import { legalPageFile } from './legalPages.js';
@@ -170,7 +168,6 @@ export function createApp(opts: AppOptions) {
     jevStatus: () => safety.status?.() ?? { state: 'stub' },
     startedAt: Date.now(),
   });
-  const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
   // Test servers (TB_TEST_CLOCK_CONTROL=1, never set on prod) lift the 10-signups-per-hour-per-IP cap: e2e:all signs up 10+ accounts from 127.0.0.1.
   const limiters = defaultLimiters(Date.now, process.env.TB_TEST_CLOCK_CONTROL === '1' ? 200 : 10);
   const allowedOrigins = opts.allowedOrigins ?? [];
@@ -298,23 +295,6 @@ export function createApp(opts: AppOptions) {
         cookieSecure: opts.cookieSecure,
       }).catch((e) => {
         console.error('[account] handler error', e);
-        if (!res.headersSent) res.writeHead(500);
-        res.end();
-      });
-    }
-    if (url.pathname === '/api/conversa') {
-      return handleConversaApi(req, res, {
-        store,
-        onProfileChanged: (playerId) => world.pushProfileById(playerId),
-        onConversaEnd: (playerId, npc, grade, order) => world.conversaEnded(playerId, npc, grade, order),
-        onConversaLine: (playerId, who, pt) => world.conversaLine(playerId, who, pt),
-        memory: conversaMemory,
-        clockMinutes: () => world.gameMinuteNow(),
-        dateKey: () => conversaDateKey(),
-        allowedOrigins,
-        playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
-      }).catch((e) => {
-        console.error('[conversa] handler error', e);
         if (!res.headersSent) res.writeHead(500);
         res.end();
       });

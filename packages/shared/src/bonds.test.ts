@@ -19,7 +19,7 @@ describe('hearts', () => {
 describe('bond gains', () => {
   it('uses the Phase 8 numbers', () => {
     expect(BOND_GAIN.talk).toBe(2);
-    expect(BOND_GAIN.conversaGood).toBe(3);
+    expect(BOND_GAIN.papo).toBe(3);
   });
 
   it('adds per NPC without touching the others or the input, and clamps to 0-100', () => {
@@ -35,7 +35,7 @@ describe('bond gains', () => {
   it('reports the milestones a gain crosses, once each', () => {
     expect(BOND_MILESTONES.map((m) => [m.hearts, m.kind])).toEqual([
       [2, 'uses_name'],
-      [4, 'conversa_subject'],
+      [4, 'story'],
       [6, 'furniture_gift'],
     ]);
     expect(addBond({ carlos: 18 }, 'carlos', 2).milestones.map((m) => m.hearts)).toEqual([2]);

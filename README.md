@@ -8,13 +8,13 @@ A Brazilian Portuguese learning game that is also a small neighborhood to hang o
 
 You move into **Vila Ipê**, a São Paulo neighborhood with a living clock (one game day is 48 real minutes, the same for everyone), weather
 (sol, nublado, garoa, chuva), traffic, a bus, a stray dog and pigeons. The neighbors have routines, remember you, and ask you for small favors
-(**recados**). Everything is spoken in Portuguese with an English gloss next to it, and the Portuguese is what you learn by doing the errands:
+(**favores**). Everything is spoken in Portuguese with an English gloss next to it, and the Portuguese is what you learn by doing the favors:
 ordering a coffee, asking "Quanto custa?", greeting someone with the right *bom dia / boa tarde / boa noite*.
 
 | The street at 19:30 | Treino no tatame at the Academia |
 | --- | --- |
 | ![The street in front of the padaria at 19:30](docs/screenshots/street.png) | ![A match on the tatame](docs/screenshots/academia.png) |
-| **Seu Carlos at the padaria** | **The feira livre: Tia Lu, "Quanto custa?"** |
+| **Seu Carlos at the padaria** | **The feira de rua: Tia Lu, "Quanto custa?"** |
 | ![The padaria dialogue](docs/screenshots/padaria_dialogue.png) | ![The feira](docs/screenshots/feira.png) |
 
 ---
@@ -49,9 +49,9 @@ VITE_LOCAL_WORLD=1 pnpm --filter @tudobem/client build      # then serve apps/cl
 3. **The airport.** You land at gate 3 of the Aeroporto: the plane at the jet bridge behind the glass, the tower, the baggage belt, passport control. A **Primeiros passos** checklist (it takes the tracker's corner) walks you through everything with an arrow on each step: walk, read a sign, get Júlia's package from **Célia** at Informações (the camera and the cartela), photograph the plane (free here), open the Diário, greet **Agente Paulo** by the hour at passport control, sit, wave, buy a pão de queijo with your RV, and take **bus 875** to the Vila. The bus runs back from the stop on Rua dos Ipês (leste), and the Diário's Chegada area takes you there too.
 4. **Vila Ipê.** Click or tap the floor to walk (or WASD / arrows), click a bench to sit, type in the chat bar or use the quick words. Júlia, the square guide, starts a short welcome chain (*Bem-vindo à Vila Ipê*, tracked at the top right). Signs you can read show a small eye: click one for a card with the words, a 🔊 button and **Guardar no caderno**.
 5. **Padaria do Seu Carlos** (the door with the red awning). Seu Carlos opens a dialogue box with the camera zoomed in: a free **Conversa** (AI-written when a key is configured, authored otherwise) or the **Pedido rápido** breakfast order. Good Portuguese pays more RV (the game's currency). At night (22:00 to 06:00) **Dona Graça** runs the counter.
-6. **Recados.** Neighbors offer errands ("Pode deixar!" / "Agora não"): order a café com leite, hand it to Nanda, greet Júlia with the greeting that fits the hour. The **Recados** journal shows what is active and offered today, your **Mochila** (bag) and your **Amizades**. Hearts grow as you help: 2 hearts, the neighbor uses your name; 4, a new Conversa subject (*O bairro*); 6, a gift for your kitnet.
+6. **Favores** (favors; `recados` in the code). Neighbors ask for favors ("Pode deixar!", you got it / "Agora não", not now): order a café com leite, hand it to Nanda, greet Júlia with the greeting that fits the hour. The **Favores** journal shows what is active and offered today, your **Mochila** (bag) and your **Amizades**. Hearts grow as you help: 2 hearts, the neighbor uses your name; 4, a new Conversa subject (*O bairro*); 6, a gift for your kitnet.
 7. **Correria no Balcão** (Counter Rush) behind the counter: customers queue and order out loud (“Me vê um…”), you grab, grill, pour and pack, then serve and answer “Quanto é?”. Three waves, tips, stars and unlocks.
-8. **Feira livre** (east lot, every day 06:00 to 13:00, plus the Hortifrúti corner at the banca at any hour). Ask "Quanto custa a banana?", hear the price in words, say how many, then pay with coins and notes. Overpay and you get *troco*; underpay and nothing is bought.
+8. **Feira de rua** (street market; east lot, every day 06:00 to 13:00, plus the Hortifrúti corner at the banca at any hour). Ask "Quanto custa a banana?", hear the price in words, say how many, then pay with coins and notes. Overpay and you get *troco*; underpay and nothing is bought.
 9. **The Diário.** Every word you earn (a photo, a sign, a line someone says, a game) becomes a sticker in an álbum de figurinhas: one chapter per place, a numbered slot per word, an empty slot that tells you how to find what is missing, and a card for each word with its voice, the line it came from and how well the Escola knows it. The Caderno de palavras tab keeps the notebook by group; finishing a group pays RV.
 10. **Hats, kitnet and friends.** Nanda's stall (hats), your kitnet at Nº 42 (decorate, sit), the Academia do Bairro (Professora Bia, tatame, a CPU roll), the parrot perch, friends in the top bar.
 10b. **Placar da Vila.** In the Praça, tap the scoreboard by the fountain for **Most Words Learned** and **Highest Current Streak** (Escola). Free for everyone; display names only.

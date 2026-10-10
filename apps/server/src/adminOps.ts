@@ -490,7 +490,7 @@ export function wipeProgress(p: StoredProfile, startingCoins: number, padarias: 
   p.daily = { date: today(), sceneClears: {} };
   p.cartela = freshCartela();
   p.feiraMedals = [];
-  p.npcMemory = {};
+  p.papos = [];
   p.testDayOffset = undefined;
   p.testClockOffsetMs = undefined;
   p.testFeiraPaid = undefined;

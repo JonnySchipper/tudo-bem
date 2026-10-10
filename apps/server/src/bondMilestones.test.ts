@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DEFAULT_APPEARANCE, FURNITURE, ROOMS, furnitureById, giftFor, hearts, type ClientMsg, type ServerMsg } from '@tudobem/shared';
+import { DEFAULT_APPEARANCE, FURNITURE, ROOMS, furnitureById, giftFor, hearts, storyOf, type ClientMsg, type ServerMsg } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore, normalizeProfile, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
 
 /**
- * Friendship milestones (HOWTO Phase 8 step 4): 2 hearts = the NPC knows your name, 4 = a new Conversa subject, 6 = a furniture gift (once).
- * The effects run wherever bond is paid (talk, recado, good Conversa), through `RecadoTracker.gain`.
+ * Friendship milestones (HOWTO Phase 8 step 4): 2 hearts = the NPC knows your name, 4 = they tell you their story (a bate-papo), 6 = a
+ * furniture gift (once). The effects run wherever bond is paid (talk, recado, bate-papo), through `RecadoTracker.gain`.
  */
 let clock = 12 * 60 * 60 * 1000;
 const pending: { fn: () => void; at: number }[] = [];
@@ -84,13 +84,16 @@ describe('bond milestones', () => {
     expect(a.s.profile!.furniture.tapete).toBeUndefined();
   });
 
-  it('4 hearts: the subject notice only comes from an NPC that has a Conversa (Nanda has none)', async () => {
+  it('4 hearts: the NPC wants to tell you their story (their 4-heart bate-papo), named in the notice', async () => {
     const world = makeWorld();
     const a = await client(world);
     a.s.profile!.bond = { nanda: 39 };
     await talkToNanda(a);
     expect(hearts(a.s.profile!.bond!.nanda!)).toBe(4);
-    expect(a.notices('bond')).toHaveLength(0);
+    const notes = a.notices('bond');
+    expect(notes).toHaveLength(1);
+    expect(notes[0]!.pt).toContain(storyOf('nanda')!.title.pt);
+    expect(notes[0]!.en).toContain(storyOf('nanda')!.title.en);
   });
 
   it('6 hearts: a furniture gift lands in the inventory once, with a notice; crossing the line again gives nothing more', async () => {
@@ -116,16 +119,27 @@ describe('bond milestones', () => {
     expect(a.notices('bond').filter((x) => x.pt.includes('presente'))).toHaveLength(1);
   });
 
-  it('4 hearts with Seu Carlos (a good Conversa): the notice names the new subject, and the subject is open from then on', async () => {
+  it('a bate-papo talked through (never graded): a talk, +3 bond once a game day, remembered as heard, the praça cartela stamp', async () => {
     const world = makeWorld();
     const a = await client(world);
     const p = a.s.profile!;
-    p.bond = { carlos: 36 };
-    world.conversaEnded(p.id, 'carlos', 'pass'); // talk +2, good grade +3
-    expect(hearts(p.bond!.carlos!)).toBe(4);
-    const note = a.notices('bond').find((x) => x.pt.includes('assunto novo'));
-    expect(note?.pt).toContain('O bairro');
-    expect(note?.en).toContain('The neighborhood');
+    const nanda = ROOMS.praca.npcs.find((x) => x.id === 'nanda')!;
+    // too far away: nothing counts
+    await a.send({ t: 'papo', npc: 'nanda', id: 'nanda.sol' });
+    expect(p.papos ?? []).toEqual([]);
+    await a.send({ t: 'move', x: nanda.interact.x, y: nanda.interact.y });
+    advance(120_000);
+    // the story is not open before 4 hearts, and a papo of someone else is refused
+    await a.send({ t: 'papo', npc: 'nanda', id: 'nanda.historia' });
+    await a.send({ t: 'papo', npc: 'nanda', id: 'julia.ipe' });
+    expect(p.papos ?? []).toEqual([]);
+    await a.send({ t: 'papo', npc: 'nanda', id: 'nanda.sol' });
+    expect(p.papos).toEqual(['nanda.sol']);
+    expect(p.bond?.nanda).toBe(2 + 3); // the day's talk + the bate-papo
+    expect(a.inbox.some((m) => m.t === 'cartela' && m.activity === 'conversa')).toBe(true);
+    await a.send({ t: 'papo', npc: 'nanda', id: 'nanda.fonte' });
+    expect(p.papos).toEqual(['nanda.sol', 'nanda.fonte']);
+    expect(p.bond?.nanda).toBe(5); // once per game day
   });
 
   it('an old save without bondGifts loads with an empty list', () => {

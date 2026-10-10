@@ -255,6 +255,29 @@ describe('World', () => {
     expect(a.all('chat').length).toBe(5);
   });
 
+  it('"Ande pela praça" only checks off from a walk inside the praça, not the rua', async () => {
+    const { world } = makeWorld();
+    const a = await client(world, 'Andarilha');
+    await a.send({ t: 'join', room: 'rua' });
+    expect(a.last('roomState')!.room).toBe('rua');
+    // a walk on the rua (not onto an edge, so it stays on the rua)
+    const edges = new Set(ROOMS.rua.portals.filter((p) => p.edge).map((p) => `${p.x},${p.y}`));
+    const grid = buildGrid(ROOMS.rua);
+    const spawn = ROOMS.rua.spawn;
+    const near = [-3, -2, -1, 1, 2, 3].flatMap((dx) => [-1, 0, 1].map((dy) => ({ x: spawn.x + dx, y: spawn.y + dy })));
+    const to = near.find((t) => isWalkable(grid, t.x, t.y) && !edges.has(`${t.x},${t.y}`))!;
+    expect(to).toBeDefined();
+    await a.send({ t: 'move', x: to.x, y: to.y });
+    advance(30_000);
+    expect(a.last('avatarMoved')!.path.length).toBeGreaterThan(0);
+    expect(a.last('roomState')!.room).toBe('rua');
+    expect(a.s.profile!.tutorial.andar).toBe(false);
+    await a.send({ t: 'join', room: 'praca' });
+    await a.send({ t: 'move', x: 11, y: 6 });
+    advance(30_000);
+    expect(a.s.profile!.tutorial.andar).toBe(true);
+  });
+
   it('plays the whole Phase 0 path: Carlos → Me vê um… → hat → kitnet chair', async () => {
     const { world } = makeWorld();
     const a = await client(world, 'Ana', 'ela');

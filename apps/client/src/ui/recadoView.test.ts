@@ -146,7 +146,7 @@ describe('errands you can see before talking to anyone', () => {
     expect(e.map((x) => x.kind)).toEqual(['recado', 'offer', 'offer']);
     expect(e[0]!.where?.pt).toBe('Praça Central');
     expect(e[1]).toMatchObject({ key: 'offer:nanda_coxinha', giver: 'nanda', progress: '!' });
-    expect(e[1]!.step.pt).toBe('Nanda tem um recado pra você!');
+    expect(e[1]!.step.pt).toBe('Nanda quer te pedir um favor!');
     expect(e[1]!.where?.pt).toBe('Praça Central');
     // no minute: no where-line
     expect(trackerEntries(b, done)[1]!.where).toBeNull();

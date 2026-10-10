@@ -23,7 +23,7 @@ import {
   type PadariaUpgradeKind,
 } from '@tudobem/shared';
 import { game } from '../state';
-import { h, en, bi } from './dom';
+import { h, en, bi, rvPriceNote } from './dom';
 import { closeModal, modalId, openModal } from './modal';
 import { closeDialogue, showDialogue } from './panels';
 import { foodIcon } from './pixelArt';
@@ -145,6 +145,7 @@ function bookPanel(card: PadariaCard) {
     }),
   );
   panel.append(
+    rvPriceNote(),
     h('h4', null, bi('Tamanho', 'Size')),
     tiers,
     h('h4', null, bi('Doces da vitrine', 'Sweets in the case')),
@@ -184,6 +185,7 @@ export function openHouseCounter(card: PadariaCard) {
     line: card.owner
       ? { pt: `Balcão da ${card.name}. O que vai pra sacola?`, en: `${card.name}’s counter. What goes in the bag?` }
       : { pt: `Bem-vindo à ${card.name}! O que vai ser?`, en: `Welcome to ${card.name}! What’ll it be?` },
+    extras: rvPriceNote(),
     chips,
     key: `house-counter-${card.id}`,
     onChoose: (i) => {
@@ -233,6 +235,7 @@ function renderDoor(door: PadariaDoorState, rows: PadariaCard[]) {
       h('h3', null, 'Sua própria padaria'),
       en('Your own bakery'),
       h('p', null, 'Junte reais no balcão do Seu Carlos e abra a sua porta: nome na fachada, chapéu de dono e o seu balcão.', en('Save up at Seu Carlos’s counter and open your own door: your name, an owner’s hat and your own counter.')),
+      rvPriceNote(),
       h('p', { class: 'hint' }, bi(`${door.coins} / ${door.goalRv} RV na porta`, `${door.coins} / ${door.goalRv} RV toward the door`)),
       meter,
     );

@@ -99,9 +99,9 @@ const heartsEl = (points: number | undefined, cls = 'hearts'): HTMLElement => {
  * the journal. Desktop starts open, a phone starts as a one-line pill that opens by itself for a few seconds when a step moves.
  */
 export function mountTracker(openJournal: () => void): { refresh: () => void } {
-  const head = h('button', { class: 'rtrack-head', type: 'button', 'aria-expanded': 'true', title: 'Recados — mostrar ou esconder / show or hide' });
+  const head = h('button', { class: 'rtrack-head', type: 'button', 'aria-expanded': 'true', title: 'Favores — mostrar ou esconder / show or hide' });
   const rows = h('div', { class: 'rtrack-rows' });
-  const el = h('div', { class: 'rtrack', id: 'recado-tracker', role: 'region', 'aria-label': 'Recados' }, head, rows);
+  const el = h('div', { class: 'rtrack', id: 'recado-tracker', role: 'region', 'aria-label': 'Favores' }, head, rows);
   ui().append(el);
   let prevBoard: RecadoBoard | null = null;
   let prevTutorial: NonNullable<typeof game.profile>['tutorial'] | null = null;
@@ -193,9 +193,9 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
     el.classList.toggle('has-offer', offers > 0);
     head.replaceChildren(
       icon('recados', 16),
-      h('b', null, 'Recados'),
+      h('b', null, 'Favores'),
       // collapsed on a phone the head is all there is: a gold "!" says a neighbour is waiting
-      ...(offers ? [h('span', { class: 'rtrack-bang', title: 'Novo recado · New errand', 'aria-label': `${offers} recados novos (new errands)` }, '!')] : []),
+      ...(offers ? [h('span', { class: 'rtrack-bang', title: 'Novo favor · New favor', 'aria-label': `${offers} favores novos (new favors)` }, '!')] : []),
       h('small', { class: `rtrack-stars${day.paid ? ' paid' : ''}`, title: `Vizinho do dia: ${day.done}/${day.goal} · Neighbour of the day`, 'aria-label': `Vizinho do dia ${day.done}/${day.goal}` }, starEls(day)),
       h('span', { class: 'rtrack-caret', 'aria-hidden': 'true' }),
     );
@@ -230,7 +230,7 @@ function entryRow(e: TrackerEntry, justDone: boolean, open: () => void): HTMLEle
       'data-recado': e.key,
       role: 'button',
       tabindex: '0',
-      title: 'Abrir os recados / open the journal',
+      title: 'Abrir os favores / open the favors',
       onclick: open,
       onkeydown: (ev: KeyboardEvent) => {
         if (ev.key === 'Enter' || ev.key === ' ') {
@@ -307,7 +307,7 @@ export function openJournal(): void {
           'span',
           null,
           h('b', null, day.paid ? 'Vizinho do dia! ✓' : `Vizinho do dia: ${day.done}/${day.goal}`),
-          en(day.paid ? `Neighbour of the day! +${day.rv} RV paid. New errands tomorrow.` : `Finish ${day.goal} errands today for a +${day.rv} RV bonus.`, true),
+          en(day.paid ? `Neighbour of the day! +${day.rv} RV paid. New favors tomorrow.` : `Finish ${day.goal} favors today for a +${day.rv} RV bonus.`, true),
         ),
       ),
     );
@@ -344,8 +344,8 @@ export function openJournal(): void {
               }),
             )
           : j.offered.length
-            ? h('p', { class: 'rj-empty' }, 'Nenhum recado ainda. Escolha um aqui embaixo!', en('No errands yet. Pick one below!', true))
-            : h('p', { class: 'rj-empty' }, 'Nenhum recado agora. Fale com os vizinhos!', en('No errands right now. Talk to the neighbors!', true)),
+            ? h('p', { class: 'rj-empty' }, 'Nenhum favor ainda. Escolha um aqui embaixo!', en('No favors yet. Pick one below!', true))
+            : h('p', { class: 'rj-empty' }, 'Nenhum favor agora. Fale com os vizinhos!', en('No favors right now. Talk to the neighbors!', true)),
       ),
     );
 
@@ -431,7 +431,7 @@ export function openJournal(): void {
             ),
           ),
         ),
-        h('p', { class: 'rj-legend' }, '2 ♥ sabe seu nome · 4 ♥ assunto novo · 6 ♥ presente', en('2 ♥ knows your name · 4 ♥ a new chat topic · 6 ♥ a gift', true)),
+        h('p', { class: 'rj-legend' }, '2 ♥ sabe seu nome · 4 ♥ conta a própria história · 6 ♥ presente', en('2 ♥ knows your name · 4 ♥ tells you their story · 6 ♥ a gift', true)),
       ),
     );
 
@@ -447,8 +447,8 @@ export function openJournal(): void {
       'div',
       { class: 'panel recados' },
       h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
-      h('h2', null, 'Recados'),
-      en('Errands for the neighbors · your bag · your friends'),
+      h('h2', null, 'Favores'),
+      en('Favors for the neighbors · your bag · your friends · paid in reais virtuais (RV), the game’s play money'),
       body,
       h('div', { class: 'rj-foot' }, h('button', { class: 'ghost', onclick: () => close() }, bi('Fechar', 'Close'))),
     ),
@@ -510,10 +510,10 @@ function offerBeat(npc: NpcId, offer: NonNullable<ReturnType<typeof offerFrom>>,
     ...common(npc, `offer-${npc}`),
     expression: 'neutro',
     line: { pt: offer.ask.pt, en: offer.ask.en },
-    notes: [h('small', { class: 'dbx-meta offer-title' }, `Recado: ${offer.title.pt}`)],
+    notes: [h('small', { class: 'dbx-meta offer-title' }, `Favor: ${offer.title.pt}`)],
     extras: h('div', { class: 'offer-reward' }, h('span', { class: 'rd-rv' }, `+${offer.reward.rv} RV`), h('span', { class: 'rd-heart' }, icon('coracao', 16), `+${offer.reward.bond}`), offer.reward.itemId ? h('span', { class: 'rd-item' }, foodIcon(offer.reward.itemId, 2), itemById(offer.reward.itemId)?.name.pt ?? '') : null),
     chips: [
-      { pt: 'Pode deixar!', en: 'You got it!' },
+      { pt: 'Pode deixar!', en: 'You got it! (leave it to me)' },
       { pt: 'Agora não', en: 'Not now' },
     ],
     onChip: (i) => {

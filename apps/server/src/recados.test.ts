@@ -211,7 +211,7 @@ describe('recados on the server', () => {
     const a = await client(world);
     offer(a, 'nanda_coxinha');
     await a.send({ t: 'recados', action: 'accept', id: 'nanda_coxinha' });
-    expect(a.all('notice').find((m) => m.tag === 'recado_accept')?.pt).toBe('Recado aceito: Coxinha da padaria → Peça 1× coxinha (Seu Carlos).');
+    expect(a.all('notice').find((m) => m.tag === 'recado_accept')?.pt).toBe('Favor aceito: Coxinha da padaria → Peça 1× coxinha (Seu Carlos).');
 
     await a.send({ t: 'recados', action: 'drop', id: 'nope' });
     expect(errors(a)).toEqual(['recado']);
@@ -382,21 +382,6 @@ describe('recados on the server', () => {
     await a.send({ t: 'scene', action: 'close' });
     await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
     expect(p.bond?.carlos).toBe(12); // once per game day
-  });
-
-  it('a Conversa that ends with a pass counts as a talk and earns +3 bond once per game day', async () => {
-    const world = makeWorld();
-    const a = await client(world);
-    const p = a.s.profile!;
-    world.conversaEnded(p.id, 'carlos', 'almost');
-    expect(p.bond).toEqual({ carlos: 2 });
-    world.conversaEnded(p.id, 'carlos', 'pass');
-    expect(p.bond).toEqual({ carlos: 5 });
-    world.conversaEnded(p.id, 'carlos', 'pass');
-    expect(p.bond).toEqual({ carlos: 5 });
-    world.conversaEnded(p.id, 'carlos', 'pass', { drink: 'cafe_com_leite', food: 'nada' });
-    expect(p.bag).toEqual({ cafe_com_leite: 1 });
-    world.conversaEnded('nobody', 'carlos', 'pass'); // offline / unknown player: ignored
   });
 
   it('keeps the daily mission, tutorial and its rewards exactly as before while recados run alongside', async () => {
