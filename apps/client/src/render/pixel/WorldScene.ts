@@ -18,6 +18,9 @@ import {
   hotspotBox,
   diaryVisible,
   hotspotsInRoom,
+  hotspotDistance,
+  HOTSPOT_READ_RANGE,
+  type HotspotDef,
   normalizeDiary,
   wordForSign,
   isCpuId,
@@ -71,6 +74,7 @@ import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
 import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
+import type { GlintCompass } from './glintCompass';
 import { doorTagsFor, doorsFresh, type DoorTag } from '../../ui/wayfinding';
 import { declinedOffers, npcMarkers } from '../../ui/recadoView';
 import { T, cssZoomFor, deviceZoomFor, feet, leadNorthFor, outdoorFraming, roomFraming, roomZoom, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
@@ -123,6 +127,8 @@ import { CARRY_BEAT_MS, arcPoint, beatPose, binInReach, carryMove, groundSpot } 
 
 export interface SceneHost {
   labels: LabelLayer;
+  /** The arrows at the screen edge that point to stars off screen. */
+  compass?: GlintCompass;
   guides: () => Guide[];
   /** HUD space to keep clear, CSS px */
   insets: () => Insets;
@@ -131,6 +137,23 @@ export interface SceneHost {
   /** `?shot=map`: zoom out to fit the whole outdoor map (screenshots) */
   shot?: string | null;
 }
+
+/** A reading word's star over the sign it is written on: the twinkle, a soft halo, and the long-rayed flare it gives now and then. */
+interface Glint {
+  word: string;
+  hotspot: string;
+  def: HotspotDef;
+  x: number;
+  y: number;
+  img: Phaser.GameObjects.Image;
+  halo: Phaser.GameObjects.Image;
+  flare: Phaser.GameObjects.Image;
+  phase: number;
+}
+
+/** A star flares (the long rays) once every this many ms, each on its own beat. */
+const FLARE_EVERY_MS = 3400;
+const FLARE_MS = 420;
 
 interface AvatarView {
   sprite: Phaser.GameObjects.Sprite;
@@ -281,7 +304,9 @@ export class WorldScene extends Phaser.Scene {
   private layoutEpoch = -1;
   private roomObjs: Phaser.GameObjects.GameObject[] = [];
   /** Reading words in this room: a small twinkle over each one this player has not read yet (the signs have no sprite of their own). */
-  private glints: { word: string; img: Phaser.GameObjects.Image; phase: number }[] = [];
+  private glints: Glint[] = [];
+  /** Signs whose star a find animation has taken over (ui/achado.ts): the DOM star stands in for it until the word is had or the find fizzles. */
+  private claimedGlints = new Set<string>();
   /** The airport's runway: the plane that lands now and then, its shadow and the touchdown puff (`runway.ts`). */
   private runway: { def: RunwayDef; plane: Phaser.GameObjects.Image; shadow: Phaser.GameObjects.Image | null; puff: Phaser.GameObjects.Image | null } | null = null;
   private glintDiary: unknown = null;
@@ -431,9 +456,56 @@ export class WorldScene extends Phaser.Scene {
     return key;
   }
 
+  /** The flare (13 x 13 art px): the same star with long thin rays, shown for a moment on each star's beat. */
+  private glintFlareTexture(): string {
+    const key = 'fx:glint_flare';
+    if (!this.textures.exists(key))
+      this.textures.generate(key, {
+        data: [
+          '......1......',
+          '......2......',
+          '......2......',
+          '......3......',
+          '......3......',
+          '.....343.....',
+          '1223344433221',
+          '.....343.....',
+          '......3......',
+          '......3......',
+          '......2......',
+          '......2......',
+          '......1......',
+        ],
+        pixelWidth: 1,
+        palette: { 1: '#c9921c', 2: '#f2c230', 3: '#fff3c0', 4: '#ffffff' } as unknown as Phaser.Types.Create.Palette,
+      });
+    return key;
+  }
+
+  /** A soft round glow (24 x 24 art px, additive) under each star, so it reads as light and not as a sticker. */
+  private glintHaloTexture(): string {
+    const key = 'fx:glint_halo';
+    if (!this.textures.exists(key)) {
+      const c = this.textures.createCanvas(key, 24, 24);
+      const ctx = c?.getContext();
+      if (c && ctx) {
+        const g = ctx.createRadialGradient(12, 12, 0, 12, 12, 12);
+        g.addColorStop(0, 'rgba(255, 226, 130, 0.75)');
+        g.addColorStop(0.45, 'rgba(255, 200, 80, 0.28)');
+        g.addColorStop(1, 'rgba(255, 190, 60, 0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 24, 24);
+        c.refresh();
+      }
+    }
+    return key;
+  }
+
   /** One twinkle per reading word in the room, at the top of the thing it is written on. Shown only while the word is unread (`syncGlints`). */
   private buildGlints(def: RoomDef): void {
     const tex = this.glintTexture();
+    const flareTex = this.glintFlareTexture();
+    const haloTex = this.glintHaloTexture();
     // the art of the room's props, to find the sign board a word is written on (the hotspot box is only the floor it stands on)
     const arts: { key: string; rect: Rect }[] = [];
     for (const p of def.props) {
@@ -448,8 +520,10 @@ export class WorldScene extends Phaser.Scene {
       if (!word) continue;
       const b = hotspotBox(hs);
       const at = glintSpot({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T }, arts);
+      const halo = this.reg(this.add.image(at.x, at.y, haloTex)).setDepth(DEPTH.overhead - 11).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+      const flare = this.reg(this.add.image(at.x, at.y, flareTex)).setDepth(DEPTH.overhead - 9).setVisible(false);
       const img = this.reg(this.add.image(at.x, at.y, tex)).setDepth(DEPTH.overhead - 10).setVisible(false);
-      this.glints.push({ word: word.id, img, phase: hash01(b.x0 * 13 + b.y0 * 7) * Math.PI * 2 });
+      this.glints.push({ word: word.id, hotspot: hs.id, def: hs, x: at.x, y: at.y, img, halo, flare, phase: hash01(b.x0 * 13 + b.y0 * 7) * Math.PI * 2 });
     }
   }
 
@@ -488,9 +562,16 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** Twinkle the unread words (slow, staggered; steady under reduced motion); hidden while a counter or bout has the screen. */
+  /**
+   * Twinkle the unread words (staggered; steady under reduced motion); hidden while a counter or bout has the screen. A star the player is
+   * close enough to read pulses faster and brighter; every star flares its long rays now and then, and the ones off screen get an arrow
+   * at the screen edge (`host.compass`), so there is always a next one to go and find.
+   */
   private syncGlints(now: number): void {
-    if (!this.glints.length) return;
+    if (!this.glints.length) {
+      this.host.compass?.update([]);
+      return;
+    }
     // the diary set is rebuilt only when the profile's diary array changes (a new profile push)
     const diary = game.profile?.diary;
     if (diary !== this.glintDiary) {
@@ -499,17 +580,47 @@ export class WorldScene extends Phaser.Scene {
     }
     const have = this.glintHave;
     const busy = correriaFeed.active || boutFeed.active || game.cameraOn;
+    const me = game.room ? this.avatars.get(game.room.selfId) : undefined;
+    const meTile = me ? { x: Math.floor(me.sprite.x / T), y: Math.floor((me.sprite.y - 1) / T) } : null;
+    const away: { key: string; x: number; y: number }[] = [];
     for (const g of this.glints) {
-      const show = !busy && !have.has(g.word);
+      const show = !busy && !have.has(g.word) && !this.claimedGlints.has(g.hotspot);
       g.img.setVisible(show);
+      g.halo.setVisible(show);
+      g.flare.setVisible(false);
       if (!show) continue;
+      const p = worldToCanvas(this.cam, g.x, g.y);
+      away.push({ key: g.hotspot, x: p.px, y: p.py });
       if (this.fxLevel.reduced) {
         g.img.setAlpha(0.9).setScale(1);
+        g.halo.setAlpha(0.5).setScale(1);
         continue;
       }
-      const t = (Math.sin(now / 520 + g.phase) + 1) / 2;
-      g.img.setAlpha(0.35 + 0.65 * t).setScale(0.75 + 0.35 * t);
+      const near = !!meTile && hotspotDistance(g.def, meTile) <= HOTSPOT_READ_RANGE;
+      const t = (Math.sin(now / (near ? 260 : 520) + g.phase) + 1) / 2;
+      g.img.setAlpha((near ? 0.7 : 0.35) + (near ? 0.3 : 0.65) * t).setScale((near ? 1 : 0.75) + 0.35 * t);
+      g.halo.setAlpha((near ? 0.55 : 0.25) + 0.35 * t).setScale((near ? 1.25 : 0.85) + 0.3 * t);
+      // the flare: a quick bloom of long rays on this star's own beat (twice as often when the player is close)
+      const every = near ? FLARE_EVERY_MS / 2 : FLARE_EVERY_MS;
+      const f = (now + (g.phase / (Math.PI * 2)) * every) % every;
+      if (f < FLARE_MS) {
+        const k = Math.sin((f / FLARE_MS) * Math.PI);
+        g.flare.setVisible(true).setAlpha(k).setScale(0.6 + 0.7 * k).setRotation((f / FLARE_MS) * 0.6);
+      }
     }
+    this.host.compass?.update(busy ? [] : away);
+  }
+
+  /** Where a sign's star is, in world px (null when the room has no star on that sign). */
+  glintSpotOf(hotspotId: string): { x: number; y: number } | null {
+    const g = this.glints.find((e) => e.hotspot === hotspotId);
+    return g ? { x: g.x, y: g.y } : null;
+  }
+
+  /** A find animation takes the star over (`on`), or gives it back (the find fizzled). */
+  claimGlint(hotspotId: string, on: boolean): void {
+    if (on) this.claimedGlints.add(hotspotId);
+    else this.claimedGlints.delete(hotspotId);
   }
 
   private reg<G extends Phaser.GameObjects.GameObject>(o: G): G {
@@ -569,6 +680,7 @@ export class WorldScene extends Phaser.Scene {
     this.roomMap = null;
     this.staticHits = [];
     this.glints = [];
+    this.claimedGlints.clear();
     this.runway = null;
     this.placeholders = [];
     this.canopies = [];

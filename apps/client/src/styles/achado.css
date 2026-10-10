@@ -1,0 +1,577 @@
+/* Achado! A word found on a sign's star (ui/achado.ts). Never takes the pointer. */
+
+#achado {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#achado > i,
+#achado > div {
+  position: fixed;
+}
+
+/* the world dims to a spotlight on the star */
+.ach-dim {
+  inset: 0;
+  background: radial-gradient(circle at var(--x) var(--y), rgba(255, 226, 140, 0.16) 0, transparent 90px, rgba(12, 8, 28, 0.42) 360px);
+  animation: ach-fade-in 0.35s ease-out both;
+  transition: opacity 0.45s ease-in;
+}
+
+.ach-dim.out {
+  opacity: 0;
+}
+
+@keyframes ach-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- the star: it swells and spins while a ring of light draws in, then bursts */
+.ach-orb {
+  width: 0;
+  height: 0;
+}
+
+.ach-orb > * {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  translate: -50% -50%;
+}
+
+.ach-star {
+  width: var(--s);
+  height: var(--s);
+  background: radial-gradient(circle, #ffffff 0 16%, #fff3c0 26%, #f2c230 42%, #c9921c 56%, transparent 58%);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  filter: drop-shadow(0 0 6px rgba(255, 220, 110, 1));
+  animation:
+    ach-swell 0.46s cubic-bezier(0.3, 0, 0.3, 1.4) both,
+    ach-hover 0.9s ease-in-out 0.46s infinite;
+}
+
+.ach-halo {
+  width: calc(var(--s) * 6);
+  height: calc(var(--s) * 6);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 230, 140, 0.75), rgba(255, 200, 80, 0.25) 40%, transparent 68%);
+  animation: ach-halo 0.46s ease-out both;
+}
+
+.ach-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 243, 192, 0.9);
+  box-shadow:
+    0 0 12px rgba(255, 214, 102, 0.9),
+    inset 0 0 12px rgba(255, 214, 102, 0.7);
+  animation: ach-implode 0.46s cubic-bezier(0.5, 0, 0.9, 0.6) both;
+}
+
+.ach-ring.two {
+  width: 180px;
+  height: 180px;
+  border-width: 2px;
+  animation-delay: 0.08s;
+  animation-duration: 0.38s;
+}
+
+@keyframes ach-swell {
+  from {
+    scale: 1;
+    rotate: 0deg;
+  }
+  to {
+    scale: 3.4;
+    rotate: 225deg;
+  }
+}
+
+@keyframes ach-hover {
+  0%,
+  100% {
+    scale: 3.4;
+    rotate: 225deg;
+  }
+  50% {
+    scale: 3;
+    rotate: 270deg;
+  }
+}
+
+@keyframes ach-halo {
+  from {
+    scale: 0.2;
+    opacity: 0;
+  }
+}
+
+@keyframes ach-implode {
+  from {
+    scale: 1.6;
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  to {
+    scale: 0.1;
+    opacity: 0;
+  }
+}
+
+.ach-orb.burst .ach-star {
+  animation: ach-pop 0.32s ease-out forwards;
+}
+
+.ach-orb.burst .ach-halo {
+  animation: ach-halo-out 0.9s ease-out forwards;
+}
+
+.ach-orb.fizzle .ach-star {
+  animation: ach-sigh 0.42s ease-in forwards;
+}
+
+.ach-orb.fizzle .ach-halo {
+  animation: ach-halo-out 0.42s ease-in forwards;
+}
+
+@keyframes ach-pop {
+  from {
+    scale: 3.4;
+    filter: drop-shadow(0 0 6px #fff) brightness(1.6);
+  }
+  40% {
+    scale: 5.5;
+    opacity: 1;
+  }
+  to {
+    scale: 0.5;
+    opacity: 0;
+  }
+}
+
+@keyframes ach-halo-out {
+  from {
+    scale: 1;
+    opacity: 1;
+  }
+  to {
+    scale: 2.2;
+    opacity: 0;
+  }
+}
+
+@keyframes ach-sigh {
+  to {
+    scale: 0.4;
+    rotate: 0deg;
+    opacity: 0;
+    filter: grayscale(0.7);
+  }
+}
+
+/* ---- the burst */
+.ach-flash {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0, rgba(255, 246, 207, 0.85) 30%, transparent 68%);
+  translate: -50% -50%;
+  animation: ach-flash 0.42s ease-out forwards;
+}
+
+.ach-rays {
+  width: 460px;
+  height: 460px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 230, 140, 0.6) 0deg 5deg, transparent 5deg 22.5deg);
+  -webkit-mask: radial-gradient(circle, #000 0 12%, rgba(0, 0, 0, 0.6) 32%, transparent 68%);
+  mask: radial-gradient(circle, #000 0 12%, rgba(0, 0, 0, 0.6) 32%, transparent 68%);
+  animation: ach-rays 2.1s ease-out forwards;
+}
+
+.ach-shock {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid #fff3c0;
+  box-shadow: 0 0 14px rgba(255, 214, 102, 0.9);
+  translate: -50% -50%;
+  animation: ach-shock 0.65s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+
+.ach-shock.two {
+  border-color: #f2c230;
+  border-width: 2px;
+  animation-delay: 0.12s;
+  animation-duration: 0.85s;
+}
+
+.ach-spark {
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px 1px rgba(255, 230, 150, 0.85);
+}
+
+.ach-spark.star {
+  width: 13px;
+  height: 13px;
+  border-radius: 0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+}
+
+@keyframes ach-flash {
+  from {
+    scale: 0.2;
+    opacity: 1;
+  }
+  to {
+    scale: 1.7;
+    opacity: 0;
+  }
+}
+
+@keyframes ach-rays {
+  from {
+    scale: 0.25;
+    rotate: 0deg;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  to {
+    scale: 1.15;
+    rotate: 55deg;
+    opacity: 0;
+  }
+}
+
+@keyframes ach-shock {
+  from {
+    scale: 0.3;
+    opacity: 1;
+  }
+  to {
+    scale: 7;
+    opacity: 0;
+  }
+}
+
+/* ---- the word, hung over the sign */
+.ach-lockup {
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  transform: translate(-50%, -50%);
+  visibility: hidden;
+}
+
+.ach-lockup.placed {
+  visibility: visible;
+}
+
+.ach-word {
+  display: block;
+  font-family: var(--font-pixel, var(--font-title));
+  font-weight: 400;
+  font-size: var(--fs);
+  line-height: 1;
+  white-space: nowrap;
+  color: #ffe48a;
+  text-shadow:
+    3px 0 0 #5a250b,
+    -3px 0 0 #5a250b,
+    0 3px 0 #5a250b,
+    0 -3px 0 #5a250b,
+    0 7px 0 rgba(40, 15, 5, 0.55),
+    0 0 26px rgba(255, 205, 90, 0.95);
+}
+
+.ach-letter {
+  display: inline-block;
+  will-change: transform;
+}
+
+.ach-letter.sp {
+  width: 0.32em;
+}
+
+.ach-letter.landed {
+  animation: ach-land 0.32s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.ach-lockup.shine .ach-letter {
+  animation: ach-shine 0.7s ease-in-out calc(var(--i) * 55ms) 2;
+}
+
+@keyframes ach-land {
+  from {
+    scale: 1.3 0.75;
+    filter: brightness(2);
+  }
+  to {
+    scale: 1;
+    filter: brightness(1);
+  }
+}
+
+@keyframes ach-shine {
+  50% {
+    translate: 0 -0.14em;
+    filter: brightness(1.7);
+  }
+}
+
+.ach-kicker,
+.ach-gloss,
+.ach-tally {
+  opacity: 0;
+}
+
+.ach-kicker {
+  padding: 3px 12px 2px;
+  border-radius: 999px;
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 1.35rem;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  color: #fff3c0;
+  background: rgba(60, 26, 8, 0.82);
+  box-shadow:
+    0 0 0 2px #f2c230,
+    0 0 14px rgba(255, 214, 102, 0.6);
+}
+
+.ach-kicker .en,
+.ach-done .en {
+  display: inline;
+  color: inherit;
+  opacity: 0.8;
+  font-family: var(--font-body);
+  font-size: 0.62em;
+  font-weight: 700;
+}
+
+.ach-kicker .en::before,
+.ach-done .en::before {
+  content: '';
+}
+
+.ach-gloss {
+  padding: 3px 12px;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  color: #fdf6e6;
+  background: rgba(20, 12, 30, 0.72);
+}
+
+.ach-gloss::before {
+  color: #8fe0a8;
+}
+
+.ach-tally {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 8px;
+  margin-top: 2px;
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #5a3a1a;
+  background: var(--dy-paper, #fdf6e6);
+  box-shadow:
+    0 0 0 2px #c9921c,
+    0 5px 0 rgba(20, 10, 6, 0.25);
+}
+
+.ach-pips {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.ach-pips i {
+  width: 9px;
+  height: 9px;
+  rotate: 45deg;
+  border-radius: 2px;
+  background: #d9c7a6;
+  box-shadow: inset 0 0 0 1px rgba(90, 58, 26, 0.35);
+}
+
+.ach-pips i.on {
+  background: #f2c230;
+  box-shadow:
+    inset 0 0 0 1px #c9921c,
+    0 0 6px rgba(242, 194, 48, 0.9);
+}
+
+.ach-count {
+  font-variant-numeric: tabular-nums;
+  color: #8f3e15;
+}
+
+.ach-lockup.shown .ach-kicker {
+  animation: ach-rise 0.4s var(--dy-pop, ease-out) both;
+}
+
+.ach-lockup.shown .ach-gloss {
+  animation: ach-rise 0.4s ease-out 0.12s both;
+}
+
+.ach-lockup.shown .ach-tally {
+  animation: ach-rise 0.4s ease-out 0.24s both;
+}
+
+.ach-lockup.shown .ach-pips i.new {
+  animation: ach-pip 0.55s var(--dy-pop, ease-out) 0.55s both;
+}
+
+@keyframes ach-rise {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+    scale: 0.9;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ach-pip {
+  from {
+    background: #d9c7a6;
+    scale: 1;
+  }
+  45% {
+    background: #fff6cf;
+    scale: 2.2;
+    box-shadow: 0 0 14px 4px rgba(255, 214, 102, 1);
+  }
+}
+
+/* the room's last word */
+.ach-tally.complete {
+  box-shadow:
+    0 0 0 2px #f2c230,
+    0 0 22px 6px rgba(255, 214, 102, 0.85),
+    0 5px 0 rgba(20, 10, 6, 0.25);
+}
+
+.ach-done {
+  flex-basis: 100%;
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 1.6rem;
+  font-weight: 400;
+  line-height: 1;
+  color: #b8461b;
+}
+
+.ach-lockup.shown .ach-done {
+  animation: ach-stamp 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) 0.8s both;
+}
+
+@keyframes ach-stamp {
+  from {
+    opacity: 0;
+    scale: 2.6;
+    rotate: -12deg;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    rotate: -4deg;
+  }
+}
+
+.ach-ping {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid #f2c230;
+  box-shadow: 0 0 12px rgba(255, 214, 102, 0.95);
+  translate: -50% -50%;
+  animation: ach-ping 0.9s cubic-bezier(0.1, 0.7, 0.3, 1) both;
+}
+
+@keyframes ach-ping {
+  from {
+    scale: 0.2;
+    opacity: 1;
+  }
+  to {
+    scale: 4.5;
+    opacity: 0;
+  }
+}
+
+.ach-confetti {
+  top: 0;
+  width: 8px;
+  height: 13px;
+  border-radius: 2px;
+}
+
+.ach-confetti.round {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* ---- off it goes */
+.ach-lockup.gathering .ach-kicker,
+.ach-lockup.gathering .ach-gloss,
+.ach-lockup.gathering .ach-tally {
+  animation: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in;
+}
+
+.ach-lockup.leaving {
+  opacity: 0;
+  transition: opacity 0.25s ease-in;
+}
+
+/* reduced motion: the word fades in where it hangs, and fades out */
+@media (prefers-reduced-motion: reduce) {
+  .ach-star,
+  .ach-halo,
+  .ach-ring,
+  .ach-letter.landed,
+  .ach-lockup.shine .ach-letter {
+    animation: none;
+  }
+
+  .ach-ring {
+    display: none;
+  }
+
+  .ach-lockup.shown .ach-kicker,
+  .ach-lockup.shown .ach-gloss,
+  .ach-lockup.shown .ach-tally,
+  .ach-lockup.shown .ach-done,
+  .ach-lockup.shown .ach-pips i.new {
+    animation: ach-fade-in 0.3s ease-out both;
+  }
+}

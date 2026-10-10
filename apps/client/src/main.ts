@@ -12,6 +12,7 @@ import './styles/stalls.css';
 import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
+import './styles/achado.css';
 import './styles/journal.css';
 import './styles/escola.css';
 import './styles/feiraGames.css';
@@ -35,6 +36,8 @@ import {
   diaryVisible,
   PHOTO_SPOTS,
   normalizeDiary,
+  wordForSign,
+  hotspotsInRoom,
   normalizeBjj,
   wordForLine,
   furnitureById,
@@ -124,6 +127,9 @@ import { maybeShowVilaGuide, openVilaGuide } from './ui/vilaGuide';
 import { doorTagsFor, showRoomIntro } from './ui/wayfinding';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
+import { startAchado, claimReadingWord } from './ui/achado';
+import { roomTally } from './ui/achadoLogic';
+import { wantsReveal } from './ui/journalReveal';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
 import { escolaPracticeOpen, openEscola, onEscolaMsg } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
@@ -460,12 +466,39 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
   }
 }
 
-/** Open the sign's card and tell the server (`read`: the words count as seen, a recado's `ler` step advances). */
+/**
+ * Read a sign and tell the server (`read`: the words count as seen, a recado's `ler` step advances, a hidden word is granted). A sign
+ * whose star is still lit is a find (ui/achado.ts): the word bursts out of the star and flies into the Diário; a sign with more to say
+ * than its word opens its card once the word is in. Any other sign opens its card straight away.
+ */
 function readHotspot(hs: HotspotDef) {
   closeDialogue();
   if (hs.room === 'desembarque') markDesembStep('placa');
-  openHotspotCard(hs, { onSave: (cards) => openDiario({ cadernoGroup: cards[0]?.split('.')[1], highlight: cards }) });
+  const card = () => openHotspotCard(hs, { onSave: (cards) => openDiario({ cadernoGroup: cards[0]?.split('.')[1], highlight: cards }) });
+  if (!findOnSign(hs, (found) => found && hs.pt.includes('\n') && game.room?.room === hs.room && !document.querySelector('[data-modal]') && card())) card();
   net.send({ t: 'read', hotspotId: hs.id });
+}
+
+/** Start the find on a sign whose star is lit for this player. False when there is nothing to find there (the card opens instead). */
+function findOnSign(hs: HotspotDef, done: (found: boolean) => void): boolean {
+  const word = wordForSign(hs.id);
+  const room = game.roomDef;
+  if (!word || !room || normalizeDiary(game.profile?.diary).includes(word.id) || wantsReveal()) return false;
+  const star = renderer.glintClient?.(hs.id);
+  if (!star) return false;
+  const ins = renderer.hudInsets?.() ?? { top: 64, bottom: 110 };
+  startAchado({
+    hotspotId: hs.id,
+    word,
+    star,
+    roomPt: room.name,
+    tally: roomTally(room.id, game.profile?.diary, word.id),
+    stars: () => hotspotsInRoom(room.id).flatMap((s) => (wordForSign(s.id) ? [renderer.glintClient?.(s.id)].filter((p) => !!p) : [])) as { px: number; py: number }[],
+    insets: { top: ins.top, bottom: ins.bottom },
+    claim: (on) => renderer.claimGlint?.(hs.id, on),
+    done,
+  });
+  return true;
 }
 
 /** A click on a sign: read it from here when it is within 3 tiles, else walk to the nearest spot that is. */
@@ -1053,7 +1086,11 @@ net.on((m: ServerMsg) => {
     case 'diary':
       if (m.phase === 'photo') showPhoto(m);
       // a word heard in a line flies out of that line into the Diário; the others (a sign, a game) get the card
-      else if (m.phase === 'word') (m.source === 'conversation' ? flyHeardWord(m) : celebrateWord(m));
+      // a word read off a sign's star is already bursting out of it (ui/achado.ts): that is its moment, not the card
+      else if (m.phase === 'word') {
+        if (m.source === 'conversation') flyHeardWord(m);
+        else if (!(m.source === 'reading' && claimReadingWord(m))) celebrateWord(m);
+      }
       else if (m.phase === 'words') celebrateWords(m.words);
       break;
     case 'escola':

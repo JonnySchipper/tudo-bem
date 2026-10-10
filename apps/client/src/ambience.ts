@@ -10,6 +10,7 @@ import { playCorreriaSfx, type CorreriaSfx } from './audio/correriaSfx';
 import { DIARY_SFX, playDiarySfx, type DiarySfx } from './audio/diarySfx';
 import { FLIGHT_SFX, playFlightSfx, type FlightSfx } from './audio/flightSfx';
 import { CARRY_SFX, playCarrySfx, type CarrySfx } from './audio/carrySfx';
+import { playAchadoSfx, type AchadoSfx } from './audio/achadoSfx';
 
 const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pop', 'pour', 'glug', 'ding', 'clink', 'chain', 'cash', 'paper', 'chime', 'nope', 'combo', 'tick', 'slap', 'sigh', 'juicer'] as const;
 
@@ -649,6 +650,18 @@ class Ambience {
       else if ((DIARY_SFX as readonly string[]).includes(kind)) playDiarySfx(ctx, out, this.whiteBuf, kind as DiarySfx);
       else if ((CORRERIA_SFX as readonly string[]).includes(kind)) playCorreriaSfx(ctx, out, this.whiteBuf, kind as CorreriaSfx);
       else playBoutSfx(ctx, out, this.whiteBuf, kind as BoutSfx);
+    } catch {
+      /* an effect must never break the game */
+    }
+  }
+
+  /** A sound of a word found on a sign; `step` (semitones) is the pitch the streak or the letter has climbed to. Same gate as `sfx`. */
+  achado(kind: AchadoSfx, step = 0) {
+    const ctx = this.ctx;
+    if (!ctx || !this.bedIn || !this.unlocked || ctx.state !== 'running') return;
+    this.whiteBuf ??= whiteBuffer(ctx, 1);
+    try {
+      playAchadoSfx(ctx, this.duckGain ?? this.bedIn, this.whiteBuf, kind, step);
     } catch {
       /* an effect must never break the game */
     }
