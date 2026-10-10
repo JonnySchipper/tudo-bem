@@ -68,6 +68,7 @@ import {
   saiCount,
   shouldFeint,
   signalForPoints,
+  stagedBraceBlocks,
   type Bilingual,
   type BotCtx,
   type BoutGripEvent,
@@ -125,6 +126,8 @@ export interface BoutSession {
   first: boolean;
   /** Comfort windows: every window of this match ×`comfortScale(lossStreak)` while the belt is white (1 from blue). Not shown. */
   comfort: number;
+  /** The profile's wins when the match began: under `STAGED_BRACE_WINS` the partner's attacks are braced for you (`stagedBraceBlocks`). */
+  wins: number;
   rng: Rng;
   mat: MatState;
   phase: Phase;
@@ -257,6 +260,7 @@ export class BoutEngine {
       level: bjjLevel(prog),
       first: prog.wins === 0,
       comfort: prog.belt === 'branca' ? comfortScale(prog.lossStreak ?? 0) : 1,
+      wins: prog.wins,
       rng: mulberry32(seed),
       mat: newMat(),
       phase: 'intro',
@@ -518,6 +522,8 @@ export class BoutEngine {
     // a partner that is not clean botches on its own: no defense beat
     const clean = partnerClean(b.partner.accuracy, chainFor(b.mat, 'them', move).length);
     if (b.rng() >= clean) return this.resolve(s, b, 'them', move, false, 'botched', [], { feint, replanned });
+    // staging: a profile's first wins have no defense pad; the attack the pad would stop is braced for you (no beat, never a miss)
+    if (stagedBraceBlocks(b.mat, 'them', move, b.wins)) return this.resolve(s, b, 'them', move, false, 'blocked', [], { feint, replanned, staged: true });
     const d = defenseOf(b.mat, 'them', move);
     if (!d) return this.resolve(s, b, 'them', move, true, 'landed', [], { feint, replanned });
     const count = d === 'sai' ? saiCount(b.partner.defense) : 1;
@@ -563,11 +569,11 @@ export class BoutEngine {
     landed: boolean,
     how: BoutHow,
     grades: TapGrade[],
-    o: { perfect?: boolean; defended?: boolean; feint?: boolean; replanned?: boolean; step?: number; cmds?: MatCommand[] } = {},
+    o: { perfect?: boolean; defended?: boolean; staged?: boolean; feint?: boolean; replanned?: boolean; step?: number; cmds?: MatCommand[] } = {},
   ) {
     b.phase = 'resolve';
     b.beat = null;
-    let res = resolveMat(b.mat, actor, id, landed, { perfect: o.perfect, defended: o.defended });
+    let res = resolveMat(b.mat, actor, id, landed, { perfect: o.perfect, defended: o.defended, staged: o.staged });
     if (!res.ok) {
       // the move is no longer legal (the mat moved under it): play it as a hold, so the match goes on instead of stalling
       id = 'hold';
@@ -606,6 +612,7 @@ export class BoutEngine {
       level: bjjLevel(s.profile!.bjj),
       first: false,
       comfort: 1,
+      wins: normalizeBjj(s.profile!.bjj).wins,
       rng: mulberry32(1),
       mat,
       phase: 'drill',
@@ -659,6 +666,15 @@ export class BoutEngine {
     const holdMs = 700;
     s.send({ ...resolveMsg(b, landing, 'you', move, 'drill', holdMs), cmds: baseChain(b.mat, 'you', move) });
     this.teach(s, b);
+    // the same stripe teaches a second move (the staged day-one move came first): its drill follows, then the end card
+    const next = prog.pendingDrill;
+    if (next) {
+      this.d.schedule(() => {
+        if (this.of(s) !== b) return;
+        this.beginDrill(s, next, card);
+      }, holdMs);
+      return;
+    }
     this.d.schedule(() => {
       this.clear(s);
       this.sendEnd(s, {

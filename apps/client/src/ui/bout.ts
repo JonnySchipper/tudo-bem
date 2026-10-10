@@ -3,6 +3,8 @@
  * the world (boutStage.ts); the server owns it (apps/server/src/bout.ts) and judges every tap on its own clock.
  *
  *  - pick: the partner's telegraph, at most four cards (chevrons for the chain length, what the move does), Segurar, the quit ×;
+ *  - staging (TATAME-V3.md "Staging", `boutStageView`): a card is its name and chevrons until the first win; the meters row waits for
+ *    the first stripe; the first wins have no defense beat at all (the server braces the partner's attacks: `stagedBrace`);
  *  - chain: Bia calls each command, big, with a timer ring; the six-button pad; the step dots; Perfeito! / Boa! / Errou! pops;
  *  - defend: "Defenda!", the attack line, the four-button pad and the ring (the Sai! mash against a finish);
  *  - resolve: Bia's call and the ground read; then the end card (Palavras de hoje, Comandos perfeitos).
@@ -45,11 +47,12 @@ import { CARTOON_MS, LAND_MS } from '../render/pixel/gagCartoon';
 import { mountCharPreview } from '../render/pixel/charPreview';
 import { reducedMotion } from '../render/pixel/perf';
 import {
-  COACH_NOTES,
   COMMAND_PAD,
   DEFENSE_PAD,
   DRILL_LINE,
+  boutStageView,
   chevrons,
+  coachNote,
   coachTip,
   cuesForEnd,
   cuesForGrip,
@@ -74,7 +77,9 @@ import {
   resolveSpeech,
   ringFrac,
   windupFrame,
+  type BoutStageView,
   type CoachMoment,
+  type CoachSet,
   type PadBeat,
 } from './boutLogic';
 
@@ -158,9 +163,11 @@ export class BoutUI {
   private lastEndWinner: Msg<'end'>['winner'] = 'none';
   /** The move of the stripe lesson in progress: its end card is a lesson card, not a match result. */
   private lesson: { id: string; pt: string; en: string } | null = null;
-  /** A first-ever match (wins 0): Bia's three coach notes, once each. */
-  private first = false;
+  /** The coach notes this match carries (the first-ever match's, or the first match with the defense pad's), once each. */
+  private coachSet: CoachSet | null = null;
   private coached = new Set<CoachMoment>();
+  /** What this match shows (the staging), from the profile when the match began. */
+  private stage: BoutStageView = boutStageView(game.profile?.bjj);
   private m: MatchViews | null = null;
   /** The scoreboard's live cells (built once). */
   private board: { youName: HTMLElement; youPts: HTMLElement; youAdv: HTMLElement; themName: HTMLElement; themPts: HTMLElement; themAdv: HTMLElement; clock: HTMLElement; turn: HTMLElement; belt: HTMLElement } | null = null;
@@ -239,7 +246,8 @@ export class BoutUI {
       case 'lobby': {
         if (e.key === 'Enter') return press(this.body.querySelector('#bout-start'));
         const i = padKey(e.key, 5);
-        if (i !== null) press(this.body.querySelectorAll('.bout-card-partner:not(.locked)')[i]);
+        // the partners on screen: the suggested one, and the others once the Mais parceiros fold is open
+        if (i !== null) press(this.body.querySelectorAll('.bout-cards-main .bout-card-partner:not(.locked), #bout-more[open] .bout-card-partner:not(.locked)')[i]);
         return;
       }
       case 'pick': {
@@ -427,6 +435,13 @@ export class BoutUI {
     this.previews = [];
     let chosen: PartnerId = m.suggested;
     const cards = m.partners.map((p) => this.partnerCard(p, () => select(p.id), p.id === chosen));
+    // the suggested partner up front; the others behind a fold
+    const first = Math.max(0, m.partners.findIndex((p) => p.id === m.suggested));
+    const others = cards.filter((_, i) => i !== first);
+    // needs_br: true — Mais parceiros (the fold with the other partners)
+    const more = others.length
+      ? h('details', { class: 'bout-more', id: 'bout-more' }, h('summary', { class: 'bout-more-sum' }, ...this.bi('Mais parceiros', 'More partners')), h('div', { class: 'bout-cards' }, ...others))
+      : null;
     const start = h('button', { class: 'bout-go primary', id: 'bout-start', type: 'button', 'data-bout-start': '' }, ...this.bi('Começar', 'Start'));
     const select = (id: PartnerId) => {
       const card = m.partners.find((p) => p.id === id);
@@ -447,7 +462,8 @@ export class BoutUI {
         'div',
         { class: 'bout-lobby' },
         h('div', { class: 'bout-lobby-head' }, h('b', { class: 'bout-title' }, 'Treino no tatame'), en('Mat practice', true), beltChip(m.bjj.belt, m.bjj.stripes), this.enToggle()),
-        h('div', { class: 'bout-cards' }, ...cards),
+        h('div', { class: 'bout-cards bout-cards-main' }, cards[first]!),
+        more,
         h(
           'div',
           { class: 'bout-lobby-foot' },
@@ -590,12 +606,12 @@ export class BoutUI {
   }
 
   private coach(moment: CoachMoment, el: HTMLElement): void {
-    if (!this.first || this.coached.has(moment)) {
+    const note = coachNote(this.coachSet, moment);
+    if (!note || this.coached.has(moment)) {
       el.hidden = true;
       return;
     }
     this.coached.add(moment);
-    const note = COACH_NOTES[moment];
     el.replaceChildren(h('b', null, 'Professora Bia: '), h('span', { class: 'pt' }, note.pt), en(note.en));
     el.hidden = false;
   }
@@ -611,7 +627,8 @@ export class BoutUI {
     ambience.setScene('bout');
     this.partnerName = m.partner.name;
     this.partnerId = m.partner.id;
-    this.first = m.first;
+    this.stage = boutStageView(this.bjj ?? game.profile?.bjj);
+    this.coachSet = m.first ? 'first' : this.stage.coach === 'pad' ? 'pad' : null;
     this.coached.clear();
     this.locked = true;
     for (const p of this.previews) p.stop();
@@ -662,32 +679,36 @@ export class BoutUI {
     } else p.plan.hidden = true;
     p.cards.dataset.seq = String(m.seq);
     p.cards.dataset.n = String(m.cards.length);
+    // staging: until the first win a card is its name and its chevrons; what it does, its risk and Responde! come after
+    const detail = this.stage.cardDetail;
+    p.cards.dataset.detail = detail ? '1' : '0';
     p.cards.replaceChildren(
       ...m.cards.map((c, k) => {
         const id = c.id;
         const name = isMatMove(id) ? MOVE_LABEL[id] : { pt: c.pt, en: c.en };
+        const answers = detail && !!c.answers;
         // needs_br: true — Responde! (this card answers the telegraph)
-        const badge = c.answers ? h('span', { class: 'mv-badge' }, h('span', { class: 'pt' }, 'Responde!'), en('Counters it')) : null;
+        const badge = answers ? h('span', { class: 'mv-badge' }, h('span', { class: 'pt' }, 'Responde!'), en('Counters it')) : null;
         // needs_br: true — the chain length in words, for the screen reader (the chevrons are the picture)
         const cmds = `${c.chain} ${c.chain === 1 ? 'comando' : 'comandos'}`;
         return h(
           'button',
           {
-            class: `bout-move kind-${c.kind}${c.answers ? ' is-answer' : ''}`,
+            class: `bout-move kind-${c.kind}${answers ? ' is-answer' : ''}`,
             type: 'button',
             'data-move': id,
             'data-k': String(k + 1),
             'data-kind': c.kind,
             'data-chain': String(c.chain),
             'data-answers': c.answers ? '1' : '0',
-            'aria-label': `${name.pt}. ${c.does.pt}. ${cmds}${c.answers ? '. Responde!' : ''}`,
+            'aria-label': detail ? `${name.pt}. ${c.does.pt}. ${cmds}${answers ? '. Responde!' : ''}` : `${name.pt}. ${cmds}`,
             onclick: () => this.pickMove(id),
           },
           h('span', { class: 'mv-top' }, h('span', { class: 'kcap', 'aria-hidden': 'true' }, String(k + 1)), badge, h('span', { class: 'mv-chev', 'aria-hidden': 'true' }, chevrons(c.chain))),
           h('b', { class: 'pt mv-name' }, name.pt),
           en(name.en),
-          c.does.pt ? h('span', { class: 'mv-does' }, h('span', { class: 'pt' }, c.does.pt), en(c.does.en)) : null,
-          c.risk ? h('span', { class: 'mv-risk' }, h('span', { class: 'pt' }, c.risk.pt), en(c.risk.en)) : null,
+          detail && c.does.pt ? h('span', { class: 'mv-does' }, h('span', { class: 'pt' }, c.does.pt), en(c.does.en)) : null,
+          detail && c.risk ? h('span', { class: 'mv-risk' }, h('span', { class: 'pt' }, c.risk.pt), en(c.risk.en)) : null,
         );
       }),
     );
@@ -769,7 +790,7 @@ export class BoutUI {
     // white belt: Bia's call is on screen (and spoken); from blue the telegraph is all you get
     v.word.replaceChildren(h('b', { class: 'pt' }, '…'));
     v.word.dataset.want = '';
-    this.coach('defend', v.coach);
+    this.coach(m.attack === 'final' ? 'sai' : 'defend', v.coach);
     this.driven = m.move.id;
     boutFeed.push({ t: 'windup', move: m.move.id, from: m.from, aheadFrom: m.aheadFrom, actor: 'partner', ms: m.leadMs });
     ambience.setBoost(m.attack === 'final' ? 1 : 0);
@@ -791,7 +812,7 @@ export class BoutUI {
     this.clearTimers();
     boutFeed.holding = false;
     this.lesson = m.move;
-    this.first = false;
+    this.coachSet = null;
     this.root.classList.add('is-lesson');
     this.pickTimer = null;
     const v = this.showPad('drill', m, m.cmds, m.cmds.map(() => 0));
@@ -1233,7 +1254,9 @@ export class BoutUI {
    */
   private renderMeters(): void {
     const s = this.snap;
-    if (!s) {
+    // staging: the row waits for the first stripe
+    this.meters.hidden = !this.stage.meters;
+    if (!s || !this.stage.meters) {
       this.meters.replaceChildren();
       this.ctl = null;
       return;

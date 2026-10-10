@@ -6,12 +6,15 @@ import {
   BIA_LINES,
   COACH_NOTES,
   COMMAND_PAD,
+  PAD_COACH_NOTES,
   DEFENSE_FOR,
   DEFENSE_PAD,
   DRILL_LINE,
   callOf,
+  boutStageView,
   chainGrade,
   chevrons,
+  coachNote,
   coachTip,
   crowdForResolve,
   cuesForEnd,
@@ -83,7 +86,10 @@ describe('Verde glosses on the mat', () => {
       expect(l.en.trim().length, w).toBeGreaterThan(0);
     }
     for (const [id, label] of Object.entries(MOVE_LABEL)) expect(label.en, id).not.toBe('');
-    for (const note of Object.values(COACH_NOTES)) expect(note.en).not.toBe(note.pt);
+    for (const note of [...Object.values(COACH_NOTES), ...Object.values(PAD_COACH_NOTES)]) {
+      expect(note.en).not.toBe(note.pt);
+      expect(`${note.pt} ${note.en}`).not.toMatch(NAMES);
+    }
     const tips = [
       coachTip({ winner: 'you', reason: 'finalizacao', you: 2, them: 0, unlocked: [] }),
       coachTip({ winner: 'partner', reason: 'finalizacao', you: 0, them: 2, unlocked: [] }),
@@ -98,6 +104,35 @@ describe('Verde glosses on the mat', () => {
       expect(`${tip?.pt} ${tip?.en}`).not.toMatch(NAMES);
     }
     expect(coachTip({ winner: 'none', reason: 'quit', you: 0, them: 0, unlocked: [] })).toBeNull();
+  });
+});
+
+describe('staging: the first matches show less', () => {
+  it('cards are name and chevrons until the first win; the meters row waits for the first stripe; the pad for the third win', () => {
+    const at = (wins: number, belt: 'branca' | 'azul' = 'branca', stripes = Math.floor(wins / 5)) => boutStageView({ belt, stripes, wins });
+    expect(at(0)).toEqual({ meters: false, cardDetail: false, pad: false, coach: 'first' });
+    expect(at(1)).toEqual({ meters: false, cardDetail: true, pad: false, coach: null });
+    expect(at(2)).toEqual({ meters: false, cardDetail: true, pad: false, coach: null });
+    expect(at(3)).toEqual({ meters: false, cardDetail: true, pad: true, coach: 'pad' });
+    expect(at(4)).toEqual({ meters: false, cardDetail: true, pad: true, coach: null });
+    expect(at(5)).toEqual({ meters: true, cardDetail: true, pad: true, coach: null });
+    expect(at(20, 'azul', 0).meters).toBe(true);
+    // no profile yet reads as the empty white belt
+    expect(boutStageView(null)).toEqual(at(0));
+  });
+
+  it('the first match has two notes (no defense pad); the pad brings its own three; other matches none', () => {
+    expect(coachNote('first', 'pick')).toEqual(COACH_NOTES.pick);
+    expect(coachNote('first', 'chain')).toEqual(COACH_NOTES.chain);
+    expect(coachNote('first', 'defend')).toBeNull();
+    expect(Object.keys(PAD_COACH_NOTES).sort()).toEqual(['defend', 'pick', 'sai']);
+    expect(coachNote('pad', 'pick')).toEqual(PAD_COACH_NOTES.pick);
+    expect(coachNote('pad', 'defend')).toEqual(PAD_COACH_NOTES.defend);
+    expect(coachNote('pad', 'sai')).toEqual(PAD_COACH_NOTES.sai);
+    expect(coachNote('pad', 'chain')).toBeNull();
+    expect(coachNote(null, 'pick')).toBeNull();
+    // the Sai! note is the end card's tip after losing to a finish, word for word
+    expect(PAD_COACH_NOTES.sai).toEqual(coachTip({ winner: 'partner', reason: 'finalizacao', you: 0, them: 2, unlocked: [] }));
   });
 });
 

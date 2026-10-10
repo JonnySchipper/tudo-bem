@@ -282,21 +282,23 @@ export const GRADE_LABEL: Record<TapGrade, Bilingual> = {
 };
 
 /**
- * One skill per award, in order. White belt is the belt being put on, not a win.
- * Day one is one move on each gag track: a grip, Queda, Gancho, Postura, Passar, and a weak submission.
+ * One skill per award, in order (sorted by rank: the list is monotonic, so a profile that already has a stripe keeps every move it had).
+ * White belt is the belt being put on, not a win.
+ * Day one is staged (2026-10-10, docs/lifesim/TATAME-V3.md "Staging"): three moves, a grip, Queda and Passar, enough to climb from
+ * standing to the top. Gancho, Postura and Braço (the finish) follow on white stripes 1, 2 and 3, each ahead of that stripe's old award.
  * Later awards fill the track. Sleeve, Abraço, Base, Tesoura, Quadril, Recuperar, Sair, Americana, and Pescoço stay on the same stripe.
- * The empty white stripe teaches Joelho. Purple then teaches Encaixe, so the choke can be reached, and Tornozelo, a third takedown.
+ * The white stripes also teach Manga, Joelho and Abraço. Purple then teaches Encaixe, so the choke can be reached, and Tornozelo, a third takedown.
  * The grip combos (Arrastar, Puxar, Arremesso) are not awards: owning the grips opens them ({@link COMBOS}).
  */
 export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMoveId }[] = [
   { belt: 'branca', stripes: 0, move: 'collar_tie' },
   { belt: 'branca', stripes: 0, move: 'double_leg' },
-  { belt: 'branca', stripes: 0, move: 'hook_sweep' },
-  { belt: 'branca', stripes: 0, move: 'posture' },
   { belt: 'branca', stripes: 0, move: 'passar' },
-  { belt: 'branca', stripes: 0, move: 'armbar' },
+  { belt: 'branca', stripes: 1, move: 'hook_sweep' },
   { belt: 'branca', stripes: 1, move: 'sleeve_grip' },
+  { belt: 'branca', stripes: 2, move: 'posture' },
   { belt: 'branca', stripes: 2, move: 'knee_on_belly' },
+  { belt: 'branca', stripes: 3, move: 'armbar' },
   { belt: 'branca', stripes: 3, move: 'body_lock' },
   { belt: 'branca', stripes: 4, move: 'sprawl' },
   { belt: 'azul', stripes: 0, move: 'scissor_sweep' },
@@ -322,8 +324,14 @@ export const isMatMove = (id: unknown): id is MatMoveId => typeof id === 'string
 
 export const beltIndex = (b: Belt): number => Math.max(0, BELT_ORDER.indexOf(b));
 
+/** Every move this exact stripe teaches, in order (a white stripe can teach two: the staged day-one move first, then its own). */
+export function movesTaughtAt(belt: Belt, stripes: number): MatMoveId[] {
+  return UNLOCK_ORDER.filter((u) => u.belt === belt && u.stripes === stripes).map((u) => u.move);
+}
+
+/** The first move this exact stripe teaches (the one the next-stripe line names), or null. */
 export function moveTaughtAt(belt: Belt, stripes: number): MatMoveId | null {
-  return UNLOCK_ORDER.find((u) => u.belt === belt && u.stripes === stripes)?.move ?? null;
+  return movesTaughtAt(belt, stripes)[0] ?? null;
 }
 
 /** Every move whose award is this rank or earlier, including the move taught at this exact stripe. */
@@ -588,6 +596,25 @@ export function defenseOf(state: MatState, actor: MatSide, id: MatMoveId): MatDe
   return null;
 }
 
+/**
+ * Staging (2026-10-10, docs/lifesim/TATAME-V3.md "Staging"): a profile's first {@link STAGED_BRACE_WINS} wins have no defense pad.
+ * Every partner attack that the pad would have to stop (`defenseOf` is not null) is braced automatically instead: no tap, it does not
+ * land, and it resolves exactly as a brace does (the blocked event and the defender's Vantagem). The server judges the exchange by this
+ * rule and sends no `defend` beat, so the client has no pad to show. From the next win on, the pad is the partner's turn as before.
+ */
+export const STAGED_BRACE_WINS = 3;
+
+/** This many wins on the profile still plays the staged match: the partner's attacks are braced for you. */
+export function stagedBrace(wins: number | null | undefined): boolean {
+  const w = Math.max(0, Math.floor(Number.isFinite(wins) ? (wins as number) : 0));
+  return w < STAGED_BRACE_WINS;
+}
+
+/** The staged brace takes this move: the partner's attack that the pad would ask you to stop, while `stagedBrace(wins)`. */
+export function stagedBraceBlocks(state: MatState, actor: MatSide, id: MatMoveId, wins: number | null | undefined): boolean {
+  return actor === 'them' && stagedBrace(wins) && defenseOf(state, actor, id) !== null;
+}
+
 /** The defense pad button a brace stands in for. */
 const BRACE_DEFENSE: Record<MatBrace, MatDefense> = { postura: 'postura', base: 'base', recuperar: 'trava' };
 
@@ -715,6 +742,8 @@ export interface ResolveOpts {
   defended?: boolean;
   /** Every command of the chain was Perfeito (the player's Ritmo). */
   perfect?: boolean;
+  /** The staged brace (`stagedBraceBlocks`) stopped this attack: it resolves as a brace does, the defender's Vantagem. */
+  staged?: boolean;
 }
 
 // needs_br: true — Bia's calls
@@ -763,7 +792,7 @@ export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, lande
   const foe = other(actor);
   const events: MatEvent[] = [];
   const hit = !!opts.force || id === 'hold' || landed;
-  const braced = !hit && braceBlocks(state, actor, id);
+  const braced = !hit && (braceBlocks(state, actor, id) || (!!opts.staged && defenseOf(state, actor, id) !== null));
   const worth = SUBS.has(id) || pointsIfLands(state, actor, id) > 0;
   const keepSleeve = id === 'sleeve_pull';
   // a throw commits the grips it was set up with: hit or miss, they are gone

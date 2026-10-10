@@ -8,7 +8,7 @@
  * academia-lock.test.ts, which also greps the client bundle); no brand names (academia-branding.test.ts).
  */
 import type { Bilingual } from './types.js';
-import { beltIndex, isMatMove, moveTaughtAt, movesThrough, UNLOCK_ORDER, type MatMoveId } from './matFight.js';
+import { beltIndex, isMatMove, moveTaughtAt, movesTaughtAt, movesThrough, UNLOCK_ORDER, type MatMoveId } from './matFight.js';
 
 export type BjjPositionId =
   | 'de_pe'
@@ -147,6 +147,13 @@ export function nextStripe(wins: number): { into: number; per: number; left: num
 const LATER_AWARDS = ['knee_on_belly', 'back_take', 'single_leg'] as const satisfies readonly MatMoveId[];
 
 /**
+ * Day-one moves that the staging (2026-10-10) moved onto white stripes 1–3. A profile with a win already had them from the old day one,
+ * so it keeps them whatever its stripe (belts, stripes and moves already earned are untouched). An empty white belt (no win yet) plays
+ * the staged day one and learns them on their stripes.
+ */
+const STAGED_OFF_DAY_ONE = ['hook_sweep', 'posture', 'armbar'] as const satisfies readonly MatMoveId[];
+
+/**
  * The move taught at four stripes. That stripe is the promotion, so the move joins the account
  * when the next belt is put on. It is not a second win counter and it does not change the fight.
  */
@@ -173,9 +180,11 @@ export function normalizeBjj(p?: Partial<BjjProgress> | null): BjjProgress {
   const wins = Math.max(0, Math.floor(Number(p?.wins) || 0));
   const { belt, stripes } = progressForWins(wins);
   const through = movesThrough(belt, stripes);
-  const stored = cleanMoves(p?.unlocked, through);
-  // a save from before skills were stored keeps every move those wins already earned
-  const base = !stored.length && wins > 0 ? [...through] : stored.includes('collar_tie') ? stored : ['collar_tie' as const, ...stored];
+  // the old day one: a profile with a win keeps the moves the staging moved onto later stripes
+  const legacy: MatMoveId[] = wins > 0 ? STAGED_OFF_DAY_ONE.filter((id) => !through.includes(id)) : [];
+  const stored = cleanMoves(p?.unlocked, [...through, ...legacy]);
+  // a save from before skills were stored keeps every move those wins already earned (the old day one included)
+  const base = !stored.length && wins > 0 ? [...through, ...legacy] : stored.includes('collar_tie') ? stored : ['collar_tie' as const, ...stored];
   const starters = movesThrough('branca', 0);
   const unlocked = [...base];
   for (const id of starters) if (through.includes(id) && !unlocked.includes(id)) unlocked.push(id);
@@ -189,10 +198,11 @@ export function normalizeBjj(p?: Partial<BjjProgress> | null): BjjProgress {
     if (passed) unlocked.push(id);
   }
   for (const id of movesPassedWithTheBelt(belt)) if (through.includes(id) && !unlocked.includes(id)) unlocked.push(id);
-  const taught = moveTaughtAt(belt, stripes);
+  // a stripe can teach two moves (the staged day-one move, then its own award): each one is a drill, in order
+  const taught = movesTaughtAt(belt, stripes);
   let pending: MatMoveId | null = isMatMove(p?.pendingDrill) ? p!.pendingDrill! : null;
-  if (pending && (unlocked.includes(pending) || !through.includes(pending) || pending !== taught)) pending = null;
-  if (!pending && taught && (LATER_AWARDS as readonly MatMoveId[]).includes(taught) && !unlocked.includes(taught)) pending = taught;
+  if (pending && (unlocked.includes(pending) || !through.includes(pending) || !taught.includes(pending))) pending = null;
+  if (!pending) pending = taught.find((id) => (LATER_AWARDS as readonly MatMoveId[]).includes(id) && !unlocked.includes(id)) ?? null;
   const lossStreak = Math.max(0, Math.floor(Number(p?.lossStreak) || 0));
   const out: BjjProgress = { belt, stripes, wins, unlocked, ...(pending ? { pendingDrill: pending } : {}), lossStreak };
   if (typeof p?.bondDay === 'string') out.bondDay = p.bondDay;
@@ -222,8 +232,8 @@ export function recordWin(p?: Partial<BjjProgress> | null): WinResult {
   const wins = before.wins + 1;
   const now = progressForWins(wins);
   const changed = now.belt !== before.belt || now.stripes !== before.stripes;
-  const taught = changed ? moveTaughtAt(now.belt, now.stripes) : null;
-  const move = taught && !before.unlocked.includes(taught) ? taught : null;
+  // the first move of the new stripe the account does not have yet (an old day-one move it kept is skipped)
+  const move = changed ? (movesTaughtAt(now.belt, now.stripes).find((id) => !before.unlocked.includes(id)) ?? null) : null;
   const progress = normalizeBjj({
     ...before,
     wins,
@@ -235,7 +245,10 @@ export function recordWin(p?: Partial<BjjProgress> | null): WinResult {
   return { progress, stripeUp: now.belt === before.belt && now.stripes > before.stripes, beltUp: now.belt !== before.belt, move };
 }
 
-/** The drill landed. The skill joins the account and the pending drill clears. */
+/**
+ * The drill landed. The skill joins the account and the pending drill clears; when the same stripe teaches a second move the account
+ * does not have yet, that move is the next pending drill.
+ */
 export function completeDrill(p: BjjProgress | null | undefined, move: MatMoveId): BjjProgress {
   const n = normalizeBjj(p);
   if (n.pendingDrill !== move || n.unlocked.includes(move)) {
@@ -243,7 +256,9 @@ export function completeDrill(p: BjjProgress | null | undefined, move: MatMoveId
     return rest;
   }
   const { pendingDrill: _drop, ...rest } = n;
-  return { ...rest, unlocked: [...n.unlocked, move] };
+  const unlocked = [...n.unlocked, move];
+  const next = movesTaughtAt(n.belt, n.stripes).find((id) => !unlocked.includes(id)) ?? null;
+  return { ...rest, unlocked, ...(next ? { pendingDrill: next } : {}) };
 }
 
 // ---------------------------------------------------------------- partners

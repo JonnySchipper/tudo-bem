@@ -92,13 +92,20 @@ export interface SimOut {
 
 /** One match on the server's loop: pick from the cards, run the chain, the partner's turn with a defense beat. */
 /** One match. `scale` is the comfort windows (`comfortScale` of the player's losses in a row; the server applies it at white belt). */
-export function simMatch(seed: number, p: SimPlayer, partner: PartnerProfile, belt: Belt = 'branca', first = false, scale = 1): SimOut {
+/**
+ * The stripes of the player's kit against this partner: a white belt meets each partner on the stripe that opens it (Mateus on day one,
+ * Felipe at one stripe, Helena at two, Daniel at three); from blue, the belt award. Since the staging (2026-10-10) day one is three moves
+ * and the finish (Braço) is the third stripe's lesson, so the kit is the one the player really has when the partner opens.
+ */
+export const kitStripes = (partner: PartnerProfile, belt: Belt): number => (belt === 'branca' ? Math.min(3, partner.unlockLevel) : 0);
+
+export function simMatch(seed: number, p: SimPlayer, partner: PartnerProfile, belt: Belt = 'branca', first = false, scale = 1, stripes = kitStripes(partner, belt)): SimOut {
   const rng = mulberry32(seed);
   const style = matStyle(partner);
   const level = LEVEL[belt];
   const theirs = botMoves(belt, belt);
-  // a player fresh on this belt: the belt's award and everything before it
-  const yours = fightMoves({ belt, unlocked: movesThrough(belt, 0), opponentBelt: belt });
+  // a player on the stripe that opened this partner: those awards and everything before them
+  const yours = fightMoves({ belt, unlocked: movesThrough(belt, stripes), opponentBelt: belt });
   const seen = { chains: 0, landed: 0, attacks: 0, blocked: 0 };
   const rates = (): MatRates => ({ chain: rate(START_RATES.chain, seen.landed, seen.chains), block: rate(START_RATES.block, seen.blocked, seen.attacks) });
   const ctx = (): BotCtx => ({ allowed: theirs, foeAllowed: yours, style, rates: rates() });
@@ -206,12 +213,12 @@ export function simMatch(seed: number, p: SimPlayer, partner: PartnerProfile, be
 
 const partner = (id: string) => PARTNERS.find((x) => x.id === id)!;
 
-export function winRate(n: number, p: SimPlayer, who: PartnerProfile, belt: Belt = 'branca', first = false, seed0 = 1000) {
+export function winRate(n: number, p: SimPlayer, who: PartnerProfile, belt: Belt = 'branca', first = false, seed0 = 1000, stripes = kitStripes(who, belt)) {
   let wins = 0;
   let subs = 0;
   let draws = 0;
   for (let i = 0; i < n; i++) {
-    const r = simMatch(seed0 + i, p, who, belt, first);
+    const r = simMatch(seed0 + i, p, who, belt, first, 1, stripes);
     if (r.st.winner === 'you') wins++;
     if (r.st.winner === 'draw') draws++;
     if (r.st.reason === 'submission') subs++;
@@ -260,7 +267,8 @@ describe('tatame v3 simulation (TATAME-V3 §I targets)', () => {
     expect(avg.wins).toBeGreaterThanOrEqual(0.45);
     expect(avg.wins).toBeLessThanOrEqual(0.6);
     expect(strong.wins).toBeGreaterThan(0.75);
-    expect(avg.subs).toBeGreaterThan(0.1);
+    // the finish is the third stripe's lesson (staging): with it, an average player's matches against Mateus end in a finish often enough
+    expect(winRate(300, player(0.8), mateus, 'branca', false, 1000, 3).subs).toBeGreaterThan(0.1);
   }, 120_000);
 
   it('an average player beats Felipe 45–60%, Helena and Daniel 40–55% (white belt)', () => {
@@ -313,7 +321,8 @@ describe('tatame v3 simulation (TATAME-V3 §I targets)', () => {
   it('a match is sixteen moves at most, and the arc shows up: grips, throws, passes and finishes are all played', () => {
     const log: string[] = [];
     for (let i = 0; i < 80; i++) {
-      const m = simMatch(7000 + i, player(0.8), mateus, 'branca');
+      // the white kit with the finish in it (Braço is the third stripe's lesson)
+      const m = simMatch(7000 + i, player(0.8), mateus, 'branca', false, 1, 3);
       expect(m.st.turnsUsed).toBeLessThanOrEqual(16);
       log.push(...m.log);
     }

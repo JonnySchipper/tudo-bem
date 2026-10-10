@@ -871,6 +871,19 @@ The pet shop on Rua dos Ipês (leste): Seu Dito (Benedito Alves, 62, from a sít
 | 641 | Mais raças no Pet Shop do Seu Dito, na Rua dos Ipês. · Meus pets ({n}) | More breeds at Seu Dito's pet shop… | `ui/support.ts` | Apoiar panel | |
 | 642 | A lojinha fica no Pet Shop do Seu Dito. · Chegue mais perto do balcão. · Chegue mais perto do cercadinho. · Você já tem esse. · Esse item não serve pra esse bichinho. · Adote um no Pet Shop do Seu Dito. | (server errors) | `apps/server/src/petShop.ts`, `world.ts` | | |
 
+## Z. Tatame staging
+
+<a id="z-tatame-staging"></a>
+The staged first matches on the mat (2026-10-10, `docs/lifesim/TATAME-V3.md` "Staging"): the lobby shows the suggested partner and folds
+the others, and the first match with the defense pad has its own coach notes. Read on screen, never spoken (no TTS). The pad match's
+other two notes reuse existing lines ("Ele vai atacar! Toque a defesa que a Bia falar." and the end-card tip "Contra o final, toque Sai!
+sem parar, rápido."). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+| --- | --- | --- | --- | --- | --- |
+| 643 | Mais parceiros | More partners | `apps/client/src/ui/bout.ts` lobby | the fold that reveals the other partners | |
+| 644 | Agora ele também ataca. O aviso diz o que vem. | Now they attack too. The warning says what is coming. | `apps/client/src/ui/boutLogic.ts` `PAD_COACH_NOTES.pick` | coach note at the first pick of the first match with the defense pad (wins 3) | |
+
 ## Totals
 
-642 numbered strings in sections A to Q, S, T, U, V, W, X and Y, plus 9 proposed-card entries.
+644 numbered strings in sections A to Q, S, T, U, V, W, X, Y and Z, plus 9 proposed-card entries.
