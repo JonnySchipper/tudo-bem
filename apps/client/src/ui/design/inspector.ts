@@ -59,6 +59,8 @@ export const ACTION_LABELS: Record<PropAction, string> = {
   feira_cart: 'Carrinho de jogos da feira (market game cart)',
   feira_sign: 'Placa da feira (market sign)',
   leaderboard: 'Placar (leaderboard)',
+  petshop_counter: 'Balcão do pet shop (pet shop counter)',
+  petshop_pen: 'Cercadinho / gatil (pet shop pen)',
 };
 
 const LAYER_PT: Record<Layer, string> = { floor: 'Chão', objects: 'Objetos', overhead: 'Por cima' };

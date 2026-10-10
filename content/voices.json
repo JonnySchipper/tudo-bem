@@ -15,6 +15,7 @@
     "tia_lu": { "voice": "pt-BR-FranciscaNeural", "rate": "-4%", "pitch": "-5Hz", "about": "Tia Lu, feira: warm and a little loud" },
     "rosa": { "voice": "pt-BR-FranciscaNeural", "rate": "-8%", "pitch": "+5Hz", "about": "Dona Rosa, flores: soft" },
     "ze": { "voice": "pt-BR-AntonioNeural", "rate": "+6%", "pitch": "+4Hz", "about": "Seu Zé, hortaliças: quick and chatty" },
-    "chico": { "voice": "pt-BR-AntonioNeural", "rate": "-6%", "pitch": "-6Hz", "about": "Seu Chico, pastel: deep and easygoing" }
+    "chico": { "voice": "pt-BR-AntonioNeural", "rate": "-6%", "pitch": "-6Hz", "about": "Seu Chico, pastel: deep and easygoing" },
+    "dito": { "voice": "pt-BR-AntonioNeural", "rate": "-3%", "pitch": "+2Hz", "about": "Seu Dito, pet shop: slow, warm, talks to the animals like people" }
   }
 }

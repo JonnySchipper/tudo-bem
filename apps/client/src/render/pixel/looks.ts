@@ -238,6 +238,11 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
   lucia: {
     appearance: base({ body: 'medio', skin: 3, hair: 'coque', hairColor: 4, top: 'blusa', topColor: 0, bottom: 'saia', bottomColor: 2, shoes: 2, face: 'maduro', extra: 'oculos', idle: 'bracos' }),
   },
+  // Seu Dito (pet shop, #234): grey buzz cut and beard, sp-green shirt, khaki trousers, a mustard shop apron, arms crossed.
+  dito: {
+    appearance: base({ body: 'forte', skin: 6, hair: 'raspado', hairColor: 4, top: 'camisa', topColor: 3, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'barba', idle: 'bracos' }),
+    apron: '#d9a62e',
+  },
   // The airport (arrival tutorial). Célia at the information desk: bun, the airport's teal uniform shirt with a yellow scarf knot (the
   // apron layer in yellow reads as the scarf and the badge strip). Agente Paulo at passport control: the Federal Police navy cap and shirt.
   celia: {

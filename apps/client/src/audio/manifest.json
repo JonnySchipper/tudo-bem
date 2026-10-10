@@ -15,7 +15,8 @@
     "tia_lu": "pt-BR-FranciscaNeural",
     "rosa": "pt-BR-FranciscaNeural",
     "ze": "pt-BR-AntonioNeural",
-    "chico": "pt-BR-AntonioNeural"
+    "chico": "pt-BR-AntonioNeural",
+    "dito": "pt-BR-AntonioNeural"
   },
   "lines": [
     {
@@ -10583,6 +10584,30 @@
       "voice": "comissaria",
       "text": "A porta do aeroporto é ali embaixo.",
       "file": "comissaria-235be7666b.mp3"
+    },
+    {
+      "id": "dito-63b8e5e580",
+      "voice": "dito",
+      "text": "Hoje chegou um filhote novo!",
+      "file": "dito-63b8e5e580.mp3"
+    },
+    {
+      "id": "dito-83a78ac39c",
+      "voice": "dito",
+      "text": "Carinho atrás da orelha, eles adoram.",
+      "file": "dito-83a78ac39c.mp3"
+    },
+    {
+      "id": "dito-510d4c29e4",
+      "voice": "dito",
+      "text": "Senta! Isso. Bom menino.",
+      "file": "dito-510d4c29e4.mp3"
+    },
+    {
+      "id": "dito-ce625607fc",
+      "voice": "dito",
+      "text": "Vira-lata é o cachorro mais fiel que existe.",
+      "file": "dito-ce625607fc.mp3"
     },
     {
       "id": "comissaria-d293b32fd0",
