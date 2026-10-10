@@ -4,7 +4,8 @@
  * state. `frame(now)` does nothing; Phaser runs its own loop and `WorldScene.update()` reads `game` every frame.
  */
 import Phaser from 'phaser';
-import { positionAlong, type PathPos, type Tile } from '@tudobem/shared';
+import { positionAlong, type PathPos, type PlacedFurniture, type Tile } from '@tudobem/shared';
+import { clientRectToWorld, type ClientRect, type WorldRect } from '../../ui/viewfinder';
 import type { ClientAvatar } from '../../state';
 import type { Guide, Hit, WorldView } from '../view';
 import { sharedCharAssets } from './charAssets';
@@ -179,6 +180,26 @@ export class PixelView implements WorldView {
     const a = worldToCanvas(this.scene.cam, prop.x * T, prop.y * T);
     const b = worldToCanvas(this.scene.cam, (prop.x + (prop.w ?? 1)) * T, (prop.y + (prop.h ?? 1)) * T);
     return { x: r.left + a.px, y: r.top + a.py, w: b.px - a.px, h: b.py - a.py };
+  }
+
+  /**
+   * The viewfinder in the world: a client-px rect into world px through the camera exactly as it was drawn, with the canvas' own displayed
+   * scale (the same mapping the print's crop uses, see viewfinder.ts).
+   */
+  frameToWorld(frame: ClientRect): WorldRect | null {
+    if (!this.scene) return null;
+    const r = this.rect();
+    if (!r.width || !r.height) return null;
+    return clientRectToWorld(frame, { x: r.left, y: r.top, w: r.width, h: r.height }, this.scene.drawnView());
+  }
+
+  /** World rects of what is drawn for a prop of this room (null when it is not drawn), and of a placed piece of furniture. */
+  propArt(propId: string): WorldRect[] | null {
+    return this.scene?.photoArt(propId) ?? null;
+  }
+
+  furnitureArt(f: PlacedFurniture): WorldRect | null {
+    return this.scene?.furnitureArt(f) ?? null;
   }
 
   tileToClient(x: number, y: number): { px: number; py: number } {

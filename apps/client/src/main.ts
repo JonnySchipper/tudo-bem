@@ -134,7 +134,9 @@ import { talkIdleOpen } from './ui/talkIdle';
 import { startAchado, claimReadingWord } from './ui/achado';
 import { roomTally } from './ui/achadoLogic';
 import { wantsReveal } from './ui/journalReveal';
-import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
+import { framedIds, cameraFrameAt } from './ui/viewfinder';
+import { T } from './render/pixel/coords';
+import { captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
 import { escolaPracticeOpen, openEscola, onEscolaMsg } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
@@ -529,10 +531,6 @@ function clickHotspot(hs: HotspotDef) {
   walkTo(spot, { kind: 'hotspot', hotspotId: hs.id, tile: spot });
 }
 
-function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) {
-  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-}
-
 let lastShutterAt = -1e9;
 
 /** A shutter click: spend film, keep the photo, and teach any camera word inside the frame. The player does not walk. */
@@ -557,30 +555,33 @@ function takePhoto(clientX: number, clientY: number) {
   lastShutterAt = t;
   // a tap on a phone has no hover before it: the viewfinder jumps to the tap so the blades close where the photo is taken
   syncCameraFrame(clientX, clientY);
-  const frame = cameraFrameAt(clientX, clientY);
+  // the frame stays wholly on screen; the print, the words and the blades all use this one rect
+  const frame = cameraFrameAt(clientX, clientY, window.innerWidth, window.innerHeight);
   const anchors: string[] = [];
   const room = game.roomDef;
-  const view = renderer as { propClientRect?: (p: { x: number; y: number; w?: number; h?: number }) => { x: number; y: number; w: number; h: number } | null };
-  if (room && view.propClientRect) {
-    // everything the frame touches that the diary teaches a word for: props, wall decor on the north wall, and furniture placed in the kitnet.
-    // The ones nearest the reticle go first, so the cards come in the order the player aimed.
-    const touched: { id: string; d: number }[] = [];
-    const aim = { x: frame.x + frame.w / 2, y: frame.y + frame.h / 2 };
+  const world = renderer.frameToWorld?.(frame) ?? null;
+  if (room && world) {
+    // what the print shows that the diary teaches a word for: props, wall decor on the north wall, and furniture placed in the kitnet.
+    // Each is measured by its drawn art (a tree's crown, a sign on its post), not the floor tiles it stands on, and counts when most of it is
+    // inside the frame or it fills a good part of the frame. The ones nearest the reticle go first, so the cards come in the order the player aimed.
     const taught = cameraObjectIds();
-    const tag = (id: string, box: { x: number; y: number; w?: number; h?: number }) => {
-      const rect = view.propClientRect!(box);
-      if (!rect || !rectsOverlap(frame, rect) || touched.some((t) => t.id === id)) return;
-      touched.push({ id, d: Math.hypot(rect.x + rect.w / 2 - aim.x, rect.y + rect.h / 2 - aim.y) });
-    };
     const day = clock.day();
-    for (const prop of room.props) if (taught.has(prop.id) && diaryVisible(room.id, prop.id, day)) tag(prop.id, prop);
-    for (const spot of PHOTO_SPOTS) if (spot.room === room.id && taught.has(spot.id)) tag(spot.id, spot);
-    for (const f of game.furniture) if (taught.has(f.itemId)) tag(f.itemId, { x: f.x, y: f.y });
-    anchors.push(...touched.sort((a, b) => a.d - b.d).map((t) => t.id).slice(0, 24));
+    const tiles = (b: { x: number; y: number; w?: number; h?: number }) => ({ x0: b.x * T, y0: b.y * T, x1: (b.x + (b.w ?? 1)) * T, y1: (b.y + (b.h ?? 1)) * T });
+    const candidates: { id: string; art: { x0: number; y0: number; x1: number; y1: number }[] }[] = [];
+    for (const prop of room.props) {
+      if (!taught.has(prop.id) || !diaryVisible(room.id, prop.id, day)) continue;
+      // a prop the view has not drawn (a small diary object that is not out today) is not in the picture
+      const art = renderer.propArt ? renderer.propArt(prop.id) : [tiles(prop)];
+      if (art) candidates.push({ id: prop.id, art });
+    }
+    // photo spots are boxes drawn around the painted thing itself (wall decor, the plane through the glass)
+    for (const spot of PHOTO_SPOTS) if (spot.room === room.id && taught.has(spot.id)) candidates.push({ id: spot.id, art: [tiles(spot)] });
+    for (const f of game.furniture) if (taught.has(f.itemId)) candidates.push({ id: f.itemId, art: [renderer.furnitureArt?.(f) ?? tiles(f)] });
+    anchors.push(...framedIds(world, candidates));
   }
   const image = captureFrame(frame);
   shutter(frame, image);
-  net.send({ t: 'diary', action: 'photo', anchors, image });
+  net.send({ t: 'diary', action: 'photo', anchors, image, ...(world ? { frame: world } : {}) });
   // one photo per opening: the camera closes once the blades have opened again (the print carries on to the Diário)
   window.setTimeout(() => {
     if (!game.cameraOn) return;

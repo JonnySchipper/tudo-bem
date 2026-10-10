@@ -263,11 +263,45 @@ export const PHOTO_MAX_CHARS = 80_000;
  */
 export const WS_MAX_PAYLOAD = PHOTO_MAX_CHARS + 8 * 1024;
 
+/**
+ * One kept photo. The image is stored once; every word the shot taught points at it through `wordIds` (in the order they were taught), so a
+ * picture of three things is the photo of all three words. `wordId` is the first of them, kept for saves and clients from before `wordIds`.
+ */
 export interface DiaryPhoto {
   id: string;
   at: number;
   image: string;
   wordId?: string;
+  wordIds?: string[];
+}
+
+/** Most words one photo can name (the most objects one shot can name times a few words each). */
+export const PHOTO_MAX_WORDS = 48;
+
+/** The words a photo is the picture of, first taught first. An old save's single `wordId` counts as a list of one. */
+export function photoWordIds(p: { wordId?: unknown; wordIds?: unknown }): string[] {
+  const out: string[] = [];
+  for (const id of [...(Array.isArray(p.wordIds) ? (p.wordIds as unknown[]) : []), p.wordId]) {
+    if (typeof id !== 'string' || out.includes(id) || !diaryWord(id)) continue;
+    out.push(id);
+    if (out.length >= PHOTO_MAX_WORDS) break;
+  }
+  return out;
+}
+
+/** The photo the diary shows for a word: the newest kept photo that taught it (photos are newest first). */
+export function photoForWord(photos: readonly DiaryPhoto[], wordId: string): DiaryPhoto | undefined {
+  return photos.find((p) => photoWordIds(p).includes(wordId));
+}
+
+/**
+ * A new shot at the front of the kept photos: one image, linked to every word it taught (`wordIds`, none for a shot that taught nothing),
+ * the oldest photo dropped past `PHOTO_KEEP`.
+ */
+export function addPhoto(photos: unknown, shot: { id: string; at: number; image: string; wordIds: readonly string[] }): DiaryPhoto[] {
+  const wordIds = photoWordIds({ wordIds: shot.wordIds });
+  const photo: DiaryPhoto = { id: shot.id, at: shot.at, image: shot.image, ...(wordIds.length ? { wordId: wordIds[0], wordIds } : {}) };
+  return [photo, ...normalizePhotos(photos)].slice(0, PHOTO_KEEP);
 }
 
 export function normalizeFilm(raw: unknown): number {
@@ -302,9 +336,12 @@ export function normalizePhotos(raw: unknown): DiaryPhoto[] {
     const id = (item as { id?: unknown }).id;
     const at = (item as { at?: unknown }).at;
     if (!image || typeof id !== 'string' || id.length > 40 || typeof at !== 'number') continue;
-    const wordId = (item as { wordId?: unknown }).wordId;
+    const wordIds = photoWordIds(item as { wordId?: unknown; wordIds?: unknown });
     const photo: DiaryPhoto = { id, at, image };
-    if (typeof wordId === 'string' && diaryWord(wordId)) photo.wordId = wordId;
+    if (wordIds.length) {
+      photo.wordId = wordIds[0];
+      photo.wordIds = wordIds;
+    }
     out.push(photo);
     if (out.length >= PHOTO_KEEP) break;
   }

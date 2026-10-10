@@ -269,7 +269,14 @@ export function buildHud(actions: HudActions) {
     h(
       'div',
       { class: 'hud-left hud-slab' },
-      h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }, icon('mark', 32)), h('div', { class: 'logo' }, 'Tudo ', h('span', null, 'Bem')), roomName),
+      h(
+        'div',
+        { class: 'brand' },
+        // the parrot logo: the whole banner where the plate has room, the parrot alone where it gives up the wordmark
+        h('span', { class: 'mark', 'aria-hidden': 'true' }, h('img', { class: 'tb-logo', src: `${import.meta.env.BASE_URL}brand/tb-parrot.png`, alt: '', width: '32', height: '32' })),
+        h('div', { class: 'logo' }, h('img', { class: 'tb-logo', src: `${import.meta.env.BASE_URL}brand/tb-logo-banner.png`, alt: 'Tudo Bem', height: '34' })),
+        roomName,
+      ),
       mountClockPill(),
       game.solo ? h('span', { class: 'hud-solo', id: 'solo-pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.' }, 'Modo solo', h('i', null, 'Solo mode')) : null,
     ),

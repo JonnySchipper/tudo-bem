@@ -15,6 +15,7 @@ import {
   diaryWord,
   hotspotById,
   isWalkable,
+  photoForWord,
   readSpot,
   type ClientMsg,
   type ServerMsg,
@@ -287,6 +288,47 @@ describe('arrival, camera, diary and the escola', () => {
     await a.send({ t: 'diary', action: 'photo', anchors: ['ipe_centro'] });
     expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
     expect(inPraca(a)).toHaveLength(6);
+  });
+
+  it('keeps one picture for a shot of several words and links it from every word the shot taught', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'finish' });
+    await walkTo(a, 17, 8);
+    const image = 'data:image/jpeg;base64,AAAA';
+    await a.send({ t: 'diary', action: 'photo', anchors: ['fonte', 'banco_1', 'coreto'], image });
+    const taught = ['fonte', 'banco', 'telhado', 'palco'];
+    const photos = a.s.profile?.photos ?? [];
+    expect(photos).toHaveLength(1);
+    expect(ptOf(photos[0]!.wordIds)).toEqual(taught);
+    expect(diaryWord(photos[0]!.wordId!)?.pt).toBe('fonte');
+    // the photos message carries the same single image, linked to all four words
+    const sent = a.last('photos')!.photos;
+    expect(sent).toHaveLength(1);
+    expect(ptOf(sent[0]!.wordIds)).toEqual(taught);
+    for (const id of photos[0]!.wordIds!) expect(photoForWord(sent, id)?.image).toBe(image);
+    // a shot that teaches nothing new keeps its picture without taking the words over
+    await a.send({ t: 'diary', action: 'photo', anchors: ['fonte'], image });
+    expect(a.s.profile?.photos?.[0]?.wordIds).toBeUndefined();
+    expect(photoForWord(a.s.profile?.photos ?? [], photos[0]!.wordIds![0]!)?.id).toBe(photos[0]!.id);
+  });
+
+  it('checks the objects of a shot against the frame the player aimed, not a radius around the player', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'finish' });
+    // the fountain (tiles 14..17, 10..12) framed from the far corner of the praça, across the screen
+    await walkTo(a, 1, 22);
+    const overFonte = { x0: 13.5 * 16, y0: 8 * 16, x1: 18.5 * 16, y1: 13 * 16 };
+    await a.send({ t: 'diary', action: 'photo', anchors: ['fonte', 'coreto'], frame: overFonte });
+    const shot = photoMsgs(a).at(-1)!;
+    // the fountain is in the frame; the bandstand, named too, is nowhere near it
+    expect(shot.ok && shot.words?.map((w) => w.pt)).toEqual(['fonte']);
+    // a frame that is not on the player's screen names nothing
+    const offScreen = { x0: 60 * 16, y0: 10 * 16, x1: 64 * 16, y1: 13 * 16 };
+    await a.send({ t: 'diary', action: 'photo', anchors: ['banco_1'], frame: offScreen });
+    expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
+    expect(inPraca(a)).toHaveLength(1);
   });
 
   it('lets a small diary object or sign be photographed or read only on the days it is out', async () => {

@@ -15,7 +15,8 @@ export interface HotspotDef {
   w?: number;
   h?: number;
   /**
-   * Interiors only: art tiles above the footprint that also take the click (a sign painted high on the north wall). The read distance
+   * Art tiles above the footprint that also take the click (a sign painted high on the north wall, or a sign board standing on its
+   * footprint, like the airport's 42 px placas). The read distance
    * is still measured to the footprint, so the footprint stays on the floor row the wall sits behind.
    */
   up?: number;
@@ -119,7 +120,7 @@ const BASE_HOTSPOTS: HotspotDef[] = [
  */
 const AIRPORT_SIGNS: HotspotDef[] = [
   { id: 'arrival.kicker', room: 'aeroporto', x: 18, y: 10, w: 6, h: 1, pt: 'AEROPORTO\nVila Ipê · Internacional', en: 'AIRPORT\nVila Ipê · International' },
-  { id: 'hall_s_terminal', room: 'aeroporto', x: 3, y: 11, w: 3, h: 1, pt: 'TERMINAL 1\nPortões 1 a 6', en: 'TERMINAL 1\nGates 1 to 6' },
+  { id: 'hall_s_terminal', room: 'aeroporto', x: 3, y: 11, w: 3, h: 1, up: 2, pt: 'TERMINAL 1\nPortões 1 a 6', en: 'TERMINAL 1\nGates 1 to 6' },
   {
     id: 'hall_s_embarque',
     room: 'aeroporto',
@@ -130,14 +131,14 @@ const AIRPORT_SIGNS: HotspotDef[] = [
     pt: 'EMBARQUE\nLisboa · 14h20 · Portão 3\nRecife · 15h05 · Portão 5\nBuenos Aires · 16h40 · Portão 6',
     en: 'DEPARTURES\nLisbon · 2:20 pm · Gate 3\nRecife · 3:05 pm · Gate 5\nBuenos Aires · 4:40 pm · Gate 6',
   },
-  { id: 'hall_s_bagagem', room: 'aeroporto', x: 2, y: 17, w: 3, h: 1, pt: 'BAGAGEM\nEsteira 1', en: 'BAGGAGE\nBelt 1' },
-  { id: 'hall_s_alfandega', room: 'aeroporto', x: 23, y: 16, w: 3, h: 1, pt: 'ALFÂNDEGA\nNada a declarar? Siga pelo verde.', en: 'CUSTOMS\nNothing to declare? Follow the green.' },
-  { id: 'hall_s_desembarque', room: 'aeroporto', x: 13, y: 22, w: 4, h: 1, pt: 'DESEMBARQUE\nSaída · Ônibus · Táxi', en: 'ARRIVALS\nExit · Bus · Taxi' },
+  { id: 'hall_s_bagagem', room: 'aeroporto', x: 2, y: 17, w: 3, h: 1, up: 2, pt: 'BAGAGEM\nEsteira 1', en: 'BAGGAGE\nBelt 1' },
+  { id: 'hall_s_alfandega', room: 'aeroporto', x: 23, y: 16, w: 3, h: 1, up: 2, pt: 'ALFÂNDEGA\nNada a declarar? Siga pelo verde.', en: 'CUSTOMS\nNothing to declare? Follow the green.' },
+  { id: 'hall_s_desembarque', room: 'aeroporto', x: 13, y: 22, w: 4, h: 1, up: 2, pt: 'DESEMBARQUE\nSaída · Ônibus · Táxi', en: 'ARRIVALS\nExit · Bus · Taxi' },
   { id: 'aero_bemvindo', room: 'aeroporto', x: 15, y: 18, w: 6, h: 1, pt: 'BEM-VINDO AO BRASIL!', en: 'WELCOME TO BRAZIL!' },
   { id: 'aero_ponto', room: 'aeroporto', x: 22, y: 24, w: 3, h: 1, pt: 'ÔNIBUS 875\nAeroporto → Vila Ipê\nA cada 15 minutos', en: 'BUS 875\nAirport → Vila Ipê\nEvery 15 minutes' },
   { id: 'aero_portao', room: 'aeroporto', x: 13, y: 11, w: 2, h: 1, pt: 'PORTÃO 3\nDesembarque do voo 2026', en: 'GATE 3\nFlight 2026 arriving' },
   // the arrivals hall before the airport (the first room): its sign teaches "desembarque" too, the same word as the airport's sign
-  { id: 'desemb_s_desembarque', room: 'desembarque', x: 4, y: 8, w: 4, h: 1, pt: 'DESEMBARQUE\nSaída para o aeroporto', en: 'ARRIVALS\nWay out to the airport' },
+  { id: 'desemb_s_desembarque', room: 'desembarque', x: 4, y: 8, w: 4, h: 1, up: 2, pt: 'DESEMBARQUE\nSaída para o aeroporto', en: 'ARRIVALS\nWay out to the airport' },
 ];
 
 /**
