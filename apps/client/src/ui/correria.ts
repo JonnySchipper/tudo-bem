@@ -1,19 +1,20 @@
 /**
  * "Correria no Balcão": the overlay of the padaria counter game. The shift itself is in the world (render/pixel/correriaStage.ts: the work
- * board, the queue, the juice, the taps on the shelves); this is the compact strip you read: the order mirror, the tray, the coffee mods,
- * Entregar, the "Quanto é?" card, a pinned HUD (wave, customers, points, combo, tips) and the end card. No modal, no cover over the padaria.
+ * board, the queue, the juice, the taps on the shelves); this is a slim strip you read (the order ticket on one line, the tray, Entregar),
+ * a pinned HUD (wave, points, combo) and the end card. No modal, no cover over the padaria, no lesson cards: the game teaches by doing, with
+ * one short coach mark pinned next to the thing to tap, the first time each action comes up (`correriaPracticeLogic.ts`).
  *
  * The server owns the shift (apps/server/src/correria.ts) and judges every step; this file sends the player's taps and draws what comes back.
  */
-import { JUICE, MG_ITEMS, MG_MODS, juiceVerdict, nextPadariaUpgrade, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MenuLadderView, type MgServerMsg } from '@tudobem/shared';
+import { JUICE, MG_ITEMS, nextPadariaUpgrade, juiceVerdict, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MenuLadderView, type MgServerMsg } from '@tudobem/shared';
 import { game } from '../state';
-import { h, bi } from './dom';
+import { h } from './dom';
 import { speak, stopSpeaking } from '../audio';
 import { ambience } from '../ambience';
 import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
 import { correriaFeed, type CounterHandlers } from '../render/pixel/correriaFeed';
-import { askCard, cueFor, endModel, frontOf, glossOn, hud, ladderEnd, ladderNext, ladderStrip, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
-import { HELP_STEPS, HELP_TITLE } from './correriaPracticeLogic';
+import { cueFor, endModel, frontOf, glossOn, hud, ladderEnd, ladderNext, ladderStrip, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
+import { COACH_KEY, coachDone, coachMark, readCoach, type CoachMark } from './correriaPracticeLogic';
 
 export interface CorreriaActions {
   send: (m: ClientMsg) => void;
@@ -21,15 +22,15 @@ export interface CorreriaActions {
   closed: () => void;
   /** Jogar de novo */
   again: () => void;
-  /** Set for the first-time practice order (ui/correriaPractice.ts): its "?" starts the practice again. */
-  practice?: { restart: () => void };
-  /** A real shift's "Treino" button (the "?" card and the end card): leave this shift for the practice order. */
+  /** Set for the first-time practice order (ui/correriaPractice.ts): its "?" starts it again, "Pular" goes on to the real shift. */
+  practice?: { restart: () => void; skip: () => void };
+  /** A real shift's "Treino" button (the end card): leave this shift for the practice order. */
   practiceRound?: () => void;
 }
 
 const SAY_MS = 4200;
-const NEW_ON_MENU: Bilingual = { pt: 'Novo no cardápio!', en: 'New on the menu!' };
-const ORANGE_WORDS ={ p: { pt: 'pequena', en: 'small' }, m: { pt: 'média', en: 'medium' }, g: { pt: 'grande', en: 'big' } } as const;
+const ORANGE_WORDS = { p: { pt: 'pequena', en: 'small' }, m: { pt: 'média', en: 'medium' }, g: { pt: 'grande', en: 'big' } } as const;
+const LIT = 'cr-coach-lit';
 
 export class CorreriaUI {
   private root: HTMLElement;
@@ -38,10 +39,10 @@ export class CorreriaUI {
   private mirror = h('div', { class: 'cr-mirror', id: 'cr-order' });
   private say = h('div', { class: 'cr-say', id: 'cr-say', 'aria-live': 'polite' });
   private trayEl = h('div', { class: 'cr-tray', id: 'cr-tray' });
-  private modsEl = h('div', { class: 'cr-mods', id: 'cr-mods' });
-  private askEl = h('div', { class: 'cr-ask', id: 'cr-ask' });
   private actionsEl = h('div', { class: 'cr-actions' });
   private waveEl = h('div', { class: 'cr-wave', id: 'cr-wave', 'aria-hidden': 'true' });
+  /** The coach mark: a small bubble pinned next to what to tap now. */
+  private markEl = h('div', { class: 'cr-mark', id: 'cr-mark', role: 'status', 'aria-live': 'polite' });
   private ro: ResizeObserver | null = null;
   private raf = 0;
   private snap: CorreriaSnap | null = null;
@@ -50,42 +51,33 @@ export class CorreriaUI {
   private closedFlag = false;
   private ended = false;
   private sayUntil = 0;
-  private askSig = '';
   private mirrorSig = '';
   private orderLand = 0;
   private barFill: HTMLElement | null = null;
-  private askSecs: HTMLElement | null = null;
   private serveBtn: HTMLButtonElement;
   private clearBtn: HTMLButtonElement;
   private enBtn: HTMLButtonElement;
   private quitBtn: HTMLButtonElement;
   private helpBtn: HTMLButtonElement;
-  private coachEl: HTMLElement | null = null;
+  private doneEl: HTMLElement | null = null;
   private quitArmed = 0;
   private lastPourSfx = 0;
-  private teachId = '';
-  private bumpShown = false;
+  private freshShown = false;
+  private seen = readCoach(localStorage.getItem(COACH_KEY));
+  private mark: CoachMark | null = null;
+  private lit: HTMLElement | null = null;
   private handlers: CounterHandlers;
 
   constructor(private readonly a: CorreriaActions) {
     this.serveBtn = h('button', { type: 'button', class: 'cr-serve', id: 'cr-serve', onclick: () => this.act({ a: 'serve' }) }, h('span', { class: 'pt' }, 'Entregar 🔔'), h('span', { class: 'en' }, 'Serve')) as HTMLButtonElement;
-    this.clearBtn = h('button', { type: 'button', class: 'cr-clear', id: 'cr-clear', onclick: () => this.act({ a: 'clear' }) }, h('span', { class: 'pt' }, 'Limpar'), h('span', { class: 'en' }, 'Empty')) as HTMLButtonElement;
+    this.clearBtn = h('button', { type: 'button', class: 'cr-clear', id: 'cr-clear', 'aria-label': 'Limpar (Empty the tray)', onclick: () => this.act({ a: 'clear' }) }, h('span', { class: 'pt' }, 'Limpar'), h('span', { class: 'en' }, 'Empty')) as HTMLButtonElement;
     this.enBtn = h('button', { type: 'button', class: 'cr-en', id: 'cr-en', 'aria-pressed': String(this.showEn), onclick: () => this.toggleEn() }, 'EN') as HTMLButtonElement;
     this.quitBtn = h('button', { type: 'button', class: 'cr-quit', id: 'cr-quit', 'aria-label': 'Sair (Leave)', onclick: () => this.quit() }, '✕') as HTMLButtonElement;
-    this.helpBtn = h('button', { type: 'button', class: 'cr-help', id: 'cr-help', 'aria-label': 'Como jogar (How to play)', title: 'Como jogar · How to play', onclick: () => this.help() }, '?') as HTMLButtonElement;
-    for (const m of MG_MODS.filter((x) => x.group === 'coffee'))
-      this.modsEl.append(h('button', { type: 'button', class: 'cr-mod', 'data-mod': m.id, 'aria-pressed': 'false', onclick: () => this.act({ a: 'mod', id: m.id }) }, h('span', { class: 'pt' }, m.pt), h('span', { class: 'en' }, m.en)));
+    this.helpBtn = h('button', { type: 'button', class: 'cr-help', id: 'cr-help', 'aria-label': 'Dicas (Hints)', title: 'Dicas de novo · Show the hints again', onclick: () => this.help() }, '?') as HTMLButtonElement;
     this.actionsEl.append(this.clearBtn, this.serveBtn);
     this.top = h('div', { class: 'cr-top', id: 'cr-top', 'aria-live': 'off' });
-    this.panel = h(
-      'div',
-      { class: 'cr-panel', id: 'cr-panel', role: 'region', 'aria-label': 'Correria no Balcão (Counter Rush)' },
-      this.mirror,
-      this.say,
-      this.askEl,
-      h('div', { class: 'cr-build' }, this.trayEl, this.modsEl, this.actionsEl),
-    );
-    this.root = h('div', { class: `cr-root${this.showEn ? '' : ' cr-noen'}${this.a.practice ? ' cr-practice' : ''}`, id: 'correria' }, this.top, this.waveEl, this.panel);
+    this.panel = h('div', { class: 'cr-panel', id: 'cr-panel', role: 'region', 'aria-label': 'Correria no Balcão (Counter Rush)' }, this.mirror, h('div', { class: 'cr-build' }, this.trayEl, this.actionsEl));
+    this.root = h('div', { class: `cr-root${this.showEn ? '' : ' cr-noen'}${this.a.practice ? ' cr-practice' : ''}`, id: 'correria' }, this.top, this.waveEl, this.say, this.panel, this.markEl);
     document.body.classList.add('cr-on');
     (document.getElementById('ui') ?? document.body).append(this.root);
     game.modalOpen = true;
@@ -126,6 +118,7 @@ export class CorreriaUI {
   private measure(): void {
     const ph = this.panel.getBoundingClientRect().height;
     const th = this.top.getBoundingClientRect().height;
+    this.root.style.setProperty('--cr-panel-h', `${Math.round(ph)}px`);
     correriaFeed.setBoxes(ph, th + (parseFloat(getComputedStyle(this.top).top) || 0));
   }
 
@@ -138,16 +131,26 @@ export class CorreriaUI {
     return !!this.a.practice;
   }
 
-  /** The last state drawn (the practice coach reads the juice glass from it). */
+  /** The last state drawn. */
   get snapshot(): CorreriaSnap | null {
     return this.snap;
   }
 
-  /** The practice coach card, on top of the order strip (the camera keeps the counter above the taller strip). */
-  setCoach(el: HTMLElement | null): void {
-    this.coachEl?.remove();
-    this.coachEl = el;
-    if (el) this.panel.prepend(el);
+  /** The practice is served: a line and the way on to the real shift, in place of the order ticket. Null takes it away. */
+  setDone(line: Bilingual | null, start?: () => void, again?: () => void): void {
+    this.doneEl?.remove();
+    this.doneEl = null;
+    this.panel.classList.toggle('done', !!line);
+    if (line) {
+      this.doneEl = h(
+        'div',
+        { class: 'cr-done', id: 'cr-done' },
+        h('p', null, h('span', { class: 'pt' }, line.pt), h('span', { class: 'gloss' }, line.en)),
+        start ? h('button', { type: 'button', class: 'cr-serve cr-done-go', id: 'cr-start', onclick: start }, h('span', { class: 'pt' }, 'Começar o turno ▶'), h('span', { class: 'en' }, 'Start the shift')) : null,
+        again ? h('button', { type: 'button', class: 'cr-clear', id: 'cr-again-practice', onclick: again }, h('span', { class: 'pt' }, 'De novo'), h('span', { class: 'en' }, 'Again')) : null,
+      );
+      this.panel.prepend(this.doneEl);
+    }
     this.measure();
   }
 
@@ -156,22 +159,29 @@ export class CorreriaUI {
     document.body.classList.remove('cr-ended');
     this.root.querySelector('#mg-end')?.remove();
     this.panel.classList.remove('ended');
+    this.setDone(null);
     this.snap = null;
     this.ended = false;
-    this.teachId = '';
-    this.bumpShown = false;
-    this.closeTeach();
+    this.freshShown = false;
     this.mirrorSig = '';
-    this.askSig = '';
+    this.showMark(null);
     correriaFeed.end();
   }
 
-  /** "?": the practice starts over; in a real shift, the how-to card with a way into the practice. */
+  /** "?": the practice starts over; in a real shift, every hint comes back for the actions still to come. */
   private help(): void {
     if (this.a.practice) return this.a.practice.restart();
-    const round = this.a.practiceRound;
-    this.mountTeach(HELP_TITLE, [...HELP_STEPS], null, undefined, round ? { pt: '🎓 Fazer o treino', en: 'Practice round', onclick: () => round() } : undefined);
-    this.root.querySelector('#cr-lesson')?.classList.add('cr-help-card');
+    this.seen.clear();
+    this.saveSeen();
+    this.flash({ pt: 'Dicas de novo, uma por vez.', en: 'Hints are back, one at a time.' }, false, 2400);
+  }
+
+  private saveSeen(): void {
+    try {
+      localStorage.setItem(COACH_KEY, JSON.stringify([...this.seen]));
+    } catch {
+      // private mode: the hints just show again next time
+    }
   }
 
   /** The shift is on (a state came and no end card yet). */
@@ -205,7 +215,6 @@ export class CorreriaUI {
     writeShowEnglish(this.showEn);
     this.syncEn();
     this.mirrorSig = '';
-    this.askSig = '';
     this.render();
   }
 
@@ -246,8 +255,9 @@ export class CorreriaUI {
     window.removeEventListener('resize', this.onResize);
     document.removeEventListener('keydown', this.onKey);
     stopSpeaking();
+    this.lit?.classList.remove(LIT);
     this.root.remove();
-    document.body.classList.remove('cr-on', 'cr-ended', 'cr-lesson-open');
+    document.body.classList.remove('cr-on', 'cr-ended');
     correriaFeed.setCamera(false);
     game.modalOpen = false;
     game.emit('modal');
@@ -290,27 +300,20 @@ export class CorreriaUI {
     } else correriaFeed.update(snap);
     this.syncEn();
     if (!resync) for (const e of ev) this.onEvent(e, snap);
-    this.showTeach(snap);
+    this.showFresh(snap);
     this.render();
     this.measure();
   }
 
-  /** One-time how-to (and the pay bump) at the start of the shift. On screen, not spoken. English stays visible when the player hides EN. */
-  private showTeach(snap: CorreriaSnap): void {
-    const lesson = snap.lesson;
-    if (lesson && this.teachId !== lesson.id) {
-      this.teachId = lesson.id;
-      this.mountTeach(lesson.title, lesson.steps, snap.bump, snap.ladder);
-      if (snap.bump) this.bumpShown = true;
-      return;
-    }
-    if (snap.bump && !this.bumpShown) {
-      this.bumpShown = true;
-      this.mountTeach(NEW_ON_MENU, [], snap.bump, snap.ladder);
-    }
+  /** What this shift added to the menu: one line, once (the board wears a NOVO badge on it until it is made). */
+  private showFresh(snap: CorreriaSnap): void {
+    if (this.freshShown || this.a.practice) return;
+    this.freshShown = true;
+    const names = (snap.ladder?.fresh ?? []).map((id) => MG_ITEMS.find((i) => i.id === id)?.card).filter((c) => !!c);
+    if (names.length) this.flash({ pt: `✨ Novo no cardápio: ${names.map((c) => c.form).join(', ')}`, en: `New on the menu: ${names.map((c) => c.gloss_en).join(', ')}` }, false, 3600);
   }
 
-  /** The menu as a row of chips: open, NOVO, and the next one locked with its countdown. */
+  /** The menu as a row of chips: open, NOVO, and the next one locked with its countdown (the end card only). */
   private ladderEl(l: MenuLadderView | undefined): HTMLElement | null {
     const chips = ladderStrip(l);
     if (!chips.length) return null;
@@ -336,30 +339,6 @@ export class CorreriaUI {
     );
   }
 
-  /** Step lessons sit over the counter taps; pay-bump-only cards use the same shell but must not hide #cr-hot. */
-  private closeTeach(): void {
-    this.root.querySelector('#cr-lesson')?.remove();
-    document.body.classList.remove('cr-lesson-open');
-  }
-
-  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null, ladder?: MenuLadderView, extra?: Bilingual & { onclick: () => void }): void {
-    this.closeTeach();
-    const grew = !!ladder?.fresh.length;
-    const card = h(
-      'div',
-      { class: `cr-lesson${grew ? ' grew' : ''}`, id: 'cr-lesson', role: 'dialog', 'aria-label': title.pt },
-      grew && title !== NEW_ON_MENU ? h('p', { class: 'cr-kicker' }, `✨ ${NEW_ON_MENU.pt}`, h('span', { class: 'gloss' }, NEW_ON_MENU.en)) : null,
-      h('h3', null, h('span', { class: 'pt' }, title.pt), h('span', { class: 'gloss' }, title.en)),
-      steps.length ? h('ol', { class: 'cr-steps' }, ...steps.map((s) => h('li', null, h('span', { class: 'pt' }, s.pt), h('span', { class: 'gloss' }, s.en)))) : null,
-      this.ladderEl(ladder),
-      bump ? h('p', { class: 'cr-bump' }, bump.pt, h('span', { class: 'gloss' }, bump.en)) : null,
-      h('button', { type: 'button', class: 'cr-lesson-ok', onclick: () => this.closeTeach() }, h('span', { class: 'pt' }, 'Entendi'), h('span', { class: 'gloss' }, 'Got it')),
-      extra ? h('button', { type: 'button', class: 'cr-lesson-ok cr-lesson-alt', id: 'cr-help-practice', onclick: extra.onclick }, h('span', { class: 'pt' }, extra.pt), h('span', { class: 'gloss' }, extra.en)) : null,
-    );
-    this.root.append(card);
-    if (steps.length) document.body.classList.add('cr-lesson-open');
-  }
-
   private onEvent(e: CEvent, snap: CorreriaSnap): void {
     const cue = cueFor(e);
     if (cue.sfx && !(e.k === 'pour_start' && performance.now() - this.lastPourSfx < 200)) {
@@ -367,6 +346,11 @@ export class CorreriaUI {
       if (e.k === 'pour_start') this.lastPourSfx = performance.now();
     }
     correriaFeed.push({ t: 'ev', e });
+    const learnt = coachDone(e).filter((k) => !this.seen.has(k));
+    if (learnt.length) {
+      for (const k of learnt) this.seen.add(k);
+      this.saveSeen();
+    }
     switch (e.k) {
       case 'front': {
         const c = snap.customers.find((x) => x.id === e.id);
@@ -380,11 +364,19 @@ export class CorreriaUI {
       }
       case 'grab':
       case 'chapa_ok':
-      case 'pour_ok':
       case 'juice_ok': {
         // the name of what was just taken, with its gloss (the shelf labels are hidden on small screens)
         const it = MG_ITEMS.find((i) => i.id === e.item);
         if (it) this.flash({ pt: it.card.form, en: it.card.gloss_en }, false, 1400);
+        break;
+      }
+      case 'pour_ok': {
+        const t = cue.toast;
+        if (t) this.flash(t, false, 1800);
+        else {
+          const it = MG_ITEMS.find((i) => i.id === e.item);
+          if (it) this.flash({ pt: it.card.form, en: it.card.gloss_en }, false, 1400);
+        }
         break;
       }
       case 'juice_drop': {
@@ -435,21 +427,17 @@ export class CorreriaUI {
         this.sayIt(e.line.pt);
         this.flash(e.line, true);
         break;
-      case 'ask':
-        this.sayIt(e.line.pt);
-        break;
-      case 'ask_result':
-        this.sayIt(e.line.pt);
-        this.flash(e.line, !e.ok);
-        break;
       case 'cheer': {
         correriaFeed.push({ t: 'cheer', pt: e.line.pt, en: e.line.en, baker: snap.baker });
         this.sayIt(e.line.pt);
         break;
       }
       case 'wave':
-        this.banner(e.wave, e.size, e.line);
-        this.sayIt(e.line.pt);
+        // the practice is one customer: no waves to announce
+        if (!this.a.practice) {
+          this.banner(e.wave, e.size, e.line);
+          this.sayIt(e.line.pt);
+        }
         break;
       case 'no':
       case 'chapa_raw':
@@ -465,8 +453,8 @@ export class CorreriaUI {
     }
   }
 
-  /** The line under the order: what a customer or the game just said, with its gloss. */
-  private flash(line: Bilingual, bad = false, ms = SAY_MS): void {
+  /** The line over the strip: what a customer or the game just said, with its gloss. */
+  flash(line: Bilingual, bad = false, ms = SAY_MS): void {
     this.say.replaceChildren(h('span', { class: 'pt' }, line.pt), h('span', { class: 'en' }, line.en));
     this.say.classList.toggle('bad', bad);
     this.say.classList.add('on');
@@ -486,16 +474,13 @@ export class CorreriaUI {
     if (!snap) return;
     this.renderTop(snap);
     const front = frontOf(snap);
-    const ask = front?.state === 'asking' ? askCard(front, 0) : null;
-    this.panel.classList.toggle('asking', !!ask);
     const mir = orderMirror(front, snap.level);
-    const sig = `${mir?.who}|${mir?.pt}|${mir?.follow?.pt ?? ''}|${this.showEn}|${front?.state}`;
+    const sig = `${mir?.who}|${mir?.pt}|${mir?.follow?.pt ?? ''}|${mir?.hot ? 1 : 0}|${this.showEn}|${front?.state}`;
     if (sig !== this.mirrorSig) {
       this.mirrorSig = sig;
       this.renderMirror(mir);
       if (mir && this.orderLand) this.mirror.classList.add('subtitle-in');
     }
-    this.renderAsk(front);
     // tray, mods
     const chips = trayChips(snap.tray);
     const mods = modChips(snap);
@@ -504,7 +489,6 @@ export class CorreriaUI {
         ? [...chips.map((c) => h('span', { class: 'cr-chip', 'data-item': c.id }, c.qty > 1 ? `${c.qty}× ` : '', h('b', null, c.pt))), ...mods.map((m) => h('span', { class: 'cr-chip mod' }, m.pt))]
         : [h('span', { class: 'cr-empty' }, 'Bandeja vazia', h('span', { class: 'en' }, 'Empty tray'))]),
     );
-    this.modsEl.querySelectorAll<HTMLElement>('.cr-mod').forEach((b) => b.setAttribute('aria-pressed', String(snap.mods.includes(b.dataset.mod!))));
     const busy = !front || front.state !== 'front';
     this.serveBtn.disabled = busy || !snap.tray.length;
     this.clearBtn.disabled = !snap.tray.length && !snap.pack && !snap.mods.length;
@@ -513,18 +497,19 @@ export class CorreriaUI {
 
   private renderTop(snap: CorreriaSnap): void {
     const m = hud(snap);
-    this.top.replaceChildren(
-      this.a.practice
-        ? h('div', { class: 'cr-wavechip' }, h('span', { class: 'pt' }, 'Treino'), h('span', { class: 'sub' }, 'Practice · 1 cliente'))
+    const p = this.a.practice;
+    const parts: (HTMLElement | null)[] = [
+      p
+        ? h('div', { class: 'cr-wavechip' }, h('span', { class: 'pt' }, 'Treino'), h('span', { class: 'sub' }, 'Practice'))
         : h('div', { class: 'cr-wavechip' }, h('span', { class: 'pt' }, m.wave), h('span', { class: 'sub' }, `${m.left} clientes`, h('span', { class: 'en' }, `${m.left} customers`))),
       h('div', { class: 'cr-stat pts', title: 'Pontos · Points' }, h('span', { class: 'k' }, 'Pontos', h('span', { class: 'en' }, 'Points')), h('b', { id: 'cr-points' }, String(m.points))),
-      h('div', { class: `cr-stat combo${m.combo >= 2 ? ' hot' : ''}`, title: 'Combo · Combo' }, h('span', { class: 'k' }, 'Combo', h('span', { class: 'en' }, 'Streak')), h('b', { id: 'cr-combo' }, `x${m.combo}`)),
-      h('div', { class: 'cr-stat tips', title: 'Gorjeta · Tips' }, h('span', { class: 'k' }, 'Gorjeta', h('span', { class: 'en' }, 'Tips')), h('b', { id: 'cr-tips' }, m.tips)),
-      h('div', { class: 'cr-lvl', title: 'Nível · Level' }, m.level),
-      this.helpBtn,
+      p ? null : h('div', { class: `cr-stat combo${m.combo >= 2 ? ' hot' : ''}`, title: 'Combo · Combo' }, h('span', { class: 'k' }, 'Combo', h('span', { class: 'en' }, 'Streak')), h('b', { id: 'cr-combo' }, `x${m.combo}`)),
+      p ? null : h('div', { class: 'cr-lvl', title: 'Nível · Level' }, m.level),
+      p ? h('button', { type: 'button', class: 'cr-skip', id: 'cr-skip', onclick: () => p.skip() }, 'Pular ▶') : this.helpBtn,
       this.enBtn,
       this.quitBtn,
-    );
+    ];
+    this.top.replaceChildren(...parts.filter((el): el is HTMLElement => !!el));
   }
 
   private renderMirror(mir: ReturnType<typeof orderMirror>): void {
@@ -543,7 +528,7 @@ export class CorreriaUI {
         { class: 'cr-line' },
         h('span', { class: 'cr-who' }, mir.who),
         h('span', { class: 'cr-say-pt', id: 'cr-order-pt' }, mir.hidden ? '🔊 ' : '', mir.pt),
-        mir.hidden ? h('span', { class: 'en' }, mir.en) : h('span', { class: 'en' }, mir.en),
+        mir.hot ? h('span', { class: 'cr-hot-tag', id: 'cr-hot-tag', title: `${mir.hot.pt} · ${mir.hot.en}` }, mir.hot.pt, h('span', { class: 'en' }, mir.hot.en)) : null,
         mir.canReplay
           ? h(
               'button',
@@ -552,44 +537,46 @@ export class CorreriaUI {
               h('span', { class: 'en' }, mir.replayPips ? `Replay · −${mir.replayPips} patience pip${mir.replayPips > 1 ? 's' : ''}` : 'Replay · Carlos shrugs it off'),
             )
           : null,
+        h('span', { class: 'en cr-order-en' }, mir.en),
         mir.follow ? h('span', { class: 'cr-follow', id: 'cr-follow' }, mir.follow.pt, h('span', { class: 'en' }, mir.follow.en)) : null,
       ),
       bar,
     );
   }
 
-  private renderAsk(front: ReturnType<typeof frontOf>): void {
-    const card = front?.state === 'asking' ? askCard(front, performance.now() - this.snapAt) : null;
-    if (!card || !front) {
-      if (this.askSig) {
-        this.askSig = '';
-        this.askEl.replaceChildren();
+  /** The coach mark for now (or none), pinned next to its target and lighting it up. */
+  private showMark(m: CoachMark | null): void {
+    const target = m ? document.getElementById(m.target) : null;
+    const visible = !!target && target.offsetParent !== null && !(target as HTMLButtonElement).disabled;
+    const want = visible ? m : null;
+    if (this.lit !== target || !want) {
+      this.lit?.classList.remove(LIT);
+      this.lit = want && target ? target : null;
+      this.lit?.classList.add(LIT);
+    }
+    if (!want || !target) {
+      if (this.mark) {
+        this.mark = null;
+        this.markEl.classList.remove('on');
       }
       return;
     }
-    const sig = `${front.id}|${front.ask?.type}|${this.showEn}`;
-    if (sig === this.askSig) return;
-    this.askSig = sig;
-    const items = h('div', { class: 'cr-ask-items' }, ...card.items.map((i) => h('span', { class: 'cr-ask-item' }, `${i.qty > 1 ? `${i.qty}× ` : ''}${i.pt} `, h('b', null, i.price))));
-    this.askSecs = h('span', { class: 'cr-ask-secs' }, `${card.secs}s`);
-    const body =
-      card.type === 'choice'
-        ? h('div', { class: 'cr-ask-opts' }, ...card.options.map((o) => h('button', { type: 'button', class: 'cr-opt', 'data-value': String(o.value), onclick: () => this.act({ a: 'answer', value: o.value }) }, h('span', { class: 'pt' }, o.pt), h('span', { class: 'en' }, o.label))))
-        : (() => {
-            const input = h('input', { type: 'text', id: 'cr-ask-input', class: 'cr-ask-input', placeholder: 'Escreva o total… (Type the total)', autocomplete: 'off', inputmode: 'text', 'aria-label': 'Total em reais (Total in reais)' }) as HTMLInputElement;
-            const go = () => {
-              if (input.value.trim()) this.act({ a: 'answer', value: input.value });
-            };
-            input.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                go();
-              }
-            });
-            window.setTimeout(() => input.focus(), 0);
-            return h('div', { class: 'cr-ask-type' }, input, h('button', { type: 'button', class: 'cr-opt go', onclick: go }, bi('Responder', 'Answer')), h('span', { class: 'en' }, 'Numbers or words, accents optional'));
-          })();
-    this.askEl.replaceChildren(h('div', { class: 'cr-ask-head' }, h('span', { class: 'pt' }, `${card.title.pt} 🧾`), h('span', { class: 'en' }, card.title.en), this.askSecs), items, body);
+    if (this.mark?.key !== want.key) {
+      this.mark = want;
+      this.markEl.replaceChildren(h('span', { class: 'pt' }, want.pt), h('span', { class: 'gloss' }, want.en));
+      this.markEl.dataset.key = want.key;
+      this.markEl.classList.add('on');
+    }
+    // over the target when there is room, else under it; kept on screen
+    const r = target.getBoundingClientRect();
+    const mw = this.markEl.offsetWidth;
+    const mh = this.markEl.offsetHeight;
+    const above = r.top - mh - 12 > 8;
+    const x = Math.max(8, Math.min(window.innerWidth - mw - 8, r.left + r.width / 2 - mw / 2));
+    const y = above ? r.top - mh - 12 : r.bottom + 12;
+    this.markEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+    this.markEl.dataset.side = above ? 'above' : 'below';
+    this.markEl.style.setProperty('--cr-mark-arrow', `${Math.round(r.left + r.width / 2 - x)}px`);
   }
 
   private tick = (): void => {
@@ -601,7 +588,10 @@ export class CorreriaUI {
       this.sayUntil = 0;
       this.say.classList.remove('on', 'bad');
     }
-    if (!snap || this.ended) return;
+    if (!snap || this.ended) {
+      this.showMark(null);
+      return;
+    }
     const front = frontOf(snap);
     const age = now - this.snapAt;
     if (front && this.barFill) {
@@ -609,7 +599,7 @@ export class CorreriaUI {
       this.barFill.style.transform = `scaleX(${f.toFixed(3)})`;
       this.barFill.dataset.low = f < 0.3 ? '1' : '0';
     }
-    if (front?.state === 'asking' && this.askSecs && front.ask) this.askSecs.textContent = `${Math.max(0, Math.ceil((front.ask.ms - age) / 1000))}s`;
+    this.showMark(this.doneEl ? null : coachMark(snap, this.seen, !!correriaFeed.snap?.pour));
   };
 
   // ------------------------------------------------------------------ end
@@ -619,12 +609,12 @@ export class CorreriaUI {
     if (!own?.owner) return null;
     const next = nextPadariaUpgrade(own);
     if (!next) return h('p', { class: 'cr-end-daily' }, 'Sua padaria está completa!', h('span', { class: 'en' }, 'Your bakery has every upgrade!'));
-    const short = Math.max(0, next.cost - (game.profile?.coins ?? 0));
+    const ready = (game.profile?.coins ?? 0) >= next.cost;
     return h(
       'p',
       { class: 'cr-end-daily cr-end-next' },
-      short ? `Próxima melhoria: ${next.label.pt} · faltam ${short} RV` : `Já dá pra comprar: ${next.label.pt}! (vaso perto da porta)`,
-      h('span', { class: 'en' }, short ? `Next upgrade: ${next.label.en} · ${short} RV to go` : `You can buy ${next.label.en} now! (pot by the door)`),
+      ready ? `Já dá pra comprar: ${next.label.pt}! (Menu do dono)` : `Próxima melhoria: ${next.label.pt} · ${next.cost} RV`,
+      h('span', { class: 'en' }, ready ? `You can buy ${next.label.en} now! (Owner menu)` : `Next upgrade: ${next.label.en} · ${next.cost} RV`),
     );
   }
 
@@ -639,7 +629,7 @@ export class CorreriaUI {
 
   private onEnd(m: Extract<MgServerMsg, { phase: 'end' }>): void {
     this.ended = true;
-    this.closeTeach();
+    this.showMark(null);
     document.body.classList.add('cr-ended');
     const lost = !!m.lost;
     const model = endModel(m.end, m.carlos);
@@ -657,7 +647,6 @@ export class CorreriaUI {
         ? null
         : h('div', { class: 'cr-end-rows' }, ...model.rows.map((r) => h('div', { class: 'row' }, h('span', { class: 'k' }, r.label.pt, h('span', { class: 'en' }, r.label.en)), h('b', null, r.value)))),
       !lost && m.end.dailyBlocked ? h('p', { class: 'cr-end-daily' }, 'RV de hoje: já pagamos os turnos do dia. As estrelas contam!', h('span', { class: 'en' }, 'Today’s paid shifts are used up. The stars still count!')) : null,
-      !lost && m.end.menuNote ? h('p', { class: 'cr-end-daily cr-end-bump' }, m.end.menuNote.pt, h('span', { class: 'gloss' }, m.end.menuNote.en)) : null,
       !lost ? this.endLadder(m.end.ladder) : null,
       !lost && model.words.length ? h('div', { class: 'cr-end-words' }, h('b', null, 'Palavras novas no Caderno'), ...model.words.map((w) => h('span', { class: 'cr-chip' }, w.pt, h('span', { class: 'en' }, w.en)))) : null,
       !lost ? this.ownerNext() : null,

@@ -284,8 +284,6 @@ export interface CorreriaEnd {
   coins: number;
   /** The shift would have paid but today's paid shifts are used up. */
   dailyBlocked: boolean;
-  askRight: number;
-  askTotal: number;
   /** Words met in this shift that were new to the Caderno. */
   words: Bilingual[];
   newUnlocks: { id: UnlockId; pt: string; en: string }[];

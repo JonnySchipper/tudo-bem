@@ -722,9 +722,9 @@ function updateGuides() {
   if (!p || !r || isDialogueBoxOpen() || boutUi?.open) return;
   const t = p.tutorial;
   const add = (g: Guide | null) => g && renderer.guides.push(g);
-  // the bakery game: a glowing start spot and a sign on the counter rail, "Comece aqui!" until the first shift
+  // the bakery game: a glowing start spot and a sign on the display case (the vitrine is what you click), "Comece aqui!" until the first shift
   const playSpot = (en: string) => {
-    const g = guideAt('prop', 'trilho', 128, 'Jogar: Padaria');
+    const g = guideAt('prop', 'vitrine', 128, 'Jogar: Padaria');
     const first = t.carlos && practiceNeeded(localStorage.getItem(PRACTICE_KEY), !!t.meveum);
     return g ? { ...g, en, kind: 'play' as const, first } : null;
   };

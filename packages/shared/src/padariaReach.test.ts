@@ -32,21 +32,25 @@ function reachableWide(g: ReturnType<typeof buildGrid>, from: { x: number; y: nu
 }
 
 describe('padaria Correria hotspot', () => {
-  it('trilho interact is on the customer floor, reachable from spawn and the door', () => {
+  it('the vitrine (where the "Jogar: Padaria" sign points) starts the game, and its interact tile is on the customer floor', () => {
     const room = ROOMS.padaria;
     const grid = buildGrid(room);
-    const trilho = room.props.find((p) => p.id === 'trilho');
-    expect(trilho?.interact).toEqual({ x: 6, y: 4 });
-    const tile = trilho!.interact!;
+    const vitrine = room.props.find((p) => p.id === 'vitrine');
+    expect(vitrine?.action).toBe('minigame');
+    // the play spot is the display case only: the order rail beside it is scenery
+    expect(room.props.filter((p) => p.action === 'minigame').map((p) => p.id)).toEqual(['vitrine']);
+    expect(vitrine?.interact).toEqual({ x: 6, y: 4 });
+    const tile = vitrine!.interact!;
+    expect(tile.x).toBe(vitrine!.x);
     expect(tile.y).toBeGreaterThanOrEqual(4);
     expect(isWalkable(grid, tile.x, tile.y), 'interact tile walkable').toBe(true);
-    expect(findPath(grid, room.spawn, tile), 'spawn -> trilho').not.toBeNull();
-    expect(findPath(grid, { x: 0, y: 6 }, tile), 'door -> trilho').not.toBeNull();
+    expect(findPath(grid, room.spawn, tile), 'spawn -> vitrine').not.toBeNull();
+    expect(findPath(grid, { x: 0, y: 6 }, tile), 'door -> vitrine').not.toBeNull();
     const withBaker = buildGrid(room);
     withBaker.blocked.add(key(3, 1));
-    expect(findPath(withBaker, room.spawn, tile), 'spawn -> trilho with baker on counter').not.toBeNull();
+    expect(findPath(withBaker, room.spawn, tile), 'spawn -> vitrine with baker on counter').not.toBeNull();
     const lane = reachableWide(grid, room.spawn);
-    expect(lane.has(key(tile.x, tile.y)), 'trilho touches wide lane from spawn').toBe(true);
+    expect(lane.has(key(tile.x, tile.y)), 'vitrine touches wide lane from spawn').toBe(true);
   });
 });
 
