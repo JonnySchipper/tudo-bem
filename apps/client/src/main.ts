@@ -27,6 +27,7 @@ import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
 import {
   DEFAULT_APPEARANCE,
+  DESEMBARQUE_EXIT,
   MISSION_COPY,
   ROOMS,
   TUTORIAL_STEPS,
@@ -116,7 +117,7 @@ import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia, showAirportNext } from './ui/airportTutorial';
 import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
-import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
+import { desembGateHint, desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
 import { firstRoom } from './ui/desembarqueLogic';
 import { designLinkRoom, watchDesignLink } from './ui/designLink';
 import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
@@ -299,11 +300,29 @@ function propOnInteractTile(): PropDef | undefined {
   return room.props.find((p) => p.action && p.interact && p.interact.x === cur.tile.x && p.interact.y === cur.tile.y);
 }
 
+/**
+ * The arrivals hall's doors to the airport stay shut until every tutorial step before them is done: trying them shows what is left
+ * (PT + EN) and returns true. Any other door is never shut.
+ */
+let gateToastAt = -1e9;
+function gateShut(portalId: string): boolean {
+  if (portalId !== DESEMBARQUE_EXIT) return false;
+  const hint = desembGateHint();
+  if (!hint) return false;
+  // one hint per beat: a double click or a held key does not stack toasts
+  if (performance.now() - gateToastAt > 1500) {
+    gateToastAt = performance.now();
+    toast('info', `🔒 ${hint.pt}`, hint.en);
+  }
+  return true;
+}
+
 function runPending() {
   const p = game.pending;
   game.pending = null;
   if (!p) return;
   if (p.kind === 'portal') {
+    if (gateShut(p.portalId)) return;
     const to = game.roomDef?.portals.find((q) => q.id === p.portalId)?.to;
     // an owner at Seu Carlos's door picks: their own padaria or his (the facade is shared; the owned shop has no door of its own)
     if (to === 'padaria' && game.profile?.padaria) chooseBakery(game.profile.padaria, () => net.send({ t: 'portal', portalId: p.portalId }));
@@ -1471,6 +1490,7 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       return [t.pt, `${t.en} — click to read`];
     }
     case 'portal':
+      if (hit.portal.id === DESEMBARQUE_EXIT && desembGateHint()) return [`🔒 ${hit.portal.label.pt}`, 'Locked until the tutorial steps are done'];
       return [hit.portal.label.pt, hit.portal.label.en];
     case 'avatar': {
       const a = game.avatars.get(hit.id);
@@ -1556,6 +1576,10 @@ function handleClickInner(hit: Hit | null) {
       break;
     case 'portal': {
       const tile = { x: hit.portal.x, y: hit.portal.y };
+      if (gateShut(hit.portal.id)) {
+        markTap('refused', { tile });
+        break;
+      }
       markTap('target', { tile });
       walkTo(tile, { kind: 'portal', portalId: hit.portal.id, tile });
       break;

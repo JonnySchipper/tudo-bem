@@ -143,6 +143,24 @@ export function nextDesembStep(done: ReadonlySet<DesembStepId>): DesembStep | nu
   return DESEMB_STEPS.find((s) => !done.has(s.id)) ?? null;
 }
 
+/** The steps that have to be done before the doors to the airport open (every one but the door itself), in order. */
+export function desembLeft(done: ReadonlySet<DesembStepId>): DesembStep[] {
+  return DESEMB_STEPS.filter((s) => s.id !== 'porta' && !done.has(s.id));
+}
+
+/**
+ * The doors to the airport stay shut until every other step is done. Null when they are open; otherwise the short, friendly hint the
+ * player sees when they try them (Portuguese and English), naming what is left. Needs_br.
+ */
+export function desembGateHint(done: ReadonlySet<DesembStepId>): { pt: string; en: string } | null {
+  const left = desembLeft(done);
+  const next = left[0];
+  if (!next) return null;
+  const what = next.en[0]!.toLowerCase() + next.en.slice(1);
+  if (left.length === 1) return { pt: `Quase lá! Só falta um passo: ${next.pt}.`, en: `Almost there! One step left before the airport: ${what}.` };
+  return { pt: `Calma! Faltam ${left.length} passos antes do aeroporto.`, en: `Not yet! ${left.length} steps left before the airport. Next: ${what}.` };
+}
+
 /** Drinking it only counts once you had the water in hand: the cup left in your hand after "Beber", or an empty hand after it. */
 export function drankWater(before: string | null | undefined, now: string | null | undefined): boolean {
   return before === 'agua' && now !== 'agua';
