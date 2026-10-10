@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CHAPA, DAILY_PAID_SHIFTS, DEFAULT_APPEARANCE, ECONOMY, JUICE, JUICER_LESSON_ID, MENU_LADDER, POUR, frontOf, type ClientMsg, type CorreriaSnap, type ServerMsg } from '@tudobem/shared';
+import { CHAPA, DAILY_PAID_SHIFTS, DEFAULT_APPEARANCE, ECONOMY, JUICE, MENU_LADDER, POUR, frontOf, type ClientMsg, type CorreriaSnap, type ServerMsg } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
@@ -69,39 +69,33 @@ describe('Correria no Balcão, server side', () => {
     const a = await player(world);
     await a.send({ t: 'mg', action: 'start' });
     const s0 = snap(a);
-    expect(s0).toMatchObject({ v: 1, wave: 0, waves: 3, total: 15, level: 0, baker: expect.stringMatching(/carlos|graca/) });
+    // a profile's very first shift is two waves of customers (4 + 5)
+    expect(s0).toMatchObject({ v: 1, wave: 0, waves: 2, total: 9, level: 0, baker: expect.stringMatching(/carlos|graca/) });
     expect(s0.chapa).toEqual([null]);
     expect(s0.unlocked).toEqual([]);
     expect([...s0.menu].sort()).toEqual(['cafe', 'pao']);
-    expect(s0.lesson?.id).toBe('cafe');
+    expect('lesson' in s0).toBe(false);
     expect(s0.payMul).toBe(1);
     expect(s0.bump).toBeNull();
-    expect(a.s.profile!.correria!.taught).toEqual(['cafe']);
   });
 
-  it('shows each lesson once, then the pay bump when the menu grows', async () => {
+  it('says the pay bump when the menu grows, and keeps no per-item lesson state any more', async () => {
     const world = makeWorld();
     const a = await player(world);
     await a.send({ t: 'mg', action: 'start' });
     await a.send({ t: 'mg', action: 'quit' });
     a.inbox.length = 0;
     await a.send({ t: 'mg', action: 'start' });
-    expect(snap(a).lesson?.id).toBe('pao');
-    expect(a.s.profile!.correria!.taught).toEqual(['cafe', 'pao']);
     expect(a.s.profile!.correria!.shifts).toBe(0);
-    a.s.profile!.correria = { stars: 0, shifts: 2, best: 0, taught: ['cafe', 'pao'] };
+    expect(a.s.profile!.correria!.taught).toEqual([]);
+    a.s.profile!.correria = { stars: 0, shifts: 2, best: 0 };
     a.inbox.length = 0;
     await a.send({ t: 'mg', action: 'quit' });
     await a.send({ t: 'mg', action: 'start' });
     expect(snap(a).menu).toContain('agua');
-    expect(snap(a).lesson?.id).toBe('agua');
+    expect('lesson' in snap(a)).toBe(false);
     expect(snap(a).bump?.pt).toBe('+1 item no cardápio: pagamento +6%');
     expect(snap(a).payMul).toBeCloseTo(1.06);
-    a.inbox.length = 0;
-    await a.send({ t: 'mg', action: 'quit' });
-    await a.send({ t: 'mg', action: 'start' });
-    expect(snap(a).lesson).toBeNull();
-    expect(a.s.profile!.correria!.taught).toContain('agua');
   });
 
   it('customers arrive over time, one steps up to order, patience runs on the server clock', async () => {
@@ -170,9 +164,6 @@ describe('Correria no Balcão, server side', () => {
     const a = await player(world);
     a.s.profile!.correria = { stars: 0, shifts: 40, best: 0, taught: [...MENU_LADDER, 'where'] };
     await a.send({ t: 'mg', action: 'start' });
-    // a save that saw the old fridge card for suco gets the juicer card once
-    expect(snap(a).lesson?.id).toBe(JUICER_LESSON_ID);
-    expect(a.s.profile!.correria!.taught).toContain(JUICER_LESSON_ID);
     await waitFront(world, a, advance);
     await act(a, { a: 'grab', item: 'suco_de_laranja' });
     expect(evs(a).at(-1)).toMatchObject({ k: 'no', why: 'station' });
@@ -195,10 +186,20 @@ describe('Correria no Balcão, server side', () => {
     await act(a, { a: 'juice_take' });
     expect(evs(a).at(-1)).toMatchObject({ k: 'juice_ok', item: 'suco_de_laranja' });
     expect(snap(a).tray).toEqual(['suco_de_laranja']);
-    a.inbox.length = 0;
-    await a.send({ t: 'mg', action: 'quit' });
+  });
+
+  it('the oranges are one size until cafe_rapido, which the shift ladder hands out', async () => {
+    const world = makeWorld();
+    const a = await player(world);
+    // juicer on the menu (10 shifts), but cafe_rapido (12) not yet
+    a.s.profile!.correria = { stars: 0, shifts: 10, best: 0 };
     await a.send({ t: 'mg', action: 'start' });
-    expect(snap(a).lesson).toBeNull();
+    expect(snap(a).unlocked).toEqual(['chapa2']);
+    expect(snap(a).hopper).toEqual(['m', 'm', 'm']);
+    await a.send({ t: 'mg', action: 'quit' });
+    a.s.profile!.correria = { stars: 0, shifts: 12, best: 0 };
+    await a.send({ t: 'mg', action: 'start' });
+    expect(snap(a).unlocked).toContain('cafe_rapido');
   });
 
   it('a wrong tray is corrected (glossed) and keeps the tray; fixing it scores the second chance', async () => {
@@ -218,14 +219,14 @@ describe('Correria no Balcão, server side', () => {
     expect(evs(a).at(-1) && [...evs(a)].reverse().find((e) => e.k === 'serve')).toMatchObject({ outcome: 'segunda' });
   });
 
-  it('a whole shift: 15 customers, stars and RV paid once, the tutorial step, the Caderno and the daily gate', async () => {
+  it('a whole shift: 9 customers on the first, 15 after, stars and RV paid once, the tutorial step, the Caderno and the daily gate', async () => {
     const world = makeWorld();
     const a = await player(world);
     const coins0 = a.s.profile!.coins;
     await a.send({ t: 'mg', action: 'start' });
     await playShiftOut(world, a);
     const end = endOf(a)!;
-    expect(end.end.served + end.end.left).toBe(15);
+    expect(end.end.served + end.end.left).toBe(9);
     expect(end.end.coins).toBeGreaterThanOrEqual(ECONOMY.minigameMin);
     expect(end.end.stars).toBeGreaterThanOrEqual(1);
     expect(a.s.profile!.coins).toBe(coins0 + end.end.coins);
@@ -234,6 +235,12 @@ describe('Correria no Balcão, server side', () => {
     // the end card's ladder is the next shift's: one more shift and água opens
     expect(end.end.ladder).toMatchObject({ open: ['cafe', 'pao'], fresh: [], next: 'agua', nextIn: 1 });
     expect(a.s.mg).toBeUndefined();
+    // the second shift is the full three waves
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'start' });
+    expect(snap(a)).toMatchObject({ waves: 3, total: 15 });
+    await a.send({ t: 'mg', action: 'quit' });
+    a.inbox.length = 0;
     // more shifts the same day: only the first DAILY_PAID_SHIFTS pay RV, stars always count
     let blocked = 0;
     for (let i = 1; i < DAILY_PAID_SHIFTS + 1; i++) {
@@ -253,17 +260,39 @@ describe('Correria no Balcão, server side', () => {
     expect(a.s.profile!.correria!.stars).toBeGreaterThan(end.end.stars);
   });
 
-  it('stars set the level and open tools: pastel/coxinha, a second chapa', async () => {
+  it('stars set the level; an old profile keeps the tools its stars earned (pastel/coxinha hint, a second chapa)', async () => {
     const world = makeWorld();
     const a = await player(world);
     a.s.profile!.correria = { stars: 5, shifts: 3, best: 100 };
     await a.send({ t: 'mg', action: 'start' });
     const s0 = snap(a);
     expect(s0.level).toBe(1);
-    expect(s0.unlocked).toEqual(['salgados', 'chapa2']);
+    expect(s0.unlocked).toEqual(['chapa2', 'salgados']);
     expect(s0.chapa).toHaveLength(2);
-    expect(s0.lesson).toBeNull();
     expect(s0.menu).toHaveLength(3);
+  });
+
+  it('the shifts played open the tools with no stars at all, and the end card names the one just earned', async () => {
+    const world = makeWorld();
+    const a = await player(world);
+    a.s.profile!.correria = { stars: 0, shifts: 9, best: 0 };
+    await a.send({ t: 'mg', action: 'start' });
+    expect(snap(a).unlocked).toEqual([]);
+    expect(snap(a).chapa).toHaveLength(1);
+    for (let i = 0; i < 400 && !endOf(a); i++) advance(1000);
+    expect(endOf(a)!.end.newUnlocks.map((u) => u.id)).toEqual(['chapa2']);
+    expect(a.s.profile!.correria!.shifts).toBe(10);
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'start' });
+    expect(snap(a).unlocked).toEqual(['chapa2']);
+    expect(snap(a).chapa).toHaveLength(2);
+    // a profile whose stars already paid for chapa2 is not told about it again
+    a.s.profile!.correria = { stars: 4, shifts: 9, best: 0 };
+    await a.send({ t: 'mg', action: 'quit' });
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'start' });
+    for (let i = 0; i < 400 && !endOf(a); i++) advance(1000);
+    expect(endOf(a)!.end.newUnlocks).toEqual([]);
   });
 
   it('an idle player loses everyone and earns nothing, then the shift ends by itself', async () => {
@@ -273,7 +302,7 @@ describe('Correria no Balcão, server side', () => {
     await a.send({ t: 'mg', action: 'start' });
     for (let i = 0; i < 400 && !endOf(a); i++) advance(1000);
     const e = endOf(a)!;
-    expect(e.end).toMatchObject({ served: 0, left: 15, coins: 0, stars: 0 });
+    expect(e.end).toMatchObject({ served: 0, left: 9, coins: 0, stars: 0 });
     expect(a.s.profile!.coins).toBe(coins);
   });
 

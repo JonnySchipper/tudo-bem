@@ -448,7 +448,7 @@ async function main() {
   assert(afterScene.mission?.steps.pede, 'ordering counts as Pede');
   if (recadoRun) assert((afterScene.bag?.cafe_com_leite ?? 0) >= 1, `the café com leite is in the bag (${JSON.stringify(afterScene.bag)})`);
 
-  // 5. Correria no Balcão: one full shift through the real taps (3 waves, 15 customers) behind the padaria counter
+  // 5. Correria no Balcão: one full shift through the real taps (a first shift: 2 waves, 9 customers) behind the padaria counter
   await startShiftFromPedido(page);
   assert(await page.isVisible('#cr-panel'), 'the counter strip is up');
   assert(!(await page.$('[data-modal="minigame"]')), 'no modal over the padaria');
@@ -470,7 +470,7 @@ async function main() {
   await dwell(2200);
   const afterMg = await profile(page);
   log('shift served', served, 'customers; payout →', afterMg.coins - afterScene.coins, 'RV');
-  assert(served >= 10, `the bot served most of the 15 customers (${served})`);
+  assert(served >= 7, `the bot served most of the 9 customers of a first shift (${served})`);
   assert(afterMg.coins - afterScene.coins >= 8, 'the shift pays RV');
   assert(afterMg.correria?.shifts === 1 && afterMg.correria.stars >= 1, `stars and the shift counter are on the profile (${JSON.stringify(afterMg.correria)})`);
   if (AMBIANCE) {

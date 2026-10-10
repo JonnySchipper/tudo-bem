@@ -313,7 +313,7 @@ describe('World', () => {
     for (let r = 0; r < 40 && a.last('mg')!.phase !== 'end'; r++) await serveFront(world, a, advance);
     const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
     expect(end.phase).toBe('end');
-    expect(end.end.served).toBeGreaterThan(10);
+    expect(end.end.served).toBeGreaterThan(6); // the first shift is nine customers
     expect(end.end.coins).toBeGreaterThanOrEqual(ECONOMY.minigameMin);
     expect(end.end.coins).toBeLessThanOrEqual(ECONOMY.minigameMax);
 
