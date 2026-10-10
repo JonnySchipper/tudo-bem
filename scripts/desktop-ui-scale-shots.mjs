@@ -70,7 +70,6 @@ async function waitHealthy() {
 const PIECES = {
   plate: '#hud-top .hud-left',
   stats: '#hud-top .hud-stats',
-  fala: '#btn-feedback',
   icons: '#hud-actions',
   burger: '#btn-burger',
   mission: '#mission-pill',

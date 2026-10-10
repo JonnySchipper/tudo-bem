@@ -310,6 +310,9 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.bond = normalizeBond(p.bond);
   p.bondGifts = normalizeBondGifts(p.bondGifts);
   p.recados = normalizeRecados(p.recados);
+  // the lifetime recado count arrived after the recados: an old save starts from today's list
+  const total = typeof p.recadosDoneTotal === 'number' && Number.isFinite(p.recadosDoneTotal) ? Math.floor(p.recadosDoneTotal) : 0;
+  p.recadosDoneTotal = Math.max(0, total, p.recados.done.length);
   p.caderno = normalizeCaderno(p.caderno);
   p.cadernoPaid = normalizeCadernoPaid(p.cadernoPaid);
   p.papos = normalizePapos(p.papos);

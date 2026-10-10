@@ -1804,6 +1804,17 @@ canvas.addEventListener('pointercancel', (e) => {
   window.clearTimeout(holdTimer);
   gesture.cancel(e.pointerId);
 });
+// while a dialogue box is open, the page-turning keys never turn the Diário's pages under it (window capture runs before the Diário's
+// document-capture listener); a text field keeps its own arrows
+window.addEventListener(
+  'keydown',
+  (e) => {
+    if (!isDialogueBoxOpen() || !document.querySelector('.backdrop[data-modal="caderno"]') || !['ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.key)) return;
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA') e.stopPropagation();
+  },
+  true,
+);
 document.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement)?.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || modalId() || document.querySelector('.idle-kicked')) return;

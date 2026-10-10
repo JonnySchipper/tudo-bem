@@ -14,7 +14,7 @@ import {
 } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { serveFront, waitFront } from './correriaTestKit.js';
-import { ProfileStore, type PersistenceAdapter, type StoredProfile } from './store.js';
+import { ProfileStore, normalizeProfile, type PersistenceAdapter, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 5_000_000;
@@ -193,6 +193,7 @@ describe('recados on the server', () => {
     expect(p.bond?.carlos).toBe(2 + done.reward.bond);
     expect(p.recados!.active).toEqual([]);
     expect(p.recados!.done).toEqual(['carlos_cafe_pra_nanda']);
+    expect(p.recadosDoneTotal).toBe(1);
     expect(a.all('notice').some((m) => m.level === 'reward' && m.pt.includes(done.thanks.pt) && m.pt.startsWith('Seu Carlos'))).toBe(true);
     expect(a.last('profile')!.profile.bond?.carlos).toBe(2 + done.reward.bond);
     expect(a.last('recados')!.done).toEqual(['carlos_cafe_pra_nanda']);
@@ -418,6 +419,10 @@ describe('old profiles', () => {
       daily: { date: '2026-01-01', sceneClears: {} },
       lastSeen: 1,
     };
+    // A save from before the lifetime recado count starts from today's list.
+    const counted = normalizeProfile({ ...old, recados: { day: 3, offered: [], active: [], done: ['a', 'b'] } } as unknown as StoredProfile);
+    expect(counted.recadosDoneTotal).toBe(2);
+    expect(normalizeProfile({ ...counted, recadosDoneTotal: 9 }).recadosDoneTotal).toBe(9);
     // Also a save that has garbage in the new fields (hand-edited).
     const messy = { ...old, id: 'def456', token: 'tok-messy', bag: 'oops', recados: { day: 'x', active: [{ id: 1 }] }, bond: [3] };
     const adapter: PersistenceAdapter = { describe: () => 'test', load: () => JSON.parse(JSON.stringify([old, messy])) as StoredProfile[], save: () => {} };
@@ -433,6 +438,7 @@ describe('old profiles', () => {
       expect(welcome.profile.bag).toEqual({});
       expect(welcome.profile.bond).toEqual({});
       expect(welcome.profile.recados).toEqual({ day: -1, offered: [], active: [], done: [], talked: [], graded: [] });
+      expect(welcome.profile.recadosDoneTotal).toBe(0);
       await world.handle(s, { t: 'join', room: 'praca' });
       const board = inbox.filter((m) => m.t === 'recados').at(-1) as Extract<ServerMsg, { t: 'recados' }>;
       expect(board.offered).toHaveLength(3);

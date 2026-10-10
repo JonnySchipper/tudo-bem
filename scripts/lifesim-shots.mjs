@@ -135,7 +135,8 @@ async function panelShots(page, vp) {
   await shot(page, vp, 'hat_shop');
   await closeAll();
   await page.click('#btn-menu').catch(() => page.click('#btn-burger'));
-  await page.click('#btn-credits');
+  // Créditos waits for the resident stage in Ajustes (SIMPLIFICATION-REVIEW §3): press the button itself
+  await page.$eval('#btn-credits', (b) => b.click());
   await page.waitForSelector('[data-modal="credits"] .credits-panel', { timeout: 5000 });
   await sleep(300);
   await shot(page, vp, 'credits');

@@ -201,7 +201,7 @@ export class CorreriaUI {
       e.preventDefault();
       this.act({ a: 'serve' });
     } else if (e.key === 'c' || e.key === 'C') this.act({ a: 'clear' });
-    else if (e.key === 'r' || e.key === 'R') this.act({ a: 'replay' });
+    // R only turns furniture (SIMPLIFICATION-REVIEW B8): the replay is the on-screen button
   };
 
   private act(x: CAct): void {
@@ -212,6 +212,8 @@ export class CorreriaUI {
   private toggleEn(): void {
     if (this.snap && glossOn(this.snap.level, false)) return;
     this.showEn = !this.showEn;
+    // one English setting: the gear's Inglês and the dialogue's Mostrar inglês are the same flag
+    game.englishHelp = this.showEn;
     writeShowEnglish(this.showEn);
     this.syncEn();
     this.mirrorSig = '';

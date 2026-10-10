@@ -119,6 +119,8 @@ async function openAction(page, id) {
       if (await vis(id)) return page.click(id);
     }
   }
+  // a button the disclosure ladder still hides for this newcomer (Chapéus, Amigos, Créditos: SIMPLIFICATION-REVIEW §3): open its panel from it directly
+  if (await page.$(id)) return page.$eval(id, (b) => b.click());
   throw new Error(`action ${id} is not reachable`);
 }
 

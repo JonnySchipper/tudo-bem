@@ -50,7 +50,8 @@ async function openHud(page, sel) {
   } else if ((await page.getAttribute('#btn-menu', 'aria-expanded')) !== 'true') {
     await page.click('#btn-menu');
   }
-  await page.click(sel);
+  // the gear's Créditos / Apoiar wait for the resident stage (SIMPLIFICATION-REVIEW §3): press the button itself
+  await page.$eval(sel, (b) => b.click());
 }
 
 async function grantSelf(page) {
