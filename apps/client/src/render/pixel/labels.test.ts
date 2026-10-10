@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUBBLE_SCALE, bubbleLeft, bubbleSide, deoverlapStacks, type StackBox } from './labels';
+import { BUBBLE_SCALE, BUBBLE_SCALE_NARROW, bubbleLeft, bubbleSide, deoverlapStacks, type StackBox } from './labels';
 
 describe('de-overlap of nameplates and bubbles', () => {
   const plate = { w: 60, h: 18 };
@@ -68,5 +68,11 @@ describe('speech bubble placement', () => {
     expect(bubbleLeft(5, 120, 'left', 1280)).toBe(4); // clamped at the left edge
     expect(bubbleLeft(1275, 120, 'right', 1280)).toBe(1280 - 120 - 4); // and at the right edge
     expect(Number.isInteger(bubbleLeft(401.4, 121, 'left', 1280))).toBe(true);
+  });
+
+  it('moves the tail tip in step with the frame drawn smaller on a phone', () => {
+    const tail = 9 * BUBBLE_SCALE_NARROW;
+    expect(bubbleLeft(200, 120, 'left', 390, BUBBLE_SCALE_NARROW)).toBe(200 - tail);
+    expect(bubbleLeft(200, 120, 'right', 390, BUBBLE_SCALE_NARROW)).toBe(200 + tail - 120);
   });
 });
