@@ -103,6 +103,13 @@ describe('leaderboards server', () => {
     expect(msg.words[10]!.rank).toBeGreaterThan(10);
   });
 
+  it('ranks words and streak only (no feira purchase board)', () => {
+    const store = new ProfileStore(null);
+    store.add(profile({ id: 'a', name: 'Ana', diary: ids(1, 2), feira: { date: '2026-10-08', n: 4 } }));
+    const msg = new Leaderboards(store, () => 1).msgFor('a');
+    expect(Object.keys(msg).sort()).toEqual(['at', 'streak', 't', 'words']);
+  });
+
   it('maybeMentionStreak fires at most once per day and needs a leader', () => {
     const store = new ProfileStore(null);
     store.add(

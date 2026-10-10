@@ -7,6 +7,12 @@ export const RV_PRICE_NOTE = 'RV (reais virtuais) is play money. You earn it doi
 
 export const rvNoteKey = (profileId: string): string => `tb_rv_note:${profileId}`;
 
+let profileOf: () => string | undefined = () => undefined;
+/** state.ts points this at the signed-in profile, so dom.ts (which tests import) needs no game state. */
+export const bindRvNoteProfile = (fn: () => string | undefined) => void (profileOf = fn);
+/** The signed-in profile's id, if any. */
+export const rvNoteProfile = () => profileOf();
+
 type Store = Pick<Storage, 'getItem' | 'setItem'>;
 
 const defaultStore = (): Store | null => {

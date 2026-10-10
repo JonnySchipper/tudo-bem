@@ -1,5 +1,4 @@
-import { game } from '../state';
-import { takeRvNote } from './rvNote';
+import { rvNoteProfile, takeRvNote } from './rvNote';
 
 type Child = Node | string | null | undefined | false;
 type Props = Record<string, unknown> & { class?: string; style?: string };
@@ -34,7 +33,7 @@ export function en(text: string, plain = false) {
 
 /** The one RV explainer (rvNote.ts): the first price list a profile opens shows it, every later one gets nothing. */
 export function rvPriceNote(): HTMLElement | undefined {
-  const text = takeRvNote(game.profile?.id);
+  const text = takeRvNote(rvNoteProfile());
   return text ? h('p', { class: 'rv-price-note' }, en(text, true)) : undefined;
 }
 

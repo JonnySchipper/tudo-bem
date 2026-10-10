@@ -288,16 +288,15 @@ export interface LearningRankRow {
   id: string;
   wordsLearned: number;
   streak: number;
-  feiraScore: number;
   stripes: number;
   belt: string;
   nameplate: string;
 }
 
 /**
- * Words learned, streak, Feira score, stripes and belt. Subscription fields are not arguments and cannot change the order.
+ * Words learned, streak, stripes and belt (the Feira purchase ranking is gone; `feira.n` only meters the daily RV cap). Subscription fields are not arguments and cannot change the order.
  */
-export function learningLeaderboard(rows: readonly LearningRankRow[], by: 'wordsLearned' | 'streak' | 'feiraScore'): LearningRankRow[] {
+export function learningLeaderboard(rows: readonly LearningRankRow[], by: 'wordsLearned' | 'streak'): LearningRankRow[] {
   return [...rows].sort((a, b) => b[by] - a[by] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
@@ -306,14 +305,12 @@ export function learningRankOf(p: {
   nameplate?: string;
   diary?: readonly string[];
   escola?: { streak?: number };
-  feira?: { n?: number };
   bjj?: { belt?: string; stripes?: number };
 }): LearningRankRow {
   return {
     id: p.id,
     wordsLearned: p.diary?.length ?? 0,
     streak: p.escola?.streak ?? 0,
-    feiraScore: p.feira?.n ?? 0,
     stripes: p.bjj?.stripes ?? 0,
     belt: p.bjj?.belt ?? 'branca',
     nameplate: p.nameplate ?? 'verde',
