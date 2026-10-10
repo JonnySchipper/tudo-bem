@@ -786,6 +786,9 @@ function updateGuides() {
     else if (!t.carlos) add(guideAt('portal', 'leste_rua_1', 60, '← Padaria: pela Rua', '← Bakery: via the Street'));
     else if (!t.chapeu) add(guideAt('portal', 'leste_rua_1', 60, '← Chapéus: pela Rua', '← Hats: via the Street'));
     else if (!t.cadeira) add(guideAt('portal', 'leste_rua_1', 60, '← Minha kitnet: pela Rua', '← My kitnet: via the Street'));
+    // the pet shop's own sign on its door, every visit (#234): petting and the words are free; the Apoiar card inside is the only upsell
+    const petDoor = guideAt('portal', 'rua_petshop', 0, '🐾 Pet Shop · Faça carinho nos bichinhos');
+    if (petDoor) add({ ...petDoor, en: 'Pet shop · Pet the animals inside', kind: 'door' });
   } else if (r.room === 'praca') {
     if (!t.carlos) add(guideAt('portal', 'praca_rua_1', 60, 'Padaria: pela Rua ↑', 'Bakery: via the Street ↑'));
     else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus', 'Hats'));
