@@ -43,6 +43,15 @@ body.pesca-on #hotspot-cues {
   gap: 8px;
   z-index: 3;
 }
+/* the "?" (ui/howToPlay.ts) sits top-left on the stage, clear of the leave buttons (top-right) and the tension ring (bottom-left) */
+body.pesca-on .howto-help {
+  top: max(12px, env(safe-area-inset-top));
+  bottom: auto;
+  left: 12px;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+}
 .pesca-leave {
   background: #fbf1e3;
   border: 2px solid #2a2233;
