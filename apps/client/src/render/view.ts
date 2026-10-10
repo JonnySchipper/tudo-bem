@@ -59,4 +59,6 @@ export interface WorldView {
   hudInsets?(): { top: number; bottom: number; left: number; right: number };
   /** Stop drawing while a full-screen scene covers the world (the flight-in cutscene), and start again. */
   hold?(on: boolean): void;
+  /** Two small hearts rise over a pen animal you petted (#234, `fx/carinho`). */
+  carinho?(target: { penId: string; slot: number }): void;
 }

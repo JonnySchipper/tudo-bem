@@ -1325,7 +1325,10 @@ function startGame() {
   started = true;
   bindPetName((pet, name) => net.send({ t: 'perk', action: 'petName', pet, name }));
   bindPetShop({
-    carinho: (penId, slot) => net.send({ t: 'pet', action: 'carinho', penId, slot }),
+    carinho: (penId, slot) => {
+      net.send({ t: 'pet', action: 'carinho', penId, slot });
+      renderer.carinho?.({ penId, slot }); // the hearts over the animal (fx/carinho); the word and Seu Dito's line come back from the server
+    },
     adopt: (breed, coat, name) => net.send({ t: 'pet', action: 'adopt', breed, coat, name }),
     setActive: (petId) => net.send({ t: 'pet', action: 'active', petId }),
     rename: (petId, name) => net.send({ t: 'pet', action: 'rename', petId, name }),

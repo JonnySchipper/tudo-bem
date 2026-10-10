@@ -205,6 +205,10 @@ export class PixelView implements WorldView {
     this.scene?.claimGlint(hotspotId, on);
   }
 
+  carinho(target: { penId: string; slot: number }): void {
+    this.scene?.carinho(target);
+  }
+
   clientToWorld(px: number, py: number): { wx: number; wy: number } | null {
     return this.worldAt(px, py);
   }

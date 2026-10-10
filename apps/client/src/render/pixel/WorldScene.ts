@@ -1960,6 +1960,21 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Two small hearts rise over the animal you petted in a pen (`fx/carinho`, three frames at 6 fps, #234): the meet view's Fazer carinho.
+   * Only this client draws it (the server keeps the diary word; nothing about a carinho goes over the wire to others).
+   */
+  carinho(target: { penId: string; slot: number }): void {
+    const d = this.m.sprites['fx/carinho'];
+    if (!d) return;
+    const prefix = `pen:${target.penId}:${target.slot}:`;
+    const spr = [...this.residents].find(([k]) => k.startsWith(prefix))?.[1];
+    if (!spr) return;
+    const fx = this.rig.world(this.add.sprite(spr.x, spr.y - 22, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(DEPTH.overhead + 1);
+    if (d.anim) fx.play({ key: ensureAnim(this, 'fx/carinho', d), startFrame: 0 });
+    this.tweens.add({ targets: fx, y: spr.y - 30, alpha: { from: 1, to: 0 }, duration: 1100, ease: 'Quad.easeOut', onComplete: () => fx.destroy() });
+  }
+
   /** Which strip to play, and whether to mirror it. West reuses the east poses. Idle is the front blink. */
   private petPose(facing: Facing, pose: PetFollow['pose']): { name: string; flip: boolean } {
     const flip = facing === 'W';
