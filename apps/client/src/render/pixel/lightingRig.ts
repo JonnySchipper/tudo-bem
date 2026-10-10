@@ -202,7 +202,8 @@ export class LightingRig {
     for (const c of this.castShadows) c.setAlpha(this.bakedCast ? look.cast : 0);
     const strengthOf = (l: Light) => {
       if (l.kind === 'player') return look.playerGlow;
-      if (l.kind === 'car') return look.glow * (l.live ?? 0);
+      // a dynamic light (a car's headlights, a firefly) scales the night glow by its own `live`
+      if (l.live !== undefined || l.kind === 'car') return look.glow * (l.live ?? 0);
       return l.delay === undefined ? look.glow : look.lampOn(l.delay);
     };
     const gradeInt = rgbToInt(look.grade);

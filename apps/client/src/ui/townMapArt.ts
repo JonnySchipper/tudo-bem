@@ -52,12 +52,17 @@ const prop = (id: string, kind: PropDef['kind'], art: string, x: number, y: numb
 export function groundForMap(): RoomDef {
   const road = AREA_AT.aeroporto[0] - 4; // the road turns north-south in the 4 columns between the rua leste and the airport
   const roadRow = AERO_MAP_ROWS - 1; // the airport's own curb lane, carried on east and west
-  const s = SOON_AT.col;
+  const l = SOON_AT.col; // the Lagoa: the west end of the corner
+  const s = SOON_AT.col + SOON_AT.lagoaCols; // the Praia beside it
+  const L = SOON_AT.praia; // the corner's first row
   const floor = grid(MAP_COLS, MAP_ROWS, 'g', (paint) => {
     paint('c', road, 6, road + 3, 7); // the rua's north sidewalk, to the corner
     paint('a', road, 8, road + 3, roadRow + 2); // the street turns south between the rua leste and the airport
     paint('a', road, roadRow, MAP_COLS - 1, roadRow + 2); // and runs east under the airport, on past the feira
-    paint('c', s, roadRow + 3, MAP_COLS - 1, roadRow + 3); // a sidewalk past the feira's corner
+    paint('c', l, roadRow + 3, MAP_COLS - 1, roadRow + 3); // a sidewalk past the feira's corner
+    // the Lagoa's end: a round lake in the grass, the trail's boardwalk running east to the beach
+    for (const [dy, x0, x1] of [[2, 2, 3], [3, 1, 4], [4, 1, 5], [5, 1, 5], [6, 1, 4], [7, 2, 3]] as const) paint('w', l + x0, L + dy, l + x1, L + dy);
+    paint('b', l + 4, L + 8, l + SOON_AT.lagoaCols - 1, L + 8);
     // the Praia's corner: sand down to the sea, the pier's planks out over the water
     paint('s', s, SOON_AT.praia, MAP_COLS - 1, SOON_AT.fazenda - 1);
     paint('o', s, SOON_AT.praia + 7, MAP_COLS - 1, SOON_AT.fazenda - 1);
@@ -68,6 +73,15 @@ export function groundForMap(): RoomDef {
     // trees on the lawn north of the corner, and along the left edge of the praça
     prop('m_jeriva_n', 'arvore', 'props/jeriva', road, 2, 2),
     prop('m_arvore_n', 'arvore', 'props/arvore_rua', road + 2, 4, 2),
+    // the Lagoa, a small picture of the real one: trees round it, reeds, lily pads, a canoe, the gazebo on the north shore
+    prop('m_l_gazebo', 'lagoa_deco', 'lagoa/quiosque_sape', l + 1, L, 4, 2),
+    prop('m_l_jeriva', 'arvore', 'props/jeriva', l, L + 9),
+    prop('m_l_ipe', 'arvore', 'props/ipe_roxo_medium', l + 5, L + 2),
+    prop('m_l_junco_a', 'sebe', 'lagoa/junco', l + 1, L + 3),
+    prop('m_l_junco_b', 'sebe', 'lagoa/junco', l + 4, L + 6),
+    prop('m_l_aguape_a', 'lagoa_deco', 'lagoa/aguape_b', l + 2, L + 4),
+    prop('m_l_aguape_b', 'lagoa_deco', 'lagoa/aguape_c', l + 3, L + 6),
+    prop('m_l_moita', 'sebe', 'lagoa/moita_b', l + 2, L + 9, 2),
     // the Praia, a small picture of the real one: sand, Jô's kiosk, two umbrellas, the pier running out into the sea with a boat moored at it
     prop('m_palm_a', 'arvore', 'props/jeriva', s, SOON_AT.praia + 2, 2),
     prop('m_quiosque', 'quiosque_praia', 'praia/quiosque_coco', s + 2, SOON_AT.praia + 2, 3, 1),

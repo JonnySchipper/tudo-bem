@@ -24,9 +24,17 @@ export interface ZoneMix {
   waves: number;
   /** the Praia: gulls on the costão, by day */
   gulls: number;
+  /** the Lagoa: frogs in the reeds, a chorus from dusk to dawn (a few by day), fuller in the rain */
+  frogs: number;
 }
 
-export const SILENT_MIX: ZoneMix = { traffic: 0, fountain: 0, birds: 0, crickets: 0, rain: 0, radio: 0, waves: 0, gulls: 0 };
+export const SILENT_MIX: ZoneMix = { traffic: 0, fountain: 0, birds: 0, crickets: 0, rain: 0, radio: 0, waves: 0, gulls: 0, frogs: 0 };
+
+/** How many frogs sing at this hour and rain: a few by day, the full chorus at night, more when it rains (they love it). */
+export function frogPresence(minute: number, rain: number): number {
+  const night = 1 - daylight(minute);
+  return clamp01((0.18 + 0.82 * night) * (1 + 0.5 * clamp01(rain)));
+}
 
 export interface ZoneEnv {
   /** listener, world px */
@@ -99,6 +107,8 @@ export function zoneMix(z: AudioZones, e: ZoneEnv): ZoneMix {
   }
   let gulls = 0;
   for (const g of z.gulls ?? []) gulls = Math.max(gulls, falloff(Math.hypot(e.x - g.x, e.y - g.y), 60, 360));
+  let frogs = 0;
+  for (const f of z.frogs ?? []) frogs = Math.max(frogs, falloff(Math.hypot(e.x - f.x, e.y - f.y), f.r, f.r + 260));
   return {
     traffic: clamp01(street * trafficPresence(e.minute) * (1 + 0.2 * clamp01(e.rain))),
     fountain: fountain * (1 - clamp01(e.rain) * 0.3),
@@ -108,6 +118,7 @@ export function zoneMix(z: AudioZones, e: ZoneEnv): ZoneMix {
     radio: radioOn(e.minute) ? radio * (1 - clamp01(e.rain) * 0.6) : 0,
     waves: clamp01(waves),
     gulls: gulls * day * dry,
+    frogs: frogs * frogPresence(e.minute, e.rain),
   };
 }
 
@@ -142,6 +153,8 @@ export const FOOTSTEPS: Record<FloorKind, FootstepSound> = {
   areia: { freq: 650, q: 0.5, filter: 'lowpass', dur: 0.1, gain: 0.036, thump: 0 },
   agua: { freq: 500, q: 0.5, filter: 'lowpass', dur: 0.08, gain: 0.02, thump: 0 },
   deque: { freq: 600, q: 1.3, filter: 'bandpass', dur: 0.07, gain: 0.05, thump: 150 },
+  // the Lagoa's still water: nobody walks on it either
+  lagoa: { freq: 450, q: 0.5, filter: 'lowpass', dur: 0.08, gain: 0.02, thump: 0 },
 };
 
 /** Playback-rate / filter multiplier for one step: 1 ± 5%. `r` is a 0..1 random. */

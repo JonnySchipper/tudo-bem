@@ -17,6 +17,7 @@ São Paulo warmth — concrete, terracotta, trees, padaria amber. Not Habbo cand
 | wood-warm | `#8B5E3C` | Counter, chairs, kitnet floor trim |
 | sea-teal | `#3FA9A0` | Praia: the sea, the Praia chapter of the Diário, the party boat pill |
 | sand | `#EBD9A8` | Praia: the sand terrain and the beach details |
+| lagoon | `#3D8073` | Lagoa do Jerivá: the fresh water terrain (`w`), darker and greener than the sea |
 
 ## Lighting
 - Praça: soft late-afternoon (slight warm key from left)

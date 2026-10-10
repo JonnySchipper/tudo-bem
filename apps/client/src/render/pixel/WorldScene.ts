@@ -73,6 +73,7 @@ import { roofHall } from './roofLights';
 import { aoForOverhead, aoForSprite } from './ao';
 import { AmbientLife, ambientHandlesProp } from './ambient';
 import { buildSea, type SeaView } from './sea';
+import { buildLake, type LakeView } from './lake';
 import { ZoneFeed } from '../../audio/zonesFeed';
 import { ambience } from '../../ambience';
 import { carrySfxFor, carrySfxGain } from '../../audio/carrySfx';
@@ -286,6 +287,8 @@ export class WorldScene extends Phaser.Scene {
   private ambient!: AmbientLife;
   /** The Praia's foam and crabs (null in a room without sea). */
   private sea: SeaView | null = null;
+  /** The Lagoa's capybaras, egrets, ducks, dragonflies, fish rings and fireflies (null in a room without a lake). */
+  private lake: LakeView | null = null;
   private readonly zoneFeed = new ZoneFeed();
   private readonly blend = new WeatherBlend();
   private blendReady = false;
@@ -834,7 +837,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     // ---- sky and far skyline above the street of an open-air map
-    if (sur) this.buildBackdrop(sur);
+    if (sur) this.buildBackdrop(sur, def.id === 'lagoa' ? 'lagoa/serra_' : 'backdrop/sky_');
 
     // ---- ground dressing and wires of an open-air map, and of the neighbouring areas drawn around it
     this.buildScenery(def);
@@ -872,6 +875,8 @@ export class WorldScene extends Phaser.Scene {
     this.weatherFx.buildRoom(def, (x, y) => blocked.has(tileKey(x, y)));
     this.ambient.buildRoom(def, (x, y) => x >= 0 && y >= 0 && x < def.cols && y < def.rows && !blocked.has(tileKey(x, y)));
     this.sea = buildSea(this, this.m, def, (o) => this.reg(o));
+    this.lake = buildLake(this, this.m, def, (o) => this.reg(o), this.rig.lights);
+    if (this.lake) this.rig.syncLights();
     this.ao.build(def.floor, def.outdoor === true);
     this.bounds = roomBounds(def, tallest);
     this.snapCamera = true;
@@ -1143,14 +1148,15 @@ export class WorldScene extends Phaser.Scene {
   /**
    * The strip of sky and distant buildings standing on the street's north edge (`backdrop/sky_0..3`, 14 tiles each), across the whole width
    * the camera can show; the facades hide its feet. Above it, open sky in three bands, lightest at the horizon (the strip's own top colour).
+   * The Lagoa has the Serra do Mar instead (`lagoa/serra_0..3`, the same 14-tile rhythm): its north thickets hide the forest's feet.
    */
-  private buildBackdrop(sur: Surround): void {
+  private buildBackdrop(sur: Surround, strip: string): void {
     const y = sur.skyline;
     // strips on the town grid's 14-tile rhythm, so the skyline lines up across the rua / rua_leste seam
     const W = 14 * T;
     const ox = sur.townX * T;
     for (let i = Math.floor((sur.skyX0 + ox) / W); i * W - ox < sur.skyX1; i++) {
-      const sd = this.m.sprites[`backdrop/sky_${((i % 4) + 4) % 4}`];
+      const sd = this.m.sprites[`${strip}${((i % 4) + 4) % 4}`];
       if (sd) this.reg(this.add.image(i * W - ox, y, sd.atlas, sd.frame)).setOrigin(0, 1).setDepth(-9500);
     }
     const top = y - 32 - SURROUND_TILES * T;
@@ -1328,6 +1334,7 @@ export class WorldScene extends Phaser.Scene {
     this.syncRunway();
     this.ambient.update({ dt, t: Date.now() + clock.skewMs, minute: clock.minutesExact(), params, dark: look.dark, people, cam: this.cameras.main });
     this.sea?.update(dt, look.night, clock.minutesExact(), params.sun);
+    this.lake?.update(dt, look.night, params.sun, params.rain);
     this.updateUmbrellas(params.rain);
     this.zoneFeed.update(def, me ? { x: me.wx, y: me.wy, moving: me.moving } : null, clock.minutes(), params.rain, performance.now());
     // V5: the sun's shadows draw in outdoor rooms unless low-fx dropped them (then the baked cast shadows are used)

@@ -13,8 +13,8 @@ describe('the Praia sea (foam and crabs)', () => {
       expect(floor[t.y][t.x]).toBe('o');
       expect(floor[t.y - 1][t.x]).toBe('s');
     }
-    // the lagoa's north bank has its own little shore too
-    expect(shoreTiles(floor, Infinity).some((t) => t.y < 12)).toBe(true);
+    // the lagoa is its own area now (fresh water, no foam): every wave breaks on the sea's shore row
+    expect(shoreTiles(floor, Infinity).every((t) => t.y >= 19)).toBe(true);
   });
 
   it('crabs live on the long shore row, on sand, at most three', () => {

@@ -25,6 +25,7 @@ import * as fundosMod from './fundos.mjs';
 import * as frame3Mod from './frame3.mjs';
 import * as petshopMod from './petshop.mjs';
 import * as praiaMod from './praia.mjs';
+import * as lagoaMod from './lagoa.mjs';
 import { soleira } from './v3.mjs';
 
 /** V3: every street facade gets the darker soleira band where the wall meets the sidewalk. */
@@ -86,6 +87,7 @@ export const DERIVE = {
   emBreve: vilaMod.emBrevePart,
   petshopSet: petshopMod.petshopSet,
   praia: praiaMod.praia,
+  lagoa: lagoaMod.lagoa,
 };
 
 /** Standalone images for the DOM (`images` in import-map.json): generators return [{ key, img, meta? }]. */

@@ -66,7 +66,9 @@ export type PropKind =
   | 'barco'
   | 'pesca_spot'
   | 'pedras'
-  | 'canoa';
+  | 'canoa'
+  // Lagoa do Jerivá: the boardwalk's rails and lamps, the lily pads, the moored canoe, the trail signs (every one draws its `art`)
+  | 'lagoa_deco';
 
 export type PropAction =
   | 'shop_hats'
@@ -187,7 +189,7 @@ export interface NpcDef {
   idleLines: Bilingual[];
 }
 
-export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame' | 'paralelepipedo' | 'granilite' | 'areia' | 'agua' | 'deque';
+export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame' | 'paralelepipedo' | 'granilite' | 'areia' | 'agua' | 'deque' | 'lagoa';
 
 export interface RoomDef {
   id: RoomId;
@@ -243,10 +245,12 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
   s: 'areia',
   o: 'agua',
   b: 'deque',
+  // the Lagoa do Jerivá: fresh water, dark and still (never walkable either), with a muddy reed bank instead of the sea's foam
+  w: 'lagoa',
 };
 
 /** Floor chars nobody walks on (the sea and the lagoa). A portal tile on one (the party boat's gangway) stays open. */
-export const WATER_CHARS: ReadonlySet<string> = new Set(['o']);
+export const WATER_CHARS: ReadonlySet<string> = new Set(['o', 'w']);
 
 // ---------------------------------------------------------------- Vila Ipê, split into three open-air areas ("Split into areas")
 //
@@ -276,6 +280,8 @@ const AERO_ROWS = 26;
 const FEIRA_ROWS = 20;
 const PRAIA_COLS = 40;
 const PRAIA_ROWS = 28;
+const LAGOA_COLS = 36;
+const LAGOA_ROWS = 26;
 const FESTA_COLS = 16;
 const FESTA_ROWS = 10;
 
@@ -351,7 +357,7 @@ function aeroFloor(): string[] {
 
 /**
  * The Praia (PRAIA-PLAN.md 1.3), top to bottom: the Avenida Beira-Mar (rows 0-1, behind the mureta, cars only), the calçadão (2-4, the bus
- * stop back to the Vila), the sand (5-18, the dune strip, the umbrellas, the lagoa pocket in the west), the shore row (18, the free fishing
+ * stop back to the Vila), the sand (5-18, the dune strip, the umbrellas, the trail to the Lagoa through the west fence), the shore row (18, the free fishing
  * spots) and the sea (19-27). The pier is deck from the sand into the sea (x28-29, y12-25); the three rental boats moor east of it on their
  * own deck tiles, the only walkable water.
  */
@@ -370,9 +376,54 @@ function praiaFloor(): string[] {
     paint('a', 0, 0, PRAIA_COLS - 1, 1); // Avenida Beira-Mar
     paint('c', 0, 2, PRAIA_COLS - 1, 4); // the calçadão: street furniture on its first row, a two-tile promenade under it
     paint('o', 0, 19, PRAIA_COLS - 1, PRAIA_ROWS - 1); // the sea
-    paint('o', 2, 9, 5, 11); // the lagoa, a ring of sand round it
     paint('b', PRAIA_PIER.x0, PRAIA_PIER.y0, PRAIA_PIER.x1, PRAIA_PIER.y1);
     for (const d of Object.values(PRAIA_BOAT_DECKS)) paint('b', d.x, d.y, d.x + d.w - 1, d.y + d.h - 1);
+  });
+}
+
+/**
+ * The Lagoa do Jerivá: a freshwater lagoon in the restinga behind the beach, its own area since the Praia's little pocket of water moved out.
+ * Reached on foot through the gap in the Praia's west fence (`PRAIA_LAGOA_ROWS`). Grass all round (the mata's edge on the borders), the lake in
+ * the middle with a dry island, a boardwalk (b) from the east entrance that runs out onto the water as a jetty, a branch of it up to the
+ * mirante on the north shore, and the open south bank where the capybaras graze.
+ */
+export const LAGOA_WATER: readonly [y: number, x0: number, x1: number][] = [
+  [5, 10, 16],
+  [6, 8, 20],
+  [7, 7, 23],
+  [8, 6, 24],
+  [9, 5, 25],
+  [10, 5, 26],
+  [11, 4, 26],
+  [12, 3, 26],
+  [13, 3, 26],
+  [14, 4, 25],
+  [15, 5, 25],
+  [16, 6, 24],
+  [17, 7, 23],
+  [18, 9, 22],
+  [19, 11, 20],
+  [20, 13, 17],
+];
+/** The island (dry, out of reach: a jerivá and the egrets' rock). */
+export const LAGOA_ISLAND = { x0: 10, y0: 9, x1: 11, y1: 10 } as const;
+/** The jetty's platform at the end of the boardwalk, out over the water (the main fishing spot). */
+export const LAGOA_JETTY = { x0: 19, y0: 12, x1: 21, y1: 15 } as const;
+/** The Praia's west-fence rows that open onto the Lagoa, and the Lagoa's east-edge rows they arrive on (`+ LAGOA_ROW_SHIFT`). */
+export const PRAIA_LAGOA_ROWS = [9, 10, 11] as const;
+export const LAGOA_ROW_SHIFT = 3;
+
+function lagoaFloor(): string[] {
+  return floorGrid(LAGOA_COLS, LAGOA_ROWS, 'g', (paint) => {
+    for (const [y, x0, x1] of LAGOA_WATER) paint('w', x0, y, x1, y);
+    paint('g', LAGOA_ISLAND.x0, LAGOA_ISLAND.y0, LAGOA_ISLAND.x1, LAGOA_ISLAND.y1);
+    // the boardwalk: in from the east edge, out onto the water as a jetty
+    paint('b', 22, 13, LAGOA_COLS - 1, 14);
+    paint('b', LAGOA_JETTY.x0, LAGOA_JETTY.y0, LAGOA_JETTY.x1, LAGOA_JETTY.y1);
+    // its branch north to the mirante, a deck over the north shore
+    paint('b', 29, 5, 30, 12);
+    paint('b', 18, 3, 30, 4);
+    paint('b', 12, 3, 17, 6);
   });
 }
 
@@ -1160,6 +1211,7 @@ const desembarque: RoomDef = {
 };
 
 // ---------------------------------------------------------------- praia
+const LAGOA_LABEL: Bilingual = { pt: 'Lagoa do Jerivá', en: 'Jerivá Lagoon' }; // needs_br: true
 /**
  * Praia do Jerivá, on the litoral paulista (PRAIA-PLAN.md 1.3). Reached by the 875 bus from Rua dos Ipês (leste); the admin mode (`praia.ts`)
  * can close it. Needs_br: every Portuguese string in this room.
@@ -1181,6 +1233,8 @@ const praia: RoomDef = {
   walls: [],
   portals: [
     { id: 'praia_vila', x: 3, y: 3, to: 'rua_leste', arrive: { x: 5, y: 13 }, arriveDir: 'SW', doorAt: { x: 3, y: 2.5 }, label: { pt: 'Ônibus para a Vila', en: 'Bus to the Vila' } },
+    // the trail through the gap in the west fence, on to the Lagoa do Jerivá
+    ...edgePortals('praia_lagoa', 'lagoa', PRAIA_LAGOA_ROWS.map((y) => ({ x: 0, y })), (t) => ({ x: LAGOA_COLS - 2, y: t.y + LAGOA_ROW_SHIFT }), 'NW', LAGOA_LABEL),
   ],
   // PRAIA-PLAN.md 6. All three stand at their place at every hour (D12: renting, fishing and selling never wait on the clock); their idle
   // lines change with the hour. Nobody waves. needs_br: true (every line)
@@ -1240,6 +1294,34 @@ const praia: RoomDef = {
   private: false,
 };
 
+// ---------------------------------------------------------------- lagoa
+/**
+ * The Lagoa do Jerivá: a freshwater lagoon in the restinga, a short trail west of the Praia (`lagoaFloor`). Free fishing for tilápia, tambaqui
+ * and tucunaré from the jetty, the mirante and the banks; capybaras, egrets and ducks; fireflies at night. It opens and closes with the Praia
+ * (the admin mode gates both). Needs_br: every Portuguese string in this room.
+ */
+const lagoa: RoomDef = {
+  id: 'lagoa',
+  name: 'Lagoa do Jerivá',
+  gloss: 'Jerivá Lagoon',
+  cols: LAGOA_COLS,
+  rows: LAGOA_ROWS,
+  outdoor: true,
+  floor: lagoaFloor(),
+  wallHeight: 0,
+  wallColor: '#d8cbb6',
+  wallTrim: '#9c8b74',
+  lighting: 'tarde',
+  spawn: { x: LAGOA_COLS - 2, y: 13 },
+  props: bundledObjects('lagoa'),
+  walls: [],
+  portals: [
+    ...edgePortals('lagoa_praia', 'praia', PRAIA_LAGOA_ROWS.map((y) => ({ x: LAGOA_COLS - 1, y: y + LAGOA_ROW_SHIFT })), (t) => ({ x: 1, y: t.y - LAGOA_ROW_SHIFT }), 'SE', { pt: 'Praia', en: 'Beach' }),
+  ],
+  npcs: [],
+  private: false,
+};
+
 // ---------------------------------------------------------------- barco_festa
 /**
  * The party boat's deck (PRAIA-PLAN.md 5.1): one instance per trip (`festa@<hostId>-<startedAt>`), only the trip's members may join it. No NPCs;
@@ -1267,7 +1349,7 @@ const barcoFesta: RoomDef = {
   private: false,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar, aeroporto, desembarque, petshop, praia, barco_festa: barcoFesta };
+export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar, aeroporto, desembarque, petshop, praia, lagoa, barco_festa: barcoFesta };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;

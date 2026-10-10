@@ -338,6 +338,8 @@ export interface Session {
 }
 
 const INSTANCE_SUFFIX = ['Norte', 'Sul', 'Leste', 'Oeste'];
+/** Rooms the Praia's admin mode opens and closes together: the beach, the party deck off it and the Lagoa a trail away. */
+const PRAIA_GATED: ReadonlySet<RoomId> = new Set<RoomId>(['praia', 'lagoa', 'barco_festa']);
 
 export class Instance {
   readonly members = new Map<string, Session>();
@@ -1394,7 +1396,7 @@ export class World {
 
   join(s: Session, room: RoomId, opts: { instanceId?: string; ownerId?: string; academyId?: string; padariaId?: string } = {}, arrive?: { tile: Tile; dir: Dir }) {
     if (!isRoomId(room)) return this.err(s, 'room', 'Sala desconhecida.', 'Unknown room.');
-    if ((room === 'praia' || room === 'barco_festa') && !this.praiaOpenFor(s)) {
+    if (PRAIA_GATED.has(room) && !this.praiaOpenFor(s)) {
       // a reconnect that remembered the beach lands at the bus stop it came from instead of nowhere
       if (!s.instance) {
         this.join(s, 'rua_leste', {}, { tile: { x: 5, y: 13 }, dir: 'SW' });
@@ -1799,7 +1801,7 @@ export class World {
       if (!sess.profile) continue;
       sess.send(this.praiaMsg(sess));
       const here = sess.instance?.def.id;
-      if ((here === 'praia' || here === 'barco_festa') && !this.praiaOpenFor(sess)) {
+      if (here && PRAIA_GATED.has(here) && !this.praiaOpenFor(sess)) {
         sess.send({ t: 'notice', level: 'info', pt: 'A praia fechou por agora. O ônibus te trouxe de volta.', en: 'The beach has closed for now. The bus brought you back.' });
         this.join(sess, 'rua_leste', {}, { tile: { x: 5, y: 13 }, dir: 'SW' });
       }

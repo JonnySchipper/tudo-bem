@@ -160,19 +160,19 @@ describe('language diary catalog v2', () => {
     escola: [22, 5, 3, 1],
     // the Pet Shop do Seu Dito (#234): the six pen words are earned by petting an animal, never by adopting one
     petshop: [16, 6, 14, 0],
-    // the Praia (PRAIA-PLAN.md 4.3): 14 fish and 32 moment words from fishing, Neide's three beats, the beach's signs and things
-    praia: [10, 7, 3, 46],
+    // the Praia (PRAIA-PLAN.md 4.3): 14 fish and 32 moment words from fishing, Neide's three beats, the beach's and the Lagoa's signs and things
+    praia: [10, 9, 3, 46],
   };
 
-  it('has 598 words: the counts of every area and source, 135 that were already anchored and 463 that were added', () => {
-    expect(DIARY_WORDS).toHaveLength(598);
+  it('has 600 words: the counts of every area and source, 135 that were already anchored and 465 that were added', () => {
+    expect(DIARY_WORDS).toHaveLength(600);
     for (const [area, want] of Object.entries(TOTALS)) {
       const got = DIARY_SOURCES.map((src) => DIARY_WORDS.filter((w) => w.area === area && w.source === src).length);
       expect(got, area).toEqual(want);
     }
     expect(DIARY_AREAS.map((a) => a.id)).toEqual(Object.keys(TOTALS));
     expect(DIARY_WORDS.filter((w) => w.origin === 'existing')).toHaveLength(135);
-    expect(DIARY_WORDS.filter((w) => w.origin === 'added')).toHaveLength(463);
+    expect(DIARY_WORDS.filter((w) => w.origin === 'added')).toHaveLength(465);
     for (const w of DIARY_WORDS) expect(w.needsBr, w.id).toBe(true);
   });
 
@@ -191,7 +191,7 @@ describe('language diary catalog v2', () => {
   });
 
   it('puts every added object in the room its area is about, on a tile the room has', () => {
-    const roomsOf: Record<string, (keyof typeof ROOMS)[]> = { praca: ['praca'], rua: ['rua', 'rua_leste'], padaria: ['padaria'], feira: ['feira'], kitnet: ['kitnet'], academia: ['academia'], escola: ['escola'], petshop: ['petshop', 'rua_leste'], praia: ['praia', 'barco_festa'] };
+    const roomsOf: Record<string, (keyof typeof ROOMS)[]> = { praca: ['praca'], rua: ['rua', 'rua_leste'], padaria: ['padaria'], feira: ['feira'], kitnet: ['kitnet'], academia: ['academia'], escola: ['escola'], petshop: ['petshop', 'rua_leste'], praia: ['praia', 'lagoa', 'barco_festa'] };
     for (const w of DIARY_WORDS.filter((x) => x.origin === 'added' && x.source === 'camera' && x.area !== 'chegada')) {
       const rooms = roomsOf[w.area]!.map((r) => ROOMS[r]);
       const there = (id: string) => rooms.some((room) => room.props.some((p) => p.id === id)) || !!(id.startsWith('kitnet_') || id.startsWith('padaria_') || id === 'cobogo');

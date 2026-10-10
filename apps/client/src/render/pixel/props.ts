@@ -86,6 +86,8 @@ const ART_FIELD: PropKind[] = [
   'fachada', 'sebe', 'cenario', 'poste', 'feira', 'hortifruti', 'arvore',
   // the Praia: every beach kind draws its `art` (custom/praia.mjs)
   'quiosque_praia', 'guarda_sol', 'cadeira_praia', 'posto_salva_vidas', 'galpao_barcos', 'barco', 'pesca_spot', 'pedras', 'canoa',
+  // the Lagoa do Jerivá (custom/lagoa.mjs)
+  'lagoa_deco',
 ];
 
 export function propArtKey(p: PropDef): string | null {

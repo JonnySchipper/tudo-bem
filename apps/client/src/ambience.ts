@@ -70,7 +70,7 @@ interface ZoneLayers {
 }
 
 /** How loud each layer is at full presence (the bed's own wind sits at 0.05). */
-const ZONE_LEVEL: Record<keyof ZoneMix, number> = { traffic: 0.16, fountain: 0.035, birds: 1, crickets: 1, rain: 0.07, radio: 1, waves: 0.09, gulls: 1 };
+const ZONE_LEVEL: Record<keyof ZoneMix, number> = { traffic: 0.16, fountain: 0.035, birds: 1, crickets: 1, rain: 0.07, radio: 1, waves: 0.09, gulls: 1, frogs: 1 };
 const ZONE_TAU = 0.35;
 
 /** Seconds a bed takes to fade out (about four crossfade time constants). */
@@ -212,7 +212,7 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
     keep(g);
     return g;
   };
-  const gains = { traffic: mk(), fountain: mk(), birds: mk(), crickets: mk(), rain: mk(), radio: mk(), waves: mk(), gulls: mk() };
+  const gains = { traffic: mk(), fountain: mk(), birds: mk(), crickets: mk(), rain: mk(), radio: mk(), waves: mk(), gulls: mk(), frogs: mk() };
   const mix: ZoneMix = { ...SILENT_MIX };
   bed.zones = { gains, mix };
 
@@ -266,6 +266,14 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
     for (let k = 0; k < n; k++) gullCry(ctx, gains.gulls, ctx.currentTime + 0.02 + k * 0.32, 1500 + Math.random() * 300);
   }, 2900);
 
+  // the Lagoa's frogs: a low two-pulse croak (the rã) answered now and then by the high trill of a tree frog (the perereca)
+  schedule(bed, () => {
+    if (mix.frogs < 0.04 || Math.random() > mix.frogs * 1.2) return;
+    const when = ctx.currentTime + 0.02 + Math.random() * 0.3;
+    if (Math.random() < 0.7) croak(ctx, gains.frogs, when, 150 + Math.random() * 90, 2 + Math.floor(Math.random() * 2));
+    else treeFrog(ctx, gains.frogs, when, 2300 + Math.random() * 500);
+  }, 520);
+
   // rain on the ground: hiss plus a soft drumming
   keep(...loopNoise(ctx, gains.rain, white, 3400, 'bandpass', 0.6, 0.3));
   keep(...loopNoise(ctx, gains.rain, brown, 420, 'lowpass', 0.7, 0.5));
@@ -311,6 +319,48 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
   const radio = new ThemeSequencer(ctx, radioBand, 'radio', { reverb: 0, level: levels.bed('radio'), startBar: 8 * Math.floor(Math.random() * 4) });
   keep(...radio.nodes);
   bed.timers.push(window.setInterval(() => radio.tick(1.4, mix.radio >= 0.03), 250));
+}
+
+/** One frog's croak: `n` short buzzy pulses, each a square wave through a resonant bandpass whose pitch drops a little. */
+function croak(ctx: AudioContext, out: AudioNode, when: number, f: number, n: number) {
+  for (let k = 0; k < n; k++) {
+    const t = when + k * 0.11;
+    const o = ctx.createOscillator();
+    o.type = 'square';
+    o.frequency.setValueAtTime(f, t);
+    o.frequency.exponentialRampToValueAtTime(f * 0.82, t + 0.08);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = f * 3.2;
+    bp.Q.value = 3;
+    const g = vca(ctx);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.022, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.085);
+    o.connect(bp);
+    bp.connect(g);
+    g.connect(out);
+    o.start(t);
+    o.stop(t + 0.1);
+  }
+}
+
+/** A tree frog's trill: a high sine pulsed fast for a third of a second. */
+function treeFrog(ctx: AudioContext, out: AudioNode, when: number, f: number) {
+  const o = ctx.createOscillator();
+  o.type = 'sine';
+  o.frequency.value = f;
+  const g = vca(ctx);
+  g.gain.setValueAtTime(0.0001, when);
+  for (let k = 0; k < 9; k++) {
+    const t = when + k * 0.036;
+    g.gain.linearRampToValueAtTime(0.008, t + 0.008);
+    g.gain.linearRampToValueAtTime(0.0001, t + 0.03);
+  }
+  o.connect(g);
+  g.connect(out);
+  o.start(when);
+  o.stop(when + 0.36);
 }
 
 function schedule(bed: Bed, fn: () => void, ms: number) {
@@ -745,8 +795,9 @@ class Ambience {
     if (!this.unlocked) return null;
     // the open-air areas share one outdoor bed, so walking between them never restarts the music; the feira has its own while it is open
     if (this.room === 'feira') return feiraOpen(this.world.minute) ? 'feira' : 'praca';
-    // the Praia and the party deck share it too until the beach gets a bed of its own (PRAIA-PLAN.md 11); the waves zone makes it sound like the sea
-    if (this.room === 'rua' || this.room === 'rua_leste' || this.room === 'praia' || this.room === 'barco_festa') return 'praca';
+    // the Praia, the party deck and the Lagoa share it too until the beach gets a bed of its own (PRAIA-PLAN.md 11); the waves zone makes it
+    // sound like the sea, the lagoa's frogs and birds like the restinga
+    if (this.room === 'rua' || this.room === 'rua_leste' || this.room === 'praia' || this.room === 'lagoa' || this.room === 'barco_festa') return 'praca';
     // the arrivals hall (the first room): the kitnet's quiet bed, so the tutorial and the journal reveal sit over something calm
     if (this.room === 'escola' || this.room === 'desembarque') return 'kitnet';
     // the pet shop (#234) borrows the padaria's day bed: warm, unhurried, no music of its own yet

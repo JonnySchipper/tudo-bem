@@ -241,7 +241,7 @@ export function normalizePadaria(raw: unknown): PlayerPadaria | null {
 }
 
 /** Social rooms where the founder hat is on by default (kitnet mirror is the exception). */
-export const CHEF_HAT_SOCIAL_ROOMS = new Set(['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'academia', 'escola', 'praia']);
+export const CHEF_HAT_SOCIAL_ROOMS = new Set(['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'academia', 'escola', 'praia', 'lagoa']);
 
 export function displayFounderHat(profileHat: string | null, hasFounderHat: boolean, roomId: string | undefined, inOwnKitnet: boolean): string | null {
   if (!hasFounderHat) return profileHat;

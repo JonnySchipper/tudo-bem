@@ -30,7 +30,7 @@ export interface FeedbackPersistence {
 }
 
 const CATEGORIES = new Set(['bug', 'idea', 'love']);
-const ROOMS = new Set(['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'kitnet', 'academia', 'escola', 'andar', 'aeroporto', 'desembarque', 'praia', 'barco_festa']);
+const ROOMS = new Set(['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'kitnet', 'academia', 'escola', 'andar', 'aeroporto', 'desembarque', 'praia', 'lagoa', 'barco_festa']);
 
 function randomHex(bytes: number) {
   const a = new Uint8Array(bytes);
