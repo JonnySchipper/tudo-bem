@@ -39,6 +39,7 @@ import { openModal } from './modal';
 import { npcPortrait } from './pixelArt';
 import { toast } from './hud';
 import { tierChip, tierIcon, tierName } from './plate';
+import { escolaHomeShows } from './escolaDisclosure';
 
 export interface EscolaActions {
   start: (area?: string) => void;
@@ -196,7 +197,8 @@ function renderHome(greet: boolean) {
   const goalMet = xp >= st.goal;
   const greeting = luciaGreeting({ words: counts.learned, streak, best: st.best, goalMet });
   const units = escolaPath(st, p.diary);
-  const mission = st.mission?.day === day && !st.mission.done ? units.find((u) => u.id === st.mission!.area)?.hunt : null;
+  const shows = escolaHomeShows(p);
+  const mission = shows.deep && st.mission?.day === day && !st.mission.done ? units.find((u) => u.id === st.mission!.area)?.hunt : null;
 
   const goalPick = h(
     'span',
@@ -227,7 +229,8 @@ function renderHome(greet: boolean) {
   body.replaceChildren(
     head(greeting, streak > 0 || goalMet ? 'feliz' : 'neutro'),
     h('div', { id: 'escola-note', 'aria-live': 'polite' }),
-    h(
+    ...(shows.flame
+      ? [h(
       'div',
       { class: 'escola-stats' },
       h(
@@ -235,17 +238,18 @@ function renderHome(greet: boolean) {
         { class: 'escola-stat', id: 'escola-streak' },
         flame(streak),
         h('span', null, h('b', null, 'Sequência'), en('Streak')),
-        st.freezes ? h('span', { class: 'escola-freeze', title: `${st.freezes} proteção de sequência (earned by play: one every 7 days)` }, h('i', { class: 'freeze-ico', 'aria-hidden': 'true' }), `×${st.freezes}`) : null,
+        shows.deep && st.freezes ? h('span', { class: 'escola-freeze', title: `${st.freezes} proteção de sequência (earned by play: one every 7 days)` }, h('i', { class: 'freeze-ico', 'aria-hidden': 'true' }), `×${st.freezes}`) : null,
       ),
       h(
         'div',
         { class: 'escola-stat', id: 'escola-goal' },
         h('span', { class: 'escola-goal-head' }, h('b', null, 'Meta de hoje', en(' · Daily goal', true)), h('span', { class: 'escola-goal-n' }, `${Math.min(xp, 999)}/${st.goal} XP`)),
         bar(xp / st.goal, goalMet ? 'met' : ''),
-        goalPick,
+        shows.goalPick ? goalPick : null,
       ),
-    ),
-    tierBar(tierProgress(st, p.diary)),
+    )]
+      : []),
+    ...(shows.deep ? [tierBar(tierProgress(st, p.diary))] : []),
     h(
       'p',
       { class: 'escola-counts', id: 'escola-counts' },
@@ -256,8 +260,7 @@ function renderHome(greet: boolean) {
     ),
     start,
     ...(mission ? [missionCard(mission)] : []),
-    h('h3', { class: 'escola-path-title' }, 'Seu caminho', en(' Your path', true)),
-    h('ol', { class: 'escola-path', id: 'escola-path' }, ...units.map(unitRow)),
+    ...(shows.path ? [h('h3', { class: 'escola-path-title' }, 'Seu caminho', en(' Your path', true)), h('ol', { class: 'escola-path', id: 'escola-path' }, ...units.map(unitRow))] : []),
     en('Free beta: lessons pay a little virtual RV (capped per day). Plates are earned by words mastered — never bought.'),
   );
   if (greet) lucia(greeting);
@@ -706,6 +709,7 @@ function renderDone(s: EscolaSummary) {
   const p = game.profile;
   if (!body) return;
   const name = p?.name ?? '';
+  const deep = p ? escolaHomeShows(p).deep : false;
   const title: Bilingual = s.perfect ? { pt: 'Lição perfeita!', en: 'Perfect lesson!' } : { pt: 'Aula concluída!', en: 'Lesson complete!' };
   const tile = (id: string, big: string, pt: string, enText: string, cls = '') => h('div', { class: `escola-tile-stat ${cls}`.trim(), id }, h('b', null, big), h('span', null, pt), en(enText));
   const words = s.strengthened.slice(0, 8).map((w) =>
@@ -730,7 +734,6 @@ function renderDone(s: EscolaSummary) {
         { class: 'escola-tiles' },
         tile('escola-sum-xp', `+${s.xp}`, 'XP', 'XP earned', 'xp'),
         tile('escola-sum-acc', `${s.accuracy}%`, 'Acertos', 'Accuracy', 'acc'),
-        tile('escola-sum-combo', `×${s.bestCombo}`, 'Combo', 'Best combo', 'combo'),
         tile('escola-sum-rv', `R$ ${s.rv}`, 'RV', 'virtual RV', 'rv'),
       ),
       h(
@@ -750,12 +753,12 @@ function renderDone(s: EscolaSummary) {
           bar(s.dayXp / s.goal, s.dayXp >= s.goal ? 'met' : ''),
         ),
       ),
-      tierBar(s.progress),
+      deep ? tierBar(s.progress) : null,
       words.length
         ? h('div', { class: 'escola-strong' }, h('b', null, `${s.strengthened.length} palavras mais fortes`, en(` words strengthened${s.newlyMastered ? ` · ${s.newlyMastered} mastered` : ''}`, true)), h('ul', null, ...words))
         : null,
       s.granted ? h('p', { class: 'escola-granted', id: 'escola-granted' }, `Nova palavra: ${s.granted.pt}`, en(s.granted.en)) : null,
-      s.mission ? missionCard(s.mission) : null,
+      deep && s.mission ? missionCard(s.mission) : null,
       h(
         'div',
         { class: 'escola-done-acts' },
