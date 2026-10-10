@@ -175,7 +175,7 @@ function bookPanel(card: PadariaCard) {
     }),
   );
   panel.append(
-    rvPriceNote(),
+    rvPriceNote() ?? '',
     h(
       'button',
       {
@@ -291,7 +291,7 @@ function renderDoor(door: PadariaDoorState, rows: PadariaCard[]) {
       h('h3', null, 'Sua própria padaria'),
       en('Your own bakery'),
       h('p', null, 'Junte reais no balcão do Seu Carlos e abra a sua porta: nome na fachada, chapéu de dono e o seu balcão.', en('Save up at Seu Carlos’s counter and open your own door: your name, an owner’s hat and your own counter.')),
-      rvPriceNote(),
+      rvPriceNote() ?? '',
       h('p', { class: 'hint' }, bi(`${door.coins} / ${door.goalRv} RV na porta`, `${door.coins} / ${door.goalRv} RV toward the door`)),
       meter,
     );
