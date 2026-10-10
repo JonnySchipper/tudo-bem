@@ -1653,8 +1653,7 @@ function handleClickInner(hit: Hit | null) {
       if (p.action && p.interact) {
         markTap('target', { tile: p.interact });
         walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });
-      } else if (cameraObjectIds().has(p.id)) toast('info', 'Abra a câmera pra fotografar.', 'Open the camera to take a photo.');
-      else markTap('refused', { px: lastPointer.x, py: lastPointer.y }); // scenery: nothing to do there
+      } else markTap('refused', { px: lastPointer.x, py: lastPointer.y }); // scenery: nothing to do there
       break;
     }
     case 'hotspot':

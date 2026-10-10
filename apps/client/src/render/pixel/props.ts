@@ -4,16 +4,18 @@
  * Phase 2 only maps the kinds that have real art in the manifest; everything else resolves to a placeholder key
  * (`props/<kind>`, HOWTO §5.10) that the scene draws as a flat magenta box. Phase 4 completes this table.
  */
-import { cameraObjectIds, type PropDef, type PropKind } from '@tudobem/shared';
+import type { PropDef, PropKind } from '@tudobem/shared';
 import { T, type Rect } from './coords';
 
 /**
- * What a click on this prop does while the camera is off. A seat stays a seat even when the diary can photograph it
- * (the viewfinder still frames the sprite; the sit click must not become "open the camera").
+ * What a click on this prop does while the camera is off. A seat stays a seat, and a prop with an action (a shop, a
+ * counter, a game) stays that action, even when the diary can also photograph the sprite. An object that can only be
+ * photographed is scenery: no hit box, so the pointer, the hover and the click fall through to a walk. The viewfinder
+ * still frames the sprite.
  */
-export function propClickKind(p: Pick<PropDef, 'id' | 'seat' | 'action'>): 'seat' | 'prop' | null {
+export function propClickKind(p: Pick<PropDef, 'seat' | 'action'>): 'seat' | 'prop' | null {
   if (p.seat) return 'seat';
-  if (p.action || cameraObjectIds().has(p.id)) return 'prop';
+  if (p.action) return 'prop';
   return null;
 }
 
