@@ -39,7 +39,7 @@ const BASE_HOTSPOTS: HotspotDef[] = [
   { id: 'edificio_letreiro', room: 'rua', x: 11, y: 1, w: 3, h: 3, pt: 'EDIFÍCIO IPÊ', en: 'Ipê Building' },
   { id: 'edificio_numero', room: 'rua', x: 12, y: 4, pt: 'Nº 42', en: 'No. 42' },
   { id: 'academia_letreiro', room: 'rua_leste', x: 2, y: 1, w: 6, h: 3, pt: 'ACADEMIA\nDO BAIRRO', en: 'Neighborhood\nacademy' },
-  { id: 'banca_manchetes', room: 'rua', x: 8, y: 4, w: 3, h: 2, pt: 'BANCA\nHOJE: Chuva à noite\nFeira livre: todo dia, 6h às 13h\nPadaria faz festa',
+  { id: 'banca_manchetes', room: 'rua', x: 8, y: 4, w: 3, h: 2, pt: 'BANCA\nHOJE: Chuva à noite\nFeira de rua: todo dia, 6h às 13h\nPadaria faz festa',
     en: 'NEWSSTAND\nToday: Rain tonight\nStreet market: every day, 6 am to 1 pm\nBakery throws a party',
   },
   // ---- Vila Ipê, north sidewalk
@@ -62,8 +62,8 @@ const BASE_HOTSPOTS: HotspotDef[] = [
   { id: 'mesa_domino_placa', room: 'praca', x: 22, y: 17, pt: 'DOMINÓ\nQuem perde paga o café', en: 'DOMINOES\nLoser buys the coffee' },
   { id: 'pipoqueiro_placa', room: 'praca', x: 18, y: 20, w: 3, h: 1, pt: 'PIPOCA\nSalgada R$ 5\nDoce R$ 7\nLeite condensado +R$ 3 (na doce)', en: 'POPCORN\nSalty R$ 5\nSweet R$ 7\nCondensed milk +R$ 3 (sweet only)' },
   { id: 'coco_placa', room: 'praca', x: 24, y: 8, w: 3, h: 1, pt: 'ÁGUA DE COCO\nGeladinha · R$ 7', en: 'COCONUT WATER\nIce cold · R$ 7' },
-  // ---- the feira livre (Phase 9). needs_br: every line. Prices equal `GOODS` in feira.ts (tested).
-  { id: 'feira_livre', room: 'feira', x: 6, y: 1, w: 5, h: 1, pt: 'FEIRA LIVRE\nTodo dia · 6h às 13h', en: 'STREET MARKET\nEvery day · 6 am to 1 pm' },
+  // ---- the feira de rua (Phase 9). needs_br: every line. Prices equal `GOODS` in feira.ts (tested).
+  { id: 'feira_livre', room: 'feira', x: 6, y: 1, w: 5, h: 1, pt: 'FEIRA DE RUA\nTodo dia · 6h às 13h', en: 'STREET MARKET\nEvery day · 6 am to 1 pm' },
   { id: 'feira_preco_frutas', room: 'feira', x: 5, y: 5, pt: 'FRUTAS DA TIA LU\nBanana R$ 2\n3 bananas R$ 5\nLaranja R$ 1\nMaçã R$ 1,50\nFlores R$ 12',
     en: 'TIA LU’S FRUIT\nBanana R$ 2\n3 bananas R$ 5\nOrange R$ 1\nApple R$ 1.50\nFlowers R$ 12',
   },

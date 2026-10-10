@@ -107,7 +107,7 @@ export function trackerEntries(board: RecadoBoard | null, p: PrivateProfile | nu
       if (out.length >= TRACKER_MAX) break;
       const who = npcName(o.giver);
       // needs_br: true
-      out.push({ key: `offer:${o.id}`, kind: 'offer', giver: o.giver, title: o.title, step: { pt: `${who} tem um recado pra você!`, en: `${who} has an errand for you!` }, progress: '!', done: 0, total: 0, where: giverWhere(o.giver, minute) });
+      out.push({ key: `offer:${o.id}`, kind: 'offer', giver: o.giver, title: o.title, step: { pt: `${who} quer te pedir um favor!`, en: `${who} has a favor to ask you!` }, progress: '!', done: 0, total: 0, where: giverWhere(o.giver, minute) });
     }
   }
   return out;

@@ -114,7 +114,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
 };
 
 export const TUTORIAL_STEPS: { id: TutorialStep; pt: string; en: string }[] = [
-  { id: 'andar', pt: 'Ande pela praça', en: 'Walk around the praça (click the floor)' },
+  { id: 'andar', pt: 'Ande pela praça', en: 'Walk around the praça, the town square (click the ground)' },
   { id: 'sentar', pt: 'Sente num banco', en: 'Sit on a bench (click it)' },
   { id: 'acenar', pt: 'Dê um oi', en: 'Wave hello (Oi button)' },
   { id: 'conversar', pt: 'Mande uma mensagem', en: 'Send a chat message' },

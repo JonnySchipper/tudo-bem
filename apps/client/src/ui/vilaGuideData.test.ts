@@ -4,7 +4,7 @@ import { VILA_GUIDE, VILA_GUIDE_PT_WORDS, shouldShowVilaGuide } from './vilaGuid
 
 describe('the Vila Ipê guide', () => {
   it('names each loop once, in English, short enough to read in one go', () => {
-    expect(VILA_GUIDE.lines.map((l) => l.pt)).toEqual(['Recados', 'Diário', 'Cartela', 'Lugares', 'Relógio']);
+    expect(VILA_GUIDE.lines.map((l) => l.pt)).toEqual(['Favores', 'Diário', 'Cartela', 'Lugares', 'Relógio']);
     const all = [VILA_GUIDE.lead, ...VILA_GUIDE.lines.map((l) => l.en), VILA_GUIDE.tip].join(' ');
     expect(all.length).toBeLessThan(1200);
   });

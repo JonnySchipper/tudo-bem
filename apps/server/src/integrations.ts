@@ -6,10 +6,8 @@ import { readAdminAuthConfig } from './adminAuth.js';
 import { billingConfigured, readBillingConfig } from './billing/provider.js';
 import { readEnv } from './env.js';
 import { readGoogleOAuthConfig } from './googleAuth.js';
-import { isXaiReady } from './services/xai.js';
 
 export interface IntegrationFlags {
-  ai: boolean;
   googleAuth: boolean;
   billing: boolean;
   admin: boolean;
@@ -18,7 +16,6 @@ export interface IntegrationFlags {
 
 export async function integrationFlags(env: Record<string, string | undefined> = process.env): Promise<IntegrationFlags> {
   return {
-    ai: await isXaiReady(),
     googleAuth: readGoogleOAuthConfig().ready,
     billing: billingConfigured(readBillingConfig(env)),
     admin: readAdminAuthConfig().ready,
@@ -28,7 +25,7 @@ export async function integrationFlags(env: Record<string, string | undefined> =
 
 export function formatIntegrations(f: IntegrationFlags): string {
   const on = (b: boolean) => (b ? 'on' : 'off');
-  return `[boot] integrations ai=${on(f.ai)} google_auth=${on(f.googleAuth)} billing=${on(f.billing)} admin=${on(f.admin)} github_token=${on(f.githubToken)}`;
+  return `[boot] integrations google_auth=${on(f.googleAuth)} billing=${on(f.billing)} admin=${on(f.admin)} github_token=${on(f.githubToken)}`;
 }
 
 export async function logIntegrations(): Promise<void> {

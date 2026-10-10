@@ -80,8 +80,6 @@ import {
   type Appearance,
   type Bilingual,
   type ClientMsg,
-  type ConversaGrade,
-  type ConversaOrder,
   type NpcId,
   type JevNpcReplyAnswers,
   type SafetyVerdict,
@@ -742,6 +740,10 @@ export class World {
         return this.escola.handle(s, msg);
       case 'talk':
         if (this.recados.talk(s, msg.npc)) this.caderno.seen(s, talkOpener(msg.npc, s.profile?.name, gameMinutes(this.clockNow())) ?? '');
+        return;
+      case 'papo':
+        // a bate-papo talked through (never graded): a talk, a little bond once a day, and the cartela stamp when it was in the praça
+        if (this.recados.papoDone(s, msg.npc, msg.id)) this.cartela.onPapoDone(s);
         return;
       case 'admin':
         return this.admin(s, msg);
@@ -1617,7 +1619,7 @@ export class World {
     const name = target.profile.name;
     this.kick(target, 'admin', { t: 'kicked', reason: 'admin', ...ADMIN_KICKED_COPY });
     this.adminList(s);
-    s.send({ t: 'notice', level: 'info', pt: `${name} saiu da Praça.`, en: `${name} left the Praça.` });
+    s.send({ t: 'notice', level: 'info', pt: `${name} saiu da Praça.`, en: `${name} left the square.` });
   }
 
   private adminMute(s: Session, targetId: string, minutes: number) {
@@ -1915,7 +1917,8 @@ export class World {
     if (wantsSit) inst.crowd?.yieldSeat({ x, y });
     const done = () => {
       if (s.avatar !== a || a.seq !== seq || s.instance !== inst) return;
-      if (path.length) this.completeStep(s, 'andar');
+      // "Ande pela praça": only a walk inside the praça itself counts (not the rua or other areas)
+      if (path.length && inst.def.id === 'praca') this.completeStep(s, 'andar');
       // split areas: a walk that ends on a map-edge tile carries you into the next area
       const end = path.at(-1) ?? from;
       const edge = inst.def.portals.find((p) => p.edge && p.x === end.x && p.y === end.y);
@@ -2210,33 +2213,10 @@ export class World {
 
   private rollDaily(p: StoredProfile) {
     const day = this.capDate(today(), p);
-    if (p.daily.date !== day) {
-      const { conversaClears, conversaRvGranted } = p.daily;
-      p.daily = {
-        date: day,
-        sceneClears: {},
-        ...(conversaClears ? { conversaClears } : {}),
-        ...(conversaRvGranted ? { conversaRvGranted } : {}),
-      };
-    }
+    if (p.daily.date !== day) p.daily = { date: day, sceneClears: {} };
   }
 
-  /** A Conversa (HTTP flow) finished for this player: counts as a talk, may carry an order, a 'pass' earns bond. */
-  conversaEnded(playerId: string, npc: NpcId, grade: ConversaGrade, order?: ConversaOrder) {
-    const s = this.sessionByProfile(playerId);
-    if (s) {
-      this.recados.onConversaEnd(s, npc, grade, order);
-      this.cartela.onConversaEnd(s, grade);
-    }
-  }
-
-  /** A Conversa line moved between the player and an NPC (HTTP flow): the NPC's line is seen, the player's is used. */
-  conversaLine(playerId: string, who: 'npc' | 'player', pt: string) {
-    const s = this.sessionByProfile(playerId);
-    if (s) who === 'npc' ? this.caderno.seen(s, pt) : this.caderno.used(s, pt);
-  }
-
-  /** Push the stored profile to a connected player (after Conversa RV lands on the file store). */
+  /** Push the stored profile to a connected player. */
   pushProfileById(playerId: string) {
     const s = this.sessionByProfile(playerId);
     if (s) this.pushProfile(s);
@@ -2401,7 +2381,7 @@ export class World {
       if (!hat || !isStallHat(hat.id)) return;
       if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'A barraca da Nanda fica na praça.', 'Nanda’s stall is in the square.');
       if (p.hats.includes(hat.id)) return this.err(s, 'owned', 'Você já tem esse chapéu.', 'You already own this hat.');
-      if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV yet: play “Correria no Balcão” at the bakery, or do an errand (recado).');
+      if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV yet: play “Correria no Balcão” at the bakery, or do a favor (Favores).');
       p.coins -= hat.price;
       p.hats.push(hat.id);
       this.store.save(p.id);

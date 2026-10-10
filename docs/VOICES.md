@@ -6,7 +6,7 @@ speech synthesis (the robot) is only the last-resort fallback for text that cann
 ## When you code new dialogue
 
 1. Write it where the game already keeps dialogue: `npcTalk.ts` (greetings), `feira.ts` (vendors, prices), `juliaTalk.ts`, `hotspots.ts`
-   (signs), `carlos.ts` / `conversa.ts` (the counter), `challenges.ts` (listening drills), `cards.json`.
+   (signs), `carlos.ts` (the counter), `papos.ts` (bate-papos), `challenges.ts` (listening drills), `cards.json`.
 2. If a **new NPC** speaks, add them to `content/voices.json` (pick Antonio or Francisca, then a `rate` / `pitch` so they don't sound like
    a twin). Call `speak(text, { speaker: npcId })` wherever the line is spoken.
 3. Run **`pnpm tts`**. It finds every spoken line in the game data, bakes only the ones without a clip, and updates
@@ -20,13 +20,12 @@ Cloud sessions: allow that host in the environment's network settings; the bake 
 ## What is and isn't found automatically
 
 - **Found by walking the data** (`packages/shared/src/spokenLines.ts`): NPC greetings (every hour of day), Júlia's guide, every feira
-  greeting / price / total / change line, the whole Seu Carlos / Dona Graça counter scene (all names, orders, hours), Conversa openers and
-  offline replies, signs and menus, Caderno words, Me vê um… orders, listening drills.
+  greeting / price / total / change line, the whole Seu Carlos / Dona Graça counter scene (all names, orders, hours), every bate-papo
+  line, signs and menus, Caderno words, Me vê um… orders, listening drills.
 - **Names are never spoken.** A line with the player's name is baked without it (`spokenNameless`); the name still shows on screen. One
   clip serves every player.
 - **Not enumerable** (correria and bout feedback, anything generated at runtime): list them in `content/tts/extra-lines.json`. In a dev
   build, play the feature and run `ttsMissing()` in the console: it prints the lines that fell back to the robot, as JSON to paste there.
-  AI-written Conversa turns can't be prebaked; they use the best pt-BR system voice (natural / online voices are preferred).
 
 ## Changing how someone sounds
 

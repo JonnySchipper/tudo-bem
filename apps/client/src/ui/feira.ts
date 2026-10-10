@@ -1,10 +1,9 @@
 /**
  * "Quanto custa?" at the feira (HOWTO Phase 9): a vendor in the dialogue box. Ask the price (chips or typed, scored with the accept-list rules in
- * `feira.ts`), hear it said in words, pick a quantity, then pay from a coin and note tray. The server judges the payment (exact, change, short);
+ * `feira.ts`), hear it said in words, pick a quantity, then pay the exact price with one tap (no counting coins). The server judges the payment (exact, change, short);
  * this file only presents what it answers. The same flow serves the stalls and the Hortifrúti corner at the banca (D12).
  */
 import {
-  COINS,
   FEIRA_CLOSED_NOTE,
   OFF_DUTY,
   OFF_DUTY_ASK,
@@ -21,7 +20,6 @@ import {
   priceFor,
   qtyChip,
   scoreAsk,
-  sumCoins,
   totalLine,
   type Bilingual,
   type ClientMsg,
@@ -83,41 +81,13 @@ function feedbackEl(b: Bilingual | null): HTMLElement | null {
   return b ? h('div', { class: 'feira-hint you-said', id: 'feira-hint' }, b.pt, h('span', { class: 'en plain' }, ` ${b.en}`)) : null;
 }
 
-/** Coins and notes as little pixel pieces: a round coin for R$ 0,50 and 1, a rectangular note above. */
-function pieceButton(cents: number, onTap: () => void, label?: string): HTMLElement {
-  const isNote = cents >= 200;
-  return h(
-    'button',
-    { type: 'button', class: `feira-piece ${isNote ? 'cash-note' : 'cash-coin'} v${cents}`, 'data-cents': String(cents), 'aria-label': moneyLabel(cents), onclick: onTap },
-    h('span', { class: 'amt' }, label ?? moneyLabel(cents).replace('R$ ', '')),
-  );
-}
-
+/** No math in a conversation (#229): the price is said in words, and "Pagar" hands over exactly that (no counting coins, no change). */
 function trayEl(s: State): HTMLElement {
-  const total = sumCoins(s.tray);
   const price = priceFor(s.itemId, s.qty) ?? 0;
-  const pieces = h(
-    'div',
-    { class: 'feira-pieces', id: 'feira-pieces' },
-    ...COINS.map((c) =>
-      pieceButton(c, () => {
-        if (!st || st.waiting || st.tray.length >= 40) return;
-        st.tray.push(c);
-        render();
-      }),
-    ),
-  );
-  const onCounter = h(
-    'div',
-    { class: 'feira-counter', id: 'feira-counter' },
-    s.tray.length ? s.tray.map((c) => h('span', { class: `feira-piece mini ${c >= 200 ? 'cash-note' : 'cash-coin'}`, 'aria-hidden': 'true' }, moneyLabel(c).replace('R$ ', ''))) : h('span', { class: 'feira-empty' }, 'Toque nas moedas e notas'),
-  );
   return h(
     'div',
     { class: 'feira-tray', id: 'feira-tray' },
-    h('div', { class: 'feira-sum' }, h('span', { class: 'lbl' }, 'Preço '), h('b', { id: 'feira-price' }, moneyLabel(price)), h('span', { class: 'lbl' }, ' · Você deu '), h('b', { id: 'feira-paid' }, moneyLabel(total))),
-    onCounter,
-    pieces,
+    h('div', { class: 'feira-sum' }, h('span', { class: 'lbl' }, 'Preço (Price) '), h('b', { id: 'feira-price' }, moneyLabel(price))),
     h(
       'div',
       { class: 'feira-actions' },
@@ -127,29 +97,17 @@ function trayEl(s: State): HTMLElement {
           type: 'button',
           class: 'primary',
           id: 'feira-pay',
-          disabled: !s.tray.length || s.waiting,
+          disabled: !price || s.waiting,
           onclick: () => {
-            if (!st || !st.itemId || !st.tray.length || st.waiting) return;
+            if (!st || !st.itemId || st.waiting) return;
+            const exact = makeChange(priceFor(st.itemId, st.qty) ?? 0);
+            if (!exact.length) return;
             st.waiting = true;
-            hooks?.send({ t: 'feira', action: 'pay', vendor: st.vendor, itemId: st.itemId, qty: st.qty, paid: [...st.tray] });
+            hooks?.send({ t: 'feira', action: 'pay', vendor: st.vendor, itemId: st.itemId, qty: st.qty, paid: exact });
             render();
           },
         },
-        'Pagar',
-      ),
-      h(
-        'button',
-        {
-          type: 'button',
-          id: 'feira-clear',
-          disabled: !s.tray.length || s.waiting,
-          onclick: () => {
-            if (!st) return;
-            st.tray = [];
-            render();
-          },
-        },
-        'Limpar',
+        'Pagar (Pay)',
       ),
     ),
   );

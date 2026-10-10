@@ -55,7 +55,6 @@ import {
   nextPortalToward,
   recadoById,
   readSpot,
-  subjectChoices,
   VENDORS,
   OFF_DUTY,
   isStallVendor,
@@ -138,7 +137,7 @@ import { openStreetSnack } from './ui/streetSnack';
 import { openCheckers } from './ui/checkers';
 import { openGiShop } from './ui/giShop';
 import { setHeardSink } from './ui/heard';
-import { closeConversa, isConversaOpen, openConversa, setConversaLineSink } from './ui/conversa';
+import { openPapo } from './ui/papo';
 import { openCounter } from './ui/padariaCounter';
 import { BoutUI } from './ui/bout';
 import { CorreriaUI } from './ui/correria';
@@ -393,7 +392,7 @@ function talkTo(npc: NpcDef['id']) {
   const vendor = isStallVendor(npc);
   // read before `talk`: that message pays bond at once, and an idle line can sit on screen until the profile push lands
   const juliaMet = npc === 'julia' && profileMetJulia();
-  // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa,
+  // the server counts the talk (bond +2 once a day, `falar` steps); the bakers count it through the counter / a bate-papo,
   // the vendors through their stall panel (it sends `talk` itself)
   if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
   // an NPC first hands you what they came with: a thank-you hand-over ("Entregar …") or today's errand ("Pode deixar!" / "Agora não")
@@ -428,6 +427,9 @@ function talkTo(npc: NpcDef['id']) {
   sendLine(idle.anchor);
 }
 
+/** A bate-papo (pre-made, never graded) talked through: the server counts it; a node's diary line can teach its word. */
+const papoHooks = { done: (npc: NpcId, id: string) => net.send({ t: 'papo', npc, id }), onLine: (anchor: string) => sendLine(anchor) };
+
 /** On with the NPC's usual talk. The beat before it (the idle line, an errand) is replaced in place; a talk that opens no box of its own closes it. */
 function talkFlow(npc: NpcDef['id'], juliaMet = false) {
   const before = dialogueBoxKey();
@@ -442,29 +444,11 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
     return openFeira(npc, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
   }
   if (npc === 'carlos' || npc === 'graca') {
-    // The counter: order (pay, carry it out, it goes in the bag) or open a Conversa with the baker. The old "Pedido rápido" chip scene
+    // The counter: order (pay, carry it out, it goes in the bag) or have a bate-papo with the baker. The old "Pedido rápido" chip scene
     // is gone: it was a second, unexplained way to order from the same person.
-    const conversa = () => {
-      const start = (subjectId?: string) => void openConversa(npc, undefined, { subjectId });
-      // from 4 hearts there is a second subject to pick (O bairro)
-      const choices = subjectChoices(npc, heartsWith(game.profile?.bond, npc));
-      if (choices.length <= 1) return start();
-      showDialogueBox({
-        key: `subject-${npc}`,
-        npcId: npc,
-        speaker: npc === 'graca' ? 'Dona Graça' : 'Seu Carlos',
-        expression: 'feliz',
-        line: { pt: 'Sobre o que a gente conversa hoje?', en: 'What shall we chat about today?' },
-        chips: choices.map((s) => ({ pt: s.title.pt, en: s.minHearts ? `${s.title.en} (new!)` : s.title.en })),
-        onChip: (i) => {
-          closeDialogue();
-          start(choices[i]?.id);
-        },
-        onClose: closeDialogue,
-      });
-    };
-    if (game.room?.room !== 'padaria') return conversa();
-    openCounter(npc, { buy: (itemId) => net.send({ t: 'padaria', action: 'buy', itemId }), conversa });
+    const papo = () => void openPapo(npc, papoHooks);
+    if (game.room?.room !== 'padaria') return papo();
+    openCounter(npc, { buy: (itemId) => net.send({ t: 'padaria', action: 'buy', itemId }), papo });
   } else if (npc === 'lucia') {
     openEscolaDesk();
   } else if (npc === 'celia') {
@@ -480,6 +464,7 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
       onLine: (anchor) => sendLine(anchor),
       buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
       openMat: () => openBout(),
+      papo: () => void openPapo(npc, papoHooks),
       juliaAlreadyMet: npc === 'julia' ? juliaMet : undefined,
     });
   }
@@ -812,7 +797,6 @@ function updateGuides() {
       add(guideAt('portal', 'padaria_praca', 110, '← Rua', '← Street'));
     }
   } else if (r.room === 'padaria') {
-    // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
     // the baker at the counter: Seu Carlos by day, Dona Graça at night
     const baker = game.liveNpcs(now()).find((q) => q.id === 'carlos' || q.id === 'graca');
     if (baker?.id === 'graca') add(guideAt('npc', 'graca', 130, t.carlos ? 'Falar com Dona Graça' : 'Fale com a Dona Graça', 'Talk to Dona Graça'));
@@ -842,16 +826,16 @@ function recadoGuide(): Guide | null {
   if (!r || !f || f.away || !f.room) return null;
   // needs_br: true
   if (f.room === r.room) {
-    if (f.npc) return guideAt('npc', f.npc, 120, `Recado: ${f.label.pt}`, `Errand: ${f.label.en}`);
+    if (f.npc) return guideAt('npc', f.npc, 120, `Favor: ${f.label.pt}`, `Favor: ${f.label.en}`);
     const step = game.board?.active[0];
     const def = step ? hotspotById(recadoStepHotspot(step.id, step.step) ?? '') : undefined;
-    return def ? { x: def.x + ((def.w ?? 1) - 1) / 2, y: def.y + (def.h ?? 1) - 1, lift: 60, label: `Recado: ${f.label.pt}`, en: `Errand: ${f.label.en}` } : null;
+    return def ? { x: def.x + ((def.w ?? 1) - 1) / 2, y: def.y + (def.h ?? 1) - 1, lift: 60, label: `Favor: ${f.label.pt}`, en: `Favor: ${f.label.en}` } : null;
   }
   const from = selfTile()?.tile;
   const portal = from ? nextPortalToward(r.room, from, f.room) : null;
   if (!portal) return null;
   const to = ROOMS[f.room];
-  return { x: portal.doorAt?.x ?? portal.x, y: portal.doorAt?.y ?? portal.y, lift: 60, label: `Recado: ${to.name}`, en: `Errand: ${to.gloss}` };
+  return { x: portal.doorAt?.x ?? portal.x, y: portal.doorAt?.y ?? portal.y, lift: 60, label: `Favor: ${to.name}`, en: `Favor: ${to.gloss}` };
 }
 
 /** The sign a recado's step asks to read (`ler`), if that is the step. */
@@ -888,7 +872,7 @@ function showIdleKick() {
   game.npcBubbles.clear();
   game.pending = null;
   game.emit('avatars');
-  idleKickedCard(kickedCopy ?? { pt: 'Você saiu da Praça por inatividade.', en: 'You left the Praça for being idle.' }, () => {
+  idleKickedCard(kickedCopy ?? { pt: 'Você saiu da Praça por inatividade.', en: 'You left the square (Praça) for being idle.' }, () => {
     kickedCopy = null;
     net.retry();
   });
@@ -1189,14 +1173,13 @@ net.on((m: ServerMsg) => {
         // the payout banner already shows the card and the RV; the coin counter ticks when it leaves
         window.setTimeout(() => document.getElementById('coins')?.classList.add('tick'), CARTELA_BANNER_MS - 300);
         window.setTimeout(() => document.getElementById('coins')?.classList.remove('tick'), CARTELA_BANNER_MS + 400);
-      } else if (m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
+      } else if (m.reason.pt.startsWith('Favor: ') || m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
       else {
         toast('reward', m.reason.pt, m.reason.en, m.amount);
         ambience.sting(m.reason.pt.startsWith('Caderno completo') ? 'caderno' : 'coin');
       }
       break;
     case 'scene':
-      if (isConversaOpen()) closeConversa();
       if (isPedidoOpen()) {
         updatePedido(m.view, {
           said: m.said,
@@ -1833,7 +1816,6 @@ setDialogueHost({
 });
 // every 🔊 (dialogue, sign, Caderno) reports the words to the Caderno
 setHeardSink((cardIds) => net.send({ t: 'heard', cardIds }));
-setConversaLineSink((anchor) => sendLine(anchor));
 // the diary's Chegada area: back to the airport (by the bus), and Júlia's note words if this account never had them
 setArrivalReplay(() => {
   net.send({ t: 'arrival', action: 'replay' });

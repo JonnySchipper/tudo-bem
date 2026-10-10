@@ -140,7 +140,7 @@ export function buildHud(actions: HudActions) {
   // ---- the plate: brand + place + clock
   const roomName = h('div', { class: 'room' });
   const coins = h('span', { id: 'coins' });
-  const missionPill = h('span', { class: 'hud-chip', id: 'mission-pill', title: `${MISSION_COPY.header.en} — quest kiosk in the Praça` });
+  const missionPill = h('span', { class: 'hud-chip', id: 'mission-pill', title: `${MISSION_COPY.header.en} — quest kiosk in the Praça (the square)` });
   const cartelaPill = h(
     'button',
     {
@@ -227,7 +227,7 @@ export function buildHud(actions: HudActions) {
   wireHudNote(drawerPlateChip, 'plate', 'Placa: what your nameplate colour means');
   const cameraBtn = btn('btn-camera', 'camera', 'Câmera', 'Camera', actions.toggleCamera);
   // the Vila's own buttons wait for the Vila: the arrivals hall and the airport teach only what is on screen there
-  const recadosBtn = btn('btn-recados', 'recados', 'Recados', 'Errands', actions.openRecados);
+  const recadosBtn = btn('btn-recados', 'recados', 'Favores', 'Favors', actions.openRecados);
   const wardrobeBtn = btn('btn-wardrobe', 'hat', 'Chapéus', 'My hats', actions.openWardrobe);
   const friendsBtn = btn('btn-friends', 'friends', 'Amigos', 'Friends', actions.openFriends);
   cameraBtn.style.display = 'none';
@@ -276,7 +276,7 @@ export function buildHud(actions: HudActions) {
     h(
       'div',
       { class: 'hud-right' },
-      h('div', { class: 'hud-stats hud-slab' }, beltEl, plate, goalChip, h('span', { class: 'hud-rv', id: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
+      h('div', { class: 'hud-stats hud-slab' }, beltEl, plate, goalChip, h('span', { class: 'hud-rv', id: 'hud-rv', title: 'Reais virtuais (RV): the game’s play money, earned by playing' }, icon('rv', 16), coins)),
       feedbackBtn,
       burger,
       actionsNav,
@@ -446,7 +446,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       cartelaPill.title = `${CARTELA_COPY.title.en}: ${CARTELA_RULE}`;
       for (const b of [recadosBtn, wardrobeBtn, friendsBtn]) b.style.display = shows.vila ? '' : 'none';
       coins.textContent = String(p.coins);
-      coins.title = `${p.coins} RV`;
+      coins.title = `${p.coins} RV · reais virtuais (RV), the game’s play money`;
       const tier = p.nameplate ?? 'verde';
       const plateTitle = `Placa ${tierName(tier)}: ${tierRule(tier).en} nameplate, earned in the Escola by words mastered. Click to see how it grows.`;
       for (const el of [plate, drawerPlateChip]) {
@@ -587,7 +587,7 @@ export function idleKickedCard(copy: { pt: string; en: string } | null, onBack?:
   stopIdleBirds = null;
   document.querySelector('.idle-kicked')?.remove();
   if (!copy) return;
-  const back = h('button', { class: 'primary', type: 'button', id: 'idle-back' }, bi('Voltar pra Praça', 'Back to the Praça'));
+  const back = h('button', { class: 'primary', type: 'button', id: 'idle-back' }, bi('Voltar pra Praça', 'Back to the square'));
   back.addEventListener('click', () => {
     idleKickedCard(null);
     onBack?.();

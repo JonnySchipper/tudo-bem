@@ -54,7 +54,7 @@ describe('how to play', () => {
 
   it('explains every panel and activity a new player meets without a guided tutorial', () => {
     const places = HOW_TO_PLAY.filter((g) => g.kind === 'place');
-    expect(places.map((g) => g.id)).toEqual(['balcao', 'conversa', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira']);
+    expect(places.map((g) => g.id)).toEqual(['balcao', 'papo', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira']);
     for (const g of places) {
       expect(g.selector.length, g.id).toBeGreaterThan(3);
       expect(g.goal.length, g.id).toBeGreaterThan(10);

@@ -122,39 +122,23 @@ async function main() {
     assert(/cinco reais/.test(await line(page)), 'the total is said in words');
     await shot(page, 'payment_tray');
     const c0 = await coins(page);
-    await page.click('#feira-pieces [data-cents="500"]');
-    assert((await page.textContent('#feira-paid')).includes('R$ 5'), 'the tray shows R$ 5');
-    await page.click('#feira-pay');
+    assert((await page.textContent('#feira-price')).includes('R$ 5'), 'the price shows R$ 5');
+    await page.click('#feira-pay'); // one tap pays the exact price: no math in a conversation (#229)
     await waitFor(page, () => (window.__tb.game.profile.bag?.banana ?? 0) === 3, null, 6000, '3 bananas in the bag');
     assert((await coins(page)) > c0, 'a little RV is paid');
     assert(/Valor certinho/.test(await line(page)), 'exact payment');
     log('bought 3 bananas, bag', JSON.stringify(await bag(page)), 'RV', (await coins(page)) - c0);
 
-    // typed question, over-payment with change
+    // typed question
     await page.click('#dialogue-box [data-chip="0"]'); // one more thing
     await page.fill('#feira-input', 'quanto custa a laranja?');
     await page.press('#feira-input', 'Enter');
     await waitLine(page, /Laranja|laranja/, 'orange price');
     await page.click('#dialogue-box [data-chip="0"]'); // one orange, R$ 1
     await page.waitForSelector('#feira-tray');
-    await page.click('#feira-pieces [data-cents="200"]');
     await page.click('#feira-pay');
-    await waitFor(page, () => (window.__tb.game.profile.bag?.laranja ?? 0) === 1, null, 6000, 'orange bought with change');
-    assert(/troco: um real/.test(await line(page)), `change is said (${await line(page)})`);
-    await shot(page, 'change_line');
-    log('over-payment: ', await line(page));
-
-    // under-payment buys nothing
-    await page.click('#dialogue-box [data-chip="0"]');
-    await page.click('#dialogue-box [data-chip="2"]'); // maçã
-    await waitLine(page, /maçã/i, 'apple price');
-    await page.click('#dialogue-box [data-chip="1"]'); // two apples R$ 3
-    await page.waitForSelector('#feira-tray');
-    await page.click('#feira-pieces [data-cents="200"]');
-    await page.click('#feira-pay');
-    await waitLine(page, /Faltam um real/, 'what is missing');
-    assert(((await bag(page)).maca ?? 0) === 0, 'nothing bought when short');
-    log('under-payment:', await line(page));
+    await waitFor(page, () => (window.__tb.game.profile.bag?.laranja ?? 0) === 1, null, 6000, 'orange bought');
+    log('typed ask: ', await line(page));
     await page.keyboard.press('Escape');
   } else {
     await jumpClock(BASE, 940);
@@ -203,7 +187,6 @@ async function main() {
     await waitLine(page, /dois reais/, 'banana price at the banca');
     await page.click('#dialogue-box [data-chip="0"]');
     await page.waitForSelector('#feira-tray');
-    await page.click('#feira-pieces [data-cents="200"]');
     await page.click('#feira-pay');
     await waitFor(page, () => (window.__tb.game.profile.bag?.banana ?? 0) === 1, null, 6000, 'banana from the banca');
     log('Hortifrúti sold a banana at', hhmm(await minutes(page)));

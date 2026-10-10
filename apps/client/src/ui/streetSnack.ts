@@ -1,6 +1,6 @@
 import { snackAddon, snacksAt, type StreetSnackDef } from '@tudobem/shared';
 import { showDialogue, closeDialogue } from './panels';
-import { h } from './dom';
+import { h, rvPriceNote } from './dom';
 import { foodIcon } from './pixelArt';
 
 /** Who calls out at a cart with a menu of more than one thing. needs_br: true */
@@ -46,6 +46,7 @@ function cartBoard(look: string, picks: Pick[], choose: (chip: number) => void):
         ),
       ),
     ),
+    rvPriceNote(),
   );
 }
 
@@ -76,7 +77,7 @@ export function openStreetSnack(propId: string, buy: (itemId: string) => void): 
     npc: null,
     speaker: call.speaker,
     line: call.line,
-    extras: look ? cartBoard(look, menu.map((s, i) => ({ icon: s.icon, pt: s.pt, en: s.en, price: s.price, chip: i, id: s.id })), choose) : undefined,
+    extras: look ? cartBoard(look, menu.map((s, i) => ({ icon: s.icon, pt: s.pt, en: s.en, price: s.price, chip: i, id: s.id })), choose) : rvPriceNote(),
     chips: [
       ...menu.map((s) => ({ pt: `${s.pt} · ${s.price} RV`, en: `${s.en} · ${s.price} RV` })),
       { pt: 'Agora não', en: 'Not now' },
@@ -117,7 +118,7 @@ function openSingle(snack: StreetSnackDef, buy: (itemId: string) => void): void 
     npc: null,
     speaker: snack.pt,
     line: { pt: `${line.pt} (${snack.price} RV)`, en: `${line.en} (${snack.price} RV)` },
-    extras: look ? cartBoard(look, [{ icon: snack.icon, pt: snack.pt, en: snack.en, price: snack.price, chip: 0, id: snack.id }], choose) : undefined,
+    extras: look ? cartBoard(look, [{ icon: snack.icon, pt: snack.pt, en: snack.en, price: snack.price, chip: 0, id: snack.id }], choose) : rvPriceNote(),
     chips: [{ pt: `Comprar ${snack.pt}`, en: `Buy ${snack.pt}` }, { pt: 'Agora não', en: 'Not now' }],
     onChoose: choose,
     key: 'street-snack',

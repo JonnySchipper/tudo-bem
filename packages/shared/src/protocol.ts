@@ -15,7 +15,6 @@ import type { SceneView } from './carlos.js';
 import type { CAct, CEvent, CorreriaSnap, MenuLadderView, UnlockId } from './correria.js';
 import type { SafetyAction } from './safety.js';
 import type { NpcId, PropDef } from './rooms.js';
-import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerId } from './academia.js';
 import type { AcademyCard, CrestId, GiColorId, GiStampId } from './playerAcademy.js';
 import type { PadariaCard, PadariaDoorState, PadariaUpgradeKind } from './playerPadaria.js';
@@ -51,10 +50,6 @@ export type ClientMsg =
   | { t: 'scene'; action: 'choose'; chip: number }
   | { t: 'scene'; action: 'type'; text: string }
   | { t: 'scene'; action: 'close' }
-  | { t: 'conversa'; action: 'start'; npc: NpcId; subjectId?: string }
-  | { t: 'conversa'; action: 'say'; text: string }
-  | { t: 'conversa'; action: 'chip'; chip: number }
-  | { t: 'conversa'; action: 'close' }
   | { t: 'mg'; action: 'start' }
   /** One step at the counter (Correria no Balcão): grab, grill, pour, pack, serve, answer… the server judges it. */
   | { t: 'mg'; action: 'act'; act: CAct }
@@ -80,8 +75,10 @@ export type ClientMsg =
   | { t: 'give'; npc: NpcId; itemId: string }
   /** Read a sign (a hotspot id from HOTSPOTS), within 3 tiles. */
   | { t: 'read'; hotspotId: string }
-  /** The player opened the greeting dialogue with an NPC that has no Conversa (Nanda, Júlia): fires the recado engine's `talked` event. */
+  /** The player opened the greeting dialogue with an NPC (Nanda, Júlia…): fires the recado engine's `talked` event. */
   | { t: 'talk'; npc: NpcId }
+  /** A bate-papo (`PAPOS` id) with the NPC next to you was talked through to the end. Never graded. */
+  | { t: 'papo'; npc: NpcId; id: string }
   | { t: 'recados'; action: 'accept' | 'drop' | 'list'; id?: string }
   /** The feira (Phase 9): ask a vendor the price of one good, then pay for a quantity with tray pieces (centavos: 50, 100, 200, 500, 1000, 2000). */
   | { t: 'feira'; action: 'price'; vendor: VendorId; itemId: string }
@@ -292,56 +289,6 @@ export type MgServerMsg =
   /** `lost`: the server has no shift for this player (restart, or the resume window ran out). Nothing is paid. */
   | { t: 'mg'; phase: 'end'; end: CorreriaEnd; carlos: Bilingual; lost?: boolean };
 
-/**
- * Conversa (GDD §5.6). Only ever sent to the player having the conversation — never broadcast.
- * `mode` is 'ai' for generative turns, 'authored' for the Carlos graph fallback.
- */
-export type ConversaServerMsg =
-  | {
-      t: 'conversa';
-      phase: 'open';
-      npc: NpcId;
-      npcName: string;
-      subject: ConversaSubject;
-      mode: 'ai' | 'authored';
-      offline: boolean;
-      line: Bilingual;
-      chips: Bilingual[];
-      turn: number;
-      maxTurns: number;
-    }
-  | { t: 'conversa'; phase: 'said'; text: string; turn: number; maxTurns: number }
-  | { t: 'conversa'; phase: 'rejected'; pt: string; en: string }
-  | {
-      t: 'conversa';
-      phase: 'turn';
-      mode: 'ai' | 'authored';
-      offline: boolean;
-      line: Bilingual;
-      chips: Bilingual[];
-      scores: ConversaScores;
-      meter: ConversaMeter;
-      tip: Bilingual | null;
-      turn: number;
-      maxTurns: number;
-    }
-  | {
-      t: 'conversa';
-      phase: 'end';
-      mode: 'ai' | 'authored';
-      offline: boolean;
-      line: Bilingual;
-      scores: ConversaScores;
-      meter: ConversaMeter;
-      tip: Bilingual | null;
-      grade: ConversaGrade;
-      gradeLabel: Bilingual;
-      payout: number;
-      reason: 'natural' | 'cap' | 'early';
-      turn: number;
-      maxTurns: number;
-    }
-  | { t: 'conversa'; phase: 'blocked'; reason: 'daily' | 'unavailable'; pt: string; en: string };
 
 /** The bout as the client draws it (everything derived from the mat state, plus the pose it names). */
 export interface BoutSnapshot {
@@ -603,7 +550,6 @@ export type ServerMsg =
       dailyBlocked?: boolean;
     }
   | MgServerMsg
-  | ConversaServerMsg
   | BoutServerMsg
   | { t: 'furnitureState'; furniture: PlacedFurniture[] }
   /** `blocked`: the people this player blocked, for the unblock list. */

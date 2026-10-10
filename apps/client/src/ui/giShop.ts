@@ -1,5 +1,6 @@
 import { GI_PRICE } from '@tudobem/shared';
 import { showDialogue, closeDialogue } from './panels';
+import { rvPriceNote } from './dom';
 import { game } from '../state';
 
 export function openGiShop(owned: boolean, buy: () => void): void {
@@ -28,6 +29,7 @@ export function openGiShop(owned: boolean, buy: () => void): void {
         pt: `O kimono custa ${GI_PRICE} RV. Faltam ${short} RV: o balcão do Seu Carlos e a feira pagam rapidinho.`,
         en: `The gi costs ${GI_PRICE} RV. You need ${short} more: Seu Carlos's counter and the market pay quickly.`,
       },
+      extras: rvPriceNote(),
       chips: [{ pt: 'Volto já', en: 'Be right back' }],
       onChoose: () => closeDialogue(),
       key: 'gi-short',
@@ -42,6 +44,7 @@ export function openGiShop(owned: boolean, buy: () => void): void {
       pt: `Kimono branco para treinar (${GI_PRICE} RV). A faixa branca vem de presente.`,
       en: `White gi to train (${GI_PRICE} RV). The white belt is a gift.`,
     },
+    extras: rvPriceNote(),
     chips: [{ pt: 'Comprar kimono', en: 'Buy gi' }, { pt: 'Agora não', en: 'Not now' }],
     onChoose: (i) => {
       if (i === 0) buy();

@@ -10,7 +10,7 @@ export interface Bilingual {
 }
 
 export const CRASH_COPY = {
-  lost: { pt: 'A imagem do mundo parou. Recarregue a página para voltar à praça.', en: 'The world view stopped. Reload the page to get back to the praça.' },
+  lost: { pt: 'A imagem do mundo parou. Recarregue a página para voltar à praça.', en: 'The world view stopped. Reload the page to get back to the square.' },
   webgl: {
     pt: 'Este navegador não conseguiu desenhar o mundo (WebGL desligado ou sem suporte). Atualize o navegador ou ative a aceleração de hardware e recarregue.',
     en: "This browser couldn't draw the world (WebGL is off or unsupported). Update the browser or turn on hardware acceleration, then reload.",

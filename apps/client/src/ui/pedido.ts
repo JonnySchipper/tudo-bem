@@ -1,10 +1,10 @@
 /**
  * Pedido rápido — dedicated breakfast order UI for Seu Carlos.
  * A+ overhaul: ticket/receipt chrome, visual order journey, soft score feedback.
- * Distinct from Conversa mesa and the Correria no Balcão counter game.
+ * Distinct from the Correria no Balcão counter game.
  */
-import type { Bilingual, ConversaSafetyNotice, SceneView } from '@tudobem/shared';
-import { ROOMS, SCORE_FEEDBACK, gateConversaPlayerLine } from '@tudobem/shared';
+import type { Bilingual, PlayerLineNotice, SceneView } from '@tudobem/shared';
+import { ROOMS, SCORE_FEEDBACK, gatePlayerLine } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi } from './dom';
 import { toast } from './hud';
@@ -34,7 +34,7 @@ let boxOwned = false;
 /** One safety toast per send; server notice is a backstop when the client has not already shown it. */
 let safetyToastShown = false;
 
-function showSafetyToast(notice: ConversaSafetyNotice | null | undefined) {
+function showSafetyToast(notice: PlayerLineNotice | null | undefined) {
   if (!notice || safetyToastShown) return;
   safetyToastShown = true;
   toast(notice.level, notice.pt, notice.en);
@@ -155,7 +155,7 @@ function handleSend(input: HTMLInputElement) {
   if (!text) return;
 
   safetyToastShown = false;
-  const gate = gateConversaPlayerLine(text);
+  const gate = gatePlayerLine(text);
   if (!gate.deliver) {
     showSafetyToast(gate.notice);
     return;
@@ -210,7 +210,7 @@ export function updatePedido(
     payout?: number;
     dailyBlocked?: boolean;
     fillTicket?: boolean;
-    notice?: ConversaSafetyNotice;
+    notice?: PlayerLineNotice;
   }
 ) {
   if (!state) return;

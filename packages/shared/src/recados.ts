@@ -16,7 +16,7 @@ import recadosPack from '../../../content/curriculum/phase0/recados.json';
 
 export type RecadoStep =
   | { kind: 'falar'; npc: NpcId } // talk to someone
-  | { kind: 'pedir'; npc: NpcId; itemId: string; qty: number } // order it (scene / Conversa / Me vê um result must contain it)
+  | { kind: 'pedir'; npc: NpcId; itemId: string; qty: number } // order it (scene / counter / Me vê um result must contain it)
   | { kind: 'entregar'; npc: NpcId; itemId: string; qty: number } // hand it over (from the bag)
   | { kind: 'ir'; room: RoomId; area?: { x: number; y: number; w: number; h: number } }
   | { kind: 'ler'; hotspotId: string } // read a sign
@@ -66,7 +66,7 @@ export interface RecadoState {
   done: string[];
   /** NPCs the player already got the daily talk bond from on `day`. */
   talked?: NpcId[];
-  /** NPCs the player already got the good-Conversa bond from on `day`. */
+  /** NPCs the player already got the bate-papo bond from on `day` (the stored name is older than bate-papos, which are never graded). */
   graded?: NpcId[];
   /** The "Vizinho do dia" bonus for `RECADOS_PER_DAY` recados done on `day` was paid. */
   bonus?: boolean;

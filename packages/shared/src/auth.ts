@@ -75,19 +75,19 @@ function ptSpan(ms: number): { pt: string; en: string } {
 
 export function idleWarningCopy(leftMs: number): Bilingual {
   const t = ptSpan(leftMs);
-  return { pt: `Ainda tá aí? Em ${t.pt} você sai da Praça por inatividade.`, en: `Still there? You’ll leave the Praça in ${t.en} for being idle.` };
+  return { pt: `Ainda tá aí? Em ${t.pt} você sai da Praça por inatividade.`, en: `Still there? You’ll leave the square (Praça) in ${t.en} for being idle.` };
 }
 
 export function idleKickedCopy(idleMs: number): Bilingual {
   const t = ptSpan(idleMs);
   return {
     pt: `Você ficou ${t.pt} sem mexer, então liberamos sua vaga na Praça. Sua conta continua conectada.`,
-    en: `You were idle for ${t.en}, so we freed up your spot in the Praça. You’re still signed in.`,
+    en: `You were idle for ${t.en}, so we freed up your spot in the square (Praça). You’re still signed in.`,
   };
 }
 
 /** Copy shown when an admin removes a player from the world. */
 export const ADMIN_KICKED_COPY: Bilingual = {
   pt: 'Um administrador liberou sua vaga na Praça. Sua conta continua conectada.',
-  en: 'An admin freed up your spot in the Praça. You’re still signed in.',
+  en: 'An admin freed up your spot in the square (Praça). You’re still signed in.',
 };

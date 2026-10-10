@@ -163,10 +163,10 @@
       "file": "julia-15bff486a1.mp3"
     },
     {
-      "id": "julia-213dbc7ca4",
+      "id": "julia-8677e5999b",
       "voice": "julia",
-      "text": "Faça uns recados pros vizinhos e jogue a “Correria no Balcão” na padaria. Depois compre um chapéu com a Nanda!",
-      "file": "julia-213dbc7ca4.mp3"
+      "text": "Faça uns favores pros vizinhos e jogue a “Correria no Balcão” na padaria. Depois compre um chapéu com a Nanda!",
+      "file": "julia-8677e5999b.mp3"
     },
     {
       "id": "tia_lu-cc0f54207a",
@@ -3097,106 +3097,58 @@
       "file": "graca-14e609c7bd.mp3"
     },
     {
-      "id": "carlos-a4bcebcdbc",
+      "id": "carlos-a956e37774",
       "voice": "carlos",
-      "text": "Bom dia! O que vai ser hoje?",
-      "file": "carlos-a4bcebcdbc.mp3"
+      "text": "Bom dia! Sabe quando eu acordo? Bem cedo, antes do sol!",
+      "file": "carlos-a956e37774.mp3"
     },
     {
-      "id": "carlos-0ef5411305",
+      "id": "carlos-a24ce0c320",
       "voice": "carlos",
-      "text": "Pão na chapa saindo! E pra beber?",
-      "file": "carlos-0ef5411305.mp3"
+      "text": "Boa tarde! Sabe quando eu acordo? Bem cedo, antes do sol!",
+      "file": "carlos-a24ce0c320.mp3"
     },
     {
-      "id": "carlos-f72c6b457d",
+      "id": "carlos-f7b977e9fe",
       "voice": "carlos",
-      "text": "Pão na chapa, anotei. Quer café, suco ou água?",
-      "file": "carlos-f72c6b457d.mp3"
+      "text": "Boa noite! Sabe quando eu acordo? Bem cedo, antes do sol!",
+      "file": "carlos-f7b977e9fe.mp3"
     },
     {
-      "id": "carlos-a3fc934d91",
+      "id": "carlos-3d700639b6",
       "voice": "carlos",
-      "text": "Isso aí, pão na chapa. Deixa eu anotar. E pra beber?",
-      "file": "carlos-a3fc934d91.mp3"
+      "text": "É pra fazer o pão quentinho. O cheiro do pão é o meu despertador.",
+      "file": "carlos-3d700639b6.mp3"
     },
     {
-      "id": "carlos-851e9165c9",
+      "id": "carlos-0502dc9d9b",
       "voice": "carlos",
-      "text": "Uma coxinha quentinha! E pra beber?",
-      "file": "carlos-851e9165c9.mp3"
+      "text": "Eu também! Mas o pão não espera. Padeiro acorda cedo.",
+      "file": "carlos-0502dc9d9b.mp3"
     },
     {
-      "id": "carlos-7246892990",
+      "id": "carlos-d9831936f1",
       "voice": "carlos",
-      "text": "Coxinha, boa. Deixa eu anotar. E pra beber?",
-      "file": "carlos-7246892990.mp3"
+      "text": "Volte amanhã cedo, então. O pão vai estar quentinho!",
+      "file": "carlos-d9831936f1.mp3"
     },
     {
-      "id": "carlos-3bdca53d90",
+      "id": "carlos-5dc527a0e7",
       "voice": "carlos",
-      "text": "Pastel de carne ou queijo? E pra beber?",
-      "file": "carlos-3bdca53d90.mp3"
+      "text": "E aí? Você gosta de café?",
+      "file": "carlos-5dc527a0e7.mp3"
     },
     {
-      "id": "carlos-4db7e39c8c",
+      "id": "carlos-c6b0e1df7a",
       "voice": "carlos",
-      "text": "Pastel, anotei. Carne ou queijo — e pra beber?",
-      "file": "carlos-4db7e39c8c.mp3"
+      "text": "Eu também! Café bem forte, com um pouco de leite. É o melhor.",
+      "file": "carlos-c6b0e1df7a.mp3"
     },
     {
-      "id": "carlos-e03258372b",
+      "id": "carlos-cbac7cbc28",
       "voice": "carlos",
-      "text": "Café com leite saindo! Pra comer aqui ou pra viagem?",
-      "file": "carlos-e03258372b.mp3"
-    },
-    {
-      "id": "carlos-70d86fda4d",
-      "voice": "carlos",
-      "text": "Café com leite, tá na mão. Pra comer aqui ou pra viagem?",
-      "file": "carlos-70d86fda4d.mp3"
-    },
-    {
-      "id": "carlos-63ad1689fb",
-      "voice": "carlos",
-      "text": "Anotei o café com leite. Aqui ou pra viagem?",
-      "file": "carlos-63ad1689fb.mp3"
-    },
-    {
-      "id": "carlos-a3556ef33c",
-      "voice": "carlos",
-      "text": "Suco de laranja fresquinho! Pra comer aqui ou pra viagem?",
-      "file": "carlos-a3556ef33c.mp3"
-    },
-    {
-      "id": "carlos-93c6b4f025",
-      "voice": "carlos",
-      "text": "Suco de laranja, anotei. Aqui ou pra viagem?",
-      "file": "carlos-93c6b4f025.mp3"
-    },
-    {
-      "id": "carlos-9207a5dafb",
-      "voice": "carlos",
-      "text": "Uma água geladinha! Pra comer aqui ou pra viagem?",
-      "file": "carlos-9207a5dafb.mp3"
-    },
-    {
-      "id": "carlos-a67c22fa10",
-      "voice": "carlos",
-      "text": "Água, tá na mão. Pra comer aqui ou pra viagem?",
-      "file": "carlos-a67c22fa10.mp3"
-    },
-    {
-      "id": "carlos-7ebd994c36",
-      "voice": "carlos",
-      "text": "Pronto! Tá na mão. Volte sempre!",
-      "file": "carlos-7ebd994c36.mp3"
-    },
-    {
-      "id": "carlos-7076e8544f",
-      "voice": "carlos",
-      "text": "Tá na mão. Pode sentar. Volte sempre!",
-      "file": "carlos-7076e8544f.mp3"
+      "text": "Suco de laranja também é bom! Fresquinho, de manhã.",
+      "file": "carlos-cbac7cbc28.mp3"
     },
     {
       "id": "carlos-75cfb8f63a",
@@ -3205,328 +3157,346 @@
       "file": "carlos-75cfb8f63a.mp3"
     },
     {
-      "id": "carlos-a235d6f8b8",
+      "id": "carlos-55cf1e8ce4",
       "voice": "carlos",
-      "text": "Volte sempre!",
-      "file": "carlos-a235d6f8b8.mp3"
+      "text": "Pode sentar ali. A mesa da janela é a melhor.",
+      "file": "carlos-55cf1e8ce4.mp3"
     },
     {
-      "id": "carlos-2580a39618",
+      "id": "carlos-1ce0bc6966",
       "voice": "carlos",
-      "text": "Volte sempre! Até amanhã.",
-      "file": "carlos-2580a39618.mp3"
+      "text": "Ei! Posso te contar uma coisa? Essa padaria era do meu pai.",
+      "file": "carlos-1ce0bc6966.mp3"
     },
     {
-      "id": "carlos-6cc2fedb94",
+      "id": "carlos-e433d72249",
       "voice": "carlos",
-      "text": "Bom dia! Tudo bem? O que vai ser hoje?",
-      "file": "carlos-6cc2fedb94.mp3"
+      "text": "Ele chegou do Nordeste sem nada, só com uma receita de pão. E o bairro inteiro vinha aqui.",
+      "file": "carlos-e433d72249.mp3"
     },
     {
-      "id": "carlos-b1c1987bbc",
+      "id": "carlos-069c4a712e",
       "voice": "carlos",
-      "text": "Bom dia! Beleza? Me conta o que vai ser.",
-      "file": "carlos-b1c1987bbc.mp3"
+      "text": "A receita é segredo de família! Mas pra você... um dia eu conto.",
+      "file": "carlos-069c4a712e.mp3"
     },
     {
-      "id": "carlos-1d6d88ddfb",
+      "id": "carlos-4cf6a58a2a",
       "voice": "carlos",
-      "text": "Bom dia! E aí, o que vai querer?",
-      "file": "carlos-1d6d88ddfb.mp3"
+      "text": "Hoje você também é da família da padaria. Obrigado por voltar sempre.",
+      "file": "carlos-4cf6a58a2a.mp3"
     },
     {
-      "id": "graca-ed8b4bcf27",
+      "id": "graca-02ae09248d",
       "voice": "graca",
-      "text": "Bom dia! O que vai ser hoje?",
-      "file": "graca-ed8b4bcf27.mp3"
+      "text": "Bom dia! Você gosta da noite?",
+      "file": "graca-02ae09248d.mp3"
     },
     {
-      "id": "graca-c1291057c1",
+      "id": "graca-6db842aaf1",
       "voice": "graca",
-      "text": "Pão na chapa saindo! E pra beber?",
-      "file": "graca-c1291057c1.mp3"
+      "text": "Boa tarde! Você gosta da noite?",
+      "file": "graca-6db842aaf1.mp3"
     },
     {
-      "id": "graca-1e572718e7",
+      "id": "graca-e1b086adc9",
       "voice": "graca",
-      "text": "Pão na chapa, anotei. Quer café, suco ou água?",
-      "file": "graca-1e572718e7.mp3"
+      "text": "Boa noite! Você gosta da noite?",
+      "file": "graca-e1b086adc9.mp3"
     },
     {
-      "id": "graca-79be3226e1",
+      "id": "graca-63f46485e2",
       "voice": "graca",
-      "text": "Isso aí, pão na chapa. Deixa eu anotar. E pra beber?",
-      "file": "graca-79be3226e1.mp3"
+      "text": "Eu também. De noite o bairro fica quietinho, só o forno faz barulho.",
+      "file": "graca-63f46485e2.mp3"
     },
     {
-      "id": "graca-8dc17bb5d4",
+      "id": "graca-ab88393338",
       "voice": "graca",
-      "text": "Uma coxinha quentinha! E pra beber?",
-      "file": "graca-8dc17bb5d4.mp3"
+      "text": "O dia é bonito, mas a noite tem estrelas e pão saindo do forno!",
+      "file": "graca-ab88393338.mp3"
     },
     {
-      "id": "graca-c7d45db5c7",
+      "id": "graca-40ee4fb53f",
       "voice": "graca",
-      "text": "Coxinha, boa. Deixa eu anotar. E pra beber?",
-      "file": "graca-c7d45db5c7.mp3"
+      "text": "Um pouquinho! Mas um cafezinho resolve tudo.",
+      "file": "graca-40ee4fb53f.mp3"
     },
     {
-      "id": "graca-32d171333b",
+      "id": "graca-0f78be1e90",
       "voice": "graca",
-      "text": "Pastel de carne ou queijo? E pra beber?",
-      "file": "graca-32d171333b.mp3"
+      "text": "Até a próxima! Se cuida.",
+      "file": "graca-0f78be1e90.mp3"
     },
     {
-      "id": "graca-620bb3246f",
+      "id": "graca-a92c730952",
       "voice": "graca",
-      "text": "Pastel, anotei. Carne ou queijo — e pra beber?",
-      "file": "graca-620bb3246f.mp3"
+      "text": "Ô! Você já comeu bolo de fubá?",
+      "file": "graca-a92c730952.mp3"
     },
     {
-      "id": "graca-ed22c10f28",
+      "id": "graca-47da9c4918",
       "voice": "graca",
-      "text": "Café com leite saindo! Pra comer aqui ou pra viagem?",
-      "file": "graca-ed22c10f28.mp3"
+      "text": "É um bolo de milho, simples e gostoso. Bom com café!",
+      "file": "graca-47da9c4918.mp3"
     },
     {
-      "id": "graca-c60bec610b",
+      "id": "graca-053cc179cc",
       "voice": "graca",
-      "text": "Café com leite, tá na mão. Pra comer aqui ou pra viagem?",
-      "file": "graca-c60bec610b.mp3"
+      "text": "Né? É o bolo da minha infância.",
+      "file": "graca-053cc179cc.mp3"
     },
     {
-      "id": "graca-07cd76b2f3",
+      "id": "graca-69e51b1f9c",
       "voice": "graca",
-      "text": "Anotei o café com leite. Aqui ou pra viagem?",
-      "file": "graca-07cd76b2f3.mp3"
+      "text": "Minha avó fazia toda tarde. A casa ficava cheirosa.",
+      "file": "graca-69e51b1f9c.mp3"
     },
     {
-      "id": "graca-ba3f66332c",
+      "id": "graca-7ca1cfd969",
       "voice": "graca",
-      "text": "Suco de laranja fresquinho! Pra comer aqui ou pra viagem?",
-      "file": "graca-ba3f66332c.mp3"
+      "text": "Ô! Sabe por que eu gosto de trabalhar de noite?",
+      "file": "graca-7ca1cfd969.mp3"
     },
     {
-      "id": "graca-ca25377c18",
+      "id": "graca-1d388ee588",
       "voice": "graca",
-      "text": "Suco de laranja, anotei. Aqui ou pra viagem?",
-      "file": "graca-ca25377c18.mp3"
+      "text": "Quando eu era jovem, eu cantava num coral. Cantar de noite é o meu costume.",
+      "file": "graca-1d388ee588.mp3"
     },
     {
-      "id": "graca-42caf52a14",
+      "id": "graca-c64959e7c7",
       "voice": "graca",
-      "text": "Uma água geladinha! Pra comer aqui ou pra viagem?",
-      "file": "graca-42caf52a14.mp3"
+      "text": "Canto até hoje! De madrugada, eu canto pro pão crescer.",
+      "file": "graca-c64959e7c7.mp3"
     },
     {
-      "id": "graca-1faf229a27",
+      "id": "graca-1c0c069505",
       "voice": "graca",
-      "text": "Água, tá na mão. Pra comer aqui ou pra viagem?",
-      "file": "graca-1faf229a27.mp3"
+      "text": "Um dia eu canto pra você, viu? Você é uma visita muito querida.",
+      "file": "graca-1c0c069505.mp3"
     },
     {
-      "id": "graca-238c49f6dd",
-      "voice": "graca",
-      "text": "Pronto! Tá na mão. Volte sempre!",
-      "file": "graca-238c49f6dd.mp3"
+      "id": "nanda-ad3e6ddb91",
+      "voice": "nanda",
+      "text": "Bom dia! O sol tá forte hoje, né?",
+      "file": "nanda-ad3e6ddb91.mp3"
     },
     {
-      "id": "graca-6549eb880f",
-      "voice": "graca",
-      "text": "Tá na mão. Pode sentar. Volte sempre!",
-      "file": "graca-6549eb880f.mp3"
+      "id": "nanda-cd4eb83a9e",
+      "voice": "nanda",
+      "text": "Boa tarde! O sol tá forte hoje, né?",
+      "file": "nanda-cd4eb83a9e.mp3"
     },
     {
-      "id": "graca-dddcc6ff5a",
-      "voice": "graca",
-      "text": "Pra viagem, então. Tá na mão. Volte sempre!",
-      "file": "graca-dddcc6ff5a.mp3"
+      "id": "nanda-42bc99ffad",
+      "voice": "nanda",
+      "text": "Boa noite! O sol tá forte hoje, né?",
+      "file": "nanda-42bc99ffad.mp3"
     },
     {
-      "id": "graca-5ef7109ad2",
-      "voice": "graca",
-      "text": "Volte sempre!",
-      "file": "graca-5ef7109ad2.mp3"
+      "id": "nanda-693306dcdb",
+      "voice": "nanda",
+      "text": "Por isso eu vendo chapéu! Proteger a cabeça é importante.",
+      "file": "nanda-693306dcdb.mp3"
     },
     {
-      "id": "graca-9d28db52e7",
-      "voice": "graca",
-      "text": "Volte sempre! Até amanhã.",
-      "file": "graca-9d28db52e7.mp3"
+      "id": "nanda-a9dcf1ec8e",
+      "voice": "nanda",
+      "text": "A boina! É elegante e combina com tudo.",
+      "file": "nanda-a9dcf1ec8e.mp3"
     },
     {
-      "id": "graca-a1be252e8f",
-      "voice": "graca",
-      "text": "Bom dia! Tudo bem? O que vai ser hoje?",
-      "file": "graca-a1be252e8f.mp3"
+      "id": "nanda-f4a864d738",
+      "voice": "nanda",
+      "text": "Bom passeio! E não esquece o chapéu!",
+      "file": "nanda-f4a864d738.mp3"
     },
     {
-      "id": "graca-b4ed32c65d",
-      "voice": "graca",
-      "text": "Bom dia! Beleza? Me conta o que vai ser.",
-      "file": "graca-b4ed32c65d.mp3"
+      "id": "nanda-cf1781f593",
+      "voice": "nanda",
+      "text": "Ei! Você já viu a fonte da praça?",
+      "file": "nanda-cf1781f593.mp3"
     },
     {
-      "id": "graca-99e3d8137b",
-      "voice": "graca",
-      "text": "Bom dia! E aí, o que vai querer?",
-      "file": "graca-99e3d8137b.mp3"
+      "id": "nanda-681d34e465",
+      "voice": "nanda",
+      "text": "De tarde, as crianças brincam perto dela. Eu adoro o barulho da água.",
+      "file": "nanda-681d34e465.mp3"
     },
     {
-      "id": "carlos-9daa0c498a",
-      "voice": "carlos",
-      "text": "Boa tarde! O que vai ser hoje?",
-      "file": "carlos-9daa0c498a.mp3"
+      "id": "nanda-dcfe70918f",
+      "voice": "nanda",
+      "text": "Fica bem no meio da praça. Vale a pena!",
+      "file": "nanda-dcfe70918f.mp3"
     },
     {
-      "id": "carlos-c43f1c3aa2",
-      "voice": "carlos",
-      "text": "Boa noite! O que vai ser hoje?",
-      "file": "carlos-c43f1c3aa2.mp3"
+      "id": "nanda-8574303693",
+      "voice": "nanda",
+      "text": "Até mais!",
+      "file": "nanda-8574303693.mp3"
     },
     {
-      "id": "carlos-7e70995d33",
-      "voice": "carlos",
-      "text": "E aí, tudo bem? Vai querer o quê?",
-      "file": "carlos-7e70995d33.mp3"
+      "id": "nanda-dff1d31ede",
+      "voice": "nanda",
+      "text": "Ei! Quer saber como eu comecei a fazer chapéus?",
+      "file": "nanda-dff1d31ede.mp3"
     },
     {
-      "id": "carlos-1eeb369b55",
-      "voice": "carlos",
-      "text": "Pronto. O que posso servir?",
-      "file": "carlos-1eeb369b55.mp3"
+      "id": "nanda-cc28e0eb94",
+      "voice": "nanda",
+      "text": "Minha mãe era costureira. Eu aprendi com ela, na mesa da cozinha.",
+      "file": "nanda-cc28e0eb94.mp3"
     },
     {
-      "id": "carlos-009c352c69",
-      "voice": "carlos",
-      "text": "Deixa eu anotar — o que vai ser?",
-      "file": "carlos-009c352c69.mp3"
+      "id": "nanda-3e16dccf3a",
+      "voice": "nanda",
+      "text": "O primeiro ficou torto! Mas eu usei com orgulho o dia todo.",
+      "file": "nanda-3e16dccf3a.mp3"
     },
     {
-      "id": "carlos-31470ecd7b",
-      "voice": "carlos",
-      "text": "Tá com fome? Me fala o pedido.",
-      "file": "carlos-31470ecd7b.mp3"
+      "id": "nanda-580d19de49",
+      "voice": "nanda",
+      "text": "Gosto muito de conversar com você.",
+      "file": "nanda-580d19de49.mp3"
     },
     {
-      "id": "carlos-be87716ee9",
-      "voice": "carlos",
-      "text": "Oi! Café da manhã pra você?",
-      "file": "carlos-be87716ee9.mp3"
+      "id": "julia-aad4c19ec0",
+      "voice": "julia",
+      "text": "Oi! Tá gostando de Vila Ipê?",
+      "file": "julia-aad4c19ec0.mp3"
     },
     {
-      "id": "carlos-070acb03e8",
-      "voice": "carlos",
-      "text": "Oi, beleza?",
-      "file": "carlos-070acb03e8.mp3"
+      "id": "julia-8c7981b5fc",
+      "voice": "julia",
+      "text": "Que bom! Aqui todo mundo se conhece. É como uma família grande.",
+      "file": "julia-8c7981b5fc.mp3"
     },
     {
-      "id": "carlos-ccad2a3d05",
-      "voice": "carlos",
-      "text": "E aí, tudo bem?",
-      "file": "carlos-ccad2a3d05.mp3"
+      "id": "julia-9cb9424dba",
+      "voice": "julia",
+      "text": "Sem pressa! Fala com os vizinhos. Eles adoram conversar.",
+      "file": "julia-9cb9424dba.mp3"
     },
     {
-      "id": "carlos-8f5a44622f",
-      "voice": "carlos",
-      "text": "E aí, tá gostando do bairro?",
-      "file": "carlos-8f5a44622f.mp3"
+      "id": "julia-a704f86f9d",
+      "voice": "julia",
+      "text": "Uma dica: de manhã tem feira de rua. As frutas são ótimas!",
+      "file": "julia-a704f86f9d.mp3"
     },
     {
-      "id": "carlos-698d43574c",
-      "voice": "carlos",
-      "text": "Você mora aqui perto?",
-      "file": "carlos-698d43574c.mp3"
+      "id": "julia-481911c288",
+      "voice": "julia",
+      "text": "Sabe por que o bairro se chama Vila Ipê?",
+      "file": "julia-481911c288.mp3"
     },
     {
-      "id": "carlos-6b93c471d0",
-      "voice": "carlos",
-      "text": "Já conheceu a Nanda e a Júlia?",
-      "file": "carlos-6b93c471d0.mp3"
+      "id": "julia-51f8a669d2",
+      "voice": "julia",
+      "text": "Por causa dos ipês! São árvores com flores amarelas e roxas.",
+      "file": "julia-51f8a669d2.mp3"
     },
     {
-      "id": "carlos-e5ad0e5f2e",
-      "voice": "carlos",
-      "text": "A praça tá bonita hoje, né?",
-      "file": "carlos-e5ad0e5f2e.mp3"
+      "id": "julia-8c59a71b6f",
+      "voice": "julia",
+      "text": "No fim do inverno. A rua fica toda colorida!",
+      "file": "julia-8c59a71b6f.mp3"
     },
     {
-      "id": "graca-da1acd596d",
-      "voice": "graca",
-      "text": "Boa tarde! O que vai ser hoje?",
-      "file": "graca-da1acd596d.mp3"
+      "id": "julia-b795bc6d8b",
+      "voice": "julia",
+      "text": "Ei! Posso te contar um segredo? Eu também cheguei aqui de fora.",
+      "file": "julia-b795bc6d8b.mp3"
     },
     {
-      "id": "graca-ee4d430766",
-      "voice": "graca",
-      "text": "Boa noite! O que vai ser hoje?",
-      "file": "graca-ee4d430766.mp3"
+      "id": "julia-77fca48309",
+      "voice": "julia",
+      "text": "De uma cidade pequena, no interior. No começo, eu não conhecia ninguém.",
+      "file": "julia-77fca48309.mp3"
     },
     {
-      "id": "graca-932641c61c",
-      "voice": "graca",
-      "text": "E aí, tudo bem? Vai querer o quê?",
-      "file": "graca-932641c61c.mp3"
+      "id": "julia-dc32d97768",
+      "voice": "julia",
+      "text": "Aí o Seu Carlos me deu um café e um sorriso. Pronto: virei vizinha!",
+      "file": "julia-dc32d97768.mp3"
     },
     {
-      "id": "graca-360172bba8",
-      "voice": "graca",
-      "text": "Pronto. O que posso servir?",
-      "file": "graca-360172bba8.mp3"
+      "id": "julia-86650542a3",
+      "voice": "julia",
+      "text": "Por isso eu sou guia. Quero que todo mundo se sinta em casa, como você.",
+      "file": "julia-86650542a3.mp3"
     },
     {
-      "id": "graca-597b3df8b4",
-      "voice": "graca",
-      "text": "Deixa eu anotar — o que vai ser?",
-      "file": "graca-597b3df8b4.mp3"
+      "id": "prof-1a1b8daae8",
+      "voice": "prof",
+      "text": "Oi! Você treina sempre?",
+      "file": "prof-1a1b8daae8.mp3"
     },
     {
-      "id": "graca-2de606251f",
-      "voice": "graca",
-      "text": "Tá com fome? Me fala o pedido.",
-      "file": "graca-2de606251f.mp3"
+      "id": "prof-24c6e6b53a",
+      "voice": "prof",
+      "text": "Muito bem! O importante é não parar.",
+      "file": "prof-24c6e6b53a.mp3"
     },
     {
-      "id": "graca-c89d94d6e8",
-      "voice": "graca",
-      "text": "Oi! Café da manhã pra você?",
-      "file": "graca-c89d94d6e8.mp3"
+      "id": "prof-d31e3f295c",
+      "voice": "prof",
+      "text": "Tudo bem! Todo mundo começa do começo.",
+      "file": "prof-d31e3f295c.mp3"
     },
     {
-      "id": "graca-b310c093cc",
-      "voice": "graca",
-      "text": "Oi, beleza?",
-      "file": "graca-b310c093cc.mp3"
+      "id": "prof-aa95e79a53",
+      "voice": "prof",
+      "text": "Uma dica: respira fundo e tenha calma no tatame.",
+      "file": "prof-aa95e79a53.mp3"
     },
     {
-      "id": "graca-dbc85356da",
-      "voice": "graca",
-      "text": "E aí, tudo bem?",
-      "file": "graca-dbc85356da.mp3"
+      "id": "prof-0ea674fc12",
+      "voice": "prof",
+      "text": "Sabe o que a cor da faixa mostra?",
+      "file": "prof-0ea674fc12.mp3"
     },
     {
-      "id": "graca-0b9c7e01de",
-      "voice": "graca",
-      "text": "E aí, tá gostando do bairro?",
-      "file": "graca-0b9c7e01de.mp3"
+      "id": "prof-f435394cd4",
+      "voice": "prof",
+      "text": "Isso! Branca, azul, roxa, marrom e preta. Leva anos!",
+      "file": "prof-f435394cd4.mp3"
     },
     {
-      "id": "graca-e3debf955f",
-      "voice": "graca",
-      "text": "Você mora aqui perto?",
-      "file": "graca-e3debf955f.mp3"
+      "id": "prof-bc89117231",
+      "voice": "prof",
+      "text": "A minha é preta. Mas eu ainda aprendo todo dia.",
+      "file": "prof-bc89117231.mp3"
     },
     {
-      "id": "graca-6b81769bf4",
-      "voice": "graca",
-      "text": "Já conheceu a Nanda e a Júlia?",
-      "file": "graca-6b81769bf4.mp3"
+      "id": "prof-4158032488",
+      "voice": "prof",
+      "text": "Com paciência, tudo dá certo. Igual aprender português!",
+      "file": "prof-4158032488.mp3"
     },
     {
-      "id": "graca-93dbe0a5bd",
-      "voice": "graca",
-      "text": "A praça tá bonita hoje, né?",
-      "file": "graca-93dbe0a5bd.mp3"
+      "id": "prof-50fb4b28c3",
+      "voice": "prof",
+      "text": "Ei! Quer saber por que eu comecei no jiu-jitsu?",
+      "file": "prof-50fb4b28c3.mp3"
+    },
+    {
+      "id": "prof-3bfe1a2b57",
+      "voice": "prof",
+      "text": "Eu era muito tímida. Não falava com ninguém na escola.",
+      "file": "prof-3bfe1a2b57.mp3"
+    },
+    {
+      "id": "prof-ff83234605",
+      "voice": "prof",
+      "text": "No tatame, eu fiz amigos e perdi o medo. Mudou a minha vida.",
+      "file": "prof-ff83234605.mp3"
+    },
+    {
+      "id": "prof-b42683757d",
+      "voice": "prof",
+      "text": "Agora você também faz parte da nossa academia. Oss!",
+      "file": "prof-b42683757d.mp3"
     },
     {
       "id": "ui-b0c866c2be",
@@ -3559,10 +3529,10 @@
       "file": "ui-24519e411c.mp3"
     },
     {
-      "id": "ui-3663a47a0d",
+      "id": "ui-f652252b06",
       "voice": "ui",
-      "text": "BANCA. HOJE: Chuva à noite. Feira livre: todo dia, 6h às 13h. Padaria faz festa",
-      "file": "ui-3663a47a0d.mp3"
+      "text": "BANCA. HOJE: Chuva à noite. Feira de rua: todo dia, 6h às 13h. Padaria faz festa",
+      "file": "ui-f652252b06.mp3"
     },
     {
       "id": "ui-f7b9e0053d",
@@ -3643,10 +3613,10 @@
       "file": "ui-32e7ecbc66.mp3"
     },
     {
-      "id": "ui-93adbf6cad",
+      "id": "ui-4c9849bb25",
       "voice": "ui",
-      "text": "FEIRA LIVRE. Todo dia · 6h às 13h",
-      "file": "ui-93adbf6cad.mp3"
+      "text": "FEIRA DE RUA. Todo dia · 6h às 13h",
+      "file": "ui-4c9849bb25.mp3"
     },
     {
       "id": "ui-d509430a46",
@@ -10603,10 +10573,184 @@
       "file": "carlos-114dbcba09.mp3"
     },
     {
+      "id": "carlos-a4bcebcdbc",
+      "voice": "carlos",
+      "text": "Bom dia! O que vai ser hoje?",
+      "file": "carlos-a4bcebcdbc.mp3"
+    },
+    {
       "id": "carlos-2033321b98",
       "voice": "carlos",
       "text": "Bom dia! O que posso servir?",
       "file": "carlos-2033321b98.mp3"
+    },
+    {
+      "id": "carlos-7e70995d33",
+      "voice": "carlos",
+      "text": "E aí, tudo bem? Vai querer o quê?",
+      "file": "carlos-7e70995d33.mp3"
+    },
+    {
+      "id": "carlos-1eeb369b55",
+      "voice": "carlos",
+      "text": "Pronto. O que posso servir?",
+      "file": "carlos-1eeb369b55.mp3"
+    },
+    {
+      "id": "carlos-009c352c69",
+      "voice": "carlos",
+      "text": "Deixa eu anotar — o que vai ser?",
+      "file": "carlos-009c352c69.mp3"
+    },
+    {
+      "id": "carlos-31470ecd7b",
+      "voice": "carlos",
+      "text": "Tá com fome? Me fala o pedido.",
+      "file": "carlos-31470ecd7b.mp3"
+    },
+    {
+      "id": "carlos-be87716ee9",
+      "voice": "carlos",
+      "text": "Oi! Café da manhã pra você?",
+      "file": "carlos-be87716ee9.mp3"
+    },
+    {
+      "id": "carlos-070acb03e8",
+      "voice": "carlos",
+      "text": "Oi, beleza?",
+      "file": "carlos-070acb03e8.mp3"
+    },
+    {
+      "id": "carlos-ccad2a3d05",
+      "voice": "carlos",
+      "text": "E aí, tudo bem?",
+      "file": "carlos-ccad2a3d05.mp3"
+    },
+    {
+      "id": "carlos-0ef5411305",
+      "voice": "carlos",
+      "text": "Pão na chapa saindo! E pra beber?",
+      "file": "carlos-0ef5411305.mp3"
+    },
+    {
+      "id": "carlos-f72c6b457d",
+      "voice": "carlos",
+      "text": "Pão na chapa, anotei. Quer café, suco ou água?",
+      "file": "carlos-f72c6b457d.mp3"
+    },
+    {
+      "id": "carlos-a3fc934d91",
+      "voice": "carlos",
+      "text": "Isso aí, pão na chapa. Deixa eu anotar. E pra beber?",
+      "file": "carlos-a3fc934d91.mp3"
+    },
+    {
+      "id": "carlos-851e9165c9",
+      "voice": "carlos",
+      "text": "Uma coxinha quentinha! E pra beber?",
+      "file": "carlos-851e9165c9.mp3"
+    },
+    {
+      "id": "carlos-7246892990",
+      "voice": "carlos",
+      "text": "Coxinha, boa. Deixa eu anotar. E pra beber?",
+      "file": "carlos-7246892990.mp3"
+    },
+    {
+      "id": "carlos-3bdca53d90",
+      "voice": "carlos",
+      "text": "Pastel de carne ou queijo? E pra beber?",
+      "file": "carlos-3bdca53d90.mp3"
+    },
+    {
+      "id": "carlos-4db7e39c8c",
+      "voice": "carlos",
+      "text": "Pastel, anotei. Carne ou queijo — e pra beber?",
+      "file": "carlos-4db7e39c8c.mp3"
+    },
+    {
+      "id": "carlos-e03258372b",
+      "voice": "carlos",
+      "text": "Café com leite saindo! Pra comer aqui ou pra viagem?",
+      "file": "carlos-e03258372b.mp3"
+    },
+    {
+      "id": "carlos-70d86fda4d",
+      "voice": "carlos",
+      "text": "Café com leite, tá na mão. Pra comer aqui ou pra viagem?",
+      "file": "carlos-70d86fda4d.mp3"
+    },
+    {
+      "id": "carlos-63ad1689fb",
+      "voice": "carlos",
+      "text": "Anotei o café com leite. Aqui ou pra viagem?",
+      "file": "carlos-63ad1689fb.mp3"
+    },
+    {
+      "id": "carlos-a3556ef33c",
+      "voice": "carlos",
+      "text": "Suco de laranja fresquinho! Pra comer aqui ou pra viagem?",
+      "file": "carlos-a3556ef33c.mp3"
+    },
+    {
+      "id": "carlos-93c6b4f025",
+      "voice": "carlos",
+      "text": "Suco de laranja, anotei. Aqui ou pra viagem?",
+      "file": "carlos-93c6b4f025.mp3"
+    },
+    {
+      "id": "carlos-9207a5dafb",
+      "voice": "carlos",
+      "text": "Uma água geladinha! Pra comer aqui ou pra viagem?",
+      "file": "carlos-9207a5dafb.mp3"
+    },
+    {
+      "id": "carlos-a67c22fa10",
+      "voice": "carlos",
+      "text": "Água, tá na mão. Pra comer aqui ou pra viagem?",
+      "file": "carlos-a67c22fa10.mp3"
+    },
+    {
+      "id": "carlos-7ebd994c36",
+      "voice": "carlos",
+      "text": "Pronto! Tá na mão. Volte sempre!",
+      "file": "carlos-7ebd994c36.mp3"
+    },
+    {
+      "id": "carlos-7076e8544f",
+      "voice": "carlos",
+      "text": "Tá na mão. Pode sentar. Volte sempre!",
+      "file": "carlos-7076e8544f.mp3"
+    },
+    {
+      "id": "carlos-a235d6f8b8",
+      "voice": "carlos",
+      "text": "Volte sempre!",
+      "file": "carlos-a235d6f8b8.mp3"
+    },
+    {
+      "id": "carlos-2580a39618",
+      "voice": "carlos",
+      "text": "Volte sempre! Até amanhã.",
+      "file": "carlos-2580a39618.mp3"
+    },
+    {
+      "id": "carlos-6cc2fedb94",
+      "voice": "carlos",
+      "text": "Bom dia! Tudo bem? O que vai ser hoje?",
+      "file": "carlos-6cc2fedb94.mp3"
+    },
+    {
+      "id": "carlos-b1c1987bbc",
+      "voice": "carlos",
+      "text": "Bom dia! Beleza? Me conta o que vai ser.",
+      "file": "carlos-b1c1987bbc.mp3"
+    },
+    {
+      "id": "carlos-1d6d88ddfb",
+      "voice": "carlos",
+      "text": "Bom dia! E aí, o que vai querer?",
+      "file": "carlos-1d6d88ddfb.mp3"
     },
     {
       "id": "carlos-bacee5ea37",

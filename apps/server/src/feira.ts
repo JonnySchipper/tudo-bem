@@ -67,7 +67,7 @@ export class FeiraCounter {
     const room = s.instance.def.id;
     // the stalls are in the Feira Livre; the Hortifrúti corner is at the banca on the Rua dos Ipês
     if (room !== (vendor === 'banca' ? 'rua' : 'feira')) {
-      this.err(s, 'far', vendor === 'banca' ? 'O hortifrúti fica na banca.' : 'A feira fica na Feira Livre.', vendor === 'banca' ? 'The greengrocer is at the newsstand.' : 'The market is in the Feira Livre.');
+      this.err(s, 'far', vendor === 'banca' ? 'O hortifrúti fica na banca.' : 'A feira fica na Feira de Rua.', vendor === 'banca' ? 'The greengrocer is at the newsstand.' : 'The market is in the Feira de Rua (street market).');
       return null;
     }
     const tile = this.d.tileOf(s);
@@ -143,7 +143,7 @@ export class FeiraCounter {
       line,
       rv,
     });
-    if (rv > 0) this.d.reward(s, rv, { pt: 'Compra na feira', en: 'Shopping at the feira' });
+    if (rv > 0) this.d.reward(s, rv, { pt: 'Compra na feira', en: 'Shopping at the market (feira)' });
     else this.d.pushProfile(s);
   }
 }

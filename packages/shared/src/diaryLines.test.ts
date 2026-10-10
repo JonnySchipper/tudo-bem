@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ARRIVAL_CARD } from './arrival.js';
 import { COUNTER_LINES, diaryLine } from './diaryLines.js';
@@ -7,6 +6,7 @@ import { HOTSPOTS } from './hotspots.js';
 import { PHOTO_SPOTS } from './photoSpots.js';
 import { ROOMS } from './rooms.js';
 import { DIARY_PLACEMENTS } from './diaryWorld.js';
+import { PAPOS } from './papos.js';
 
 describe('where a conversation word is heard', () => {
   it('finds a talk node, an ambient line, a vendor’s greeting and closing note, the counter line and the arrival card', () => {
@@ -21,9 +21,9 @@ describe('where a conversation word is heard', () => {
     expect(diaryLine('julia')).toBeUndefined();
   });
 
-  it('keeps the counter line the one conversa.ts has the baker say', () => {
-    const conversa = fs.readFileSync(new URL('./conversa.ts', import.meta.url), 'utf8');
-    expect(conversa).toContain(COUNTER_LINES['carlos.viagem']);
+  it('keeps the counter line one a bate-papo has the baker say, under its anchor', () => {
+    const node = PAPOS.flatMap((p) => Object.values(p.nodes)).find((n) => n.anchor === 'carlos.viagem');
+    expect(node?.line.pt).toBe(COUNTER_LINES['carlos.viagem']);
   });
 
   it('keeps Júlia’s arrival note as it was, and puts the Chegada signs on the airport’s walls', () => {
