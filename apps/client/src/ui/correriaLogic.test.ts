@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { menuLadder, newShift, shiftAct, shiftAdvance, shiftSnapshot, type CEvent, type CorreriaEnd, type CorreriaSnap } from '@tudobem/shared';
-import { askCard, cueFor, endModel, frontOf, glossOn, hud, ladderEnd, ladderNext, ladderStrip, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
+import { cueFor, endModel, frontOf, glossOn, hud, ladderEnd, ladderNext, ladderStrip, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
 
 const shiftAt = (seed: number, level = 0): CorreriaSnap => {
   const sh = newShift({ seed, level, unlocked: [], saturday: false, minute: 540, baker: 'carlos', regulars: [] });
@@ -24,10 +24,17 @@ describe('the Correria overlay view-model', () => {
     expect(chips[0]!.en.length).toBeGreaterThan(2);
   });
 
-  it('the mod chips are the tapped coffee mods plus the bag or plate', () => {
+  it('the mod chips are an extra-hot pour (🔥 extra quente) plus the bag or plate', () => {
     expect(modChips({ mods: [], pack: null })).toEqual([]);
-    expect(modChips({ mods: ['sem_acucar'], pack: 'bag' }).map((m) => m.pt)).toEqual(['sem açúcar', 'pra viagem']);
+    expect(modChips({ mods: ['bem_quente'], pack: 'bag' }).map((m) => m.pt)).toEqual(['🔥 extra quente', 'pra viagem']);
     expect(modChips({ mods: [], pack: 'plate' }).map((m) => m.pt)).toEqual(['pra comer aqui']);
+  });
+
+  it('a written order that wants extra quente carries the 🔥 tag on the ticket; a listening one keeps it in the voice', () => {
+    const f = frontOf(shiftAt(4))!;
+    expect(orderMirror(f, 0)!.hot).toBeNull();
+    expect(orderMirror({ ...f, hot: true }, 0)!.hot).toEqual({ pt: '🔥 extra quente', en: 'extra hot' });
+    expect(orderMirror({ ...f, hot: true, mode: 'listening' }, 3)!.hot).toBeNull();
   });
 
   it('the order mirror shows a written order, hides a listening one and offers the replay at its price', () => {
@@ -64,36 +71,14 @@ describe('the Correria overlay view-model', () => {
     expect(hud(snap)).toMatchObject({ wave: 'Onda 2/3', left: '4/15', points: 55, combo: 2, tips: 'R$ 7', level: 'Verde' });
   });
 
-  it('"Quanto é?" lists the items with prices, three options with the number said in words, and the seconds left', () => {
-    const sh = newShift({ seed: 3, level: 3, unlocked: [], saturday: false, minute: 540, baker: 'carlos', regulars: [] });
-    let card = null as ReturnType<typeof askCard>;
-    for (let seed = 1; seed < 60 && !card; seed++) {
-      const s = newShift({ seed, level: 1, unlocked: [], saturday: false, minute: 540, baker: 'carlos', regulars: [] });
-      // fast-forward to wave 3 where asks are likeliest, then serve what is asked with the test bot below
-      s.spawned = 9;
-      s.nextSpawnAt = 0;
-      for (let i = 0; i < 80 && !s.customers.some((c) => c.state === 'front'); i++) shiftAdvance(s, 250);
-      const f = s.customers.find((c) => c.state === 'front');
-      if (!f) continue;
-      f.state = 'asking';
-      f.ask = { total: 12, options: [12, 21, 13], type: 'choice', deadline: s.t + 9000, pay: 20 };
-      card = askCard(shiftSnapshot(s).customers.find((c) => c.id === f.id)!, 1000);
-    }
-    void sh;
-    expect(card).not.toBeNull();
-    expect(card!.title.pt).toBe('Quanto é?');
-    expect(card!.options.map((o) => o.pt)).toEqual(['doze reais', 'vinte e um reais', 'treze reais']);
-    expect(card!.options[0]!.label).toBe('R$ 12');
-    expect(card!.secs).toBe(8);
-    expect(card!.items.length).toBeGreaterThan(0);
-  });
-
-  it('events make the right sound and toast: ding on a serve, a nope on a correction, burnt in red', () => {
+  it('events make the right sound and toast: ding on a serve, a nope on a correction, burnt in red, a flame on an extra-hot pour', () => {
+    expect(cueFor({ k: 'pour_ok', item: 'cafe', fill: 0.9, hot: false })).toEqual({ sfx: 'ready' });
+    expect(cueFor({ k: 'pour_ok', item: 'cafe', fill: 1.3, hot: true })).toMatchObject({ sfx: 'ready', toast: { pt: '🔥 Café extra quente!', tone: 'good' } });
     expect(cueFor({ k: 'grab', item: 'pao' }).sfx).toBe('grab');
     expect(cueFor({ k: 'serve', id: 1, outcome: 'perfeito', line: { pt: 'Perfeito!', en: 'Perfect!' }, emote: '😋', points: 14, tip: 2, combo: 1, speed: 0.8 })).toMatchObject({ sfx: 'ding', toast: { pt: 'Perfeito!', tone: 'good' } });
     expect(cueFor({ k: 'serve', id: 1, outcome: 'perfeito', line: { pt: 'x', en: 'y' }, emote: '❤️', points: 20, tip: 3, combo: 3, speed: 1 }).sfx).toBe('chain');
     expect(cueFor({ k: 'serve', id: 1, outcome: 'perfeito', line: { pt: 'x', en: 'y' }, emote: '❤️', points: 20, tip: 3, combo: 4, speed: 1 }).sfx).toBe('combo');
-    expect(cueFor({ k: 'correct', id: 1, line: { pt: 'Não, eu pedi DOIS pães…', en: 'No, I ordered TWO…' } })).toMatchObject({ sfx: 'nope', toast: { tone: 'bad' } });
+    expect(cueFor({ k: 'correct', id: 1, line: { pt: 'Era extra quente!', en: 'It was extra hot!' } })).toMatchObject({ sfx: 'nope', toast: { tone: 'bad' } });
     expect(cueFor({ k: 'chapa_burnt', slot: 0 })).toMatchObject({ sfx: 'pop', toast: { pt: 'Queimou!', tone: 'bad' } });
     expect(cueFor({ k: 'front', id: 1 }).sfx).toBe('slap');
     expect(cueFor({ k: 'chapa_raw', slot: 0 }).toast?.pt).toBe('Ainda está cru!');
@@ -107,15 +92,15 @@ describe('the Correria overlay view-model', () => {
   it('the end card model: RV headline, stars, rows, new words and unlocks (glossed)', () => {
     const end: CorreriaEnd = {
       served: 13, perfect: 9, second: 4, left: 2, points: 210, tips: 21, bestCombo: 5, stars: 2, coins: 17, dailyBlocked: false,
-      askRight: 3, askTotal: 4, words: [{ pt: 'coxinha', en: 'coxinha' }], newUnlocks: [{ id: 'chapa2', pt: 'Segunda chapa', en: 'A second grill spot' }], totalStars: 5, level: 1, regulars: ['Nanda'],
+      words: [{ pt: 'coxinha', en: 'coxinha' }], newUnlocks: [{ id: 'chapa2', pt: 'Segunda chapa', en: 'A second grill spot' }], totalStars: 5, level: 1, regulars: ['Nanda'],
     };
     const m = endModel(end, { pt: 'Valeu pela ajuda!', en: 'Thanks for the help!' });
     expect(m.big).toBe('+17 RV');
     expect(m.stars).toBe('★★☆');
-    expect(m.rows.map((r) => r.value)).toEqual(['13/15', '9', 'x5', 'R$ 21', '3/4']);
+    // no "Quanto é?" row: the counter asks for no sums
+    expect(m.rows.map((r) => r.value)).toEqual(['13/15', '9', 'x5', 'R$ 21']);
     expect(m.unlocks[0]).toEqual({ pt: 'A chapa agora tem dois lugares.', en: 'The grill has two spots now.' });
-    expect(endModel({ ...end, coins: 0, askTotal: 0, stars: 0 }, { pt: '', en: '' })).toMatchObject({ big: '0 RV', stars: '☆☆☆' });
-    expect(endModel({ ...end, askTotal: 0 }, { pt: '', en: '' }).rows).toHaveLength(4);
+    expect(endModel({ ...end, coins: 0, stars: 0 }, { pt: '', en: '' })).toMatchObject({ big: '0 RV', stars: '☆☆☆' });
   });
 
   it('shiftAct events are all covered: no event kind throws', () => {

@@ -2,7 +2,8 @@
  * Player-owned padaria (Fundar), client side:
  * - the door fund on Rua dos Ipês (savings meter → Fundar, or "Entrar na minha padaria" once it is yours);
  * - the facade door asks an owner which padaria (theirs or Seu Carlos's);
- * - inside an owned padaria: the vaso is the book of Melhorias (owner) or the shop's card (visitor), the balcão sells the house menu.
+ * - inside an owned padaria (its own room, `padariaCasaRoom`): the owner has a "Minha padaria" button on screen, the owner menu (play,
+ *   size and sweets); the vitrine starts the Correria; the balcão sells the house menu to visitors.
  * needs_br: true
  */
 import {
@@ -23,7 +24,7 @@ import {
   type PadariaUpgradeKind,
 } from '@tudobem/shared';
 import { game } from '../state';
-import { h, en, bi } from './dom';
+import { h, en, bi, rvPriceNote } from './dom';
 import { closeModal, modalId, openModal } from './modal';
 import { closeDialogue, showDialogue } from './panels';
 import { foodIcon } from './pixelArt';
@@ -43,6 +44,8 @@ export interface PadariaOwnActions {
   visitMine: () => void;
   upgrade: (kind: PadariaUpgradeKind) => void;
   buy: (itemId: string) => void;
+  /** Start the counter game (the vitrine's action), from the owner menu. */
+  play: () => void;
 }
 
 let actions: PadariaOwnActions | null = null;
@@ -52,6 +55,27 @@ export function bindPadariaOwn(a: PadariaOwnActions) {
   actions = a;
   // coins change after shifts and buys: an open book of Melhorias stays honest
   game.on('profile', syncPadariaFloor);
+  game.on('room', syncOwnerMenu);
+  game.on('modal', syncOwnerMenu);
+}
+
+/** The owner menu's button: on screen whenever the owner stands in their own padaria (no pot by the door to find). */
+export function syncOwnerMenu() {
+  const card = game.room?.room === 'padaria' ? game.room.padaria : undefined;
+  let btn = document.getElementById('pad-owner-btn');
+  if (!card?.owner) {
+    btn?.remove();
+    return;
+  }
+  if (!btn) {
+    btn = h(
+      'button',
+      { type: 'button', class: 'pad-owner-btn', id: 'pad-owner-btn', 'aria-haspopup': 'dialog', onclick: () => game.room?.padaria && openPadariaBook(game.room.padaria) },
+      h('span', { class: 'pad-owner-ico', 'aria-hidden': 'true' }, '🧑‍🍳'),
+      h('span', null, h('b', null, 'Minha padaria'), h('small', null, 'Owner menu')),
+    );
+    (document.getElementById('ui') ?? document.body).append(btn);
+  }
 }
 
 export function askPadariaDoor() {
@@ -66,11 +90,11 @@ export function onPadariaDoor(enabled: boolean, door: PadariaDoorState, rows: Pa
   renderDoor(door, rows);
 }
 
-/** What each size puts on the counter (the Correria board and the balcão da casa). */
+/** What each size is: the room and what goes on the counter (the Correria board and the balcão da casa). */
 const SIZE_PERKS: Record<PadariaSize, { pt: string; en: string }> = {
-  1: { pt: 'Correria com café e pão francês.', en: 'Counter Rush with coffee and bread rolls.' },
-  2: { pt: 'Correria com o cardápio completo. Libera os doces.', en: 'Counter Rush with the full menu. Unlocks sweets.' },
-  3: { pt: 'Pratos no balcão: PF, feijoada, bife acebolado, salada, pudim.', en: 'Plates at the counter: set meal, feijoada, steak with onions, salad, pudding.' },
+  1: { pt: 'Um cantinho de café. Correria só com café e pão francês.', en: 'A little coffee corner. Counter Rush with just coffee and bread rolls.' },
+  2: { pt: 'Sala maior, estufa e mesa. Correria com o cardápio completo. Libera os doces.', en: 'A bigger room, a warmer and a table. Counter Rush with the full menu. Unlocks sweets.' },
+  3: { pt: 'Salão com mesas. Pratos no balcão: PF, feijoada, bife acebolado, salada, pudim.', en: 'A dining room with tables. Plates at the counter: set meal, feijoada, steak with onions, salad, pudding.' },
 };
 
 const SWEETS: { kind: keyof PadariaSweets; pt: string; en: string }[] = [
@@ -101,7 +125,7 @@ function tierCard(title: { pt: string; en: string }, perk: { pt: string; en: str
   );
 }
 
-/** The book of Melhorias (owner) or the shop's card (visitor). Opened from the vaso inside an owned padaria. */
+/** The owner menu (play, size, sweets) or the shop's card (visitor). The owner opens it from the "Minha padaria" button. */
 export function openPadariaBook(card: PadariaCard) {
   openModal('padaria-book', bookPanel(card));
 }
@@ -114,7 +138,7 @@ function bookPanel(card: PadariaCard) {
     hatMark(),
     h('div', null, h('h3', null, card.name), h('p', { class: 'hint' }, `${card.owner ? 'Sua padaria' : `De ${card.ownerName}`} · ${size.pt}`, en(`${card.owner ? 'Your bakery' : `${card.ownerName}’s`} · ${size.en}`))),
   );
-  const panel = h('div', { class: 'panel padaria-book', role: 'dialog', 'aria-label': `Melhorias (Upgrades): ${card.name}` }, head);
+  const panel = h('div', { class: 'panel padaria-book', role: 'dialog', 'aria-label': `${card.owner ? 'Menu do dono (Owner menu)' : 'Padaria (Bakery)'}: ${card.name}` }, head);
   if (!card.owner) {
     const sweets = SWEETS.filter((s) => card.sweets?.[s.kind]).map((s) => s.pt);
     panel.append(h('p', null, SIZE_PERKS[card.size].pt, en(SIZE_PERKS[card.size].en)));
@@ -145,6 +169,20 @@ function bookPanel(card: PadariaCard) {
     }),
   );
   panel.append(
+    rvPriceNote(),
+    h(
+      'button',
+      {
+        type: 'button',
+        class: 'green pad-play',
+        id: 'pad-play',
+        onclick: () => {
+          closeModal();
+          actions?.play();
+        },
+      },
+      bi('▶ Abrir o balcão (Correria)', 'Open the counter (Counter Rush)'),
+    ),
     h('h4', null, bi('Tamanho', 'Size')),
     tiers,
     h('h4', null, bi('Doces da vitrine', 'Sweets in the case')),
@@ -184,6 +222,7 @@ export function openHouseCounter(card: PadariaCard) {
     line: card.owner
       ? { pt: `Balcão da ${card.name}. O que vai pra sacola?`, en: `${card.name}’s counter. What goes in the bag?` }
       : { pt: `Bem-vindo à ${card.name}! O que vai ser?`, en: `Welcome to ${card.name}! What’ll it be?` },
+    extras: rvPriceNote(),
     chips,
     key: `house-counter-${card.id}`,
     onChoose: (i) => {
@@ -233,6 +272,7 @@ function renderDoor(door: PadariaDoorState, rows: PadariaCard[]) {
       h('h3', null, 'Sua própria padaria'),
       en('Your own bakery'),
       h('p', null, 'Junte reais no balcão do Seu Carlos e abra a sua porta: nome na fachada, chapéu de dono e o seu balcão.', en('Save up at Seu Carlos’s counter and open your own door: your name, an owner’s hat and your own counter.')),
+      rvPriceNote(),
       h('p', { class: 'hint' }, bi(`${door.coins} / ${door.goalRv} RV na porta`, `${door.coins} / ${door.goalRv} RV toward the door`)),
       meter,
     );
@@ -301,10 +341,9 @@ export function welcomeOwner() {
     h(
       'ul',
       { class: 'pad-welcome-list' },
-      row('Trilho de pedidos: a sua Correria. O cardápio cresce com o tamanho.', 'Order rail: your Counter Rush. The menu grows with the size.'),
-      row('Vaso perto da porta: Melhorias (tamanho e doces).', 'Pot by the door: Upgrades (size and sweets).'),
+      row('Vitrine: a sua Correria. Começa com café e pão.', 'Display case: your Counter Rush. It starts with coffee and bread.'),
+      row('Botão “Minha padaria”: as melhorias. A sala cresce com o tamanho.', '“Minha padaria” button: upgrades. The room grows with the size.'),
       row('Balcão: quem visita compra aqui, e os reais vão pro seu caixa.', 'Counter: visitors buy here, and the reais go to your till.'),
-      row('Pra voltar: a porta do Seu Carlos na Rua dos Ipês pergunta qual padaria.', 'To come back: Seu Carlos’s door on Rua dos Ipês asks which bakery.'),
     ),
     h('button', { type: 'button', class: 'green', id: 'pad-welcome-ok', onclick: () => closeModal() }, bi('Bora trabalhar!', 'Let’s get to work!')),
   );

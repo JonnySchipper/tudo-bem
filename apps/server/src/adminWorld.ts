@@ -9,11 +9,14 @@ import {
   type FeiraCartAdminGame,
   type FeiraCartMode,
   type Nameplate,
+  type PropDef,
   type RoomId,
   type SafetyVerdict,
   type ServerMsg,
 } from '@tudobem/shared';
 import type { CloseReason, Instance, Session } from './world.js';
+import type { LayoutStore } from './layoutStore.js';
+import type { PublishResult } from './designGithub.js';
 
 export interface AdminWorldDeps {
   sessions: () => Iterable<Session>;
@@ -29,6 +32,12 @@ export interface AdminWorldDeps {
   setFeiraCart: (game: string, mode: FeiraCartMode) => boolean;
   layoutOverrides: () => { room: RoomId; objects: number }[];
   revertLayout: (room: RoomId) => boolean;
+  /** Design mode (designOps.ts): the saved layouts, drafts and history. */
+  layouts: () => LayoutStore;
+  /** Install a stored layout in this process and push it to every client. `null`: the code layout. */
+  applyLayout: (room: RoomId, objects: PropDef[] | null) => void;
+  githubConfigured: () => boolean;
+  layoutPullRequest: (room: RoomId, objects: PropDef[]) => Promise<PublishResult>;
   markBoardsDirty: () => void;
   now: () => number;
 }
@@ -61,6 +70,10 @@ export interface AdminWorldHost {
   setFeiraCart: AdminWorldDeps['setFeiraCart'];
   layoutOverrides: AdminWorldDeps['layoutOverrides'];
   revertLayout: AdminWorldDeps['revertLayout'];
+  layouts: AdminWorldDeps['layouts'];
+  applyLayout: AdminWorldDeps['applyLayout'];
+  githubConfigured: AdminWorldDeps['githubConfigured'];
+  layoutPullRequest: AdminWorldDeps['layoutPullRequest'];
   markBoardsDirty(): void;
   now(): number;
 }
@@ -118,6 +131,10 @@ export function adminWorldHost(d: AdminWorldDeps): AdminWorldHost {
     setFeiraCart: d.setFeiraCart,
     layoutOverrides: d.layoutOverrides,
     revertLayout: d.revertLayout,
+    layouts: d.layouts,
+    applyLayout: d.applyLayout,
+    githubConfigured: d.githubConfigured,
+    layoutPullRequest: d.layoutPullRequest,
     markBoardsDirty: d.markBoardsDirty,
     now: d.now,
   };

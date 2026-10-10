@@ -34,11 +34,14 @@ export async function hold(page, sel, ms) {
   await page.mouse.up();
 }
 
-/** Close the first-time how-to card so the 3-2-1 can run. */
-export async function startRun(page, root) {
+/** Close the first-time how-to card so the 3-2-1 can run (`howto` shoots it first). */
+export async function startRun(page, root, howto) {
   await page.waitForSelector(root, { timeout: 15_000 });
   await sleep(700);
-  if (await page.$('#howto-ok')) await page.click('#howto-ok');
+  if (await page.$('#howto-ok')) {
+    if (howto) await howto();
+    await page.click('#howto-ok');
+  }
   // 3-2-1 and the first customer walking up
   await page.waitForSelector('.fst-bubble', { timeout: 15_000 });
   await sleep(300);
@@ -52,11 +55,11 @@ async function frontOrder(page) {
 }
 
 export async function play(page, { shot, mclick, log }) {
-  await startRun(page, '#tapioca-root');
+  await startRun(page, '#tapioca-root', () => shot('tapioca-howto'));
   await shot('tapioca-start');
   let served = 0;
   const t0 = Date.now();
-  while (Date.now() - t0 < 100_000 && served < 4) {
+  while (Date.now() - t0 < 100_000 && served < 3) {
     if (await page.$('#tapioca-end')) break;
     const o = await frontOrder(page);
     const filling = o && FILLINGS.find((f) => o.text.toLowerCase().includes(f));
@@ -69,7 +72,7 @@ export async function play(page, { shot, mclick, log }) {
     await sleep(120);
     if (served === 0) await shot('tapioca-cooking');
     // flip when the pan says so (the ring is in its green arc)
-    await page.waitForFunction(() => ['Vira!', 'Grudando!'].includes(document.querySelector('[data-label="tp-0"] b')?.textContent ?? ''), null, { timeout: 8000 });
+    await page.waitForFunction(() => ['Vira!', 'Grudando!'].includes(document.querySelector('[data-label="tp-0"] b')?.textContent ?? ''), null, { timeout: 15_000 });
     await mclick('#tapioca-pan-0');
     await sleep(380);
     await drag(page, `#tapioca-bowl-${filling}`, '#tapioca-pan-0');
@@ -90,6 +93,25 @@ export async function play(page, { shot, mclick, log }) {
     if (served === 0) await shot('tapioca-serve');
     served += 1;
     log('served', served, filling);
+    if (served === 1) {
+      // a botched one: too little goma, then into the lixeira with it
+      await hold(page, '#tapioca-pan-0', 250);
+      await sleep(300);
+      await shot('tapioca-botched');
+      const a = await center(page, '#tapioca-pan-0');
+      const b = await center(page, '#tapioca-bin');
+      await page.mouse.move(a.x, a.y);
+      await page.mouse.down();
+      for (let k = 1; k <= 6; k++) {
+        await page.mouse.move(a.x + ((b.x - a.x) * k) / 8, a.y + ((b.y - a.y) * k) / 8);
+        await sleep(16);
+      }
+      await shot('tapioca-trash-drag');
+      await page.mouse.move(b.x, b.y);
+      await page.mouse.up();
+      await sleep(250);
+      await shot('tapioca-trashed');
+    }
   }
   await sleep(400);
   await shot('tapioca-midrun');

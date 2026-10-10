@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MG_ITEMS } from '@tudobem/shared';
-import { ART_SIZES, BAG_SPOT, BELL_SPOT, BOARD, BOARD_SHELF_TOP, BOARD_TOWER_X, HOPPER_NEXT, JUICER_SPOT, JUICE_GLASS_LEVELS, JUICE_GLASS_SPOT, JUICE_LINE_ROWS, JUICE_SPOUT, juiceGlassKey, juiceRows, CHAPA_SLOTS, CHAPA_SPOT, COFFEE_SPOT, ITEM_SCALE, ITEM_SPOTS, PLATE_SPOT, QUEUE_SPOTS, REGISTER_SPOT, TIPJAR_SPOT, allArtKeys, sizeOfKey, traySlot, TRAY_SPOT, type Spot } from './correriaArt';
+import { ART_SIZES, BAG_SPOT, BELL_SPOT, BOARD, BOARD_SHELF_TOP, BOARD_TOWER_X, HOPPER_NEXT, JUICER_SPOT, JUICE_GLASS_LEVELS, JUICE_GLASS_SPOT, JUICE_LINE_ROWS, JUICE_SPOUT, juiceGlassKey, juiceRows, CHAPA_SLOTS, CHAPA_SPOT, COFFEE_SPOT, ITEM_SCALE, ITEM_SPOTS, PLATE_SPOT, QUEUE_SPOTS, REGISTER_SPOT, TIPJAR_SPOT, allArtKeys, counterLayout, sizeOfKey, traySlot, TRAY_SPOT, type Spot } from './correriaArt';
 
 const manifest = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '../../../public/pixel/manifest.json'), 'utf8'));
 
@@ -101,6 +101,65 @@ describe('the Correria no Balcão art contract', () => {
     expect(juiceRows(1.2)).toBeGreaterThan(JUICE_LINE_ROWS);
     expect(juiceRows(9)).toBe(JUICE_GLASS_LEVELS - 1);
     expect(juiceGlassKey(juiceRows(1))).toBe('balcao/juice_glass_7');
+  });
+
+  it('the full menu in Seu Carlos’s room is exactly the contracted layout above', () => {
+    const L = counterLayout(MG_ITEMS.map((i) => i.id));
+    expect(L.cells).toEqual(ITEM_SPOTS);
+    expect([L.coffee, L.juicer, L.chapa, L.tray, L.bag, L.plate, L.register, L.tipjar, L.bell]).toEqual([COFFEE_SPOT, JUICER_SPOT, CHAPA_SPOT, TRAY_SPOT, BAG_SPOT, PLATE_SPOT, REGISTER_SPOT, TIPJAR_SPOT, BELL_SPOT]);
+    expect([L.juiceGlass, L.juiceSpout, L.hopperNext]).toEqual([JUICE_GLASS_SPOT, JUICE_SPOUT, HOPPER_NEXT]);
+    expect(L.chapaSlots).toEqual(CHAPA_SLOTS);
+    expect(L.queue).toEqual(QUEUE_SPOTS);
+    expect(L.board).toEqual(BOARD);
+    expect([L.towerX, L.shelfTop]).toEqual([BOARD_TOWER_X, BOARD_SHELF_TOP]);
+  });
+
+  it('a small menu lays out only its items (a locked one is not on the board at all) and the camera comes much closer', () => {
+    const full = counterLayout(null);
+    const tiny = counterLayout(['cafe', 'pao']);
+    // the lone coffee needs no cup cell (the machine pours it): the shelf is just the pão
+    expect(Object.keys(tiny.cells)).toEqual(['pao']);
+    expect([tiny.juicer, tiny.chapa, tiny.bag, tiny.plate]).toEqual([null, null, null, null]);
+    expect(tiny.coffee).not.toBeNull();
+    expect(tiny.need.h).toBeLessThan(full.need.h * 0.65);
+    // a player's Balcão is a smaller room: the same counter, smaller still
+    const casa = counterLayout(['cafe', 'pao'], { cols: 8, rows: 7 });
+    expect(casa.need.w).toBeLessThan(full.need.w);
+    expect(casa.board.x1).toBeLessThanOrEqual(8 * 16);
+    for (const q of casa.queue) expect(q.x).toBeLessThan(8 * 16);
+    // the ladder's menus never overlap, in Seu Carlos's room or a player's
+    const ladder = ['cafe', 'pao', 'agua', 'pao_de_queijo', 'cafe_com_leite', 'pao_na_chapa', 'suco_de_laranja', 'coxinha', 'pastel', 'bolo', 'guarana', 'misto_quente'];
+    for (const room of [{ cols: 10, rows: 9 }, { cols: 8, rows: 7 }, { cols: 12, rows: 10 }])
+      for (let n = 2; n <= ladder.length; n++) {
+        if (room.cols < 10 && n > 2) continue; // the Balcão only ever has café and pão
+        const L = counterLayout(ladder.slice(0, n), room);
+        const all = [
+          ...Object.entries(L.cells).map(([id, s]) => rect(id, s, ART_SIZES.item!, ITEM_SCALE)),
+          ...(L.coffee ? [rect('coffee', L.coffee, ART_SIZES.coffee!)] : []),
+          ...(L.juicer ? [rect('juicer', L.juicer, ART_SIZES.juicer!)] : []),
+          ...(L.chapa ? [rect('chapa', L.chapa, ART_SIZES.chapa!)] : []),
+          rect('tray', L.tray, ART_SIZES.tray!),
+          ...(L.bag ? [rect('bag', L.bag, ART_SIZES.bag!)] : []),
+          ...(L.plate ? [rect('plate', L.plate, ART_SIZES.plate!)] : []),
+          rect('register', L.register, ART_SIZES.register!),
+          rect('tipjar', L.tipjar, ART_SIZES.tipjar!),
+          rect('bell', L.bell, ART_SIZES.bell!),
+        ];
+        const labelled = new Set([...Object.keys(L.cells), 'bag', 'plate', 'coffee', 'bell', 'juicer']);
+        const boxes = all.map((r) => ({ ...r, y1: r.y1 + (labelled.has(r.id) ? 10 : 0) }));
+        for (let i = 0; i < boxes.length; i++)
+          for (let j = i + 1; j < boxes.length; j++) {
+            const a = boxes[i]!;
+            const b = boxes[j]!;
+            const overlap = Math.min(a.x1, b.x1) > Math.max(a.x0, b.x0) && Math.min(a.y1, b.y1) > Math.max(a.y0, b.y0);
+            expect(overlap, `${room.cols}x${room.rows} menu of ${n}: ${a.id} vs ${b.id}`).toBe(false);
+          }
+        for (const r of all) {
+          expect(r.x0, r.id).toBeGreaterThanOrEqual(L.board.x0);
+          expect(r.x1, r.id).toBeLessThanOrEqual(L.board.x1);
+          expect(r.y0, r.id).toBeGreaterThanOrEqual(L.board.y0);
+        }
+      }
   });
 
   it('the tray holds ten miniatures in two rows, on the tray', () => {

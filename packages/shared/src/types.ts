@@ -208,8 +208,8 @@ export interface PrivateProfile {
   cadernoPaid?: string[];
   /** Feira purchases that paid RV on `date` (real day, YYYY-MM-DD); the reward has a daily limit (Phase 9). */
   feira?: { date: string; n: number };
-  /** One short PT line per NPC about your last Conversa (max 200 chars). Never raw chat. */
-  npcMemory?: Partial<Record<NpcId, string>>;
+  /** Bate-papos (pre-made conversations, papos.ts) talked through to the end, by id. Defaulted to [] on load. */
+  papos?: string[];
   /**
    * Plane arrival with Júlia. Missing on saves from before the intro means they already live here.
    * New profiles set this false and see the intro once.

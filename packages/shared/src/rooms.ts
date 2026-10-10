@@ -115,6 +115,10 @@ export interface PropDef {
   ox?: number;
   /** Pixel view: nudge down in px. Design mode's free placement uses this; bundled layouts leave it unset. */
   oy?: number;
+  /** Pixel view: the sprite is drawn mirrored left to right (design mode's flip). The server ignores it. */
+  flip?: boolean;
+  /** Pixel view: draw-order bias in world px (design mode's bring forward / send back). The server ignores it. */
+  z?: number;
   /** A `pesca_spot`: which water a cast from here fishes (`pesca.ts`). */
   water?: WaterId;
 }
@@ -209,6 +213,10 @@ export interface RoomDef {
   npcs: NpcDef[];
   /** Private rooms (kitnet) are instanced per owner. */
   private: boolean;
+  /** Pixel view: the wall tiles to draw (default: the room id's own style). A player's padaria has its own walls. */
+  wallStyle?: string;
+  /** A room built for one instance (a player's padaria): the room id's signs and reading words belong to the shared room, not here. */
+  noHotspots?: boolean;
 }
 
 export const FLOOR_CHARS: Record<string, FloorKind> = {
@@ -506,7 +514,7 @@ const praca: RoomDef = {
   walls: [],
   portals: [
     ...edgePortals('praca_rua', 'rua', span(4, 14).map((x) => ({ x, y: 0 })), (t) => ({ x: t.x + 1, y: 14 }), 'NW', { pt: 'Rua dos Ipês', en: 'Ipê Street' }),
-    ...edgePortals('praca_feira', 'feira', span(4, 10).map((y) => ({ x: 31, y })), (t) => ({ x: 1, y: t.y - 3 }), 'SE', { pt: 'Feira Livre', en: 'Street Market' }),
+    ...edgePortals('praca_feira', 'feira', span(4, 10).map((y) => ({ x: 31, y })), (t) => ({ x: 1, y: t.y - 3 }), 'SE', { pt: 'Feira de Rua', en: 'Street Market' }),
   ],
   npcs: [
     {
@@ -554,7 +562,7 @@ const praca: RoomDef = {
 // ---------------------------------------------------------------- feira
 const feira: RoomDef = {
   id: 'feira',
-  name: 'Feira Livre',
+  name: 'Feira de Rua',
   gloss: 'Street Market',
   cols: FEIRA_COLS,
   rows: FEIRA_ROWS,
@@ -573,7 +581,7 @@ const feira: RoomDef = {
     {
       id: 'tia_lu',
       name: 'Tia Lu',
-      role: { pt: 'Frutas da feira', en: 'Fruit at the feira' },
+      role: { pt: 'Frutas da feira', en: 'Fruit at the market' },
       x: 7,
       y: 5,
       dir: 'SW',
@@ -590,7 +598,7 @@ const feira: RoomDef = {
     {
       id: 'ze',
       name: 'Seu Zé',
-      role: { pt: 'Verduras da feira', en: 'Vegetables at the feira' },
+      role: { pt: 'Verduras da feira', en: 'Vegetables at the market' },
       x: 13,
       y: 5,
       dir: 'SW',
@@ -622,7 +630,7 @@ const feira: RoomDef = {
     {
       id: 'rosa',
       name: 'Dona Rosa',
-      role: { pt: 'Flores da feira', en: 'Flowers at the feira' },
+      role: { pt: 'Flores da feira', en: 'Flowers at the market' },
       x: 13,
       y: 13,
       dir: 'SW',
@@ -819,7 +827,7 @@ const academia: RoomDef = {
       y: 4,
       dir: 'NW',
       interact: { x: 8, y: 5 },
-      appearance: { body: 'forte', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'nenhum', idle: 'bracos' },
+      appearance: { body: 'forte', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'brincos', idle: 'bracos' },
       hat: null,
       // needs_br: true (new lines)
       idleLines: [

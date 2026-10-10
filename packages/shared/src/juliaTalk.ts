@@ -20,10 +20,10 @@ export const JULIA_TREE: { q: Bilingual; a: Bilingual; guide?: true }[] = [
     a: { pt: 'Na Rua dos Ipês, logo acima da praça! É a porta com o toldo vermelho.', en: 'On Rua dos Ipês, just north of the square! The door with the red awning.' },
   },
   {
-    q: { pt: 'Como ganho reais virtuais?', en: 'How do I earn RV coins?' },
+    q: { pt: 'Como ganho reais virtuais?', en: 'How do I earn reais virtuais (RV), the play money?' },
     a: {
-      pt: 'Faça uns recados pros vizinhos e jogue a “Correria no Balcão” na padaria. Depois compre um chapéu com a Nanda!',
-      en: 'Do errands (recados) for the neighbours and play “Correria no Balcão” (Counter Rush) at the bakery. Then buy a hat from Nanda!',
+      pt: 'Faça uns favores pros vizinhos e jogue a “Correria no Balcão” na padaria. Depois compre um chapéu com a Nanda!',
+      en: 'Do favors (Favores) for the neighbours and play “Correria no Balcão” (Counter Rush) at the bakery. Then buy a hat from Nanda!',
     },
   },
 ];

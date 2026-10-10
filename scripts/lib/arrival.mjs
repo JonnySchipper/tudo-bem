@@ -68,7 +68,7 @@ export async function skipFlight(page) {
  * Cartela) sit over the screen until "Got it". Play paths that are about something else mark them seen, as a returning player would have.
  * The minigames' "How to play" cards are left alone: their e2e reads them. Ids: apps/client/src/ui/howToPlayData.ts (kind: 'place').
  */
-export const PLACE_CARDS = ['balcao', 'conversa', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira'];
+export const PLACE_CARDS = ['balcao', 'papo', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira'];
 
 export async function quietFirstTimeCards(page) {
   await page.evaluate((ids) => {

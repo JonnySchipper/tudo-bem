@@ -1,7 +1,9 @@
 import {
   BODY_TYPES,
   DEFAULT_APPEARANCE,
+  EXTRA_STYLES,
   FACE_STYLES,
+  FEMININE_LOOK,
   HAIR_COLORS,
   HAIR_STYLES,
   LABELS,
@@ -64,7 +66,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
     walkBtn.replaceChildren(on ? '■ Parar' : '▶ Andar', en(on ? 'Stop' : 'Walk', true));
   });
 
-  const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →', en('Enter the Praça', true));
+  const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →', en('Enter the Praça (the square)', true));
   const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo… (e.g. Jonny, Bia, Leo…)', 'aria-label': 'Nome', id: 'avatar-name' });
   const nameErr = h('div', { class: 'feedback s1', style: 'display:none' });
   const setErr = (pt: string, enText: string) => {
@@ -99,7 +101,13 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
     refresh.push(render);
     return wrap;
   };
+  /** What the player picked by hand: "ela" / "ele" only fill in the rest (FEMININE_LOOK), never undo a choice. */
+  const touched = new Set<'hair' | 'face' | 'extra' | 'outfit'>();
   const outfit = () => STARTER_OUTFITS.find((o) => (Object.keys(o.set) as (keyof typeof o.set)[]).every((k) => a[k] === o.set[k]))?.id ?? '';
+  const wearOutfit = (id: string) => {
+    const o = STARTER_OUTFITS.find((x) => x.id === id);
+    if (o) Object.assign(a, o.set);
+  };
   const presets = h('div', { class: 'chips' });
   const renderPresets = () =>
     presets.replaceChildren(
@@ -111,7 +119,8 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
             type: 'button',
             'data-outfit': o.id,
             onclick: () => {
-              Object.assign(a, o.set);
+              touched.add('outfit');
+              wearOutfit(o.id);
               refresh.forEach((r) => r());
             },
           },
@@ -124,12 +133,25 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
   refresh.push(renderPresets);
   const field = (pt: string, enText: string, control: HTMLElement) => h('div', { class: 'field' }, h('label', null, pt, en(enText)), control);
 
+  /** "ela": long hair, the sweet face, earrings, the blouse and skirt, wherever the player has not chosen yet; "ele": the neutral default. */
+  const lookFor = (v: Pronoun) => {
+    const fem = v === 'ela';
+    if (v === 'nome') return;
+    if (!touched.has('hair')) a.hair = fem ? FEMININE_LOOK.hair : DEFAULT_APPEARANCE.hair;
+    if (!touched.has('face')) a.face = fem ? FEMININE_LOOK.face : DEFAULT_APPEARANCE.face;
+    if (!touched.has('extra')) a.extra = fem ? FEMININE_LOOK.extra : DEFAULT_APPEARANCE.extra;
+    if (!touched.has('outfit')) wearOutfit(fem ? FEMININE_LOOK.outfit : STARTER_OUTFITS[0].id);
+    refresh.forEach((r) => r());
+  };
   const pronounChips = chips(
     ['ele', 'ela', 'nome'] as const,
     (v) => ({ ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' })[v],
     null,
     () => pronoun,
-    (v) => (pronoun = v),
+    (v) => {
+      pronoun = v;
+      lookFor(v);
+    },
   );
 
   go.addEventListener('click', () => {
@@ -180,12 +202,13 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
             'Your look',
             'cr-look',
             field('Corpo', 'Body', chips(BODY_TYPES, (v) => LABELS.body[v], (v) => LABELS_EN.body[v], () => a.body, (v) => (a.body = v))),
-            field('Rosto', 'Face', chips(FACE_STYLES, (v) => LABELS.face[v], (v) => LABELS_EN.face[v], () => a.face ?? 'suave', (v) => (a.face = v))),
+            field('Rosto', 'Face', chips(FACE_STYLES, (v) => LABELS.face[v], (v) => LABELS_EN.face[v], () => a.face ?? 'suave', (v) => (touched.add('face'), (a.face = v)))),
             field('Tom de pele', 'Skin tone', swatches(SKIN_TONES, () => a.skin, (i) => (a.skin = i))),
             field('Cor do cabelo', 'Hair color', swatches(HAIR_COLORS, () => a.hairColor, (i) => (a.hairColor = i))),
-            h('div', { class: 'field cr-wide' }, h('label', null, 'Cabelo', en('Hair')), chips(HAIR_STYLES, (v) => LABELS.hair[v], (v) => LABELS_EN.hair[v], () => a.hair, (v) => (a.hair = v))),
+            h('div', { class: 'field cr-wide' }, h('label', null, 'Cabelo', en('Hair')), chips(HAIR_STYLES, (v) => LABELS.hair[v], (v) => LABELS_EN.hair[v], () => a.hair, (v) => (touched.add('hair'), (a.hair = v)))),
+            h('div', { class: 'field cr-wide' }, h('label', null, 'Detalhe', en('Extra')), chips(EXTRA_STYLES, (v) => LABELS.extra[v], (v) => LABELS_EN.extra[v], () => a.extra ?? 'nenhum', (v) => (touched.add('extra'), (a.extra = v)))),
           ),
-          sec('Roupa', 'Outfit', 'cr-outfit', field('Visual inicial', 'Starter outfit (tee and jeans only). Hats and more clothes are at Nanda’s stall.', presets)),
+          sec('Roupa', 'Outfit', 'cr-outfit', field('Visual inicial', 'Starter outfit (both free). Hats and more clothes are at Nanda’s stall.', presets)),
           h('div', { class: 'rules rules-m' }, 'Regras da praça', en('Square rules — kind chat only; no personal info (phone, address, school, social handles); no dating, alcohol, slurs or politics. Chat is filtered.')),
           h('div', { class: 'creator-cta' }, h('div', { class: 'row' }, h('span', { class: 'spacer' }), go)),
         ),

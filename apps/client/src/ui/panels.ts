@@ -29,7 +29,7 @@ import {
   type SceneView,
 } from '@tudobem/shared';
 import { game } from '../state';
-import { h, en, bi, ui, clear } from './dom';
+import { h, en, bi, ui, clear, rvPriceNote } from './dom';
 import { TIER_HEX, tierChip } from './plate';
 import { mountCharPreview, setHatIcon, setParrotIcon } from '../render/pixel/charPreview';
 import { newlyOwned, shortBy, splitStall } from './stallLogic';
@@ -243,7 +243,7 @@ export function wireParrotShop(send: { buy: (id: string) => void; equip: (id: st
 /** The RV wallet in a stall's header; it flashes when a buy takes coins out. */
 function stallWallet(): { el: HTMLElement; set: (coins: number) => void } {
   const amount = h('b', { id: 'shop-coins' });
-  const el = h('span', { class: 'stall-wallet', title: 'Seus reais virtuais · Your virtual reais' }, h('span', { class: 'coin' }), amount);
+  const el = h('span', { class: 'stall-wallet', title: 'Seus reais virtuais (RV) · Your reais virtuais (RV), the game’s play money' }, h('span', { class: 'coin' }), amount);
   let last: number | null = null;
   return {
     el,
@@ -403,6 +403,7 @@ export function openParrotShop(actions: { buy: (id: string) => void; equip: (id:
       closeBtn(() => close()),
       h('div', { class: 'stall-head' }, h('h2', null, 'Puleiro dos Pássaros'), wallet.el),
       en('Bird perch · pick a bird. It whispers study words — it does not translate. Cosmetic only.'),
+      rvPriceNote(),
       h('div', { class: 'shop' }, stallVitrine(canvas, says), goods),
     ),
     {
@@ -493,7 +494,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
       );
     } else {
       const list = ALL_HATS.filter((x) => prof.hats.includes(x.id));
-      goods.replaceChildren(list.length ? h('div', { class: 'grid-items' }, ...list.map(card)) : h('div', { class: 'stall-empty' }, 'Você ainda não tem chapéus.', en('No hats yet — visit Nanda’s stall in the Praça.')));
+      goods.replaceChildren(list.length ? h('div', { class: 'grid-items' }, ...list.map(card)) : h('div', { class: 'stall-empty' }, 'Você ainda não tem chapéus.', en('No hats yet — visit Nanda’s stall in the Praça (the square).')));
     }
   };
   render();
@@ -509,6 +510,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
       closeBtn(() => close()),
       h('div', { class: 'stall-head' }, h('h2', null, mode === 'shop' ? 'Chapéus da Nanda' : 'Meus chapéus'), wallet.el),
       en(mode === 'shop' ? 'Nanda’s hat stall — try one on! Cosmetic only; some are free.' : 'Your hats — wear one anywhere.'),
+      mode === 'shop' ? rvPriceNote() : null,
       h('div', { class: 'shop' }, stallVitrine(canvas, nandaSays), goods),
     ),
     {
@@ -704,6 +706,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
         : h(
             'div',
             { class: 'list' },
+            rvPriceNote(),
             ...FURNITURE.filter((d) => !d.earned).map((d) =>
               h(
                 'button',

@@ -114,7 +114,8 @@ describe('language diary catalog', () => {
 /** The catalog v2 (2026-10-03): every area and source count, and where each word is earned. */
 describe('language diary catalog v2', () => {
   const TOTALS: Record<string, [number, number, number, number]> = {
-    chegada: [14, 6, 5, 0],
+    // + every part of the plane at the gate (#226): motor, cauda, nariz, porta, roda, fuselagem
+    chegada: [20, 6, 5, 0],
     praca: [98, 15, 9, 0],
     rua: [51, 31, 0, 0],
     padaria: [38, 6, 6, 5],
@@ -124,15 +125,15 @@ describe('language diary catalog v2', () => {
     escola: [22, 5, 3, 1],
   };
 
-  it('has 490 words: the counts of every area and source, 135 that were already anchored and 355 that were added', () => {
-    expect(DIARY_WORDS).toHaveLength(490);
+  it('has 496 words: the counts of every area and source, 135 that were already anchored and 361 that were added', () => {
+    expect(DIARY_WORDS).toHaveLength(496);
     for (const [area, want] of Object.entries(TOTALS)) {
       const got = DIARY_SOURCES.map((src) => DIARY_WORDS.filter((w) => w.area === area && w.source === src).length);
       expect(got, area).toEqual(want);
     }
     expect(DIARY_AREAS.map((a) => a.id)).toEqual(Object.keys(TOTALS));
     expect(DIARY_WORDS.filter((w) => w.origin === 'existing')).toHaveLength(135);
-    expect(DIARY_WORDS.filter((w) => w.origin === 'added')).toHaveLength(355);
+    expect(DIARY_WORDS.filter((w) => w.origin === 'added')).toHaveLength(361);
     for (const w of DIARY_WORDS) expect(w.needsBr, w.id).toBe(true);
   });
 

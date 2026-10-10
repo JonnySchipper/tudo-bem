@@ -14,7 +14,7 @@ import {
   earnedTier,
   normalizeFilm,
   normalizePhotos,
-  normalizeNpcMemory,
+  normalizePapos,
   normalizeRecados,
   type PrivateProfile,
 } from '@tudobem/shared';
@@ -28,10 +28,6 @@ export interface StoredProfile extends PrivateProfile {
   daily: {
     date: string;
     sceneClears: Record<string, number>;
-    /** Conversa daily cap: npcId -> America/Sao_Paulo date (YYYY-MM-DD). */
-    conversaClears?: Record<string, string>;
-    /** Conversa RV already paid: npcId -> America/Sao_Paulo date. */
-    conversaRvGranted?: Record<string, string>;
     /** Pedido rápido RV already paid: npcId -> America/Sao_Paulo date. Once per calendar day. */
     pedidoRvGranted?: Record<string, string>;
   };
@@ -315,7 +311,9 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.recados = normalizeRecados(p.recados);
   p.caderno = normalizeCaderno(p.caderno);
   p.cadernoPaid = normalizeCadernoPaid(p.cadernoPaid);
-  p.npcMemory = normalizeNpcMemory(p.npcMemory);
+  p.papos = normalizePapos(p.papos);
+  // the Conversa feature (and the NPC memory of it) was removed (#229): old saves drop the field
+  delete (p as { npcMemory?: unknown }).npcMemory;
   p.feira = normalizeFeira(p.feira);
   const arrival = normalizeArrival(p);
   p.arrivalIntroDone = arrival.arrivalIntroDone;

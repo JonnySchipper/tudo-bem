@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { FEIRA_GAME_MAX_SCORE, judgeFeiraResult } from './feiraGames.js';
 import {
   PASTEL_COMBO_FROM,
+  PASTEL_DURATION_MS,
   PASTEL_FRY,
+  PASTEL_FRY_COMBO,
   PASTEL_RECIPE,
   pastelComboTurn,
   pastelDoneness,
@@ -66,10 +68,17 @@ describe('pastel fry ladder', () => {
   });
 
   it('gives a combo a shorter golden window', () => {
-    expect(pastelDoneness(2_000, true)).toBe('golden');
-    expect(pastelDoneness(2_000, false)).toBe('raw');
-    expect(pastelDoneness(6_800, true)).toBe('fire');
-    expect(pastelDoneness(6_800, false)).toBe('black');
+    expect(PASTEL_FRY_COMBO.goldenAt).toBeLessThan(PASTEL_FRY.goldenAt);
+    expect(pastelDoneness(PASTEL_FRY_COMBO.goldenAt, true)).toBe('golden');
+    expect(pastelDoneness(PASTEL_FRY_COMBO.goldenAt, false)).toBe('raw');
+    expect(pastelDoneness(PASTEL_FRY_COMBO.fireAt, true)).toBe('fire');
+    expect(pastelDoneness(PASTEL_FRY_COMBO.fireAt, false)).not.toBe('fire');
+  });
+
+  it('fries slowly enough to work a second pastel while one is in the oil', () => {
+    expect(PASTEL_FRY.goldenAt).toBeGreaterThanOrEqual(4_500);
+    expect(PASTEL_FRY.darkAt - PASTEL_FRY.goldenAt).toBeGreaterThanOrEqual(3_000);
+    expect(PASTEL_FRY_COMBO.darkAt - PASTEL_FRY_COMBO.goldenAt).toBeGreaterThanOrEqual(2_500);
   });
 
   it('scores a burnt pastel as a soft fail and never ends the run', () => {
@@ -90,13 +99,13 @@ describe('pastel scoring', () => {
     const seed = 4;
     const orders = pastelOrders(seed);
     const outcomes = orders.map((o, i) => ({ i, quality: 'perfect' as const, atMs: o.at + 800 }));
-    const judged = judgeFeiraResult('pastel', seed, outcomes, 90_000);
+    const judged = judgeFeiraResult('pastel', seed, outcomes, PASTEL_DURATION_MS);
     expect(judged.ok).toBe(true);
     if (!judged.ok) return;
     expect(judged.served).toBe(orders.length);
     expect(judged.perfect).toBe(orders.length);
     expect(judged.score).toBe(FEIRA_GAME_MAX_SCORE);
-    expect(scorePastel(seed, outcomes, 90_000).score).toBe(FEIRA_GAME_MAX_SCORE);
+    expect(scorePastel(seed, outcomes, PASTEL_DURATION_MS).score).toBe(FEIRA_GAME_MAX_SCORE);
   });
 
   it('pays a burnt run less than a golden one, and still accepts it', () => {
@@ -104,8 +113,8 @@ describe('pastel scoring', () => {
     const orders = pastelOrders(seed);
     const burnt = orders.map((o, i) => ({ i, quality: 'soft' as const, atMs: o.at + 800 }));
     const golden = orders.map((o, i) => ({ i, quality: 'perfect' as const, atMs: o.at + 800 }));
-    const soft = judgeFeiraResult('pastel', seed, burnt, 90_000);
-    const perfect = judgeFeiraResult('pastel', seed, golden, 90_000);
+    const soft = judgeFeiraResult('pastel', seed, burnt, PASTEL_DURATION_MS);
+    const perfect = judgeFeiraResult('pastel', seed, golden, PASTEL_DURATION_MS);
     expect(soft.ok && perfect.ok).toBe(true);
     if (!soft.ok || !perfect.ok) return;
     expect(soft.score).toBeGreaterThan(0);

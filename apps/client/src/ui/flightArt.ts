@@ -331,9 +331,21 @@ export const PLANE_H = 30;
 
 const planeCache = new Map<string, HTMLCanvasElement>();
 
+/** Brazil's flag on the tail fin: a green field, the yellow rhombus, the blue disc with its white band. No red anywhere on the plane. */
+export const FLAG = { green: '#2e9e5b', greenLo: '#2a7a45', yellow: '#f5cf3f', blue: '#2b4fa8', white: '#ffffff' } as const;
+
+export function finColor(x: number, y: number): string {
+  const dx = x - 13;
+  const dy = y - 5;
+  // the band: a white stripe across the disc, rising to the right
+  if (dx * dx + dy * dy <= 5) return Math.round(dy + dx * 0.25) === 0 ? FLAG.white : FLAG.blue;
+  if (Math.abs(dx) / 5.5 + Math.abs(dy) / 3.6 <= 1) return FLAG.yellow;
+  return x <= 9 - (10 - y) * 0.6 + 1.5 ? FLAG.greenLo : FLAG.green;
+}
+
 /**
- * The airliner, side view, nose to the right: a white body with Brazil's green and yellow along it, a green tail with a yellow ipê
- * flower, windows lit warm at night.
+ * The airliner, side view, nose to the right: a white body with Brazil's green and yellow along it, the flag of Brazil on the tail,
+ * windows lit warm at night.
  */
 export function planeSprite(lit: boolean): HTMLCanvasElement {
   const key = lit ? 'lit' : 'day';
@@ -365,12 +377,7 @@ export function planeSprite(lit: boolean): HTMLCanvasElement {
         if (y <= top(x) + 0.8) return '#ffffff';
         return '#f3f0ea';
       }
-      if (inFin(x, y)) {
-        // the ipê: a yellow flower on the green tail
-        const d = (x - 13) ** 2 + (y - 5) ** 2;
-        if (d <= 3) return d === 0 ? '#e5572f' : '#f5cf3f';
-        return x <= 9 - (10 - y) * 0.6 + 1.5 ? '#2a7a45' : '#2e9e5b';
-      }
+      if (inFin(x, y)) return finColor(x, y);
       if (inTailplane(x, y)) return '#c3c0c9';
       return null;
     },
@@ -424,7 +431,8 @@ export function drawPlane(ctx: CanvasRenderingContext2D, p: PlanePose) {
   if (p.lights) {
     const blink = Math.sin(p.t * 6) > 0.6;
     const strobe = p.t % 1.4 < 0.08;
-    rect(ctx, ox + 33, oy + 27, 2, 1, blink ? '#ff4a4a' : '#8a2a2a');
+    // the wing tip's nav light (green: this is the starboard side)
+    rect(ctx, ox + 33, oy + 27, 2, 1, blink ? '#5dff8a' : '#1f7a45');
     if (strobe) {
       ctx.globalAlpha = 0.9;
       rect(ctx, ox + 2, oy + 0, 3, 3, '#ffffff');
@@ -433,7 +441,7 @@ export function drawPlane(ctx: CanvasRenderingContext2D, p: PlanePose) {
       ctx.globalAlpha = 1;
     }
     // the beacon on the belly
-    if (Math.sin(p.t * 3.2) > 0.3) rect(ctx, ox + 60, oy + 20, 2, 1, '#ff6b4a');
+    if (Math.sin(p.t * 3.2) > 0.3) rect(ctx, ox + 60, oy + 20, 2, 1, '#fff3c8');
   }
   ctx.restore();
 }
@@ -652,6 +660,46 @@ export function cabinLayout(w: number, h: number): CabinLayout {
   const windows: { x: number; y: number }[] = [];
   for (let x = mySeat - 37 - PITCH * Math.ceil((mySeat + 40) / PITCH); x < w + PITCH; x += PITCH) windows.push({ x, y: winY });
   return { seatY, mySeat, nextSeat: mySeat + 24, aisleX: mySeat + 57, floorY, windows, sign: { x: mySeat + 12, y: winY - 26 } };
+}
+
+/** Seat pitch along a row, art px. */
+export const SEAT_PITCH = 24;
+/** How far up the row behind sits: only its headrests and its passengers' heads show over the row in front. */
+export const BACK_ROW_RISE = 18;
+
+/**
+ * A full cabin: the player's row runs across the screen (seats on the window side of the aisle, the player's and the sleeper's among
+ * them, then more past the aisle where Lia stands), and the row behind it shows over their headrests. Seat centres, art px, left to right.
+ */
+export function cabinRows(L: CabinLayout, w: number): { front: number[]; back: number[] } {
+  const front: number[] = [];
+  for (let x = L.mySeat - SEAT_PITCH * Math.ceil((L.mySeat + 12) / SEAT_PITCH); x <= L.nextSeat; x += SEAT_PITCH) front.push(x);
+  for (let x = L.aisleX + 36; x < w + 12; x += SEAT_PITCH) front.push(x);
+  // the row behind sits half a seat over, so its heads show between the headrests in front
+  const back = front.map((x) => x + SEAT_PITCH / 2).filter((x) => Math.abs(x - L.aisleX) > 18);
+  return { front, back };
+}
+
+/** A folded newspaper held in front of a seated passenger (chest at `y`); its page turns now and then. */
+export function drawNewspaper(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, phase: number) {
+  const turning = (t + phase) % 7 < 0.35;
+  const w = turning ? 6 : 12;
+  const x0 = Math.round(x - 6);
+  rect(ctx, x0 - 1, y - 1, 14, 10, '#2a2233');
+  rect(ctx, x0, y, 12, 8, '#efe9dc');
+  if (turning) rect(ctx, x0 + 6, y - 1, 7, 9, '#d9d2c2');
+  ctx.fillStyle = '#9a9488';
+  for (let ly = 2; ly < 8; ly += 2) ctx.fillRect(x0 + 1, y + ly, w - 2 - (ly === 4 ? 3 : 0), 1);
+  rect(ctx, x0 + 1, y + 1, 4, 1, '#2e9e5b');
+}
+
+/** A small coffee cup: it rests on the armrest and comes up for a sip every few seconds (`k` 0 resting, 1 at the lips). */
+export function drawCup(ctx: CanvasRenderingContext2D, x: number, y: number, k: number) {
+  const cy = Math.round(y - k * 7);
+  rect(ctx, x - 1, cy - 1, 5, 6, '#2a2233');
+  rect(ctx, x, cy, 3, 4, '#ffffff');
+  rect(ctx, x, cy, 3, 1, '#8a5a3a');
+  rect(ctx, x + 3, cy + 1, 1, 2, '#2a2233');
 }
 
 const seatCache = new Map<string, HTMLCanvasElement>();

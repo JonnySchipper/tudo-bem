@@ -31,19 +31,20 @@ export const TAPIOCA_FILLING_LABEL: Record<TapiocaFilling, Bilingual> = {
   goiabada: { pt: 'goiabada', en: 'guava paste' },
 };
 
-/** A run is about 90 seconds. Customers stop arriving a little before the end so the last one can be served. */
-export const TAPIOCA_DURATION_MS = 90_000;
+/** A run is two minutes. Customers stop arriving a little before the end so the last one can be served. */
+export const TAPIOCA_DURATION_MS = 120_000;
 /** First customer walks up almost immediately. */
 const FIRST_AT = 1_200;
 /** Gap between arrivals. Tightens once the second and third pans unlock. */
-const GAP_MS = 7_400;
+const GAP_MS = 9_800;
 /** How many customers a full run deals. */
 export const TAPIOCA_CUSTOMERS = 11;
 
-export const TAPIOCA_PATIENCE_MS = 22_000;
+/** Long enough to start the other pans while one cooks. */
+export const TAPIOCA_PATIENCE_MS = 45_000;
 
-/** Pan cook window. Flip inside `[cookMs - early, cookMs + late]`. */
-export const TAPIOCA_COOK = { cookMs: 2800, earlyMs: 700, lateMs: 900 } as const;
+/** Pan cook window. Flip inside `[cookMs - early, cookMs + late]`. Slow on purpose: juggle the other pans while one sets. */
+export const TAPIOCA_COOK = { cookMs: 7000, earlyMs: 1500, lateMs: 2200 } as const;
 
 /** Second pan unlocks after this many serves; third after this many. */
 export const TAPIOCA_PAN_UNLOCK = [0, 3, 6] as const;
@@ -80,7 +81,7 @@ export function tapiocaOrders(seed: number): TapiocaOrder[] {
     const polite = rng() < 0.65;
     out.push({
       at,
-      patienceMs: TAPIOCA_PATIENCE_MS - (i > 7 ? 3_000 : 0),
+      patienceMs: TAPIOCA_PATIENCE_MS - (i > 7 ? 5_000 : 0),
       who: who.id,
       name: who.name,
       filling,

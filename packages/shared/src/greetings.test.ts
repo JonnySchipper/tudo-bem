@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { localizeGreeting, localizeGreetingText, greetingFor } from './clock.js';
 import { chooseChip, scoreTypedReply, viewNode, type SceneCtx } from './carlos.js';
-import { CONVERSA_CAST, CONVERSA_SUBJECTS, buildCarlosSystemPrompt, presentConversaTurn, subjectChoices, subjectOpen } from './conversa.js';
+import { papoById } from './papos.js';
+import { fillTalk } from './npcTalk.js';
 import { makeOrder, mulberry32 } from './meveum.js';
 import { VENDORS } from './feira.js';
 
@@ -47,21 +48,10 @@ describe('greetings follow the game hour', () => {
     }
   });
 
-  it('Conversa lines and chips follow the hour; the AI prompt states it', () => {
-    const t = presentConversaTurn(
-      { line: { pt: 'Bom dia! O que vai ser hoje?', en: 'Good morning! What will it be?' }, chips: [{ pt: 'Bom dia, Seu Carlos!', en: 'Good morning, Seu Carlos!' }, { pt: 'Uma coxinha, por favor.', en: 'A coxinha, please.' }], scores: { portuguese: 2, grammar: 2, conversation: 2 }, tip: null, end: false, order: {} },
-      [],
-      at(17, 30),
-    );
-    expect(t.line).toEqual({ pt: 'Boa tarde! O que vai ser hoje?', en: 'Good afternoon! What will it be?' });
-    expect(t.chips[0]).toEqual({ pt: 'Boa tarde, Seu Carlos!', en: 'Good afternoon, Seu Carlos!' });
-    expect(t.chips[1]!.pt).toBe('Uma coxinha, por favor.');
-    // without a minute nothing is touched
-    expect(presentConversaTurn({ ...t, line: { pt: 'Bom dia!', en: '' } }).line.pt).toBe('Bom dia!');
-    const prompt = buildCarlosSystemPrompt(CONVERSA_SUBJECTS.cafe_da_manha!, { playerName: 'Ana', pronoun: 'ela', nameplate: 'verde', minute: at(17, 30) });
-    expect(prompt).toContain('17:30');
-    expect(prompt).toContain('"Boa tarde"');
-    expect(buildCarlosSystemPrompt(CONVERSA_SUBJECTS.cafe_da_manha!, { playerName: 'Ana', pronoun: 'ela', nameplate: 'verde' })).not.toContain('TIME OF DAY');
+  it('a bate-papo greets by the hour', () => {
+    const line = papoById('carlos.cedo')!.nodes.oi!.line;
+    expect(fillTalk(line.pt, { name: 'Ana', minute: at(17, 30) })).toMatch(/^Boa tarde, Ana!/);
+    expect(fillTalk(line.en, { name: 'Ana', minute: at(9) })).toMatch(/^Good morning, Ana!/);
   });
 
   it('Me vê um customers greet by the hour without changing the tray', () => {
@@ -88,26 +78,5 @@ describe('greetings follow the game hour', () => {
     expect(greetingFor(at(11, 59))).toBe('bom dia');
     expect(greetingFor(at(12))).toBe('boa tarde');
     expect(greetingFor(at(18))).toBe('boa noite');
-  });
-});
-
-describe('the extra Conversa subject (4 hearts)', () => {
-  it('opens at 4 hearts for the NPCs that have a Conversa, and only for them', () => {
-    expect(subjectChoices('carlos', 0).map((s) => s.id)).toEqual(['cafe_da_manha']);
-    expect(subjectChoices('carlos', 3).map((s) => s.id)).toEqual(['cafe_da_manha']);
-    expect(subjectChoices('carlos', 4).map((s) => s.id)).toEqual(['cafe_da_manha', 'o_bairro']);
-    expect(subjectChoices('graca', 9).map((s) => s.id)).toEqual(['cafe_da_manha', 'o_bairro']);
-    expect(subjectChoices('nanda', 10)).toEqual([]);
-    expect(subjectOpen(CONVERSA_SUBJECTS.o_bairro!, 3)).toBe(false);
-    expect(subjectOpen(CONVERSA_SUBJECTS.o_bairro!, 4)).toBe(true);
-    expect(subjectOpen(CONVERSA_SUBJECTS.cafe_da_manha!, 0)).toBe(true);
-  });
-
-  it('is A1 small talk with openers, chips and key phrases', () => {
-    const s = CONVERSA_SUBJECTS.o_bairro!;
-    expect(s.seedOpeners.length).toBeGreaterThanOrEqual(3);
-    expect(s.seedChipSets!.length).toBe(s.seedOpeners.length);
-    for (const set of s.seedChipSets!) expect(set).toHaveLength(3);
-    for (const npc of ['carlos', 'graca'] as const) expect(CONVERSA_CAST[npc].subjects).toContain(s);
   });
 });

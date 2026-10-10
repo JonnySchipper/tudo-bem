@@ -6,10 +6,11 @@ import { numberPt } from './numbers.js';
 import { buildGrid, canPlaceFurniture, key, openMatTiles, ROOMS, isWalkable, seatTiles } from './rooms.js';
 import { SCHEDULES } from './schedules.js';
 import { findPath, positionAlong, pathDuration } from './path.js';
-import { ACADEMIA_AMBIANCE, ambianceNavGrid } from './ambiance.js';
+import { ACADEMIA_AMBIANCE, CPU_NAMES, ambianceNavGrid } from './ambiance.js';
+import { CPU_LOOKS_A, CPU_LOOKS_B, cpuLook, readsFeminine } from './looks.js';
 import { classifyChat } from './safety.js';
 import { HATS, FURNITURE, hatById, isStallHat } from './catalog.js';
-import { DEFAULT_APPEARANCE, STARTER_OUTFITS } from './constants.js';
+import { DEFAULT_APPEARANCE, FEMININE_LOOK, STARTER_OUTFITS } from './constants.js';
 
 describe('numbers', () => {
   it('spells Portuguese numbers with agreement', () => {
@@ -262,12 +263,30 @@ describe('catalog', () => {
   });
 });
 
+describe('looks meant to be female read as female', () => {
+  const marked = (a: { hair: string; face?: string; extra?: string }) => ['longo', 'coque', 'trancas', 'ondulado'].includes(a.hair) || a.extra === 'brincos' || a.face === 'doce';
+  it('gives every feminine CPU look, every name that wears one and every woman NPC a clear marker; masculine looks never the sweet face', () => {
+    for (const [id, x] of Object.entries(CPU_LOOKS_A)) for (const hair of x.hair) expect(marked({ hair, extra: x.extra.includes('brincos') ? 'brincos' : undefined, face: x.face.includes('doce') ? 'doce' : undefined }), id).toBe(true);
+    for (const [id, x] of Object.entries(CPU_LOOKS_B)) expect(x.face, id).not.toContain('doce');
+    for (const name of CPU_NAMES) {
+      const look = cpuLook(name);
+      if (readsFeminine(name)) expect(marked(look.appearance), name).toBe(true);
+      else expect(look.appearance.face, name).not.toBe('doce');
+    }
+    const women = ['nanda', 'julia', 'tia_lu', 'rosa', 'graca', 'prof', 'lucia', 'celia', 'comissaria'];
+    for (const room of Object.values(ROOMS)) for (const n of room.npcs) if (women.includes(n.id) && n.appearance) expect(marked(n.appearance), n.id).toBe(true);
+  });
+});
+
 describe('slim avatar create', () => {
-  it('offers one clothing-only starter outfit and keeps a full saved appearance', () => {
-    expect(STARTER_OUTFITS).toHaveLength(1);
-    expect(STARTER_OUTFITS[0].id).toBe('visual_inicial');
-    expect(Object.keys(STARTER_OUTFITS[0].set).sort()).toEqual(['bottom', 'bottomColor', 'shoes', 'top', 'topColor']);
+  it('offers two free clothing-only starter outfits (tee and jeans, blouse and skirt) and keeps a full saved appearance', () => {
+    expect(STARTER_OUTFITS.map((o) => o.id)).toEqual(['visual_inicial', 'visual_saia']);
+    for (const o of STARTER_OUTFITS) expect(Object.keys(o.set).sort()).toEqual(['bottom', 'bottomColor', 'shoes', 'top', 'topColor']);
     expect(STARTER_OUTFITS[0].set).toMatchObject({ top: 'camiseta', bottom: 'calca' });
+    expect(STARTER_OUTFITS[1].set).toMatchObject({ top: 'blusa', bottom: 'saia' });
+    // "ela" offers a look that reads as a girl's: long hair, the sweet face, earrings, the skirt
+    expect(FEMININE_LOOK).toEqual({ hair: 'longo', face: 'doce', extra: 'brincos', outfit: 'visual_saia' });
+    expect(STARTER_OUTFITS.some((o) => o.id === FEMININE_LOOK.outfit)).toBe(true);
     expect(DEFAULT_APPEARANCE.extra).toBe('nenhum');
     expect(DEFAULT_APPEARANCE.hair).toBeTruthy();
     expect(DEFAULT_APPEARANCE.face).toBeTruthy();

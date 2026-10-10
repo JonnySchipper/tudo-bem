@@ -11,8 +11,9 @@ import { DIARY_SFX, playDiarySfx, type DiarySfx } from './audio/diarySfx';
 import { FLIGHT_SFX, playFlightSfx, type FlightSfx } from './audio/flightSfx';
 import { CARRY_SFX, playCarrySfx, type CarrySfx } from './audio/carrySfx';
 import { playAchadoSfx, type AchadoSfx } from './audio/achadoSfx';
+import { FEIRA_SFX, playFeiraSfx, type FeiraSfx } from './audio/feiraSfx';
 
-const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pop', 'pour', 'glug', 'ding', 'clink', 'chain', 'cash', 'paper', 'chime', 'nope', 'combo', 'tick', 'slap', 'sigh', 'juicer'] as const;
+const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pop', 'pour', 'glug', 'ding', 'clink', 'chain', 'cash', 'paper', 'chime', 'nope', 'combo', 'tick', 'slap', 'sigh', 'juicer', 'line'] as const;
 
 /**
  * Room beds made in Web Audio — no samples, no paid service.
@@ -689,7 +690,7 @@ class Ambience {
   }
 
   /** One sound effect (mat slap, crowd, whistle, a bite...). `gain` below 1 plays it quieter (someone else, further away). Silent until the browser lets the context run; goes through the same duck gain as the beds. */
-  sfx(kind: BoutSfx | CorreriaSfx | DiarySfx | CarrySfx | FlightSfx, gain = 1) {
+  sfx(kind: BoutSfx | CorreriaSfx | DiarySfx | CarrySfx | FlightSfx | FeiraSfx, gain = 1) {
     const ctx = this.ctx;
     if (!ctx || !this.bedIn || !this.unlocked || ctx.state !== 'running') return;
     this.whiteBuf ??= whiteBuffer(ctx, 1);
@@ -702,7 +703,8 @@ class Ambience {
         g.connect(out);
         out = g;
       }
-      if ((FLIGHT_SFX as readonly string[]).includes(kind)) playFlightSfx(ctx, out, this.whiteBuf, kind as FlightSfx);
+      if ((FEIRA_SFX as readonly string[]).includes(kind)) playFeiraSfx(ctx, out, this.whiteBuf, kind as FeiraSfx);
+      else if ((FLIGHT_SFX as readonly string[]).includes(kind)) playFlightSfx(ctx, out, this.whiteBuf, kind as FlightSfx);
       else if ((CARRY_SFX as readonly string[]).includes(kind)) playCarrySfx(ctx, out, this.whiteBuf, kind as CarrySfx);
       else if ((DIARY_SFX as readonly string[]).includes(kind)) playDiarySfx(ctx, out, this.whiteBuf, kind as DiarySfx);
       else if ((CORRERIA_SFX as readonly string[]).includes(kind)) playCorreriaSfx(ctx, out, this.whiteBuf, kind as CorreriaSfx);

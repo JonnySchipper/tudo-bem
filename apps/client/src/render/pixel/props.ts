@@ -60,14 +60,18 @@ const CHAIR_SUFFIX: Record<string, string> = { SE: 'e', SW: 's', NE: 'n', NW: 'w
 
 /** Long props drawn as one 1-tile slice per tile of their footprint (`<base>_<i>_of_<w>`, like the balcão counter and the bleachers). */
 const SLICED: Partial<Record<PropKind, string>> = { balcao: 'props/balcao', banco_espectador: 'props/banco_espectador' };
+/** The width the slices were drawn for. Another width reuses them: the left end, middle slices in turn, the right end (a player's shorter counter). */
+const SLICED_W: Partial<Record<PropKind, number>> = { balcao: 5, banco_espectador: 4 };
 
 /** The slice sprites of a sliced prop, left to right (a 1-tile-tall footprint), or null for a normal prop. */
 export function propSlices(p: PropDef): { key: string; x: number; y: number }[] | null {
   const base = SLICED[p.kind];
   if (!base) return null;
   const { w, h } = propSize(p);
+  const n = SLICED_W[p.kind] ?? w;
+  const slice = (i: number) => (n === w ? i : i === 0 ? 0 : i === w - 1 ? n - 1 : 1 + ((i - 1) % Math.max(1, n - 2)));
   const out: { key: string; x: number; y: number }[] = [];
-  for (let i = 0; i < w; i++) out.push({ key: `${base}_${i}_of_${w}`, x: p.x + i, y: p.y + h - 1 });
+  for (let i = 0; i < w; i++) out.push({ key: `${base}_${slice(i)}_of_${n}`, x: p.x + i, y: p.y + h - 1 });
   return out;
 }
 

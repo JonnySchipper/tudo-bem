@@ -1,5 +1,5 @@
 import { SCENE_NODE_IDS, viewNode, type SceneCtx } from './carlos.js';
-import { CARLOS_AUTHORED_FALLBACK, CONVERSA_CAST } from './conversa.js';
+import { PAPOS } from './papos.js';
 import { GOODS, OFF_DUTY, VENDORS, moneyPt, priceLine, resultLine, totalLine, type StallVendorId, type VendorId } from './feira.js';
 import { NPC_TALK, fillTalk } from './npcTalk.js';
 import { challengeBank, finishBank } from './challenges.js';
@@ -111,13 +111,11 @@ export function collectSpokenLines(): SpokenLine[] {
                 for (const baker of COUNTER_BAKERS) add(baker, viewNode(nodeId, ctx)?.line.pt, `counter scene ${nodeId}`);
               }
   }
-  for (const baker of COUNTER_BAKERS) {
-    add(baker, CARLOS_AUTHORED_FALLBACK.opener.pt, 'conversa fallback opener');
-    for (const b of CARLOS_AUTHORED_FALLBACK.beats) for (const r of b.responses) add(baker, r.pt, 'conversa fallback beat');
-  }
-  for (const cast of Object.values(CONVERSA_CAST)) {
-    if (!cast.enabled) continue;
-    for (const subject of cast.subjects) for (const o of subject.seedOpeners) for (const minute of MINUTES) add(cast.npc, localizeGreetingText(o, minute), `conversa ${cast.npc}/${subject.id}`);
+  // the bate-papos (pre-made conversations): every NPC line, every hour x both pronouns, without the name
+  for (const papo of PAPOS) {
+    for (const [id, node] of Object.entries(papo.nodes)) {
+      for (const minute of MINUTES) for (const pronoun of ['ele', 'ela']) add(papo.npc, spokenNameless(node.line.pt, { minute, pronoun }), `papo ${papo.id}.${id}`);
+    }
   }
 
   // signs, menus and posters read with 🔊 Ouvir

@@ -46,7 +46,7 @@ export const JULIA_LETTER = {
   body: [
     'Come to Vila Ipê! The ipê trees are in bloom, the pão de queijo is always warm, and there’s a little kitnet here waiting for you.',
     'Don’t worry about the language. Everybody here will help you, and you’ll learn faster than you think.',
-    'I’ll be waiting for you in the praça.',
+    'I’ll be waiting for you in the praça, the town square.',
   ],
   signoff: 'Beijos,',
   signature: 'Júlia',

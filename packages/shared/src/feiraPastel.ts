@@ -1,7 +1,7 @@
 /**
  * Pastel — the made-to-order Feira cart game.
  *
- * Grab dough, add the filling (two taps for a combo), crimp it with a fork, drop it in the oil.
+ * Drag the dough to the board, the filling onto it (two for a combo), the fork over it, then drag it into the oil.
  * Several pastels fry at once. Pull each one while it is golden. Leave it and it goes dark, then
  * black, then a charcoal block, then it catches fire. Burnt is a soft fail (score only), never
  * a game over. Orders are a pure function of the run seed, so the server knows what was ordered.
@@ -103,12 +103,12 @@ export function pastelFromParts(parts: readonly string[]): PastelFilling | null 
   return null;
 }
 
-/** A run is about 90 seconds. Customers stop arriving a little before the end so the last one can be served. */
-export const PASTEL_DURATION_MS = 90_000;
+/** A run is two minutes. Customers stop arriving a little before the end so the last one can be served. */
+export const PASTEL_DURATION_MS = 120_000;
 const FIRST_AT = 1_200;
-const GAP_MS = 7_200;
+const GAP_MS = 9_800;
 export const PASTEL_CUSTOMERS = 11;
-export const PASTEL_PATIENCE_MS = 24_000;
+export const PASTEL_PATIENCE_MS = 45_000;
 /** Combo fillings start at this customer index (0-based) and only on the odd indexes after that. */
 export const PASTEL_COMBO_FROM = 5;
 
@@ -149,7 +149,7 @@ export function pastelOrders(seed: number): PastelOrder[] {
     const polite = rng() < 0.65;
     out.push({
       at,
-      patienceMs: PASTEL_PATIENCE_MS - (i > 7 ? 3_000 : 0),
+      patienceMs: PASTEL_PATIENCE_MS - (i > 7 ? 5_000 : 0),
       who: who.id,
       name: who.name,
       filling,
@@ -221,19 +221,19 @@ export function pastelSlots(served: number): 1 | 2 | 3 {
  * Forgotten pastel: golden → dark → black → a black block → on fire.
  */
 export const PASTEL_FRY = {
-  goldenAt: 2_400,
-  darkAt: 4_200,
-  blackAt: 5_600,
-  blockAt: 7_000,
-  fireAt: 8_400,
+  goldenAt: 5_000,
+  darkAt: 8_500,
+  blackAt: 11_000,
+  blockAt: 13_500,
+  fireAt: 16_000,
 } as const;
 
 export const PASTEL_FRY_COMBO = {
-  goldenAt: 2_000,
-  darkAt: 3_200,
-  blackAt: 4_400,
-  blockAt: 5_600,
-  fireAt: 6_800,
+  goldenAt: 4_500,
+  darkAt: 7_500,
+  blackAt: 10_000,
+  blockAt: 12_500,
+  fireAt: 15_000,
 } as const;
 
 export type PastelDoneness = 'raw' | 'golden' | 'dark' | 'black' | 'block' | 'fire';

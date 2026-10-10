@@ -361,6 +361,40 @@ function langCounts(text: string) {
   return { en, pt };
 }
 
+/** Toast for a typed player line outside room chat (the Pedido rápido reply field). Warn is yellow; block and escalate share the block toast. */
+export interface PlayerLineNotice {
+  level: 'warn' | 'block';
+  pt: string;
+  en: string;
+}
+
+export interface PlayerLineGate {
+  action: SafetyAction;
+  /** False for block / escalate: the line must not be painted. */
+  deliver: boolean;
+  /** Verbatim player text when it delivers. Empty when it does not. Never rewritten. */
+  text: string;
+  /** Null only on allow. Warn and block always carry a toast. */
+  notice: PlayerLineNotice | null;
+}
+
+/**
+ * Gate A for a typed player line. Warn delivers the words unchanged (CEO-LOCKS §3 rewrite_not_used) and asks for a warn toast.
+ * Block and escalate stay out of the transcript and ask for a block toast.
+ */
+export function gatePlayerLine(raw: string): PlayerLineGate {
+  const verdict = classifyChat(raw);
+  if (verdict.action === 'block' || verdict.action === 'escalate') {
+    const note = verdict.note ?? { pt: 'Essa mensagem não pode ser enviada.', en: "That message can't be sent." };
+    return { action: verdict.action, deliver: false, text: '', notice: { level: 'block', pt: note.pt, en: note.en } };
+  }
+  if (verdict.action === 'warn') {
+    const note = verdict.note ?? { pt: 'Essa mensagem segue com um aviso.', en: 'That message goes through with a warning.' };
+    return { action: 'warn', deliver: true, text: verdict.text, notice: { level: 'warn', pt: note.pt, en: note.en } };
+  }
+  return { action: 'allow', deliver: true, text: verdict.text, notice: null };
+}
+
 // ---------------------------------------------------------------- Jev typed questions (GDD §12.4)
 
 /** public-chat-pack.json `content_class` options (v0.1). */

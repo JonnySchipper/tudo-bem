@@ -312,7 +312,7 @@ function clearCaps(host: AdminTestHost, p: StoredProfile) {
   if (p.feira) p.feira = { date: p.feira.date, n: 0 };
   p.daily.sceneClears = {};
   const days = new Set([sp, utc]);
-  for (const key of ['conversaClears', 'conversaRvGranted', 'pedidoRvGranted'] as const) {
+  for (const key of ['pedidoRvGranted'] as const) {
     const map = p.daily[key];
     if (!map) continue;
     for (const [id, day] of Object.entries(map)) if (days.has(day)) delete map[id];

@@ -81,7 +81,7 @@ describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira
     expect(ROOMS.rua_leste.name).toBe('Rua dos Ipês (leste)');
     expect(ROOMS.rua_leste.gloss).toBe('Ipê Street (east)');
     expect(ROOMS.rua.cols + ROOMS.rua_leste.cols).toBe(40); // the old street, cut in two
-    expect(ROOMS.feira.name).toBe('Feira Livre');
+    expect(ROOMS.feira.name).toBe('Feira de Rua');
   });
 
   it('has the zones of the plan: the street, sidewalks, the lawns, the brick, the setts', () => {

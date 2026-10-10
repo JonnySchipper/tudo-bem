@@ -181,14 +181,14 @@ async function main() {
 
     // Shift 1: the counter opens, customers come, two are served through the taps.
     await startShift(page);
-    // the first shift opens with the How to play card over the counter (it holds the game's clicks until it is closed): read it, "Got it"
-    await page.waitForSelector('#howto-card[data-game="correria"]', { timeout: 8000 });
-    await page.click('#howto-ok');
-    await page.waitForSelector('#howto-card', { state: 'detached', timeout: 4000 });
-    assert(await page.isVisible('#howto-help'), 'the “?” stays to read How to play again');
+    // Correria no Balcão has no How to play card (it used to sit over the counter and block clicks). It teaches by doing:
+    // one coach mark next to the next new tap, and "?" (#cr-help) brings those hints back.
+    assert(!(await page.$('#howto-card')), 'no How to play card over the counter');
+    assert(await page.isVisible('#cr-help'), 'the “?” stays to show the coach marks again');
     assert(await page.isVisible('#cr-panel'), 'the counter strip is up');
     assert(!(await page.$('[data-modal="minigame"]')), 'no modal over the padaria');
     const first = await waitFront(page);
+    await page.waitForSelector('#cr-mark.on', { timeout: 4000 });
     log(`customer 1 (${first.who.name}): “${first.pt}”`);
     for (let i = 0; i < 2; i++) {
       const c = await serveOne(page);

@@ -8,13 +8,13 @@ A Brazilian Portuguese learning game that is also a small neighborhood to hang o
 
 You move into **Vila Ipê**, a São Paulo neighborhood with a living clock (one game day is 48 real minutes, the same for everyone), weather
 (sol, nublado, garoa, chuva), traffic, a bus, a stray dog and pigeons. The neighbors have routines, remember you, and ask you for small favors
-(**recados**). Everything is spoken in Portuguese with an English gloss next to it, and the Portuguese is what you learn by doing the errands:
+(**favores**). Everything is spoken in Portuguese with an English gloss next to it, and the Portuguese is what you learn by doing the favors:
 ordering a coffee, asking "Quanto custa?", greeting someone with the right *bom dia / boa tarde / boa noite*.
 
 | The street at 19:30 | Treino no tatame at the Academia |
 | --- | --- |
 | ![The street in front of the padaria at 19:30](docs/screenshots/street.png) | ![A match on the tatame](docs/screenshots/academia.png) |
-| **Seu Carlos at the padaria** | **The feira livre: Tia Lu, "Quanto custa?"** |
+| **Seu Carlos at the padaria** | **The feira de rua: Tia Lu, "Quanto custa?"** |
 | ![The padaria dialogue](docs/screenshots/padaria_dialogue.png) | ![The feira](docs/screenshots/feira.png) |
 
 ---
@@ -48,10 +48,10 @@ VITE_LOCAL_WORLD=1 pnpm --filter @tudobem/client build      # then serve apps/cl
 2. **Create your avatar.** Body, skin, face, hair, free starter clothes, and how neighbors address you (*ele / ela / só meu nome*).
 3. **The airport.** You land at gate 3 of the Aeroporto: the plane at the jet bridge behind the glass, the tower, the baggage belt, passport control. A **Primeiros passos** checklist (it takes the tracker's corner) walks you through everything with an arrow on each step: walk, read a sign, get Júlia's package from **Célia** at Informações (the camera and the cartela), photograph the plane (free here), open the Diário, greet **Agente Paulo** by the hour at passport control, sit, wave, buy a pão de queijo with your RV, and take **bus 875** to the Vila. The bus runs back from the stop on Rua dos Ipês (leste), and the Diário's Chegada area takes you there too.
 4. **Vila Ipê.** Click or tap the floor to walk (or WASD / arrows), click a bench to sit, type in the chat bar or use the quick words. Júlia, the square guide, starts a short welcome chain (*Bem-vindo à Vila Ipê*, tracked at the top right). Signs you can read show a small eye: click one for a card with the words, a 🔊 button and **Guardar no caderno**.
-5. **Padaria do Seu Carlos** (the door with the red awning). Seu Carlos opens a dialogue box with the camera zoomed in: a free **Conversa** (AI-written when a key is configured, authored otherwise) or the **Pedido rápido** breakfast order. Good Portuguese pays more RV (the game's currency). At night (22:00 to 06:00) **Dona Graça** runs the counter.
-6. **Recados.** Neighbors offer errands ("Pode deixar!" / "Agora não"): order a café com leite, hand it to Nanda, greet Júlia with the greeting that fits the hour. The **Recados** journal shows what is active and offered today, your **Mochila** (bag) and your **Amizades**. Hearts grow as you help: 2 hearts, the neighbor uses your name; 4, a new Conversa subject (*O bairro*); 6, a gift for your kitnet.
+5. **Padaria do Seu Carlos** (the door with the red awning). Seu Carlos opens a dialogue box with the camera zoomed in: order at the counter (prices in reais virtuais, RV, the game's play money) or **Bater papo** for a **bate-papo**, a short pre-made conversation (PT lines with an English gloss, never graded). Nanda, Júlia and Professora Bia have bate-papos too. At night (22:00 to 06:00) **Dona Graça** runs the counter.
+6. **Favores** (favors; `recados` in the code). Neighbors ask for favors ("Pode deixar!", you got it / "Agora não", not now): order a café com leite, hand it to Nanda, greet Júlia with the greeting that fits the hour. The **Favores** journal shows what is active and offered today, your **Mochila** (bag) and your **Amizades**. Hearts grow as you help: 2 hearts, the neighbor uses your name; 4, they tell you their own story (a special bate-papo); 6, a gift for your kitnet.
 7. **Correria no Balcão** (Counter Rush) behind the counter: customers queue and order out loud (“Me vê um…”), you grab, grill, pour and pack, then serve and answer “Quanto é?”. Three waves, tips, stars and unlocks.
-8. **Feira livre** (east lot, every day 06:00 to 13:00, plus the Hortifrúti corner at the banca at any hour). Ask "Quanto custa a banana?", hear the price in words, say how many, then pay with coins and notes. Overpay and you get *troco*; underpay and nothing is bought.
+8. **Feira de rua** (street market; east lot, every day 06:00 to 13:00, plus the Hortifrúti corner at the banca at any hour). Ask "Quanto custa a banana?", hear the price in words, say how many, then pay with coins and notes. Overpay and you get *troco*; underpay and nothing is bought.
 9. **The Diário.** Every word you earn (a photo, a sign, a line someone says, a game) becomes a sticker in an álbum de figurinhas: one chapter per place, a numbered slot per word, an empty slot that tells you how to find what is missing, and a card for each word with its voice, the line it came from and how well the Escola knows it. The Caderno de palavras tab keeps the notebook by group; finishing a group pays RV.
 10. **Hats, kitnet and friends.** Nanda's stall (hats), your kitnet at Nº 42 (decorate, sit), the Academia do Bairro (Professora Bia, tatame, a CPU roll), the parrot perch, friends in the top bar.
 10b. **Placar da Vila.** In the Praça, tap the scoreboard by the fountain for **Most Words Learned** and **Highest Current Streak** (Escola). Free for everyone; display names only.
@@ -119,8 +119,8 @@ packages/shared   Content + rules shared by client and server (pure TS, tested)
   schedules.ts      NPC daily schedules as a pure function of the game clock (npcMotion.ts walks them)
   clock.ts          the shared game clock, weekdays, greetings; weather.ts the weather
   recados.ts        errands, bag, daily offer; bonds.ts hearts and milestones; caderno.ts the word notebook
-  feira.ts          goods, prices in centavos, money in words, change; hotspots.ts the readable signs
-  carlos.ts         authored Seu Carlos scene graph; conversa.ts Conversa subjects and prompts
+  feira.ts          goods, prices in centavos, money in words; hotspots.ts the readable signs
+  carlos.ts         authored Seu Carlos scene graph; papos.ts the bate-papos (pre-made, ungraded NPC conversations)
   safety.ts         chat filter: PII regex + EN/PT blocklists → allow / warn / block / escalate
 apps/server       Authoritative Node room server (ws). The client is a puppet.
 apps/client       Phaser 3 pixel view + DOM UI; the title screen, dialogue box, journal, Caderno, feira tray
@@ -129,8 +129,7 @@ apps/client       Phaser 3 pixel view + DOM UI; the title screen, dialogue box, 
 ### Design rules enforced in code
 
 - **Brazilian Portuguese only** in world content; English appears only as glosses and UI subtitles. Every new Portuguese string is listed in [`docs/lifesim/BR-REVIEW.md`](docs/lifesim/BR-REVIEW.md) for a native review.
-- **Disney-safe constitution**: no alcohol, dating, sensuality, slurs, politics. Unit tests run every authored line, chip, generated order, hat and furniture name through the filter, and AI-written NPC lines go through the same path.
-- **Chat safety**: the Jev stub reads **TB Safety v0.1** from [`content/safety/phase0`](content/safety/phase0) and runs client-side (instant feedback) and server-side (authoritative). Actions are **allow / warn / block / escalate** only, and player chat is **never rewritten**.
+- **Disney-safe constitution**: no alcohol, dating, sensuality, slurs, politics. Unit tests run every authored line, chip, generated order, hat and furniture name through the filter,- **Chat safety**: the Jev stub reads **TB Safety v0.1** from [`content/safety/phase0`](content/safety/phase0) and runs client-side (instant feedback) and server-side (authoritative). Actions are **allow / warn / block / escalate** only, and player chat is **never rewritten**.
   - **block:** PII, contact exchange, slurs, profanity, insults, alcohol, dating/sexual, politics, scams.
   - **warn** (delivered verbatim, with a note): ambiguous words and platonic phrases.
   - **escalate** (hidden, queued as `pending`): self-harm, threats, and context-dependent words.
@@ -140,7 +139,7 @@ apps/client       Phaser 3 pixel view + DOM UI; the title screen, dialogue box, 
 - **No pay-to-win**: RV is earned only from graded language acts, recados and the Caderno; nameplates can't be bought. Everyone is **Verde** in Phase 0.
 - **The server is authoritative**: movement, rewards, payments, hand-overs and the clock are validated server-side; the client is a view.
 - **Adults only (18+) in intent**: the only age prompt is an optional 18+ tick on signup. No birth date is collected. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).
-- **Accounts**: multiplayer requires an email + password account. Passwords are hashed with scrypt; the session is an `HttpOnly; SameSite=Lax` cookie stored only as a SHA-256 hash in `DATA_DIR/tudobem.sqlite`, with a 30-day sliding expiry. Failed logins are rate-limited per email and per IP. Auth POSTs and the WebSocket upgrade reject other sites' origins. `/api/conversa` pays RV to the signed-in player only.
+- **Accounts**: multiplayer requires an email + password account. Passwords are hashed with scrypt; the session is an `HttpOnly; SameSite=Lax` cookie stored only as a SHA-256 hash in `DATA_DIR/tudobem.sqlite`, with a 30-day sliding expiry. Failed logins are rate-limited per email and per IP. Auth POSTs and the WebSocket upgrade reject other sites' origins.
 - **Feedback**: the **Fala** chip on the HUD opens a short note (optional Problema / Ideia / Gostei). `POST /api/feedback` appends it to the SQLite `feedback` table in `DATA_DIR/tudobem.sqlite`. A signed-in player is stored by account id only — the account email is not copied. A guest may leave an optional contact. Daily review: `GET /api/feedback` with `Authorization: Bearer $TB_ADMIN_PASSWORD` (the same secret as the hidden admin panel; local dev uses that panel's password). A guest may send 5 notes an hour per IP, a signed-in player 20. Five wrong admin passwords (here, in the hidden panel, or below) lock that IP out for 15 minutes.
 - **Accounts**: the **Conta** button in the settings menu changes the password (`POST /api/auth/password`; other devices are signed out), signs out everywhere (`POST /api/auth/logout-all`), downloads the player's data (`GET /api/account/export`) and deletes the account (`POST /api/account/delete`, password re-entry, or the typed email for a Google account). There is no email provider, so a deletion request by email is run with `TB_ADMIN_PASSWORD=… node scripts/delete-account.mjs <email>` against the live server (`TB_URL` to point elsewhere).
 - **Idle kick**: no real input for 15 minutes (warning at 14) frees the seat with a soft *"Volte quando quiser"* card. The account stays signed in.
@@ -168,7 +167,6 @@ The credit is also in the game (**Créditos** in the top bar) with the fonts (Nu
 | --- | --- | --- |
 | `PORT` / `HOST` | `8787` / `0.0.0.0` | Server listen address |
 | `DATA_DIR` | `./data` | SQLite database (`tudobem.sqlite`), hourly backups (`backups/`), moderation log (`moderation.jsonl`). See [docs/SQLITE.md](docs/SQLITE.md) |
-| `XAI_API_KEY` | *(none)* | Optional. Turns on AI Conversa turns, NPC memory summaries and AI-written replies; without it the authored fallbacks play (`CONVERSA_MODEL`, `CONVERSA_REASONING_EFFORT` tune it) |
 | `IDLE_KICK_SECONDS` | `900` | Kick players after this long without real input (warning 60 s before) |
 | `SESSION_TTL_DAYS` | `30` | Sliding login session lifetime |
 | `COOKIE_SECURE` | auto | `auto` sets `Secure` when the request arrived over HTTPS (Fly's `X-Forwarded-Proto`). `1` forces it on, `0` off |
