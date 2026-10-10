@@ -1,36 +1,56 @@
 name: Auto-open PR for Claude branches
 
-# claude-code-action pushes claude/** branches but only posts a "Create PR"
-# link. Open the PR automatically so finished work doesn't sit unseen.
+# claude-code-action pushes claude/** branches with the built-in token and only
+# posts a "Create PR" link. Pushes made with that token don't start other
+# workflows, so a push trigger alone never fires. Also run when a Claude Code
+# run finishes (workflow_run does fire), every 20 minutes as a fallback, and on
+# demand, and open a PR for every claude/** branch that's ahead of main and has none.
 on:
   push:
     branches: ["claude/**"]
+  workflow_run:
+    workflows: ["Claude Code"]
+    types: [completed]
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: write
   issues: read
 
+concurrency:
+  group: claude-auto-pr
+  cancel-in-progress: false
+
 jobs:
-  open-pr:
+  open-prs:
     runs-on: ubuntu-latest
     steps:
-      - name: Open PR if none exists
+      - name: Open PRs for Claude branches without one
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          BRANCH: ${{ github.ref_name }}
         run: |
-          existing=$(gh pr list -R "$REPO" --head "$BRANCH" --state all --json number -q 'length')
-          if [ "$existing" != "0" ]; then echo "PR already exists"; exit 0; fi
-          ahead=$(gh api "repos/$REPO/compare/main...$BRANCH" -q .ahead_by)
-          if [ "$ahead" = "0" ]; then echo "Nothing ahead of main"; exit 0; fi
-          issue=$(echo "$BRANCH" | sed -n 's#^claude/issue-\([0-9]*\)-.*#\1#p')
-          if [ -n "$issue" ]; then
-            title=$(gh issue view "$issue" -R "$REPO" --json title -q .title | sed 's/^Opus[^:]*: //')
-            body="Closes #$issue. Opened automatically from \`$BRANCH\` after Claude pushed."
-          else
-            title="Claude: $BRANCH"
-            body="Opened automatically from \`$BRANCH\` after Claude pushed."
-          fi
-          gh pr create -R "$REPO" --base main --head "$BRANCH" --title "$title" --body "$body"
+          set -u
+          branches=$(gh api --paginate "repos/$REPO/branches?per_page=100" -q '.[].name' | grep '^claude/' || true)
+          for BRANCH in $branches; do
+            existing=$(gh pr list -R "$REPO" --head "$BRANCH" --state all --json number -q 'length')
+            [ "$existing" != "0" ] && continue
+            ahead=$(gh api "repos/$REPO/compare/main...$BRANCH" -q .ahead_by 2>/dev/null || echo 0)
+            [ "$ahead" = "0" ] && continue
+            # only fresh work: skip branches whose last commit is older than 3 days
+            last=$(gh api "repos/$REPO/commits/$BRANCH" -q .commit.committer.date)
+            if [ "$(date -d "$last" +%s)" -lt "$(date -d '3 days ago' +%s)" ]; then continue; fi
+            issue=$(echo "$BRANCH" | sed -n 's#^claude/issue-\([0-9]*\)-.*#\1#p')
+            if [ -n "$issue" ]; then
+              title=$(gh issue view "$issue" -R "$REPO" --json title -q .title | sed 's/^Opus[^:]*: //')
+              body="Closes #$issue. Opened automatically from \`$BRANCH\` after Claude pushed."
+            else
+              title=$(gh api "repos/$REPO/commits/$BRANCH" -q '.commit.message' | head -1)
+              body="Opened automatically from \`$BRANCH\` after Claude pushed."
+            fi
+            echo "Opening PR for $BRANCH"
+            gh pr create -R "$REPO" --base main --head "$BRANCH" --title "$title" --body "$body" || echo "could not open PR for $BRANCH"
+          done
