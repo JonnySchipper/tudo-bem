@@ -1,6 +1,6 @@
 /**
- * Every one of the 496 catalog words has a real way to be earned, and the way matches its source: a player who does only what the word's
- * row says (stand near the object and shoot it, read the sign, hear the line, win the game) ends with all 496 in the diary, each earned
+ * Every one of the 562 catalog words has a real way to be earned, and the way matches its source: a player who does only what the word's
+ * row says (stand near the object and shoot it, read the sign, hear the line, win the game) ends with all 562 in the diary, each earned
  * from its own source and none twice.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -9,6 +9,11 @@ import {
   COUNTER_STAND_INS,
   DEFAULT_APPEARANCE,
   DIARY_WORDS,
+  FISH_IDS,
+  PESCA_WORDS,
+  WATER_IDS,
+  fishWord,
+  momentWord,
   GAME_DAY_MS,
   HOTSPOT_READ_RANGE,
   MS_PER_GAME_MINUTE,
@@ -179,13 +184,16 @@ describe('every catalog word can be earned from its own source', () => {
     await goRoom('escola');
     // a finished lesson teaches the practice game's word (aula)
     await playLesson({ inbox: a.inbox, send: a.send, held: () => a.s.profile!.diary ?? [] });
-    const diary = (world as unknown as { diary: { onCorreriaWin: (s: Session, items: string[]) => void } }).diary;
+    const diary = (world as unknown as { diary: { onCorreriaWin: (s: Session, items: string[]) => void; teachPesca: (s: Session, words: unknown[]) => unknown[] } }).diary;
     diary.onCorreriaWin(a.s, ['bolo', 'guarana', 'coxinha', 'pao_de_queijo', 'misto_quente']);
+    // the Praia: every water's moments and every species' first catch (the fishing engine calls this; pesca.test.ts plays it for real)
+    for (const water of WATER_IDS) diary.teachPesca(a.s, PESCA_WORDS[water].map((r) => momentWord(water, r.earn)));
+    diary.teachPesca(a.s, FISH_IDS.map((f) => fishWord(f)));
     for (const w of DIARY_WORDS.filter((x) => x.source === 'game')) expect(have(a).has(w.id), `game: ${w.pt}`).toBe(true);
 
     // all of them, once each
-    expect(a.s.profile!.diary).toHaveLength(496);
-    expect(new Set(a.s.profile!.diary).size).toBe(496);
+    expect(a.s.profile!.diary).toHaveLength(562);
+    expect(new Set(a.s.profile!.diary).size).toBe(562);
     expect(DIARY_WORDS.every((w) => have(a).has(w.id))).toBe(true);
   }, 120_000);
 });

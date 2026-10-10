@@ -393,7 +393,7 @@ export interface UnitView {
 }
 
 /** Areas in the order a new arrival meets them. */
-export const UNIT_ORDER = ['chegada', 'praca', 'rua', 'padaria', 'feira', 'kitnet', 'academia', 'escola'] as const;
+export const UNIT_ORDER = ['chegada', 'praca', 'rua', 'padaria', 'feira', 'kitnet', 'academia', 'escola', 'praia'] as const;
 
 export function escolaPath(st: EscolaState, diary: readonly string[] | undefined): UnitView[] {
   const held = new Set(normalizeDiary(diary));
@@ -441,9 +441,12 @@ export const AREA_IN: Record<string, Bilingual> = {
   kitnet: { pt: 'na kitnet', en: 'in the studio apartment' },
   academia: { pt: 'na academia', en: 'at the gym' },
   escola: { pt: 'na escola', en: 'at the school' },
+  praia: { pt: 'na praia', en: 'at the beach' },
 };
 
 const GAME_HINT: Record<string, Bilingual> = {
+  // needs_br: true. Names no fishing word (the hunt never gives a word away).
+  pesca: { pt: 'Vá pescar na praia, de dia e de noite.', en: 'Go fishing at the beach, by day and by night.' },
   correria: { pt: 'Jogue a Correria no Balcão com o Seu Carlos.', en: 'Play Correria no Balcão with Seu Carlos.' },
   'escola.pratica': { pt: 'Termine uma lição com a Dona Lúcia.', en: 'Finish a lesson with Dona Lúcia.' },
 };

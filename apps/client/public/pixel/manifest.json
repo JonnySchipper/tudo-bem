@@ -26399,6 +26399,114 @@
     44
    ]
   },
+  "portraits/bento_neutro": {
+   "file": "portraits/bento_neutro.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    47
+   ]
+  },
+  "portraits/bento_feliz": {
+   "file": "portraits/bento_feliz.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    47
+   ]
+  },
+  "portraits/bento_surpreso": {
+   "file": "portraits/bento_surpreso.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    47
+   ]
+  },
+  "portraits/bento_pensativo": {
+   "file": "portraits/bento_pensativo.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    47
+   ]
+  },
+  "portraits/neide_neutro": {
+   "file": "portraits/neide_neutro.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    53
+   ]
+  },
+  "portraits/neide_feliz": {
+   "file": "portraits/neide_feliz.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    53
+   ]
+  },
+  "portraits/neide_surpreso": {
+   "file": "portraits/neide_surpreso.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    53
+   ]
+  },
+  "portraits/neide_pensativo": {
+   "file": "portraits/neide_pensativo.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    53
+   ]
+  },
+  "portraits/jo_neutro": {
+   "file": "portraits/jo_neutro.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    38
+   ]
+  },
+  "portraits/jo_feliz": {
+   "file": "portraits/jo_feliz.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    38
+   ]
+  },
+  "portraits/jo_surpreso": {
+   "file": "portraits/jo_surpreso.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    38
+   ]
+  },
+  "portraits/jo_pensativo": {
+   "file": "portraits/jo_pensativo.png",
+   "w": 64,
+   "h": 64,
+   "face": [
+    32,
+    38
+   ]
+  },
   "icons/pao": {
    "file": "icons/pao.png",
    "w": 16,

@@ -158,7 +158,7 @@ export interface PortalDef {
 export const OFFSTAGE_NPCS: Partial<Record<NpcId, { name: string; role: Bilingual }>> = {};
 
 /** The feira vendors (Phase 9): Tia Lu (fruit), Seu Zé (vegetables), Seu Chico (pastel and caldo de cana), Dona Rosa (flowers). */
-export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia' | 'celia' | 'agente' | 'comissaria';
+export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia' | 'celia' | 'agente' | 'comissaria' | 'bento' | 'neide' | 'jo';
 
 export interface NpcDef {
   id: NpcId;
@@ -1095,7 +1095,61 @@ const praia: RoomDef = {
   portals: [
     { id: 'praia_vila', x: 3, y: 3, to: 'rua_leste', arrive: { x: 5, y: 13 }, arriveDir: 'SW', doorAt: { x: 3, y: 2.5 }, label: { pt: 'Ônibus para a Vila', en: 'Bus to the Vila' } },
   ],
-  npcs: [],
+  // PRAIA-PLAN.md 6. All three stand at their place at every hour (D12: renting, fishing and selling never wait on the clock); their idle
+  // lines change with the hour. Nobody waves. needs_br: true (every line)
+  npcs: [
+    {
+      id: 'bento',
+      name: 'Seu Bento',
+      role: { pt: 'Aluguel de barcos', en: 'Boat rental' },
+      x: 28,
+      y: 7,
+      dir: 'SW',
+      interact: { x: 28, y: 8 },
+      appearance: { body: 'forte', skin: 4, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 6, bottom: 'calca', bottomColor: 1, shoes: 2, face: 'maduro', extra: 'barba', idle: 'bracos' },
+      hat: null,
+      idleLines: [
+        { pt: 'Barco bom é barco que volta.', en: 'A good boat is one that comes back.' },
+        { pt: 'Hoje o mar tá manso.', en: 'The sea is calm today.' },
+        { pt: 'Quer ir mais longe? Aluga o de alto-mar.', en: 'Want to go farther out? Rent the deep-sea boat.' },
+        { pt: 'A maré não dorme, e eu também não.', en: 'The tide doesn’t sleep, and neither do I.' },
+      ],
+    },
+    {
+      id: 'neide',
+      name: 'Dona Neide',
+      role: { pt: 'Pescadora', en: 'Fisherwoman' },
+      x: 23,
+      y: 12,
+      dir: 'SE',
+      interact: { x: 23, y: 13 },
+      appearance: { body: 'medio', skin: 6, hair: 'coque', hairColor: 5, top: 'camiseta', topColor: 9, bottom: 'calca', bottomColor: 3, shoes: 0, face: 'maduro', extra: 'oculos', idle: 'solto' },
+      hat: null,
+      idleLines: [
+        { pt: 'Peixe grande gosta de quem tem paciência.', en: 'Big fish like patient people.' },
+        { pt: 'Segura firme, solta quando ele corre.', en: 'Hold tight, let go when it runs.' },
+        { pt: 'De manhãzinha o robalo tá acordado.', en: 'Early morning, the snook is awake.' },
+        { pt: 'Chuva fina, peixe bobo.', en: 'Light rain, silly fish.' },
+      ],
+    },
+    {
+      id: 'jo',
+      name: 'Jô',
+      role: { pt: 'Barraca da praia', en: 'Beach kiosk' },
+      x: 7,
+      y: 6,
+      dir: 'SW',
+      interact: { x: 7, y: 7 },
+      appearance: { body: 'medio', skin: 6, hair: 'trancas', hairColor: 0, top: 'regata', topColor: 4, bottom: 'bermuda', bottomColor: 8, shoes: 3, face: 'marcante', extra: 'brincos', idle: 'cintura' },
+      hat: null,
+      idleLines: [
+        { pt: 'Água de coco geladinha!', en: 'Ice-cold coconut water!' },
+        { pt: 'Queijo coalho na brasa, meu bem!', en: 'Grilled cheese on a stick, dear!' },
+        { pt: 'Compro peixe fresco! Traz pra cá!', en: 'I buy fresh fish! Bring it here!' },
+        { pt: 'Fechando a barraca, mas o gelo fica.', en: 'Closing the kiosk, but the ice stays.' },
+      ],
+    },
+  ],
   private: false,
 };
 

@@ -173,6 +173,9 @@ const PRAIA_SIGNS: HotspotDef[] = [
     en: 'JÔ’S KIOSK\nCoconut water R$ 7\nGrilled cheese on a stick R$ 6\nCorn on the cob R$ 5\nIce pop R$ 4',
   },
   { id: 'praia_pier', room: 'praia', x: 27, y: 12, pt: 'PÍER\nBarcos de aluguel na ponta', en: 'PIER\nRental boats at the end' },
+  { id: 'praia_perigo', room: 'praia', x: 33, y: 17, pt: 'PERIGO\nCorrenteza forte. Não nade aqui.', en: 'DANGER\nStrong current. No swimming here.' },
+  { id: 'praia_proibido', room: 'praia', x: 19, y: 7, pt: 'PROIBIDO PESCAR AQUI\nPesque na beira do mar.', en: 'NO FISHING HERE\nFish at the water’s edge.' },
+  { id: 'praia_aluguel', room: 'praia', x: 25, y: 6, pt: 'ALUGUEL DE BARCOS\nFale com o Seu Bento.', en: 'BOAT RENTAL\nTalk to Mr. Bento.' },
   { id: 'festa_placa', room: 'barco_festa', x: 11, y: 8, pt: 'CHURRASCO · REFRI · MÚSICA', en: 'BARBECUE · SODA · MUSIC' },
 ];
 

@@ -32,13 +32,21 @@ export interface TalkHooks {
   openMat?: () => void;
   /** "Vamos bater um papo?": start this NPC's bate-papo (ui/papo.ts). */
   papo?: () => void;
+  /** The Praia: Bento's boats, Neide's fishing log, Jô's snack menu, fish tray and beach rack. */
+  praia?: (what: 'rental' | 'caderneta' | 'snacks' | 'sell' | 'rack') => void;
 }
+
+/** Chips that leave the talk for a panel at the Praia. */
+const PRAIA_NEXT = new Set(['rental', 'caderneta', 'snacks', 'sell', 'rack']);
 
 const SPEAKER: Record<string, { name: string; role: string }> = {
   nanda: { name: 'Nanda', role: 'Loja de chapéus (Hat shop)' },
   julia: { name: 'Júlia', role: 'Guia da praça (Square guide)' },
   graca: { name: 'Dona Graça', role: 'Padeira da noite (Night baker)' },
   prof: { name: 'Professora Bia', role: 'Professora de jiu-jitsu (Jiu-jitsu teacher)' },
+  bento: { name: 'Seu Bento', role: 'Aluguel de barcos (Boat rental)' },
+  neide: { name: 'Dona Neide', role: 'Pescadora (Fisherwoman)' },
+  jo: { name: 'Jô', role: 'Barraca da praia (Beach kiosk)' },
 };
 
 /** Which node the greeting is on, and how many replies were picked (the expression turns happy once the player answered). */
@@ -81,6 +89,10 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
       if (c.next === 'treino') {
         closeDialogue();
         return hooks.openMat?.();
+      }
+      if (PRAIA_NEXT.has(c.next)) {
+        closeDialogue();
+        return hooks.praia?.(c.next as 'rental');
       }
       render(c.next);
     };

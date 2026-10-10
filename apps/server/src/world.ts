@@ -23,6 +23,7 @@ import {
   HAIR_STYLES,
   hatById,
   isStallHat,
+  isPraiaHat,
   npcAvatarId,
   ADMIN_KICKED_COPY,
   BANNED_COPY,
@@ -111,6 +112,7 @@ import {
   ownedParrotColorIds,
   parrotColorById,
   snackById,
+  snackPropIds,
   carryOf,
   carryTossNotice,
   CARRY_BIN,
@@ -2434,14 +2436,18 @@ export class World {
     }
     if (kind === 'hat') {
       const hat = hatById(itemId);
-      if (!hat || !isStallHat(hat.id)) return;
-      if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'A barraca da Nanda fica na praça.', 'Nanda’s stall is in the square.');
+      // Nanda's stall sells hers in the praça; Jô's beach rack sells the beach ones at the Praia; earned hats are never sold
+      const praiaRack = !!hat && isPraiaHat(hat.id);
+      if (!hat || !(isStallHat(hat.id) || praiaRack)) return;
+      if (praiaRack && s.instance?.def.id !== 'praia') return this.err(s, 'shop', 'Esse chapéu só a Jô vende, lá na praia.', 'Only Jô sells this hat, at the beach.');
+      if (!praiaRack && s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'A barraca da Nanda fica na praça.', 'Nanda’s stall is in the square.');
       if (p.hats.includes(hat.id)) return this.err(s, 'owned', 'Você já tem esse chapéu.', 'You already own this hat.');
       if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV yet: play “Correria no Balcão” at the bakery, or do a favor (Favores).');
       p.coins -= hat.price;
       p.hats.push(hat.id);
       this.store.save(p.id);
-      s.send({ t: 'notice', level: 'reward', pt: `Nanda: “${hat.pt}? Fica bem em você!”`, en: `Nanda: “${hat.en}? Looks good on you!”` });
+      const seller = praiaRack ? 'Jô' : 'Nanda';
+      s.send({ t: 'notice', level: 'reward', pt: `${seller}: “${hat.pt}? Fica bem em você!”`, en: `${seller}: “${hat.en}? Looks good on you!”` });
       this.pushProfile(s);
       return this.equipHat(s, hat.id);
     }
@@ -2471,7 +2477,8 @@ export class World {
     const p = s.profile!;
     if (!snack) return;
     // the cart (or the airport café) has to be in the room you are standing in
-    const prop = s.instance?.def.props.find((q) => q.id === snack.propId);
+    const sellers = snackPropIds(snack);
+    const prop = s.instance?.def.props.find((q) => sellers.includes(q.id));
     if (!prop) return this.err(s, 'shop', 'Compre na praça.', 'Buy this in the square.');
     const cur = this.currentTile(s);
     const spot = prop.interact ?? { x: prop.x, y: prop.y };

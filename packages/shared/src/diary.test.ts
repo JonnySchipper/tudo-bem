@@ -123,17 +123,19 @@ describe('language diary catalog v2', () => {
     kitnet: [64, 5, 0, 0],
     academia: [20, 7, 7, 0],
     escola: [22, 5, 3, 1],
+    // the Praia (PRAIA-PLAN.md 4.3): 14 fish and 32 moment words from fishing, Neide's three beats, the beach's signs and things
+    praia: [10, 7, 3, 46],
   };
 
-  it('has 496 words: the counts of every area and source, 135 that were already anchored and 361 that were added', () => {
-    expect(DIARY_WORDS).toHaveLength(496);
+  it('has 562 words: the counts of every area and source, 135 that were already anchored and 427 that were added', () => {
+    expect(DIARY_WORDS).toHaveLength(562);
     for (const [area, want] of Object.entries(TOTALS)) {
       const got = DIARY_SOURCES.map((src) => DIARY_WORDS.filter((w) => w.area === area && w.source === src).length);
       expect(got, area).toEqual(want);
     }
     expect(DIARY_AREAS.map((a) => a.id)).toEqual(Object.keys(TOTALS));
     expect(DIARY_WORDS.filter((w) => w.origin === 'existing')).toHaveLength(135);
-    expect(DIARY_WORDS.filter((w) => w.origin === 'added')).toHaveLength(361);
+    expect(DIARY_WORDS.filter((w) => w.origin === 'added')).toHaveLength(427);
     for (const w of DIARY_WORDS) expect(w.needsBr, w.id).toBe(true);
   });
 
@@ -152,7 +154,7 @@ describe('language diary catalog v2', () => {
   });
 
   it('puts every added object in the room its area is about, on a tile the room has', () => {
-    const roomsOf: Record<string, (keyof typeof ROOMS)[]> = { praca: ['praca'], rua: ['rua', 'rua_leste'], padaria: ['padaria'], feira: ['feira'], kitnet: ['kitnet'], academia: ['academia'], escola: ['escola'] };
+    const roomsOf: Record<string, (keyof typeof ROOMS)[]> = { praca: ['praca'], rua: ['rua', 'rua_leste'], padaria: ['padaria'], feira: ['feira'], kitnet: ['kitnet'], academia: ['academia'], escola: ['escola'], praia: ['praia', 'barco_festa'] };
     for (const w of DIARY_WORDS.filter((x) => x.origin === 'added' && x.source === 'camera' && x.area !== 'chegada')) {
       const rooms = roomsOf[w.area]!.map((r) => ROOMS[r]);
       const there = (id: string) => rooms.some((room) => room.props.some((p) => p.id === id)) || !!(id.startsWith('kitnet_') || id.startsWith('padaria_') || id === 'cobogo');
@@ -164,10 +166,12 @@ describe('language diary catalog v2', () => {
   });
 
   it('keeps practice and the jiu-jitsu fight out of the sources, and the game words to aula and the five Correria wins', () => {
-    const game = DIARY_WORDS.filter((w) => w.source === 'game').map((w) => w.pt).sort();
+    const game = DIARY_WORDS.filter((w) => w.source === 'game' && w.area !== 'praia').map((w) => w.pt).sort();
     expect(game).toEqual(['aula', 'bolo', 'coxinha', 'guaraná', 'misto', 'queijo']);
+    // the Praia's game words all come from fishing, one game per water
+    expect(DIARY_WORDS.filter((w) => w.area === 'praia' && w.source === 'game').every((w) => w.anchor.id.startsWith('pesca.'))).toBe(true);
     expect(DIARY_WORDS.filter((w) => w.area === 'academia' && w.source === 'game')).toEqual([]);
-    expect(DIARY_GAMES.map((g) => g.id).sort()).toEqual(['correria', 'escola.pratica']);
+    expect(DIARY_GAMES.map((g) => g.id).sort()).toEqual(['correria', 'escola.pratica', 'pesca.alto_mar', 'pesca.festa', 'pesca.lagoa', 'pesca.pesca', 'pesca.praia', 'pesca.remo']);
     expect(DIARY_GAMES.find((g) => g.id === 'correria')).toMatchObject({ room: 'padaria', host: { npc: 'carlos' } });
     expect(DIARY_GAMES.find((g) => g.id === 'escola.pratica')).toMatchObject({ room: 'escola', host: { npc: 'lucia' }, rv: 1 });
     for (const pt of ['fonte', 'coreto', 'guia', 'aula']) expect(DIARY_WORDS.find((w) => w.pt === pt)?.seed, pt).toBe(true);

@@ -73,3 +73,5 @@ export * from './adminTestes.js';
 export * from './speechChunks.js';
 export * from './praia.js';
 export * from './pesca.js';
+export * from './fish.js';
+export * from './pescaWords.js';

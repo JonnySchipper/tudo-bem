@@ -10,7 +10,7 @@ import type { NpcActivity } from './schedules.js';
 import type { RecadoState } from './recados.js';
 
 /** Left in the hand after you finish a snack or a drink. Not edible. */
-export type EmptyCarryId = 'coco_vazio' | 'saquinho_vazio' | 'copinho_vazio' | 'copo_vazio';
+export type EmptyCarryId = 'coco_vazio' | 'saquinho_vazio' | 'copinho_vazio' | 'copo_vazio' | 'palito_vazio' | 'palito_picole' | 'sabugo';
 /**
  * In hand this session: a praça snack, a padaria order, or the empty it leaves.
  * Hats, birds, and outfits are never carry ids.

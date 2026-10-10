@@ -64,6 +64,13 @@ export const CARRY: Record<CarryId, CarryDef> = {
   cafe_com_leite: drink('cafe_com_leite', 'copinho_vazio', 'o café com leite', 'the coffee with milk'),
   suco_de_laranja: drink('suco_de_laranja', 'copo_vazio', 'o suco de laranja', 'the orange juice'),
   agua: drink('agua', 'copo_vazio', 'a água', 'the water'),
+  // the Barraca da Jô (PRAIA-PLAN.md 7.2). needs_br: true
+  queijo_coalho: food('queijo_coalho', 'palito_vazio', 'o queijo coalho', 'the grilled cheese'),
+  picole: food('picole', 'palito_picole', 'o picolé', 'the ice pop'),
+  milho_verde: food('milho_verde', 'sabugo', 'o milho verde', 'the corn on the cob'),
+  palito_vazio: trash('palito_vazio', 'o palito', 'the skewer'),
+  palito_picole: trash('palito_picole', 'o palito do picolé', 'the ice-pop stick'),
+  sabugo: trash('sabugo', 'o sabugo', 'the corn cob'),
   coco_vazio: trash('coco_vazio', 'o coco vazio', 'the empty coconut'),
   saquinho_vazio: trash('saquinho_vazio', 'o saquinho vazio', 'the empty popcorn bag'),
   copinho_vazio: trash('copinho_vazio', 'o copinho vazio', 'the empty little cup'),

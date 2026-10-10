@@ -1,6 +1,7 @@
 import {
   FURNITURE,
   HATS,
+  HATS_PRAIA,
   JULIA_INTRO,
   JULIA_INTRO_FROM_GREETING,
   JULIA_TREE,
@@ -425,9 +426,13 @@ function hatIcon(id: string, alt: string): HTMLElement {
 }
 
 /** `closedNote`: Nanda is not at her stall (outside 08:00-20:00): the shop still opens from the closed stall (D12), with this note. */
-export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: string) => void; equip: (id: string | null) => void }, opts: { closedNote?: Bilingual } = {}) {
+export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: string) => void; equip: (id: string | null) => void }, opts: { closedNote?: Bilingual; stall?: 'nanda' | 'jo' } = {}) {
   const p = game.profile!;
-  let sel = p.hat ?? (mode === 'shop' ? HATS[0].id : null);
+  // Nanda's stall in the praça, or Jô's beach rack at the Praia (its own three hats)
+  const jo = opts.stall === 'jo';
+  const stock = jo ? HATS_PRAIA : HATS;
+  const seller = jo ? 'Jô' : 'Nanda';
+  let sel = p.hat ?? (mode === 'shop' ? stock[0].id : null);
   // the composed pixel character wearing the selected hat (6x, integer scale, both views)
   const canvas = h('canvas', { id: 'hat-preview', class: 'stall-canvas' });
   const nandaSays = h('div', { class: 'nanda-says stall-says' });
@@ -453,7 +458,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
     if (mode === 'shop' && opts.closedNote) nandaSays.replaceChildren(opts.closedNote.pt, en(opts.closedNote.en));
     else
       nandaSays.replaceChildren(
-        mode === 'shop' ? 'Nanda: ' : '',
+        mode === 'shop' ? `${seller}: ` : '',
         hat ? `“${hat.pt}? Fica bem em você!”` : '“Sem chapéu também fica ótimo!”',
         en(hat ? `${hat.en}? Looks good on you!` : 'No hat looks great too!'),
       );
@@ -488,7 +493,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
       });
     };
     if (mode === 'shop') {
-      const split = splitStall(HATS, prof.hats);
+      const split = splitStall(stock, prof.hats);
       goods.replaceChildren(
         ...[stallShelf('owned', 'Seus chapéus', 'Yours', split.owned.map(card)), stallShelf('sale', 'À venda', 'For sale', split.sale.map(card))].filter((x): x is HTMLElement => !!x),
       );
@@ -508,8 +513,8 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
       'div',
       { class: `panel stall-panel ${mode === 'shop' ? 'hat-stall' : 'wardrobe'}` },
       closeBtn(() => close()),
-      h('div', { class: 'stall-head' }, h('h2', null, mode === 'shop' ? 'Chapéus da Nanda' : 'Meus chapéus'), wallet.el),
-      en(mode === 'shop' ? 'Nanda’s hat stall — try one on! Cosmetic only; some are free.' : 'Your hats — wear one anywhere.'),
+      h('div', { class: 'stall-head' }, h('h2', null, mode === 'shop' ? `Chapéus da ${seller}` : 'Meus chapéus'), wallet.el),
+      en(mode === 'shop' ? (jo ? 'Jô’s beach rack: hats for the sun. Cosmetic only.' : 'Nanda’s hat stall — try one on! Cosmetic only; some are free.') : 'Your hats — wear one anywhere.'),
       mode === 'shop' ? rvPriceNote() : null,
       h('div', { class: 'shop' }, stallVitrine(canvas, nandaSays), goods),
     ),

@@ -466,6 +466,13 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
       openMat: () => openBout(),
       papo: () => void openPapo(npc, papoHooks),
       juliaAlreadyMet: npc === 'julia' ? juliaMet : undefined,
+      praia: (what) => {
+        if (what === 'snacks') openStreetSnack('barraca_jo', (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
+        else if (what === 'rack') openBeachRack();
+        else if (what === 'sell') praiaAction('fish_sell');
+        else if (what === 'rental') praiaAction('boat_rental');
+        else praiaAction('caderneta');
+      },
     });
   }
 }
@@ -599,6 +606,8 @@ function propAction(action: string, propId?: string) {
   else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
   else if (action === 'street_snack' && propId) openStreetSnack(propId, (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
+  else if (action === 'beach_shop') openBeachRack();
+  else if (action === 'pesca' || action === 'fish_sell' || action === 'boat_rental' || action === 'party_boat') praiaAction(action, propId);
   else if (action === 'checkers') openCheckers();
   else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
@@ -687,6 +696,18 @@ function openShop() {
     { buy: (id) => net.send({ t: 'buy', kind: 'hat', itemId: id }), equip: (id) => net.send({ t: 'equipHat', hatId: id }) },
     closed ? { closedNote: { pt: 'Nanda volta às 8h', en: 'Nanda is back at 8 am' } } : {},
   );
+}
+
+/** Jô's beach rack at the Praia: her three sun hats (sold only there). Open at every hour (D12). */
+function openBeachRack() {
+  closeDialogue();
+  openHatShop('shop', { buy: (id) => net.send({ t: 'buy', kind: 'hat', itemId: id }), equip: (id) => net.send({ t: 'equipHat', hatId: id }) }, { stall: 'jo' });
+}
+
+/** The Praia's fishing, the fish tray, Bento's boats and the party boat. */
+function praiaAction(action: 'pesca' | 'fish_sell' | 'boat_rental' | 'party_boat' | 'caderneta', propId?: string) {
+  void propId;
+  toast('info', `Em breve: ${action}`, `Coming soon: ${action}`);
 }
 
 function startMinigame() {

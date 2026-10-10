@@ -193,6 +193,22 @@ const EMBLEMS: Record<string, { rows: string[]; ink: Record<string, string> }> =
     ],
     ink: { k: K, y: '#f2c230', p: '#e889a8', w: '#f0d8b0' },
   },
+  // the Praia: a fish jumping over a wave
+  peixe: {
+    rows: [
+      '............',
+      '.k...kkkk...',
+      '.kk.kttttk..',
+      '.ktkttlttek.',
+      '.kttttttttk.',
+      '.ktkttttdk..',
+      '.kk..kkkk...',
+      '.k..........',
+      'w..ww..ww..w',
+      '.ww..ww..ww.',
+    ],
+    ink: { k: K, t: '#3fa9a0', l: '#8fd6c8', d: '#2b8783', e: '#ffffff', w: '#5bbdb1' },
+  },
 };
 
 /** A chapter's emblem; an unknown one falls back to the pencil. */

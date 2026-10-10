@@ -428,7 +428,8 @@ describe('arrival, camera, diary and the escola', () => {
     const diaryB = (unlucky as unknown as { diary: { onCorreriaWin: (s: Session, items: string[]) => void } }).diary;
     diaryB.onCorreriaWin(b.s, ['bolo']);
     expect(wordMsgs(b)).toHaveLength(0);
-    expect(DIARY_WORDS.filter((w) => w.source === 'game')).toHaveLength(6);
+    // (the Praia's 46 fishing words are game words of their own: pesca.test.ts)
+    expect(DIARY_WORDS.filter((w) => w.source === 'game' && w.area !== 'praia')).toHaveLength(6);
   });
 
   // the escola (Dona Lúcia's lessons over these words) is tested in escola.test.ts
