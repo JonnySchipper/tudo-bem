@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { SHOW_EN_KEY, TYPE_CPS, Typewriter, dialogueKeyAction, midpoint, npcTagColor, readShowEnglish, typedCount, writeShowEnglish } from './dialogueLogic';
+import {
+  LeadSlot,
+  MAX_CHIPS,
+  MAX_CHIP_KEYS,
+  SHOW_EN_KEY,
+  TYPE_CPS,
+  Typewriter,
+  counterChoices,
+  dialogueKeyAction,
+  firstChoices,
+  joinLead,
+  midpoint,
+  npcTagColor,
+  offersPapo,
+  readShowEnglish,
+  showsHearts,
+  typedCount,
+  writeShowEnglish,
+} from './dialogueLogic';
 
 describe('typewriter timing (45 chars/s)', () => {
   it('shows nothing at t=0 and floor(45 * seconds) characters later', () => {
@@ -75,6 +93,89 @@ describe('dialogue keys', () => {
     expect(dialogueKeyAction('2', { ...ctx, inInput: true })).toBeNull();
     expect(dialogueKeyAction('a', ctx)).toBeNull();
     expect(dialogueKeyAction('Enter', ctx)).toBeNull();
+  });
+});
+
+describe('one click, one box: the idle line leads the first box', () => {
+  const idle = { pt: 'Oi! Precisa de ajuda? Fala comigo!', en: 'Hi! Need help? Talk to me!' };
+  const greet = { key: 'talk-julia', npcId: 'julia', line: { pt: 'Bom dia! Eu sou a Júlia. Tudo bem?' } };
+
+  it('the first box that NPC opens says the idle line first, and keeps it while that beat re-renders', () => {
+    const slot = new LeadSlot();
+    const taken = slot.set('julia', idle);
+    expect(slot.apply(greet)).toBe(idle);
+    expect(taken()).toBe(true);
+    expect(slot.apply(greet)).toBe(idle);
+    expect(joinLead(idle.pt, greet.line.pt)).toBe('Oi! Precisa de ajuda? Fala comigo! Bom dia! Eu sou a Júlia. Tudo bem?');
+    expect(joinLead(undefined, greet.line.pt)).toBe(greet.line.pt);
+  });
+
+  it('the next line, another key or a closed box drops it: it is said once', () => {
+    const slot = new LeadSlot();
+    slot.set('julia', idle);
+    expect(slot.apply({ key: 'offer-julia', npcId: 'julia', line: { pt: 'Pode levar isso pra Nanda?' } })).toBe(idle);
+    // "Agora não": the greeting takes the same box, without the lead
+    expect(slot.apply(greet)).toBeNull();
+    expect(slot.apply({ key: 'offer-julia', npcId: 'julia', line: { pt: 'Pode levar isso pra Nanda?' } })).toBeNull();
+    slot.set('julia', idle);
+    expect(slot.apply({ ...greet, line: { pt: 'Que bom!' } })).toBe(idle);
+    slot.closed();
+    expect(slot.apply({ ...greet, line: { pt: 'Que bom!' } })).toBeNull();
+  });
+
+  it('waits for that NPC and a real line; a click that opened no box drops it (no stale lead on the next click)', () => {
+    const slot = new LeadSlot();
+    const taken = slot.set('julia', idle);
+    expect(slot.apply({ key: 'talk-nanda', npcId: 'nanda', line: { pt: 'Oi!' } })).toBeNull();
+    expect(slot.apply({ ...greet, line: null })).toBeNull();
+    expect(slot.apply({ ...greet, thinking: true })).toBeNull();
+    expect(taken()).toBe(false);
+    expect(slot.apply(greet)).toBeNull();
+  });
+});
+
+describe('chips: 3 content chips and one way out', () => {
+  it('a box holds 4 chips, and keys 1-4 reach every one', () => {
+    expect(MAX_CHIPS).toBe(4);
+    expect(MAX_CHIP_KEYS).toBe(MAX_CHIPS);
+    for (let i = 0; i < MAX_CHIPS; i++) expect(dialogueKeyAction(String(i + 1), { chips: MAX_CHIPS, typing: false, inInput: false })).toEqual({ kind: 'chip', index: i });
+  });
+
+  it('firstChoices keeps the wanted ones first, then the rest, 3 at most', () => {
+    expect(firstChoices(['banana', 'laranja', 'maca', 'flores'], (x) => x === 'flores')).toEqual(['flores', 'banana', 'laranja']);
+    expect(firstChoices(['a', 'b'], () => false)).toEqual(['a', 'b']);
+    expect(firstChoices(['a', 'b', 'c'], () => true, 0)).toEqual([]);
+  });
+
+  const price = (id: string) => ({ coxinha: 7, cafe: 4, cafe_com_leite: 5, pao_na_chapa: 6, agua: 3 })[id] ?? 0;
+  const always = ['coxinha', 'cafe'];
+
+  it('the counter: the cheapest first until the first order, the errand item always kept', () => {
+    expect(counterChoices(['coxinha', 'cafe'], { price, always, carlosDone: false, papo: false })).toEqual({ items: ['cafe', 'coxinha'], papo: false });
+    expect(counterChoices(['coxinha', 'cafe', 'cafe_com_leite', 'pao_na_chapa'], { price, always, carlosDone: false, papo: false }).items).toEqual(['cafe', 'cafe_com_leite', 'pao_na_chapa']);
+    expect(counterChoices(['coxinha', 'cafe', 'cafe_com_leite'], { price, always, carlosDone: true, papo: false }).items).toEqual(['coxinha', 'cafe', 'cafe_com_leite']);
+  });
+
+  it('the counter: "Bater papo" joins only when the whole menu fits beside it', () => {
+    expect(counterChoices(['coxinha', 'cafe'], { price, always, carlosDone: true, papo: true })).toEqual({ items: ['coxinha', 'cafe'], papo: true });
+    expect(counterChoices(['coxinha', 'cafe', 'agua'], { price, always, carlosDone: true, papo: true })).toEqual({ items: ['coxinha', 'cafe', 'agua'], papo: false });
+  });
+});
+
+describe('earned, then shown', () => {
+  it('hearts in the header from the first bond point', () => {
+    expect(showsHearts(undefined)).toBe(false);
+    expect(showsHearts(0)).toBe(false);
+    expect(showsHearts(1)).toBe(true);
+    expect(showsHearts(30)).toBe(true);
+  });
+
+  it('"Vamos bater um papo?" after the first order at the padaria, with a bond point, when the NPC has a bate-papo', () => {
+    expect(offersPapo({ bondPoints: 2, carlosDone: true, hasPapo: true })).toBe(true);
+    expect(offersPapo({ bondPoints: 2, carlosDone: false, hasPapo: true })).toBe(false);
+    expect(offersPapo({ bondPoints: 2, carlosDone: undefined, hasPapo: true })).toBe(false);
+    expect(offersPapo({ bondPoints: 0, carlosDone: true, hasPapo: true })).toBe(false);
+    expect(offersPapo({ bondPoints: 5, carlosDone: true, hasPapo: false })).toBe(false);
   });
 });
 

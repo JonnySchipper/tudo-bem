@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Phase 7 review screenshots: the in-world dialogue box (Seu Carlos' Conversa and Pedido rápido, Nanda, Júlia), a sign card with its 👁 cue, and
+ * Phase 7 review screenshots: the in-world dialogue box (Seu Carlos' Conversa, Nanda, Júlia), a sign card with its 👁 cue, and
  * the Diário, at desktop and phone size.
  *
  *   pnpm build && PORT=8802 TB_TEST_ROLL=1 pnpm start          # then, in another terminal:
@@ -37,14 +37,7 @@ async function interact(page, target) {
 const waitRoom = (page, id) => page.waitForFunction((id) => window.__tb.game.room?.room === id, id, { timeout: 15_000 });
 const box = async (page, key) => {
   const sel = `#dialogue-box[data-dialogue="${key}"]`;
-  for (let i = 0; i < 4; i++) {
-    await page.waitForSelector('#dialogue-box', { timeout: 20_000 });
-    if (await page.$(sel)) return;
-    const cur = await page.getAttribute('#dialogue-box', 'data-dialogue');
-    if (!cur?.startsWith('idle-')) break;
-    await page.click('#dialogue-box [data-chip="0"]'); // Continuar — the learned line, then the talk
-    await sleep(350);
-  }
+  // one click, one box: a learned idle line leads the talk's first line, never a box of its own
   await page.waitForSelector(sel, { timeout: 20_000 });
 };
 /** The line finished typing (45 chars/s): wait for the rest of it to be gone. */
@@ -77,7 +70,7 @@ async function run(browser, vp) {
   page.on('pageerror', (e) => console.error('pageerror', String(e)));
   await toWorld(page, vp);
 
-  // Nanda: the greeting in the box (2 reply chips, "Ver chapéus")
+  // Nanda: the greeting in the box (2 reply chips; "Ver chapéus" waits for her last line)
   await interact(page, { npc: 'nanda' });
   await box(page, 'talk-nanda');
   await typed(page);
@@ -142,24 +135,6 @@ async function run(browser, vp) {
   await sleep(500);
   await shot(page, vp, 'conversa_turn');
 
-  await page.click('[data-action="pedido-rapido"]');
-  await box(page, 'pedido');
-  await typed(page);
-  await sleep(700);
-  await shot(page, vp, 'dialogue_carlos_pedido');
-  console.log('    pedido box height', await boxPct(page), '% of the screen');
-  await page.fill('#pedido-input', 'Bom dia, Seu Carlos!');
-  await page.press('#pedido-input', 'Enter');
-  await sleep(800);
-  await typed(page);
-  await page.click('#dialogue-box [data-chip="1"]');
-  await sleep(800);
-  await typed(page);
-  await page.click('#dialogue-box [data-chip="0"]');
-  await sleep(800);
-  await typed(page);
-  await sleep(400);
-  await shot(page, vp, 'dialogue_carlos_pedido_mid');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('#dialogue-box'));
 

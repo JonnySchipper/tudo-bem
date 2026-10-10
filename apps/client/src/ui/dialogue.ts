@@ -1,17 +1,19 @@
 /**
- * The in-world dialogue box (HOWTO Phase 7 step 1). One bottom-anchored box that presents whatever conversation is running (Seu Carlos'
- * Pedido rápido scene, Conversa, Júlia's and Nanda's lines, the parrot perch) without changing any protocol: the callers keep their own
- * state and just describe the current beat with a `BoxSpec`. The world stays visible and keeps moving behind it; the camera eases one
+ * The in-world dialogue box (HOWTO Phase 7 step 1). One bottom-anchored box that presents whatever conversation is running (the padaria
+ * counter, a feira stall, Júlia's and Nanda's lines, the parrot perch) without changing any protocol: the callers keep their own
+ * state and just describe the current beat with a `BoxSpec`. One click on an NPC opens one box: an idle line still to be learned leads
+ * the first line of whatever box that click opens (`leadNextBox`). The world stays visible and keeps moving behind it; the camera eases one
  * zoom step in (the host does that), and `game.modalOpen` stops the player from walking.
  *
  * The old centred-modal presentation (`?dialogue=modal`) was removed in Phase 10.
  */
+import type { NpcId } from '@tudobem/shared';
 import { game } from '../state';
 import { en, h, ui } from './dom';
 import { speak } from '../audio';
 import { reducedMotion } from '../render/pixel/perf';
 import { npcPortrait, parrotPortrait, type Expression } from './pixelArt';
-import { Typewriter, dialogueKeyAction, npcTagColor, writeShowEnglish } from './dialogueLogic';
+import { LeadSlot, MAX_CHIPS, Typewriter, dialogueKeyAction, joinLead, npcTagColor, showsHearts, writeShowEnglish } from './dialogueLogic';
 import { noteHeard } from './heard';
 import { modalId } from './modal';
 import { heartsWith } from './recadoView';
@@ -22,7 +24,7 @@ export interface BoxChip {
 }
 
 export interface BoxSpec {
-  /** `data-dialogue` and the `dbx-<key>` class: conversa, pedido, talk-nanda, ... */
+  /** `data-dialogue` and the `dbx-<key>` class: counter-carlos, feira, talk-nanda, ... */
   key: string;
   npcId: string | null;
   speaker: string;
@@ -30,6 +32,8 @@ export interface BoxSpec {
   expression: Expression;
   /** The NPC's line: typed out at 45 chars/s, the EN gloss behind the toggle. */
   line: { pt: string; en?: string } | null;
+  /** Said before `line`, in the same bubble (an idle line the click opened with). Set through `leadNextBox`, not by callers. */
+  lead?: { pt: string; en?: string } | null;
   /** What 🔊 Ouvir plays when it is not the line itself (the line without the player's name: one clip for every player). */
   listen?: string;
   /** The NPC is thinking (an AI turn is on its way): a pulsing "…" instead of the line. */
@@ -42,7 +46,9 @@ export interface BoxSpec {
   notes?: (HTMLElement | null)[];
   /** Ticket, conta, banners: anything that sits between the line and the replies. */
   extras?: HTMLElement | null;
+  /** At most `MAX_CHIPS` (3 content chips and one way out); keys 1-4 reach each. */
   chips: BoxChip[];
+  /** A typed reply (the feira's "Quanto custa?"). */
   input?: { id: string; placeholder: string; send: string; onSend: (text: string, el: HTMLInputElement) => void; disabled?: boolean } | null;
   footer?: HTMLElement | null;
   onChip?: (index: number) => void;
@@ -77,12 +83,21 @@ let typedEl: HTMLElement | null = null;
 let restEl: HTMLElement | null = null;
 
 export const isDialogueBoxOpen = (): boolean => root !== null;
-/** The key of the conversation currently in the box (`conversa`, `pedido`, `talk-nanda`...), or null. */
+/** The key of the conversation currently in the box (`counter-carlos`, `feira`, `talk-nanda`...), or null. */
 export const dialogueBoxKey = (): string | null => (root ? spec?.key ?? null : null);
 /** The NPC in the box, or null. */
 export const dialogueBoxNpc = (): string | null => (root ? spec?.npcId ?? null : null);
-/** The Portuguese line in the box (null while closed or thinking). */
-export const dialogueBoxLine = (): string | null => (root && spec && !spec.thinking ? spec.line?.pt ?? null : null);
+/** The Portuguese line in the box, its lead first (null while closed or thinking). */
+export const dialogueBoxLine = (): string | null => (root && spec && !spec.thinking && spec.line ? joinLead(spec.lead?.pt, spec.line.pt) : null);
+
+/** The idle line waiting for the next box this NPC opens (one click, one box). */
+const leads = new LeadSlot();
+
+/**
+ * The next box opened for `npcId` says `line` first, in the same bubble. Returns a function that drops the lead if no box took it and says
+ * whether one did (call it right after the click's talk opened).
+ */
+export const leadNextBox = (npcId: string, line: { pt: string; en?: string }): (() => boolean) => leads.set(npcId, line);
 
 const noType = () => new URLSearchParams(location.search).has('notype');
 const coarse = () => {
@@ -122,8 +137,9 @@ function onKey(e: KeyboardEvent) {
   else spec.onChip?.(a.index);
 }
 
-/** Friendship hearts next to the name tag (`♥ 3`); the full row lives in the Recados journal. */
-function hearts(npcId: string): HTMLElement {
+/** Friendship hearts next to the name tag (`♥ 3`), once this NPC has a bond point; the full row lives in the Recados journal. */
+function hearts(npcId: string): HTMLElement | null {
+  if (!showsHearts(game.profile?.bond?.[npcId as NpcId])) return null;
   const n = heartsWith(game.profile?.bond, npcId);
   return h('span', { class: `dbx-hearts${n ? '' : ' zero'}`, title: `Amizade: ${n} de 10 corações · Friendship`, 'aria-label': `${n} corações (${n} hearts)` }, n ? '♥' : '♡', ' ', String(n));
 }
@@ -134,6 +150,7 @@ function buildPortrait(s: BoxSpec): HTMLElement {
 }
 
 function build(s: BoxSpec): HTMLElement[] {
+  // 🔊 replays the line itself: the lead was said aloud as the box opened
   const listenText = s.listen ?? s.line?.pt ?? '';
   const head = h(
     'div',
@@ -191,11 +208,12 @@ function build(s: BoxSpec): HTMLElement[] {
       ? h(
           'div',
           { class: 'line-bubble', title: 'Clique para completar · Click to skip ahead', onclick: skip },
-          h('span', { class: 'pt', lang: 'pt-BR', 'aria-label': s.line.pt }, typedEl, restEl),
+          h('span', { class: 'pt', lang: 'pt-BR', 'aria-label': joinLead(s.lead?.pt, s.line.pt) }, typedEl, restEl),
         )
       : null;
 
-  const chips = s.chips.slice(0, 6).map((c, i) =>
+  if (import.meta.env.DEV && s.chips.length > MAX_CHIPS) console.warn(`[dialogue] ${s.key}: ${s.chips.length} chips, the box shows ${MAX_CHIPS}`);
+  const chips = s.chips.slice(0, MAX_CHIPS).map((c, i) =>
     h(
       'button',
       { class: 'dbx-chip', onclick: () => s.onChip?.(i), 'data-chip': String(i) },
@@ -227,15 +245,16 @@ function build(s: BoxSpec): HTMLElement[] {
     s.said ? h('div', { class: 'dbx-said you-said' }, 'Você', en(' (You)'), `: “${s.said}”`) : null,
     s.feedback ?? null,
     line,
-    s.line?.en && !s.thinking ? h('div', { class: 'dbx-en en plain' }, s.line.en) : null,
+    s.line?.en && !s.thinking ? h('div', { class: 'dbx-en en plain' }, joinLead(s.lead?.en, s.line.en)) : null,
   );
   const below = h('div', { class: 'dbx-below' }, s.extras ? h('div', { class: 'dbx-extras' }, s.extras) : null, chips.length ? h('div', { class: 'dbx-chips reply-chips' }, ...chips) : null, inputRow || s.footer ? h('div', { class: 'dbx-actions' }, inputRow, s.footer ? h('div', { class: 'dbx-footer' }, s.footer) : null) : null);
   return [h('div', { class: 'dbx-side' }, buildPortrait(s)), main, below];
 }
 
 /** Show (or update in place) the dialogue box. The line only types out again when it changes. */
-export function showDialogueBox(s: BoxSpec): void {
+export function showDialogueBox(next: BoxSpec): void {
   const wasOpen = !!root;
+  const s: BoxSpec = { ...next, lead: leads.apply(next) };
   spec = s;
   if (!root) {
     root = h('div', { id: 'dialogue-box', class: 'dbx', role: 'dialog' });
@@ -250,7 +269,7 @@ export function showDialogueBox(s: BoxSpec): void {
   root.dataset.dialogue = s.key;
   root.setAttribute('aria-label', s.speaker);
 
-  const text = s.line?.pt ?? '';
+  const text = s.line ? joinLead(s.lead?.pt, s.line.pt) : '';
   const keyChanged = s.key !== lastKey;
   if (keyChanged || text !== lastLine) {
     tw.start(text, performance.now(), reducedMotion() || noType());
@@ -278,13 +297,6 @@ export function showDialogueBox(s: BoxSpec): void {
   if ((!wasOpen || keyChanged) && s.input && !s.input.disabled && !coarse()) (document.getElementById(s.input.id) as HTMLInputElement | null)?.focus({ preventScroll: true });
 }
 
-/** Focus the reply field again (after an answer came back). */
-export function focusDialogueInput(): void {
-  if (!spec?.input || coarse()) return;
-  const el = document.getElementById(spec.input.id) as HTMLInputElement | null;
-  if (el && !el.disabled) el.focus({ preventScroll: true });
-}
-
 export function closeDialogueBox(): void {
   if (!root) return;
   if (raf) cancelAnimationFrame(raf);
@@ -301,6 +313,7 @@ export function closeDialogueBox(): void {
   lastKey = '';
   lastLine = '';
   lastNpc = undefined;
+  leads.closed();
   game.modalOpen = !!modalId();
   host?.close();
   gone?.onDismiss?.();

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { NPC_TALK, TALKING_NPCS, fillTalk, talkOpener } from './npcTalk.js';
+import { NPC_TALK, TALKING_NPCS, fillTalk, isLastTalkNode, talkOpener } from './npcTalk.js';
 import { classifyChat } from './safety.js';
 import { cardsInText } from './caderno.js';
 import { isNpcId } from './bonds.js';
 
-// the Praia's trees leave the talk for a panel: Bento's boats, Neide's log, Jô's snacks / fish tray / beach rack; Seu Dito's opens the pet shop
-const RESERVED = new Set(['end', 'help', 'shop', 'treino', 'rental', 'caderneta', 'snacks', 'sell', 'rack', 'adopt', 'petshop']);
+// the Praia's trees leave the talk for a panel: Bento's boats, Neide's log, Jô's snacks / fish tray; Seu Dito's opens the pet shop
+const RESERVED = new Set(['end', 'help', 'shop', 'treino', 'rental', 'caderneta', 'snacks', 'sell', 'adopt', 'petshop']);
 const PRAIA_NPCS = ['bento', 'neide', 'jo'] as const;
 
 describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia, Seu Dito)', () => {
@@ -45,18 +45,42 @@ describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia, Se
     }
   });
 
-  it('the Praia: Bento opens the rentals, Neide teaches the three beats and keeps the log, Jô sells snacks, buys fish and has hats', () => {
+  it('the Praia: Bento opens the rentals, Neide teaches the three beats and keeps the log, Jô sells snacks and buys fish', () => {
     const next = (npc: (typeof PRAIA_NPCS)[number]) => Object.values(NPC_TALK[npc]!.nodes).flatMap((n) => n.chips.map((c) => c.next));
     expect(next('bento')).toContain('rental');
     expect(next('neide')).toEqual(expect.arrayContaining(['como', 'caderneta']));
     expect(['como', 'como2', 'como3'].every((id) => NPC_TALK.neide!.nodes[id])).toBe(true);
-    expect(next('jo')).toEqual(expect.arrayContaining(['snacks', 'sell', 'rack']));
+    expect(next('jo')).toEqual(expect.arrayContaining(['snacks', 'sell']));
     for (const npc of PRAIA_NPCS) {
       expect(isNpcId(npc)).toBe(true);
       for (const [id, node] of Object.entries(NPC_TALK[npc]!.nodes)) for (const c of node.chips) expect(RESERVED.has(c.next) || NPC_TALK[npc]!.nodes[c.next], `${npc}.${id} -> ${c.next}`).toBeTruthy();
       // nobody on the beach waves or says "oi" as a wave: the greeting is by the hour
       expect(NPC_TALK[npc]!.nodes[NPC_TALK[npc]!.start]!.line.pt).toMatch(/^\{saudacao\}/);
     }
+  });
+
+  it('no node has more than 3 chips, so the bate-papo chip still fits the 4 a box shows (keys 1-4)', () => {
+    for (const npc of TALKING_NPCS) for (const [id, node] of Object.entries(NPC_TALK[npc]!.nodes)) expect(node.chips.length, `${npc}.${id}`).toBeLessThanOrEqual(3);
+    // the Praia openers: 3 chips each, the last one the way out
+    for (const npc of PRAIA_NPCS) {
+      const t = NPC_TALK[npc]!;
+      const chips = t.nodes[t.start]!.chips;
+      expect(chips, npc).toHaveLength(3);
+      expect(chips.at(-1)!.next, npc).toBe('end');
+    }
+  });
+
+  it('the last node is the one whose chips all leave the talk (the shop buttons wait for it)', () => {
+    const nanda = NPC_TALK.nanda!;
+    expect(isLastTalkNode(nanda, 'oi')).toBe(false);
+    expect(isLastTalkNode(nanda, 'chapeus')).toBe(false);
+    expect(isLastTalkNode(nanda, 'tchau')).toBe(true);
+    expect(isLastTalkNode(NPC_TALK.julia!, 'ajuda')).toBe(false);
+    expect(isLastTalkNode(NPC_TALK.julia!, 'tchau')).toBe(true);
+    expect(isLastTalkNode(NPC_TALK.dito!, 'adotar')).toBe(true);
+    expect(isLastTalkNode(nanda, 'nope')).toBe(false);
+    // the greetings with a shop button (Nanda's hats, Júlia's film, Seu Dito's animals) each reach one
+    for (const npc of ['nanda', 'julia', 'dito'] as const) expect(Object.keys(NPC_TALK[npc]!.nodes).some((id) => isLastTalkNode(NPC_TALK[npc]!, id)), npc).toBe(true);
   });
 
   it('Nanda can open the hat shop and Júlia the help menu', () => {

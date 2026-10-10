@@ -13,6 +13,7 @@ import { ambience } from '../ambience';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
 import { foodIcon, npcPortrait } from './pixelArt';
 import { showDialogueBox } from './dialogue';
+import { MAX_CONTENT_CHIPS } from './dialogueLogic';
 import { closeDialogue } from './panels';
 import { clock } from '../gameClock';
 import { greetingFor, greetingCap, RECADO_DAY_BONUS_RV, RECADO_MAX_ACTIVE } from '@tudobem/shared';
@@ -467,9 +468,9 @@ export interface PreludeHooks {
 }
 
 /**
- * The beats an NPC opens with before the usual talk: first "Entregar {item}" when an active recado asks for something in your bag, then
- * the NPC's `ask` with "Pode deixar!" / "Agora não". Accepting or handing over closes the box (the tracker and toasts take over); declining
- * (or having nothing to say) goes on with the normal dialogue.
+ * What an NPC opens with in place of the usual talk's first line: "Trouxe … pra você!" when an active recado asks for something in your
+ * bag, else the NPC's `ask` with "Pode deixar!" / "Agora não". One of them at most per click. Accepting or handing over closes the box (the
+ * tracker and toasts take over); declining, "Só conversar" (or having nothing to say) goes on with the normal dialogue in the same box.
  */
 export function runPrelude(npc: NpcId, hooks: PreludeHooks): void {
   const give = giveOptions(game.board, game.profile?.bag, npc);
@@ -483,19 +484,21 @@ const common = (npc: NpcId, key: string) => ({ key, npcId: npc, speaker: npcName
 
 function giveBeat(npc: NpcId, options: ReturnType<typeof giveOptions>, hooks: PreludeHooks): void {
   const g = greetingCap(greetingFor(clock.minutes()));
+  // 3 hand-overs at most, then "Só conversar": 4 chips, all on keys 1-4
+  const shown = options.slice(0, MAX_CONTENT_CHIPS);
   const chips = [
     // the player says it: the hand-over is a line of Portuguese, not a menu verb. needs_br: true
-    ...options.map((o) => ({ pt: `Trouxe ${itemWithArticle(o.itemId)} pra você!`, en: `Here’s your ${o.name.en}! (hand it over)` })),
+    ...shown.map((o) => ({ pt: `Trouxe ${itemWithArticle(o.itemId)} pra você!`, en: `Here’s your ${o.name.en}! (hand it over)` })),
     { pt: 'Só conversar', en: 'Just chat' },
   ];
   showDialogueBox({
     ...common(npc, `give-${npc}`),
     expression: 'neutro',
     line: { pt: `${g}! Trouxe algo pra mim?`, en: `${greetingEn(g)}! Did you bring me something?` },
-    extras: h('div', { class: 'prelude-items' }, ...options.map((o) => h('span', { class: 'prelude-item' }, foodIcon(o.itemId, 3, o.name.pt), `×${o.qty}`))),
+    extras: h('div', { class: 'prelude-items' }, ...shown.map((o) => h('span', { class: 'prelude-item' }, foodIcon(o.itemId, 3, o.name.pt), `×${o.qty}`))),
     chips,
     onChip: (i) => {
-      const o = options[i];
+      const o = shown[i];
       if (!o) return hooks.proceed();
       closeDialogue();
       hooks.give(npc, o.itemId);
@@ -511,7 +514,8 @@ function offerBeat(npc: NpcId, offer: NonNullable<ReturnType<typeof offerFrom>>,
     expression: 'neutro',
     line: { pt: offer.ask.pt, en: offer.ask.en },
     notes: [h('small', { class: 'dbx-meta offer-title' }, `Favor: ${offer.title.pt}`)],
-    extras: h('div', { class: 'offer-reward' }, h('span', { class: 'rd-rv' }, `+${offer.reward.rv} RV`), h('span', { class: 'rd-heart' }, icon('coracao', 16), `+${offer.reward.bond}`), offer.reward.itemId ? h('span', { class: 'rd-item' }, foodIcon(offer.reward.itemId, 2), itemById(offer.reward.itemId)?.name.pt ?? '') : null),
+    // the RV only: the hearts and any item are found out on the done card
+    extras: h('div', { class: 'offer-reward' }, h('span', { class: 'rd-rv' }, `+${offer.reward.rv} RV`)),
     chips: [
       { pt: 'Pode deixar!', en: 'You got it! (leave it to me)' },
       { pt: 'Agora não', en: 'Not now' },
@@ -522,8 +526,8 @@ function offerBeat(npc: NpcId, offer: NonNullable<ReturnType<typeof offerFrom>>,
         hooks.accept(offer.id);
       } else {
         declinedOffers.add(offer.id);
-        // another offer from the same NPC, or on with the usual talk
-        runPrelude(npc, hooks);
+        // on with the usual talk: one offer per click, a second one waits for the next
+        hooks.proceed();
       }
     },
   });

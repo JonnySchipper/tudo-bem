@@ -14,7 +14,7 @@
  *   SOLO         guest entry (static build); otherwise a throwaway account is registered
  *
  * Captures per viewport (1280×800 and 390×844, the phone with touch): avatar creator, praça, padaria, kitnet,
- * academia, then the panels: Júlia and Nanda dialogue boxes, hat shop, credits, Conversa (portrait), Pedido rápido, Me vê um.
+ * academia, then the panels: Júlia and Nanda dialogue boxes, hat shop, credits, Conversa (portrait), Me vê um.
  * Needs a server with a pinned game clock (daytime): start it with TB_TEST_CLOCK_CONTROL=1 (the script sets 08:30) or TB_TEST_CLOCK_OFFSET_MIN; it fails fast otherwise.
  * Rooms are reached by id through window.__tb (interact / net.send), so the script works with any renderer.
  */
@@ -110,7 +110,7 @@ async function toAvatarCreator(page, vp) {
   await sleep(400);
 }
 
-/** Panels over the world: hat shop, credits, Conversa with its portrait, Pedido rápido, Me vê um. */
+/** Panels over the world: hat shop, credits, Conversa with its portrait, Me vê um. */
 async function panelShots(page, vp) {
   const closeAll = async () => {
     await page.keyboard.press('Escape');
@@ -124,7 +124,7 @@ async function panelShots(page, vp) {
   await sleep(500);
   await shot(page, vp, 'dialogue');
   await closeAll();
-  // Since Phase 7 clicking Nanda opens her dialogue box (with "Ver chapéus"); the hat shop panel opens from the stall itself
+  // Since Phase 7 clicking Nanda opens her dialogue box ("Ver chapéus" on her last line); the hat shop panel opens from the stall itself
   await openNpc(page, 'nanda');
   await sleep(500);
   await shot(page, vp, 'nanda_dialogue');
@@ -147,11 +147,6 @@ async function panelShots(page, vp) {
   await openNpc(page, 'carlos', 'conversa');
   await sleep(800);
   await shot(page, vp, 'conversa');
-  await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
-  await sleep(500);
-  await page.evaluate(() => document.querySelectorAll('.pedido-panel, .pedido-backdrop').forEach((el) => el.scrollTo?.(0, 0)));
-  await shot(page, vp, 'pedido');
   await closeAll();
   await page.evaluate(() => window.__tb.net.send({ t: 'mg', action: 'start' }));
   await page.waitForSelector('#cr-order', { timeout: 8000 });

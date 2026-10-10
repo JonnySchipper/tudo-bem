@@ -93,17 +93,15 @@ import {
   showJulia,
   showParrotPerch,
   wireParrotShop,
-  showScene,
 } from './ui/panels';
 import { openMap } from './ui/townMap';
-import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
 import { openSupport } from './ui/support';
 import { bindPetName, maybeAskPetName, openPetName, showPetNameError } from './ui/petName';
 import { bindPetShop, openHomePetCard, openPetShop, petAdopted } from './ui/petShop';
 import { bindAdmin, onAdminMsg } from './ui/admin';
 import { applyServerLayout } from './ui/layoutSync';
-import { dialogueBoxKey, dialogueBoxNpc, isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
+import { dialogueBoxKey, dialogueBoxNpc, isDialogueBoxOpen, leadNextBox, setDialogueHost, showDialogueBox } from './ui/dialogue';
 import { bindRecadoActions, mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith, recadoFocus } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
@@ -377,52 +375,37 @@ function openComissaria() {
 function talkTo(npc: NpcDef['id']) {
   closeDialogue();
   if (npc === 'comissaria') markDesembStep('falar');
-  // the player chose to talk: an unheard idle line is this conversation's first line in the box (passing chatter stays a bubble and teaches nothing).
-  // A vendor's idle lines are stall calls, so off duty they open with their own small talk instead.
+  // One click, one box. An unheard idle line leads the first line of whatever box this click opens (a hand-over, an errand, the greeting):
+  // passing chatter stays a bubble and teaches nothing. A vendor's idle lines are stall calls, so off duty they open with their own small talk.
   const speaker = game.liveNpcs(now()).find((n) => n.id === npc);
   const idle = speaker && !vendorOffDuty(npc) ? talkIdleOpen(npc, speaker.idleLines, game.profile?.diary, clock.minutes()) : null;
   const vendor = isStallVendor(npc);
-  // read before `talk`: that message pays bond at once, and an idle line can sit on screen until the profile push lands
+  // read before `talk`: that message pays bond at once, and the box can sit on screen until the profile push lands
   const juliaMet = npc === 'julia' && profileMetJulia();
   // the server counts the talk (bond +2 once a day, `falar` steps); the bakers count it through the counter / a bate-papo,
   // the vendors through their stall panel (it sends `talk` itself)
   if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
-  // an NPC first hands you what they came with: a thank-you hand-over ("Entregar …") or today's errand ("Pode deixar!" / "Agora não")
-  const proceed = () =>
-    runPrelude(npc, {
-      accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
-      give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
-      proceed: () => talkFlow(npc, juliaMet),
-    });
-  if (!speaker || !idle) return proceed();
-  // the line over their head would say it twice: the box has it now
-  game.npcBubbles.delete(npc);
-  let went = false;
-  // the next beat takes the same box in place (no close and reopen, the camera stays): one conversation, not two
-  const go = () => {
-    if (went) return;
-    went = true;
-    proceed();
-  };
-  speak(idle.line.pt, { speaker: npc });
-  showDialogueBox({
-    key: `idle-${npc}`,
-    npcId: npc,
-    speaker: speaker.name,
-    role: speaker.role.pt,
-    expression: 'feliz',
-    line: idle.line,
-    chips: [{ pt: 'Continuar', en: 'Continue' }],
-    onChip: go,
-    onClose: go,
+  const led = idle ? leadNextBox(npc, idle.line) : null;
+  // an NPC first hands you what they came with: a thank-you hand-over ("Trouxe … pra você!") or today's errand ("Pode deixar!" / "Agora não"),
+  // in place of the talk's first line
+  runPrelude(npc, {
+    accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
+    give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
+    proceed: () => talkFlow(npc, juliaMet),
   });
+  if (!idle || !led) return;
+  // the line over their head would say it twice: the box has it now (a talk that opened a panel instead keeps it as the bubble)
+  if (led()) game.npcBubbles.delete(npc);
+  else npcSay(npc, idle.line);
+  // said aloud first; the talk's own line is on 🔊
+  speak(idle.line.pt, { speaker: npc });
   sendLine(idle.anchor);
 }
 
 /** A bate-papo (pre-made, never graded) talked through: the server counts it; a node's diary line can teach its word. */
 const papoHooks = { done: (npc: NpcId, id: string) => net.send({ t: 'papo', npc, id }), onLine: (anchor: string) => sendLine(anchor) };
 
-/** On with the NPC's usual talk. The beat before it (the idle line, an errand) is replaced in place; a talk that opens no box of its own closes it. */
+/** On with the NPC's usual talk. The beat before it (a hand-over, an errand) is replaced in place; a talk that opens no box of its own closes it. */
 function talkFlow(npc: NpcDef['id'], juliaMet = false) {
   const before = dialogueBoxKey();
   openTalk(npc, juliaMet);
@@ -1224,29 +1207,6 @@ net.on((m: ServerMsg) => {
       else {
         toast('reward', m.reason.pt, m.reason.en, m.amount);
         ambience.sting('coin');
-      }
-      break;
-    case 'scene':
-      if (isPedidoOpen()) {
-        updatePedido(m.view, {
-          said: m.said,
-          feedback: m.feedback,
-          score: m.lastScore,
-          payout: m.payout,
-          dailyBlocked: m.dailyBlocked,
-          fillTicket: m.fillTicket,
-          notice: m.notice,
-        });
-      } else {
-        openPedido(m.view, {
-          onChoose: (i) => net.send({ t: 'scene', action: 'choose', chip: i }),
-          onClose: () => {
-            net.send({ t: 'scene', action: 'close' });
-            closePedido();
-          },
-          onPlay: startMinigame,
-          onType: (text) => net.send({ t: 'scene', action: 'type', text }),
-        });
       }
       break;
     case 'mg':
