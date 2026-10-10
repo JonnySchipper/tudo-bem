@@ -118,11 +118,11 @@ export function kitnetGuideDone(v: KitnetGuideView, p: KitnetGuideProgress): Set
 }
 
 /** The cheapest piece the Atelier sells (what "you can't afford anything yet" is measured against). */
-export const cheapestFurniture = () => FURNITURE.filter((d) => !d.earned).reduce((a, b) => (b.price < a.price ? b : a));
+export const cheapestFurniture = () => FURNITURE.filter((d) => !d.earned && !d.shop).reduce((a, b) => (b.price < a.price ? b : a));
 
 /** A piece to suggest on the buy step: the cheapest one the player can pay for, or null when there is none. */
 export function suggestPurchase(coins: number): string | null {
-  const ok = FURNITURE.filter((d) => !d.earned && d.price <= coins).sort((a, b) => a.price - b.price);
+  const ok = FURNITURE.filter((d) => !d.earned && !d.shop && d.price <= coins).sort((a, b) => a.price - b.price);
   return ok[0]?.id ?? null;
 }
 

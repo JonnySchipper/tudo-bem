@@ -31,12 +31,14 @@ export interface FurnitureDef {
   price: number;
   /** Seat furniture can be sat on. */
   seat: boolean;
-  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro' | 'rede' | 'filtro' | 'banner';
+  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro' | 'rede' | 'filtro' | 'banner' | 'caminha' | 'racao';
   color: string;
   /** Walk-through items (rugs, the founders banner) do not block tiles. */
   walkable?: boolean;
   /** Earned, never sold at the atelier. Price stays 0 and no RV changes hands. */
   earned?: boolean;
+  /** Sold only at that shop (the pet shop's lojinha, #234): the atelier hides it and refuses to sell it. */
+  shop?: 'petshop';
 }
 
 /** Atelier catalog for the kitnet. */
@@ -66,6 +68,11 @@ export const FURNITURE: FurnitureDef[] = [
     walkable: true,
     earned: true,
   },
+  // the pet shop's lojinha (#234; prices equal PET_ITEMS): a home pet lies on a bed; they gather at the bowl when you come in
+  { id: 'caminha_xadrez', pt: 'Caminha xadrez', en: 'Plaid pet bed', price: 20, seat: false, kind: 'caminha', color: '#d93232', walkable: true, shop: 'petshop' },
+  { id: 'caminha_azul', pt: 'Caminha azul', en: 'Blue pet bed', price: 20, seat: false, kind: 'caminha', color: '#4280dd', walkable: true, shop: 'petshop' },
+  { id: 'caminha_cesta', pt: 'Cesta de vime', en: 'Wicker basket', price: 25, seat: false, kind: 'caminha', color: '#c78c59', walkable: true, shop: 'petshop' },
+  { id: 'saco_racao', pt: 'Saco de ração + pote', en: 'Food bag + bowl', price: 15, seat: false, kind: 'racao', color: '#cb2a2a', shop: 'petshop' },
 ];
 
 /** Every new kitnet comes with one free chair so the first placement is instant. */

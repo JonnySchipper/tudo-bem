@@ -176,6 +176,17 @@ export type ClientMsg =
   /** Name the dog or the cat. The server trims, checks the shape, then runs chat moderation. It never rewrites the name. */
   | { t: 'perk'; action: 'petName'; pet: 'dog' | 'cat'; name: string }
   /**
+   * Pet Shop do Seu Dito (#234). `adopt` (subscribers, in the shop, near the pens or the counter; the name is moderated in the same round
+   * trip), `active` (take a pet out, or null: everyone home), `rename`, `buy` (lojinha, earned RV, near the counter), `equip` (a collar or a
+   * toy you own on one of your pets), `carinho` (pet an animal in a pen: free for everyone, once per animal per visit, earns its diary line).
+   */
+  | { t: 'pet'; action: 'adopt'; breed: string; coat: string; name: string }
+  | { t: 'pet'; action: 'active'; petId: string | null }
+  | { t: 'pet'; action: 'rename'; petId: string; name: string }
+  | { t: 'pet'; action: 'buy'; itemId: string }
+  | { t: 'pet'; action: 'equip'; petId: string; slot: 'collar' | 'toy'; itemId: string | null }
+  | { t: 'pet'; action: 'carinho'; penId: string; slot: number }
+  /**
    * Player academies (slice 1). The elevator in Academia do Bairro asks for `directory`.
    * `found` takes a first-come name (brown belt). `visit` loads the empty floor without joining.
    * `join` / `leave` are a free membership flag (no dues). `look` sets the crest and gi (owner).
@@ -253,6 +264,8 @@ export interface RoomStateMsg {
   padaria?: PadariaCard;
   /** Feira room only: whether the cart games are on, so the closed sign is there on enter. */
   feiraCart?: { closed: boolean; game: FeiraGameId | null };
+  /** Kitnet instance only: the owner's pets resting at home (every visitor sees them). */
+  homePets?: import('./petShop.js').HomePet[];
 }
 
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
@@ -609,6 +622,12 @@ export type ServerMsg =
   /** Dual Praça leaderboards. `words` = diary length; `streak` = Escola currentStreak. */
   | { t: 'leaderboards'; words: BoardRow[]; streak: BoardRow[]; at: number }
   | { t: 'error'; code: string; pt: string; en: string }
+  /** The kitnet's resting pets changed (a pet went out or came home, a bed was placed): sent to everyone in that kitnet. */
+  | { t: 'homePets'; pets: import('./petShop.js').HomePet[] }
+  /** The adoption moment (the panel's confirm card). */
+  | { t: 'petshop'; phase: 'adopted'; pet: import('./types.js').OwnedPet }
+  /** Seu Dito says a line over his head (a carinho in the pens): `anchor` is its diary line. */
+  | { t: 'npcSay'; npc: import('./rooms.js').NpcId; pt: string; en: string; anchor?: string }
   | { t: 'pong' }
   /** Elevator directory. `canFound` is this player's belt. `ownedId` is the academy they founded, if any. */
   | { t: 'academy'; phase: 'directory'; rows: AcademyCard[]; canFound: boolean; ownedId: string | null }

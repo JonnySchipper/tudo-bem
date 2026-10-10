@@ -22,7 +22,7 @@
    "data": "atlas/petshop.json",
    "w": 512,
    "h": 192,
-   "frames": 40
+   "frames": 50
   }
  },
  "terrain": {
@@ -21678,9 +21678,69 @@
    "overhead": null,
    "shadow": null
   },
+  "furniture/caminha_xadrez_0": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_xadrez_0",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_xadrez_1": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_xadrez_1",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "props/caminha_azul": {
    "atlas": "petshop",
    "frame": "props/caminha_azul",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_azul_0": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_azul_0",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_azul_1": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_azul_1",
    "w": 18,
    "h": 13,
    "ax": 9,
@@ -21707,6 +21767,80 @@
    "anim": null,
    "overhead": null,
    "shadow": null
+  },
+  "furniture/caminha_cesta_0": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_cesta_0",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/caminha_cesta_1": {
+   "atlas": "petshop",
+   "frame": "furniture/caminha_cesta_1",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/saco_racao_0": {
+   "atlas": "petshop",
+   "frame": "furniture/saco_racao_0",
+   "w": 18,
+   "h": 17,
+   "ax": 9,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "furniture/saco_racao_0#cast",
+    "w": 27,
+    "h": 7,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "furniture/saco_racao_1": {
+   "atlas": "petshop",
+   "frame": "furniture/saco_racao_1",
+   "w": 18,
+   "h": 17,
+   "ax": 8,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "furniture/saco_racao_1#cast",
+    "w": 27,
+    "h": 7,
+    "ax": 8,
+    "ay": 1
+   }
   },
   "props/pote_duplo": {
    "atlas": "petshop",

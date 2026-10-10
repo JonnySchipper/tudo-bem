@@ -10,7 +10,7 @@
 //   fx              fx/carinho (three frames of two hearts rising), fx/ossinho and fx/pelucia (the toys a resting pet holds)
 //
 // Light from the upper left, a 1 px navy outline where a shape meets empty space, LimeZu palette plus the brand colours, no gradients.
-import { blank, clone, crop, paste, px } from '../../../../scripts/lib/pixel/img.mjs';
+import { blank, clone, crop, flipH, paste, px } from '../../../../scripts/lib/pixel/img.mjs';
 import { put, fillRect, shape, flat, ell, box, or, and, not, mix, h2, NAVY } from './paint.mjs';
 import { swap, stretchCols, outlineAround } from './kit.mjs';
 import { findGlass } from './shop.mjs';
@@ -722,7 +722,15 @@ export async function petshopSet(ctx) {
   add('props/arranhador', arranhador(), solid([1, 1], 'fx/shadow_10'));
   add('props/prateleira_racao', prateleiraRacao(), solid([1, 1]));
   add('props/cesto_brinquedos', cestoBrinquedos(), solid([1, 1], 'fx/shadow_10'));
-  for (const s of ['xadrez', 'azul', 'cesta']) add(`props/caminha_${s}`, caminha(s), flatMeta());
+  for (const s of ['xadrez', 'azul', 'cesta']) {
+    add(`props/caminha_${s}`, caminha(s), flatMeta());
+    // the same beds as kitnet furniture (round: both rotations are the same art)
+    for (const rot of [0, 1]) add(`furniture/caminha_${s}_${rot}`, caminha(s), flatMeta());
+  }
+  for (const rot of [0, 1]) {
+    const bag = sacoRacao();
+    add(`furniture/saco_racao_${rot}`, rot ? { img: flipH(bag.img), anchor: [bag.img.w - 1 - bag.anchor[0], bag.anchor[1]] } : bag, solid([1, 1], 'fx/shadow_10'));
+  }
   add('props/pote_duplo', poteDuplo(), flatMeta());
   add('props/saco_racao', sacoRacao(), solid([1, 1], 'fx/shadow_10'));
   add('props/balanca_pet', balancaPet(), solid([1, 1], 'fx/shadow_16', false));

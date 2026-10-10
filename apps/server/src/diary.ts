@@ -256,6 +256,12 @@ export class DiaryTracker {
     this.earn(s, word, 'conversation');
   }
 
+  /** A line the server itself spoke to this player (a carinho in the pet shop's pens): its conversation word. The caller checked the distance. */
+  earnLine(s: Session, anchor: string) {
+    const word = wordForLine(anchor);
+    if (word) this.earn(s, word, 'conversation');
+  }
+
   private earn(s: Session, word: DiaryWord, via: DiaryWord['source']) {
     const p = s.profile;
     if (!p) return;

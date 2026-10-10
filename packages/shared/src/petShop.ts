@@ -124,7 +124,23 @@ export function writePetMirrors(p: PetOwner): void {
   p.pet = activePet(p)?.species ?? null;
   const names: { dog?: string; cat?: string } = {};
   for (const pet of p.pets ?? []) if (pet.name && !names[pet.species]) names[pet.species] = pet.name;
-  p.petNames = names;
+  if (names.dog || names.cat) p.petNames = names;
+  else delete p.petNames;
+}
+
+/**
+ * The subscriber dog and cat from before the pet shop stay a perk: the Apoiar panel's Cachorro / Gato (the `perk pet` message) and naming a
+ * species give you your caramelo or your orange cat (`legacy_<species>`) when you have no pet of that species yet. Null when the six are taken.
+ */
+export function ensureLegacyPet(p: PetOwner, species: PetSpecies, now: number): OwnedPet | null {
+  const mine = p.pets?.find((q) => q.species === species);
+  if (mine) return mine;
+  const legacy = LEGACY_BREED[species];
+  const id = p.pets?.some((q) => q.id === `legacy_${species}`) ? newPetId(now) : `legacy_${species}`;
+  if (adoptPet(p, legacy.breed, legacy.coat, now, id) !== 'ok') return null;
+  const pet = p.pets!.find((q) => q.id === id)!;
+  pet.legacy = true;
+  return pet;
 }
 
 export function activePet(p: PetOwner): OwnedPet | null {
