@@ -37,6 +37,8 @@ class CorreriaFeed {
   /** the bottom overlay's height in CSS px (the camera keeps the counter above it) */
   boxPx = 0;
   topPx = 0;
+  /** What the camera frames this shift (room px): set by the stage from its layout, a small board for a small menu. */
+  frame: { focus: { x: number; y: number }; need: { w: number; h: number } } | null = null;
   /** the cup chosen for the machine (client-only) */
   cup = 'cafe';
   /** items to show by name (the learner's gloss preference), set by the overlay */
@@ -68,6 +70,7 @@ class CorreriaFeed {
   end(): void {
     this.active = false;
     this.snap = null;
+    this.frame = null;
     this.cues = [];
     this.on = NO_HANDLERS;
     this.epoch++;

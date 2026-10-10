@@ -85,7 +85,7 @@ const HEARTBEAT_MS = 4_000;
 
 const LOST: Bilingual = { pt: 'Ih, perdi a comanda! Bora começar um turno novo?', en: 'Oops, I lost the order slip! Shall we start a fresh shift?' };
 const BYE: Bilingual = { pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' };
-const EMPTY_END: CorreriaEnd = { served: 0, perfect: 0, second: 0, left: 0, points: 0, tips: 0, bestCombo: 0, stars: 0, coins: 0, dailyBlocked: false, askRight: 0, askTotal: 0, words: [], newUnlocks: [], totalStars: 0, level: 0, regulars: [] };
+const EMPTY_END: CorreriaEnd = { served: 0, perfect: 0, second: 0, left: 0, points: 0, tips: 0, bestCombo: 0, stars: 0, coins: 0, dailyBlocked: false, words: [], newUnlocks: [], totalStars: 0, level: 0, regulars: [] };
 
 export class CorreriaEngine {
   private seq = 0;
@@ -229,8 +229,6 @@ export class CorreriaEngine {
       stars: sum.stars,
       coins,
       dailyBlocked,
-      askRight: sum.askRight,
-      askTotal: sum.askTotal,
       words: wordsNew,
       newUnlocks: newUnlocks(before, cp.stars).map((u) => ({ id: u.id, pt: u.pt, en: u.en })),
       totalStars: cp.stars,

@@ -33,14 +33,14 @@ export function openVilaGuide(): void {
   markSeen();
   closeVilaGuide();
   const close = () => card.remove();
-  const ok = h('button', { type: 'button', class: 'primary', id: 'vila-guide-ok', onclick: close }, 'Vamos lá!', h('span', { class: 'en' }, ' · Let’s go'));
+  const ok = h('button', { type: 'button', class: 'primary', id: 'vila-guide-ok', onclick: close }, h('span', { lang: 'pt-BR' }, VILA_GUIDE.ok.pt), h('span', { class: 'en' }, ` · ${VILA_GUIDE.ok.en}`));
   const card = h(
     'div',
     { class: 'howto-card vila-guide', id: 'vila-guide', role: 'dialog', 'aria-label': VILA_GUIDE.title.en },
-    h('p', { class: 'howto-kicker' }, 'Your guide · Guia da Vila'),
-    h('h3', null, VILA_GUIDE.title.pt, h('span', { class: 'en' }, VILA_GUIDE.title.en)),
+    h('p', { class: 'howto-kicker' }, h('span', { lang: 'pt-BR' }, VILA_GUIDE.kicker.pt), ` · ${VILA_GUIDE.kicker.en}`),
+    h('h3', null, h('span', { lang: 'pt-BR' }, VILA_GUIDE.title.pt), h('span', { class: 'en' }, VILA_GUIDE.title.en)),
     h('p', { class: 'howto-goal' }, VILA_GUIDE.lead),
-    h('dl', { class: 'vila-guide-list' }, ...VILA_GUIDE.lines.flatMap((l) => [h('dt', { lang: 'pt-BR' }, l.pt), h('dd', null, l.en)])),
+    h('dl', { class: 'vila-guide-list' }, ...VILA_GUIDE.lines.flatMap((l) => [h('dt', null, h('b', { lang: 'pt-BR' }, l.pt), h('small', null, l.gloss)), h('dd', null, l.en)])),
     h('p', { class: 'vila-guide-tip' }, VILA_GUIDE.tip),
     h('div', { class: 'howto-foot' }, ok),
   );

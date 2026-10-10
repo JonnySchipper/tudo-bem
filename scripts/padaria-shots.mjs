@@ -80,8 +80,8 @@ async function run(name) {
     await page.click('#pad-welcome-ok');
     await sleep(800);
     await shot('owned_first');
-    // the in-shop vaso: the book of Melhorias
-    await page.evaluate(() => window.__tb.interact({ prop: 'padaria_porta_fundar' }));
+    // the owner menu (a button on screen in your own padaria): play, size and sweets
+    await page.click('#pad-owner-btn');
     await page.waitForSelector('.padaria-book', { timeout: 15_000 });
     await sleep(400);
     await shot('book_balcao');
@@ -115,7 +115,7 @@ async function run(name) {
     await sleep(300);
     await page.evaluate(() => {
       localStorage.setItem('tb_cr_practice', '1');
-      window.__tb.interact({ prop: 'trilho' });
+      window.__tb.interact({ prop: 'vitrine' });
     });
     await sleep(4000);
     await shot('correria_owned');
