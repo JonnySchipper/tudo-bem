@@ -111,7 +111,7 @@ import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty 
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { askTray, bindPesca, onPescaMsg, onPescaRefused, openCaderneta, openPescaSpot } from './ui/pesca';
 import { askBarcos, bindBarco, onBarcoMsg, returnBarco } from './ui/pesca/barcoMenu';
-import { aboardMyParty, bindParty, createParty, hostingParty, inviteToBoat, onAboardCatch, onPartyMsg, sendAshore } from './ui/pesca/party';
+import { aboardMyParty, bindParty, createParty, hostingParty, inviteToBoat, onAboardCatch, onPartyMsg, onPartyRoomChanged, sendAshore } from './ui/pesca/party';
 import './styles/pesca.css';
 import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
@@ -1112,6 +1112,7 @@ net.on((m: ServerMsg) => {
       syncAcademyFloor();
       syncPadariaFloor();
       maybeAskPetName();
+      onPartyRoomChanged();
       break;
     }
     case 'academy':

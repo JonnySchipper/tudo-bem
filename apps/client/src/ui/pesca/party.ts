@@ -52,9 +52,21 @@ export function onPartyMsg(m: Extract<ServerMsg, { t: 'party' }>) {
   if (m.phase === 'ended') {
     trip = null;
     renderPill();
-    if (m.summary) showSummary(m.summary);
+    // still on the deck: the move to the pier comes next and a room change closes every modal, so the card waits for it
+    if (m.summary && game.room?.room === 'barco_festa') pendingSummary = m.summary;
+    else if (m.summary) showSummary(m.summary);
     else if (document.querySelector('[data-modal="party-invite"]')) closeModal();
   }
+}
+
+let pendingSummary: PartySummary | null = null;
+
+/** After a room state (main.ts): the trip card that was waiting for the walk ashore. */
+export function onPartyRoomChanged() {
+  if (!pendingSummary || game.room?.room === 'barco_festa') return;
+  const sum = pendingSummary;
+  pendingSummary = null;
+  showSummary(sum);
 }
 
 /** Someone else aboard landed a fish: its name, said aloud (display name in the toast, never spoken). */
