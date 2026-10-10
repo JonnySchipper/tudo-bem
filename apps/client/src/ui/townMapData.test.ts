@@ -8,7 +8,10 @@ import { AERO_MAP_ROWS, AREA_AT, MAP_COLS, MAP_H, MAP_ROWS, MAP_T, MAP_W, PRAIA_
 
 const root = path.resolve(__dirname, '../../public/pixel');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')) as Manifest;
-const atlas = JSON.parse(fs.readFileSync(path.join(root, manifest.atlases.outdoor.data), 'utf8')) as { frames: Record<string, unknown> };
+// every atlas the world loads up front (the outdoor one, and the beach's own)
+const atlases = Object.fromEntries(
+  Object.entries(manifest.atlases).filter(([, a]) => !a.lazy).map(([name, a]) => [name, JSON.parse(fs.readFileSync(path.join(root, a.data), 'utf8')) as { frames: Record<string, unknown> }]),
+);
 
 const overlaps = (a: Box, b: Box) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
 
@@ -160,7 +163,7 @@ describe('the Mapa picture (drawn from the game\'s own areas)', () => {
     expect(plan.ops.filter((o) => o.kind === 'tile').length).toBeGreaterThan(MAP_COLS * MAP_ROWS);
     for (const o of plan.ops) {
       if (o.kind === 'tile') expect(o.idx).toBeLessThan(manifest.terrain.count);
-      else expect(atlas.frames[o.frame], o.frame).toBeDefined();
+      else expect(atlases[o.atlas]?.frames[o.frame], o.frame).toBeDefined();
     }
   });
 

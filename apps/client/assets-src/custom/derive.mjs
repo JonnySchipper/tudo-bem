@@ -23,6 +23,7 @@ import * as telhadosMod from './telhados.mjs';
 import * as backdropMod from './backdrop.mjs';
 import * as fundosMod from './fundos.mjs';
 import * as frame3Mod from './frame3.mjs';
+import * as praiaMod from './praia.mjs';
 import { soleira } from './v3.mjs';
 
 /** V3: every street facade gets the darker soleira band where the wall meets the sidewalk. */
@@ -82,6 +83,7 @@ export const DERIVE = {
   skyline: backdropMod.skyline,
   pontoOnibus: vilaMod.pontoOnibusPart,
   emBreve: vilaMod.emBrevePart,
+  praia: praiaMod.praia,
 };
 
 /** Standalone images for the DOM (`images` in import-map.json): generators return [{ key, img, meta? }]. */
@@ -94,4 +96,5 @@ export const IMAGES = {
   flock: flockMod.flockStrips,
   pets: petsMod.petStrips,
   bubbleSkins: uiMod.bubbleSkins,
+  praiaIcons: praiaMod.praiaIconParts,
 };

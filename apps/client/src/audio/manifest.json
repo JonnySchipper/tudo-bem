@@ -3565,10 +3565,10 @@
       "file": "ui-3e0a463c5a.mp3"
     },
     {
-      "id": "ui-6adfc3166a",
+      "id": "ui-cb9362d042",
       "voice": "ui",
-      "text": "ÔNIBUS. Linha 875 · Centro · Aeroporto",
-      "file": "ui-6adfc3166a.mp3"
+      "text": "ÔNIBUS. Linha 875 · Centro · Aeroporto · Praia",
+      "file": "ui-cb9362d042.mp3"
     },
     {
       "id": "ui-44328d97aa",
@@ -3773,6 +3773,30 @@
       "voice": "ui",
       "text": "DESEMBARQUE. Saída para o aeroporto",
       "file": "ui-2059ec9361.mp3"
+    },
+    {
+      "id": "ui-2ed4ee7431",
+      "voice": "ui",
+      "text": "PRAIA DO JERIVÁ. Litoral paulista",
+      "file": "ui-2ed4ee7431.mp3"
+    },
+    {
+      "id": "ui-75bb5a9a2a",
+      "voice": "ui",
+      "text": "BARRACA DA JÔ. Água de coco sete reais. Queijo coalho seis reais. Milho verde cinco reais. Picolé quatro reais",
+      "file": "ui-75bb5a9a2a.mp3"
+    },
+    {
+      "id": "ui-6ace14c347",
+      "voice": "ui",
+      "text": "PÍER. Barcos de aluguel na ponta",
+      "file": "ui-6ace14c347.mp3"
+    },
+    {
+      "id": "ui-400317c94b",
+      "voice": "ui",
+      "text": "CHURRASCO · REFRI · MÚSICA",
+      "file": "ui-400317c94b.mp3"
     },
     {
       "id": "ui-97e4ea2659",

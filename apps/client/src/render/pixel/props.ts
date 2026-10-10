@@ -76,7 +76,11 @@ export function propSlices(p: PropDef): { key: string; x: number; y: number }[] 
 }
 
 /** Kinds whose sprite is chosen by `PropDef.art` (building fronts, roofs, hedges and planters, scenery, lamp posts). */
-const ART_FIELD: PropKind[] = ['fachada', 'sebe', 'cenario', 'poste', 'feira', 'hortifruti', 'arvore'];
+const ART_FIELD: PropKind[] = [
+  'fachada', 'sebe', 'cenario', 'poste', 'feira', 'hortifruti', 'arvore',
+  // the Praia: every beach kind draws its `art` (custom/praia.mjs)
+  'quiosque_praia', 'guarda_sol', 'cadeira_praia', 'posto_salva_vidas', 'galpao_barcos', 'barco', 'pesca_spot', 'pedras', 'canoa',
+];
 
 export function propArtKey(p: PropDef): string | null {
   if (p.kind === 'ipe') return p.art ?? (p.hero ? 'props/ipe_large' : 'props/ipe_medium');

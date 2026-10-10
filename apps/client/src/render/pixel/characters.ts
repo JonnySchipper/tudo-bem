@@ -100,6 +100,11 @@ export const CHAR_LAYERS = {
     chapeu_chef: 'hat_chapeu_chef',
     chapeu_padeiro_casa: 'hat_chapeu_chef',
     cartola: 'hat_cartola',
+    // the Praia: Jô's beach rack reuses the fisherman bucket, the visor and the cap in its own colours; the captain's cap is earned aboard
+    chapeu_pescador: 'hat_balde',
+    viseira: 'hat_viseira_azul',
+    bone_surf: 'hat_bone_verde',
+    chapeu_capitao: 'hat_capitao',
   } as Record<string, string>,
   /** standing poses: props on the idle rows, or the pack's phone loop (S only). `solto` is the plain pack idle. */
   idle: {
@@ -235,6 +240,7 @@ export const HAT_LIFT: Record<string, number> = {
   hat_cartola: 7,
   hat_pano: 2,
   hat_balde: 3,
+  hat_capitao: 3,
   hat_npc_toque: 8,
   hat_npc_panama: 5,
   hat_npc_bucket: 4,

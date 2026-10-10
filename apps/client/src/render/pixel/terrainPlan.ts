@@ -8,7 +8,8 @@ import { TERRAIN_PRIORITY, maskAt, phasedIndex2, tileIndex } from './terrain';
 /** A flush terrain laid over a slab terrain counts as that slab in the slab's own mask (bricks inlaid in calçada: no curb between them). */
 export const FLUSH_ON_SLAB: Record<string, string> = { t: 'c' };
 
-const LAYER_RANK = { flat: 0, slab: 1, flush: 2 } as const;
+/** Flat ground first (grass, asphalt, sand), then what lies on it with an edge (the calçada's curb, the sea's foam), then flush floors and decks. */
+const LAYER_RANK = { flat: 0, slab: 1, shore: 1, flush: 2 } as const;
 
 export interface TerrainTile {
   /** index of the layer in draw order (0 = bottom) */

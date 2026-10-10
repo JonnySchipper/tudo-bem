@@ -1,0 +1,3 @@
+MISSING
+
+ATLAS {"outdoor":{"image":"atlas/outdoor.png","data":"atlas/outdoor.json","w":1024,"h":2048,"frames":1221},"bjj":{"image":"atlas/bjj.png","data":"atlas/bjj.json","w":1024,"h":768,"frames":560,"lazy":true},"praia":{"image":"atlas/praia.png","data":"atlas/praia.json","w":1024,"h":448,"frames":96}} 956

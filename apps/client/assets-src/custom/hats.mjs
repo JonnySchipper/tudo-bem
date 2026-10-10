@@ -165,6 +165,32 @@ export const HAT_ART = {
       T(2, 'oo111111111111oo'.slice(0, 14)),
     ]),
   },
+  // captain's cap (the party boat, earned): a flat white crown, the accent band, a gold anchor badge and a black peak
+  capitao: {
+    S: P(-3, [
+      T(3, 'oooooooooo'),
+      T(2, 'o3332222221o'),
+      T(2, 'o3322yY2221o'),
+      T(2, 'oaaabyybaaao'),
+      T(2, 'oKKKKKKKKKKo'),
+      T(3, 'oooooooooo'),
+    ]),
+    E: P(-3, [
+      T(3, 'ooooooooo'),
+      T(2, 'o333222221o'),
+      T(2, 'o33222yY21o'),
+      T(2, 'oaaaaabyyao'),
+      T(4, 'oKKKKKKKKKoo'),
+      T(6, 'ooooooooo'),
+    ]),
+    N: P(-3, [
+      T(3, 'oooooooooo'),
+      T(2, 'o3332222221o'),
+      T(2, 'o3222222211o'),
+      T(2, 'oaaaaaaaaaao'),
+      T(3, 'oooooooooo'),
+    ]),
+  },
   // Tia Lu's headscarf (NPC only): a tied kerchief with a knot on top
   pano: {
     S: P(-2, [

@@ -929,13 +929,14 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     const a = propAnchor(p);
-    const flat = p.kind === 'tatame';
+    const artKey = propArtKey(p);
+    const d = artKey ? m.sprites[artKey] : undefined;
+    // flat things lie under walkers: the tatame, and any prop whose art is a decal (towels, shells, a boat's deck you stand on)
+    const flat = p.kind === 'tatame' || !!d?.decal;
     // `z`: design mode's bring forward / send back, in world px of draw order
     const depth = (flat ? DEPTH.groundDecal + 10 : propDepth(p, a.wy)) + (p.z ?? 0);
     const foot = footprintRect(p);
     let visual: Rect = foot;
-    const artKey = propArtKey(p);
-    const d = artKey ? m.sprites[artKey] : undefined;
     const slices = propSlices(p);
     if (slices) {
       // long props (counter, bleachers): one sprite per footprint tile

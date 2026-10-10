@@ -98,7 +98,7 @@ function glyphs(text) {
 }
 export const textW = (text, scale = 1) => (glyphs(text).reduce((w, g) => w + g.rows[0].length + 1, 0) - 1) * scale;
 /** Paints `text` with its top-left at (x, y); `scale` 2 doubles every pixel. Accents go one row (`scale` rows) above the letter. */
-function text(img, x, y, str, hex, scale = 1, shadow = null) {
+export function text(img, x, y, str, hex, scale = 1, shadow = null) {
   let cx = x;
   const px2 = (gx, gy, c) => rect(img, cx + gx * scale, y + gy * scale, scale, scale, c);
   for (const g of glyphs(str)) {
