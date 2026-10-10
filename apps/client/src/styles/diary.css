@@ -658,7 +658,7 @@
   animation: flash 0.5s ease-out forwards;
 }
 
-#photo-print {
+.photo-print {
   position: fixed;
   z-index: 16;
   width: 172px;
@@ -673,14 +673,14 @@
   animation: print-out 0.5s var(--dy-out) 0.12s both;
 }
 
-#photo-print .print-img {
+.photo-print .print-img {
   width: 156px;
   height: 105px;
   overflow: hidden;
   background: #1c2430;
 }
 
-#photo-print .print-img img {
+.photo-print .print-img img {
   display: block;
   width: 100%;
   height: 100%;
@@ -689,11 +689,11 @@
   transition: filter 1.1s ease-out;
 }
 
-#photo-print.developing .print-img img {
-  filter: brightness(1.9) saturate(0) contrast(0.5) blur(1px);
+.photo-print.developing .print-img img {
+  filter: brightness(1.9) sepia(0.6) saturate(0.4) contrast(0.5) blur(1px);
 }
 
-#photo-print .print-cap {
+.photo-print .print-cap {
   display: grid;
   justify-items: center;
   min-height: 46px;
@@ -702,14 +702,14 @@
   line-height: 1.15;
 }
 
-#photo-print .print-dots {
+.photo-print .print-dots {
   align-self: center;
   color: #b5a78f;
   letter-spacing: 0.2em;
   animation: rec 0.9s steps(1) infinite;
 }
 
-#photo-print .print-kicker {
+.photo-print .print-kicker {
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -717,25 +717,141 @@
   color: #8f3e15;
 }
 
-#photo-print .print-pt {
+.photo-print .print-pt {
   font-size: 1.1rem;
   animation: dy-up 0.3s var(--dy-out) both;
 }
 
-#photo-print .print-en {
+.photo-print .print-en {
   font-size: 0.75rem;
   font-style: italic;
   color: var(--ink-soft, #5e5550);
 }
 
-#photo-print.new-word {
+.photo-print.new-word {
   box-shadow:
     0 0 0 2px var(--dy-ink),
     0 0 0 6px var(--dy-gold),
     6px 8px 0 rgba(20, 10, 6, 0.28);
 }
 
-#photo-print.dropped {
+.shutter-bloom {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: radial-gradient(circle at var(--x) var(--y), rgba(255, 255, 255, 0.85) 0, rgba(255, 248, 225, 0.45) 140px, rgba(255, 244, 214, 0.12) 520px);
+  pointer-events: none;
+  animation: bloom 0.6s ease-out forwards;
+}
+
+@keyframes bloom {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* the picture develops: overexposed and colourless, then warm sepia, then its own colours */
+.photo-print .print-img {
+  position: relative;
+}
+
+.photo-print .print-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.75) 48%, rgba(255, 248, 210, 0.9) 50%, transparent 66%);
+  translate: -120% 0;
+  pointer-events: none;
+}
+
+/* the server has a new word for this picture: it glints while it waits for its moment */
+.photo-print.charged {
+  box-shadow:
+    0 0 0 2px var(--dy-ink),
+    0 0 0 4px rgba(242, 194, 48, 0.9),
+    0 0 22px 6px rgba(255, 214, 102, 0.7),
+    6px 8px 0 rgba(20, 10, 6, 0.28);
+}
+
+.photo-print.charged .print-img::after {
+  animation: print-glint 1.3s ease-in-out 0.2s infinite;
+}
+
+.photo-print.charged .print-dots {
+  color: #c9921c;
+}
+
+/* held up on stage (ui/photoFind.ts): hung by its centre, so it turns and grows in place */
+.photo-print.staged {
+  transform: none;
+  animation: none;
+}
+
+/* the word bursts out: the picture flashes into full colour and a shine crosses it */
+.photo-print.flare .print-img img {
+  animation: print-develop 0.9s ease-out both;
+}
+
+.photo-print.flare .print-img::after {
+  animation: print-glint 0.8s ease-in-out 0.15s both;
+}
+
+.photo-print.staged.new-word {
+  box-shadow:
+    0 0 0 2px var(--dy-ink),
+    0 0 0 6px var(--dy-gold),
+    0 0 28px 8px rgba(255, 214, 102, 0.75),
+    6px 8px 0 rgba(20, 10, 6, 0.28);
+}
+
+.photo-print .print-pt.awaiting,
+.photo-print .print-en.awaiting {
+  visibility: hidden;
+  animation: none;
+}
+
+.photo-print .print-pt.arrived {
+  color: #8f3e15;
+  animation: heard-arrive 0.5s var(--dy-pop) both;
+}
+
+.photo-print .print-en.arrived {
+  animation: dy-up 0.35s var(--dy-out) 0.12s both;
+}
+
+.photo-print.leaving {
+  opacity: 0;
+  transition: opacity 0.25s ease-in;
+}
+
+@keyframes print-glint {
+  0% {
+    translate: -120% 0;
+  }
+  100% {
+    translate: 120% 0;
+  }
+}
+
+@keyframes print-develop {
+  0% {
+    filter: brightness(2.6) saturate(0) contrast(0.6);
+  }
+  35% {
+    filter: brightness(1.4) sepia(0.8) saturate(1.2);
+  }
+  100% {
+    filter: none;
+  }
+}
+
+.photo-print.dropped {
   animation: print-drop 0.4s ease-in forwards;
 }
 
@@ -1656,7 +1772,9 @@ html.px-ui .backdrop > .panel.escola-panel,
   #grant-offer *,
   #camera-frame,
   #camera-frame *,
-  #photo-print,
+  .photo-print,
+  .photo-print *,
+  .shutter-bloom,
   #photo-celebrate,
   #photo-celebrate *,
   .diary-book,
@@ -1678,6 +1796,6 @@ html.px-ui .backdrop > .panel.escola-panel,
   }
 }
 
-#photo-print .print-img:empty {
+.photo-print .print-img:empty {
   display: none;
 }

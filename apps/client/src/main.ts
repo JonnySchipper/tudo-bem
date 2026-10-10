@@ -134,6 +134,7 @@ import { doorTagsFor, showRoomIntro } from './ui/wayfinding';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
 import { startAchado, claimReadingWord } from './ui/achado';
+import { setPhotoFindInsets } from './ui/photoFind';
 import { roomTally } from './ui/achadoLogic';
 import { wantsReveal } from './ui/journalReveal';
 import { framedIds, cameraFrameAt } from './ui/viewfinder';
@@ -205,6 +206,7 @@ let correriaUi: CorreriaUI | null = null;
 let boutUi: BoutUI | null = null;
 // a word found during a game is celebrated when that game's screen closes
 setWordGate(() => !!boutUi?.open || !!correriaUi?.open || escolaPracticeOpen() || modalId() === 'checkers');
+setPhotoFindInsets(() => renderer.hudInsets?.() ?? { top: 64, bottom: 110 });
 let started = false;
 
 /** Correria no Balcão: the overlay and the world's counter open when the first shift state arrives. */
