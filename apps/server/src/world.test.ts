@@ -6,7 +6,8 @@ import {
   GAME_DAY_MS,
   gameDay,
   gameMinutes,
-  todayEastern,
+  feiraBoardDay,
+  profileDay,
   greetingCap,
   normalizeBjj,
   greetingFor,
@@ -33,7 +34,7 @@ import { LayoutStore } from './layoutStore.js';
 import { serveFront } from './correriaTestKit.js';
 import { memoryFeiraGames } from './feiraGames.js';
 import { memoryFeiraCart } from './feiraCart.js';
-import { ProfileStore, normalizeProfile, today, todaySaoPaulo, type StoredProfile } from './store.js';
+import { ProfileStore, normalizeProfile, today, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 1_000_000;
@@ -347,7 +348,7 @@ describe('World', () => {
     expect(a.s.profile!.coins).toBe(coins);
   });
 
-  it('Pedido rápido daily RV gate: once per America/São_Paulo calendar day', async () => {
+  it('Pedido rápido daily RV gate: once per player day', async () => {
     const { world } = makeWorld();
     const a = await client(world, 'Ana', 'ela');
 
@@ -369,6 +370,13 @@ describe('World', () => {
     expect(second.payout).toBe(0);
     expect(second.dailyBlocked).toBe(true);
     expect(a.s.profile!.coins).toBe(coinsAfterFirst);
+
+    // an older save's São Paulo key that is not today's player day is yesterday's: it pays again (D1 rollover)
+    a.s.profile!.daily.pedidoRvGranted = { carlos: '1969-12-31' };
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    for (let i = 0; i < 5; i++) await a.send({ t: 'scene', action: 'choose', chip: 0 });
+    expect(a.last('scene')!.payout).toBe(ECONOMY.sceneMax);
+    expect(a.s.profile!.daily.pedidoRvGranted).toEqual({ carlos: '1970-01-01' });
   });
 
   it('refuses to buy without coins and only decorates your own kitnet', async () => {
@@ -1258,17 +1266,18 @@ describe('Admin panel', () => {
     const admin = await client(world, 'Jonny');
     const other = await client(world, 'Lia');
     const minute = world.gameMinuteNow();
-    const eastern = todayEastern(clock);
+    const eastern = feiraBoardDay(clock);
     games.state.day = eastern;
     games.state.scores = { [other.s.profile!.id]: { name: 'Lia', best: 80, game: 'tapioca', at: clock } };
     games.state.medals = {};
     const utc = today();
-    const sp = todaySaoPaulo();
-    other.s.profile!.correria = { stars: 1, shifts: 1, best: 10, date: utc, paid: 2 };
-    other.s.profile!.feira = { date: utc, n: 3 };
-    other.s.profile!.daily.pedidoRvGranted = { carlos: sp };
+    // every cap but the tatame bond counts the player's own day (playerDay.ts)
+    const day = profileDay(other.s.profile!, clock);
+    other.s.profile!.correria = { stars: 1, shifts: 1, best: 10, date: day, paid: 2 };
+    other.s.profile!.feira = { date: day, n: 3 };
+    other.s.profile!.daily.pedidoRvGranted = { carlos: day };
     other.s.profile!.bjj = normalizeBjj({ bondDay: utc, bondToday: 1 });
-    other.s.profile!.cartela = { stamps: 1, activityDay: { feira: eastern } };
+    other.s.profile!.cartela = { stamps: 1, activityDay: { feira: day } };
     const liaRecados = other.s.profile!.recados?.day;
     const liaSkies = other.all('sky').length;
     await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
@@ -1281,12 +1290,12 @@ describe('Admin panel', () => {
     expect(world.gameMinuteNow()).toBe(minute);
     expect(other.s.profile!.testDayOffset).toBeUndefined();
     expect(other.s.profile!.testClockOffsetMs).toBeUndefined();
-    expect(other.s.profile!.correria).toMatchObject({ date: utc, paid: 2 });
-    expect(other.s.profile!.feira).toEqual({ date: utc, n: 3 });
-    expect(other.s.profile!.daily.pedidoRvGranted).toEqual({ carlos: sp });
+    expect(other.s.profile!.correria).toMatchObject({ date: day, paid: 2 });
+    expect(other.s.profile!.feira).toEqual({ date: day, n: 3 });
+    expect(other.s.profile!.daily.pedidoRvGranted).toEqual({ carlos: day });
     expect(other.s.profile!.bjj?.bondDay).toBe(utc);
     expect(other.s.profile!.bjj?.bondToday).toBe(1);
-    expect(other.s.profile!.cartela?.activityDay.feira).toBe(eastern);
+    expect(other.s.profile!.cartela?.activityDay.feira).toBe(day);
     expect(other.s.profile!.recados?.day).toBe(liaRecados);
     expect(other.all('sky').length).toBe(liaSkies);
     expect(games.state.day).toBe(eastern);

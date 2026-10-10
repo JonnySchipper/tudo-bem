@@ -72,10 +72,11 @@ import {
   MISSION_STEPS,
   frontOf,
   weekday,
-  addCalendarDays,
   gameDay,
   GAME_DAY_MS,
-  todayEastern,
+  profileDay,
+  acceptTz,
+  feiraBoardDay,
   type DailyMission,
   type MissionStep,
   type Appearance,
@@ -172,7 +173,7 @@ import { JEV_CONTEXT_LINES } from './services/jevModel.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
 import { handleAdminTest, isAdminTestAction, type AdminTestHost } from './adminTestes.js';
-import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
+import { ProfileStore, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
 import { readEnv } from './env.js';
 import { founderGrantNewEnabled } from './founder.js';
@@ -317,6 +318,8 @@ export interface Session {
   mg?: CorreriaRun;
   /** Feira cart game in progress (apps/server/src/feiraGames.ts). Separate from Correria so the two never share a slot. */
   feiraGame?: FeiraGameRun;
+  /** Browser offset (minutes east of UTC) from the hello. Stored on the profile when it attaches (playerDay.ts). */
+  tz?: number;
   /** The cast out at the Praia (pesca.ts): one at a time per session. */
   pesca?: PescaCastRun;
   /** When this session last cast (the 2 s spacing), and the spot it has open. */
@@ -424,7 +427,7 @@ export class World {
   /** The party boat's trips (partyBoat.ts). */
   readonly parties: PartyBoats;
   /** Today's beach numbers for the dashboard (praiaStats.ts). */
-  private readonly praiaStats = new PraiaStats(() => todaySaoPaulo());
+  private readonly praiaStats = new PraiaStats(() => feiraBoardDay(this.now()));
   private readonly githubToken?: string;
   private readonly githubFetch?: typeof fetch;
 
@@ -558,7 +561,7 @@ export class World {
       teach: (s, words) => this.diary.teachPesca(s as Session, words),
       weather: () => this.weatherPin ?? weatherAt(this.clockNow()),
       minute: () => gameMinutes(this.clockNow()),
-      day: (p) => this.capDate(todaySaoPaulo(), p),
+      day: (p) => this.dayOf(p),
       saleCap: () => this.config.get('pescaSaleCapRv'),
       pinned: opts.pescaPin ?? readEnv('TB_TEST_PESCA') === '1',
       aboardParty: (s) => this.aboardParty(s as Session),
@@ -630,7 +633,7 @@ export class World {
       },
       teachLessonWord: (s, gameId) => this.diary.teachLessonWord(s, gameId),
     });
-    this.leaderboards = new Leaderboards(store, () => this.rng());
+    this.leaderboards = new Leaderboards(store, () => this.rng(), () => this.now());
     this.bouts = new BoutEngine({
       now: () => this.now(),
       schedule: (fn, ms) => this.schedule(fn, ms),
@@ -712,7 +715,7 @@ export class World {
    * Server-authoritative AFK check (call every few seconds). Only players in the world count: a
    * socket still on the login / avatar screen holds no seat. Client pings don't reset the clock.
    */
-  /** Lazy midnight ET: finalize yesterday's Feira board (medals, clear crown) if the day key rolled. */
+  /** Lazy board-day roll (UTC): finalize yesterday's Feira board (medals, clear crown) if the day key rolled. */
   sweepFeiraGames() {
     const { rolled, awards } = this.feiraGames.tick();
     if (rolled) this.feiraGames.pushRolled([...this.sessions.values()], awards);
@@ -787,7 +790,7 @@ export class World {
     if (this.sessions.get(s.id) !== s) return;
     if (msg.t === 'ping') return s.send({ t: 'pong' });
     if (isRealInput(msg)) this.markActive(s);
-    if (msg.t === 'hello') return this.hello(s, msg.token);
+    if (msg.t === 'hello') return this.hello(s, msg.token, msg.tz);
     if (msg.t === 'createProfile') return this.createProfile(s, msg);
     if (!s.profile) return this.err(s, 'no_profile', 'Crie seu avatar primeiro.', 'Create your avatar first.');
     switch (msg.t) {
@@ -1131,7 +1134,8 @@ export class World {
 
   // ---------- profile ----------
 
-  private hello(s: Session, token?: string) {
+  private hello(s: Session, token?: string, tz?: unknown) {
+    if (typeof tz === 'number' && Number.isFinite(tz)) s.tz = tz;
     // Profiles from before the 18+ policy never confirmed adulthood; they must sign up again.
     const fromToken = this.store.byTokenGet(token);
     const tokenProfile = fromToken?.ageGate18 === true ? fromToken : undefined;
@@ -1149,6 +1153,16 @@ export class World {
       return this.attachProfile(s, tokenProfile);
     }
     s.send({ t: 'needProfile' });
+  }
+
+  /** The browser's offset from the hello becomes the profile's one stored offset (`escola.tz`), unless it would move today back. */
+  private applyTz(s: Session, p: StoredProfile) {
+    if (s.tz === undefined) return;
+    const st = escolaOf(p);
+    const next = acceptTz(this.now(), st.tz, s.tz);
+    if (next === st.tz) return;
+    st.tz = next;
+    this.store.save(p.id);
   }
 
   private linkAccount(accountId: string, p: StoredProfile) {
@@ -1169,6 +1183,7 @@ export class World {
       }
     }
     s.profile = p;
+    this.applyTz(s, p);
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
     const layouts = this.layouts.overrides();
@@ -1227,7 +1242,7 @@ export class World {
       tutorial,
       tutorialRewarded: false,
       createdAt: this.now(),
-      daily: { date: today(), sceneClears: {} },
+      daily: { date: profileDay({ escola: { tz: s.tz } }, this.now()), sceneClears: {} },
       lastSeen: this.now(),
       // Set before save: a missing flag is treated as already home, so a new account must say false itself.
       arrivalIntroDone: false,
@@ -1268,7 +1283,7 @@ export class World {
 
   /** The profile the client sees, plus the padaria this player founded (flag-on only) so the HUD and the door can take them home. */
   private privateProfile(p: StoredProfile): PrivateProfile {
-    const out = toPrivate(p, this.capDate(today(), p));
+    const out = toPrivate(p, this.dayOf(p));
     const own = this.padariaOwnership ? this.padarias.ownedBy(p.id) : undefined;
     if (own) out.padaria = { id: own.id, name: own.name, size: own.size };
     return out;
@@ -1480,9 +1495,12 @@ export class World {
     return this.clockNow() + (p?.testClockOffsetMs ?? 0);
   }
 
-  /** A real calendar key shifted by this profile's day offset. Other profiles stay on `base`. */
-  private capDate(base: string, p?: { testDayOffset?: number } | null): string {
-    return addCalendarDays(base, p?.testDayOffset ?? 0);
+  /**
+   * Today's key for every cap on this profile (playerDay.ts): the player's own calendar day from the offset their browser
+   * reported, shifted by a Testes day roll. UTC until an offset arrives.
+   */
+  private dayOf(p: StoredProfile): string {
+    return profileDay(p, this.now());
   }
 
   /** One calendar day and one game day on this profile. The neighborhood clock and the Feira board stay put. */
@@ -1503,9 +1521,8 @@ export class World {
     return {
       now: () => this.now(),
       clockNow: () => this.clockNow(),
-      utcDay: () => today(),
-      spDay: () => todaySaoPaulo(),
-      easternDay: () => todayEastern(this.now()),
+      utcDay: () => feiraBoardDay(this.now()),
+      dayOf: (p) => this.dayOf(p),
       minuteOf: (p) => gameMinutes(this.personalNow(p)),
       gameDayOf: (p) => gameDay(this.personalNow(p)),
       store: this.store,
@@ -2428,16 +2445,16 @@ export class World {
       this.missionStep(s, 'pede');
       this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items: sceneItems(sc.ctx) });
 
-      // Pedido rápido RV: once per America/São_Paulo calendar day (fixes double-dip after Missão/prior Pedido)
-      const spDate = this.capDate(todaySaoPaulo(), p);
+      // Pedido rápido RV: once per player day (fixes double-dip after Missão/prior Pedido)
+      const grantDay = this.dayOf(p);
       const lastGrant = p.daily.pedidoRvGranted?.[sc.npc];
-      if (lastGrant === spDate) {
+      if (lastGrant === grantDay) {
         dailyBlocked = true;
         payout = 0;
       } else {
         payout = scenePayout(sc.scores, 0);
         if (!p.daily.pedidoRvGranted) p.daily.pedidoRvGranted = {};
-        p.daily.pedidoRvGranted[sc.npc] = spDate;
+        p.daily.pedidoRvGranted[sc.npc] = grantDay;
         if (payout > 0) this.reward(s, payout, { pt: 'Café da manhã com o Seu Carlos', en: 'Breakfast with Seu Carlos' });
       }
       this.store.save(p.id);
@@ -2447,7 +2464,7 @@ export class World {
   }
 
   private rollDaily(p: StoredProfile) {
-    const day = this.capDate(today(), p);
+    const day = this.dayOf(p);
     if (p.daily.date !== day) p.daily = { date: day, sceneClears: {} };
   }
 
@@ -2579,7 +2596,7 @@ export class World {
   // ---------- daily kiosk (Missão do dia) ----------
 
   private missionOf(p: StoredProfile): DailyMission {
-    const day = this.capDate(today(), p);
+    const day = this.dayOf(p);
     if (p.mission?.date !== day) p.mission = freshMission(day);
     return p.mission;
   }

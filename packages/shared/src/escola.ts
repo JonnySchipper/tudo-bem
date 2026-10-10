@@ -16,6 +16,7 @@ import { VENDORS } from './feira.js';
 import { hotspotById } from './hotspots.js';
 import { NPC_TALK, fillTalk } from './npcTalk.js';
 import { npcDefById } from './rooms.js';
+import { clampTz, dayDiff, playerDay } from './playerDay.js';
 import type { Bilingual, Nameplate } from './types.js';
 
 const MIN = 60_000;
@@ -183,17 +184,11 @@ export function normalizeEscola(raw: unknown, diary: readonly string[] | undefin
 
 // ---------------------------------------------------------------- days
 
-export const clampTz = (tz: unknown): number => int(tz, -14 * 60, 14 * 60, 0);
-
-/** The player's calendar day (YYYY-MM-DD) at `now`, `tz` minutes east of UTC (the browser's `-getTimezoneOffset()`). */
-export function localDay(now: number, tz = 0): string {
-  return new Date(now + clampTz(tz) * MIN).toISOString().slice(0, 10);
-}
-
-/** Whole days from `a` to `b` (both YYYY-MM-DD). */
-export function dayDiff(a: string, b: string): number {
-  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / DAY);
-}
+/**
+ * The player's calendar day (YYYY-MM-DD) at `now`, `tz` minutes east of UTC (the browser's `-getTimezoneOffset()`).
+ * The Escola's name for `playerDay` (playerDay.ts), the one day boundary every cap uses.
+ */
+export const localDay: (now: number, tz?: number) => string = playerDay;
 
 /** The streak as it stands today: alive if the last lesson was today or yesterday (or the gap is covered by freezes), else 0. */
 export function currentStreak(st: Pick<EscolaState, 'streak' | 'lastDay' | 'freezes'>, today: string): number {

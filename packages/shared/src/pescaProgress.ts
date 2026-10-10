@@ -20,7 +20,7 @@ export interface PescaProgress {
   balde: Partial<Record<FishId, number>>;
   rentals: Partial<Record<BoatTier, number>>;
   trip: { tier: BoatTier; startedAt: number; until: number } | null;
-  /** RV paid by Jô on `date` (São Paulo day), against the daily cap */
+  /** RV paid by Jô on `date` (player day, playerDay.ts `profileDay`), against the daily cap. Older saves hold São Paulo keys: a key that is not today's rolls over. */
   sales: { date: string; rv: number };
   /** Neide's one-time lines already said */
   coached: string[];

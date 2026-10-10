@@ -7,7 +7,7 @@ import {
   priceFor,
   priceLine,
   priceOptions,
-  addCalendarDays,
+  profileDay,
   resultLine,
   ROOMS,
   sumCoins,
@@ -42,8 +42,6 @@ export interface FeiraDeps {
   /** The goods go into the bag and finish a matching `pedir` step of a recado (the recados engine's `ordered` event). */
   ordered: (s: Session, npc: NpcId, items: { itemId: string; qty: number }[]) => void;
 }
-
-const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 /**
  * The feira counter (HOWTO Phase 9): "Quanto custa?" and the payment. Server-authoritative: prices live in `feira.ts` (shared), a payment is a
@@ -122,7 +120,8 @@ export class FeiraCounter {
     const from: NpcId = v === 'banca' || v === 'rosa' ? ownerOf(id) : VENDORS[v].npc;
     this.d.ordered(s, from, [{ itemId: id, qty: n }]);
     let rv = 0;
-    const today = addCalendarDays(dayOf(this.d.now()), p.testDayOffset ?? 0);
+    // the player's own day (playerDay.ts); older saves kept UTC keys, and a key that is not today's rolls over
+    const today = profileDay(p, this.d.now());
     const st = p.feira?.date === today ? p.feira : { date: today, n: 0 };
     if (st.n < FEIRA_RV_PER_DAY) {
       st.n += 1;

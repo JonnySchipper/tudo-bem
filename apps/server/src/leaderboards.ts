@@ -1,18 +1,19 @@
 /**
  * Dual Praça leaderboards: Most Words Learned (diary length) and Highest Current
  * Streak (Escola `currentStreak`). Server-authoritative; rebuilt when dirty.
+ * Each streak is read on its owner's own day (`profileDay`, playerDay.ts), the day the Escola counted it on.
  */
 import {
   currentStreak,
   normalizeDiary,
   normalizeEscola,
+  profileDay,
   rankBoard,
   type BoardEntry,
   type BoardRow,
   type ServerMsg,
 } from '@tudobem/shared';
 import type { ProfileStore, StoredProfile } from './store.js';
-import { todaySaoPaulo } from './store.js';
 import type { Session } from './world.js';
 
 export interface LeaderboardSnapshot {
@@ -24,13 +25,13 @@ export interface LeaderboardSnapshot {
 export class Leaderboards {
   private cache: LeaderboardSnapshot | null = null;
   private dirty = true;
-  /** playerId -> São Paulo YYYY-MM-DD of last streak mention in the padaria. */
+  /** playerId -> that player's day (YYYY-MM-DD) of the last streak mention in the padaria. */
   private mentioned = new Map<string, string>();
 
   constructor(
     private readonly store: ProfileStore,
     private readonly rng: () => number = Math.random,
-    private readonly today: () => string = todaySaoPaulo,
+    private readonly now: () => number = Date.now,
   ) {}
 
   markDirty() {
@@ -38,17 +39,12 @@ export class Leaderboards {
   }
 
   private rebuild(): LeaderboardSnapshot {
-    const today = this.today();
-    const words: BoardEntry[] = [];
-    const streak: BoardEntry[] = [];
-    for (const p of this.store.all()) {
-      if (!p.name || p.testUser) continue;
-      const diary = normalizeDiary(p.diary);
-      const escola = normalizeEscola(p.escola, diary);
-      words.push({ id: p.id, name: p.name, score: diary.length });
-      streak.push({ id: p.id, name: p.name, score: currentStreak(escola, today) });
-    }
-    this.cache = { words, streak, at: Date.now() };
+    const now = this.now();
+    const { words, streak } = entriesFromProfiles(
+      this.store.all().filter((p) => p.name),
+      now,
+    );
+    this.cache = { words, streak, at: now };
     this.dirty = false;
     return this.cache;
   }
@@ -83,12 +79,12 @@ export class Leaderboards {
 
   /**
    * Occasional Padaria counter mention of the streak leader. At most once per player
-   * per São Paulo day; ~1 in 4 enters when a leader exists. Unvoiced (dynamic name).
+   * per player day; ~1 in 4 enters when a leader exists. Unvoiced (dynamic name).
    */
   maybeMentionStreak(s: Session, baker: 'carlos' | 'graca'): { pt: string; en: string } | null {
     const p = s.profile;
     if (!p) return null;
-    const today = this.today();
+    const today = profileDay(p, this.now());
     if (this.mentioned.get(p.id) === today) return null;
     if (this.rng() > 0.25) return null;
     const top = this.topStreak();
@@ -105,10 +101,10 @@ export class Leaderboards {
   }
 }
 
-/** Test helper: build entries from raw profiles. */
+/** Board entries from profiles at `nowMs`: each streak on its owner's own day. Test profiles stay off. */
 export function entriesFromProfiles(
-  profiles: (Pick<StoredProfile, 'id' | 'name' | 'diary' | 'escola'> & { testUser?: boolean })[],
-  today: string,
+  profiles: (Pick<StoredProfile, 'id' | 'name' | 'diary' | 'escola'> & { testUser?: boolean; testDayOffset?: number })[],
+  nowMs: number,
 ): { words: BoardEntry[]; streak: BoardEntry[] } {
   const words: BoardEntry[] = [];
   const streak: BoardEntry[] = [];
@@ -117,7 +113,7 @@ export function entriesFromProfiles(
     const diary = normalizeDiary(p.diary);
     const escola = normalizeEscola(p.escola, diary);
     words.push({ id: p.id, name: p.name, score: diary.length });
-    streak.push({ id: p.id, name: p.name, score: currentStreak(escola, today) });
+    streak.push({ id: p.id, name: p.name, score: currentStreak(escola, profileDay({ escola, testDayOffset: p.testDayOffset }, nowMs)) });
   }
   return { words, streak };
 }

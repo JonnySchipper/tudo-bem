@@ -212,6 +212,36 @@ describe('feira: "Quanto custa?" and the payment (Phase 9)', () => {
   });
 });
 
+describe('feira: the purchase RV cap counts the player day (D1)', () => {
+  beforeEach(() => {
+    clock = 5_000_000;
+    pending.length = 0;
+  });
+
+  it('a key from the older UTC day is yesterday (it pays again); a key on the player day holds the cap', async () => {
+    const world = makeWorld(9 * 60);
+    const inbox: ServerMsg[] = [];
+    const s = world.connect(`f${n++}`, (m) => inbox.push(m), () => {});
+    const a: Client = { s, inbox, send: (m) => world.handle(s, m), last: (t) => [...inbox].reverse().find((m) => m.t === t) as never };
+    // clock 5_000_000 is 01:23 UTC on 1970-01-01, still 1969-12-31 in São Paulo (UTC-3)
+    await a.send({ t: 'hello', tz: -180 });
+    await a.send({ t: 'createProfile', name: `Feira${n++}`, pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
+    await a.send({ t: 'join', room: 'feira' });
+    const p = a.s.profile!;
+    await walkTo(a, tiaLu.interact.x, tiaLu.interact.y);
+    const pay = async () => {
+      await a.send({ t: 'feira', action: 'pay', vendor: 'tia_lu', itemId: 'laranja', qty: 1, paid: [100] });
+      const r = feiraMsgs(a).at(-1)!;
+      return r.phase === 'pay' ? r.rv : -1;
+    };
+    p.feira = { date: '1970-01-01', n: FEIRA_RV_PER_DAY };
+    expect(await pay()).toBe(FEIRA_RV_EXACT);
+    expect(p.feira).toEqual({ date: '1969-12-31', n: 1 });
+    p.feira = { date: '1969-12-31', n: FEIRA_RV_PER_DAY };
+    expect(await pay()).toBe(0);
+  });
+});
+
 describe('feira: hours and the Hortifrúti corner (D12: every learning activity at every hour)', () => {
   beforeEach(() => {
     clock = 5_000_000;

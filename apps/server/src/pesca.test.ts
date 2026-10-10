@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DEFAULT_APPEARANCE, ROOMS, type ClientMsg, type ServerMsg, type Tile } from '@tudobem/shared';
+import { DEFAULT_APPEARANCE, ROOMS, emptyPesca, type ClientMsg, type ServerMsg, type Tile } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
@@ -133,6 +133,24 @@ describe('fishing on the server (PRAIA-PLAN.md 2.4, 7.1)', () => {
     await c.send({ t: 'pesca', action: 'sell' });
     expect(c.last('error')?.code).toBe('pesca_cap');
     expect(p.pesca?.balde.bagre).toBe(3);
+  });
+
+  it('Jô\'s sales cap counts the player day: an older São Paulo key from another day rolls over, today\'s holds (D1)', async () => {
+    // 2026-10-09 02:00 UTC is 11:00 on 10-09 in Tokyo, still 23:00 on 10-08 in São Paulo
+    clock = Date.parse('2026-10-09T02:00:00.000Z');
+    const world = makeWorld();
+    const inbox: ServerMsg[] = [];
+    const s: Session = world.connect(`f${n++}`, (m) => inbox.push(m), () => {});
+    await world.handle(s, { t: 'hello', tz: 540 });
+    await world.handle(s, { t: 'createProfile', name: `Rui${n}`, pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
+    world.join(s, 'praia', {}, { tile: ROOMS.praia.npcs.find((x) => x.id === 'jo')!.interact, dir: 'SW' });
+    const p = s.profile!;
+    p.pesca = { ...emptyPesca(), sales: { date: '2026-10-08', rv: 60 } };
+    await world.handle(s, { t: 'pesca', action: 'tray' });
+    expect(pescaMsg({ inbox }, 'tray')?.capLeft).toBe(60);
+    p.pesca!.sales = { date: '2026-10-09', rv: 60 };
+    await world.handle(s, { t: 'pesca', action: 'tray' });
+    expect(pescaMsg({ inbox }, 'tray')?.capLeft).toBe(0);
   });
 
   it('the line does not follow you out of the room', async () => {

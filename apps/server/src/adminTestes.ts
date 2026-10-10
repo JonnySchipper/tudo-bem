@@ -83,12 +83,10 @@ export interface AdminTestHost {
   now(): number;
   /** Shared neighborhood clock. Errands add the target profile's own offset on top of this. */
   clockNow(): number;
-  /** Real UTC day. Daily keys add the target profile's `testDayOffset`. */
+  /** Real UTC day. Only the tatame bond cap still counts it; add the target profile's `testDayOffset`. */
   utcDay(): string;
-  /** Real America/São Paulo day. */
-  spDay(): string;
-  /** Eastern day of the world clock (Feira cart and cartela). */
-  easternDay(): string;
+  /** The profile's own day (playerDay.ts `profileDay`, already shifted by its `testDayOffset`): the day every cap counts. */
+  dayOf(p: StoredProfile): string;
   minuteOf(p: StoredProfile): number;
   gameDayOf(p: StoredProfile): number;
   store: ProfileStore;
@@ -303,15 +301,14 @@ function clearCaps(host: AdminTestHost, p: StoredProfile) {
   host.clearFeiraPaid(p.id);
   const off = p.testDayOffset ?? 0;
   const utc = addCalendarDays(host.utcDay(), off);
-  const sp = addCalendarDays(host.spDay(), off);
-  const eastern = addCalendarDays(host.easternDay(), off);
+  const day = host.dayOf(p);
   const st = normalizeEscola(p.escola, p.diary);
   if (st.rv) st.rv = { day: st.rv.day, n: 0 };
   p.escola = st;
-  if (p.correria && p.correria.date === utc) p.correria.paid = 0;
+  if (p.correria && p.correria.date === day) p.correria.paid = 0;
   if (p.feira) p.feira = { date: p.feira.date, n: 0 };
   p.daily.sceneClears = {};
-  const days = new Set([sp, utc]);
+  const days = new Set([day]);
   for (const key of ['pedidoRvGranted'] as const) {
     const map = p.daily[key];
     if (!map) continue;
@@ -321,7 +318,7 @@ function clearCaps(host: AdminTestHost, p: StoredProfile) {
   if (bjj.bondDay === utc) bjj.bondToday = 0;
   p.bjj = bjj;
   const cart = p.cartela ?? freshCartela();
-  for (const id of CARTELA_ACTIVITIES) if (cart.activityDay[id] === eastern) delete cart.activityDay[id];
+  for (const id of CARTELA_ACTIVITIES) if (cart.activityDay[id] === day) delete cart.activityDay[id];
   p.cartela = cart;
 }
 
@@ -412,7 +409,9 @@ function writeReset(host: AdminTestHost, p: StoredProfile, confirm: boolean | un
   p.coins = ECONOMY.startingCoins;
   p.bjj = normalizeBjj(null);
   p.diary = [];
-  p.escola = freshEscola();
+  // the browser's offset is not progress: every cap keeps counting the player's own day (playerDay.ts)
+  const tz = p.escola?.tz;
+  p.escola = tz === undefined ? freshEscola() : { ...freshEscola(), tz };
   p.verdeMode = false;
   p.nameplate = 'verde';
   p.giOwned = false;
@@ -424,17 +423,17 @@ function writeReset(host: AdminTestHost, p: StoredProfile, confirm: boolean | un
   p.bondGifts = [];
   p.caderno = {};
   p.cadernoPaid = [];
-  p.mission = freshMission(host.utcDay());
+  p.testDayOffset = undefined;
+  p.mission = freshMission(host.dayOf(p));
   p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
   p.tutorialRewarded = false;
   p.arrivalIntroDone = false;
   p.pet = null;
   p.bubbleStyle = 'classic';
-  p.daily = { date: host.utcDay(), sceneClears: {} };
+  p.daily = { date: host.dayOf(p), sceneClears: {} };
   p.cartela = freshCartela();
-  p.testDayOffset = undefined;
   p.testClockOffsetMs = undefined;
-  p.testFeiraPaid = undefined;
+  p.feiraPaid = undefined;
   if (p.subscription?.provider === 'dev') revokeTestSubscription(p, host.now());
   const owned = host.padarias.ownedBy(p.id);
   if (owned) host.padarias.remove(owned.id);

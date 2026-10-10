@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_APPEARANCE, ROOMS, todayEastern, type ServerMsg } from '@tudobem/shared';
+import { DEFAULT_APPEARANCE, ROOMS, feiraBoardDay, type ServerMsg } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
@@ -44,7 +44,7 @@ function profile(id: string, name: string): StoredProfile {
 }
 
 describe('feira games server', () => {
-  it('pays the first 3 runs of an ET day and then blocks, while the score still counts', () => {
+  it('pays the first 3 runs of a player day and then blocks, while the score still counts', () => {
     let now = Date.parse('2026-10-08T16:00:00.000Z');
     const store = new ProfileStore(null);
     const ana = profile('ana', 'Ana');
@@ -107,6 +107,71 @@ describe('feira games server', () => {
     expect(games.state.scores.ana!.best).toBeGreaterThan(0);
   });
 
+  it('counts paid runs on each player day, not the board day; a legacy board count holds only on that day (D1)', () => {
+    // 20:00 UTC on 10-08: the board day is 10-08, and Tokyo (UTC+9) is already on 10-09
+    let now = Date.parse('2026-10-08T20:00:00.000Z');
+    const store = new ProfileStore(null);
+    const kai = profile('kai', 'Kai');
+    kai.escola = { words: {}, xp: 0, lessons: 0, perfect: 0, goal: 10, dayXp: 0, streak: 0, best: 0, freezes: 0, tier: 'verde', tz: 540 };
+    const lia = profile('lia', 'Lia');
+    store.add(kai);
+    store.add(lia);
+    const games = memoryFeiraGames(() => now);
+    games.state.day = '2026-10-08';
+    // counts the board kept before paid runs moved onto the profile
+    games.state.paid = { kai: 3, lia: 3 };
+    const sent: ServerMsg[] = [];
+    const engine = new FeiraGamesEngine({
+      now: () => now,
+      store,
+      games,
+      reward: (sess, amount) => {
+        sess.profile!.coins += amount;
+      },
+      pushProfile: () => {},
+      err: () => {},
+      tileOf: () => ({ x: 22, y: 9, room: 'feira' }),
+      broadcastAll: () => {},
+      broadcastAvatar: () => {},
+      rng: () => 0.42,
+      cart: cartOn('tapioca'),
+    });
+    const sessionOf = (p: StoredProfile) => ({ id: p.id, profile: p, send: (m: ServerMsg) => sent.push(m), instance: { def: ROOMS.feira } }) as unknown as Session;
+    const play = (s: Session): number => {
+      sent.length = 0;
+      engine.handle(s, { t: 'feiraGame', action: 'start' });
+      const start = sent.find((m) => m.t === 'feiraGame' && m.phase === 'start');
+      if (!start || start.t !== 'feiraGame' || start.phase !== 'start') throw new Error('no start');
+      const orders = ordersFor(start.game, start.seed);
+      now += 20_000;
+      const outcomes = orders.filter((o) => o.at <= 18_000).slice(0, 2).map((o) => ({ i: orders.indexOf(o), quality: 'perfect' as const, atMs: o.at + 500 }));
+      const before = s.profile!.coins;
+      engine.handle(s, { t: 'feiraGame', action: 'finish', outcomes });
+      return s.profile!.coins - before;
+    };
+    const liaS = sessionOf(lia);
+    const kaiS = sessionOf(kai);
+    // Lia counts on UTC: the board's count was hers today, so the switch does not pay a 4th run
+    expect(play(liaS)).toBe(0);
+    // Kai's day is 10-09: the board's count was another day, so his runs pay again
+    expect(play(kaiS)).toBeGreaterThan(0);
+    expect(kai.feiraPaid).toEqual({ day: '2026-10-09', n: 1 });
+    // a key from another day is yesterday: three paid runs, then blocked
+    kai.feiraPaid = { day: '2026-10-08', n: 3 };
+    expect(play(kaiS)).toBeGreaterThan(0);
+    expect(play(kaiS)).toBeGreaterThan(0);
+    expect(play(kaiS)).toBeGreaterThan(0);
+    expect(play(kaiS)).toBe(0);
+    expect(kai.feiraPaid).toEqual({ day: '2026-10-09', n: 3 });
+    // the board day rolls at UTC midnight; Kai's day is still 10-09, so his cap holds
+    now = Date.parse('2026-10-09T00:30:00.000Z');
+    expect(engine.tick().rolled).toBe(true);
+    expect(play(kaiS)).toBe(0);
+    // and Lia's new day pays
+    expect(play(liaS)).toBeGreaterThan(0);
+    expect(lia.feiraPaid).toEqual({ day: '2026-10-09', n: 1 });
+  });
+
   it('rejects a forged finish and does not pay it', () => {
     let now = Date.parse('2026-10-08T16:00:00.000Z');
     const store = new ProfileStore(null);
@@ -138,15 +203,15 @@ describe('feira games server', () => {
     expect(games.state.scores.bia?.best ?? 0).toBe(0);
   });
 
-  it('finalizes medals at midnight ET, clears the board and the crown, and keeps medals', () => {
-    let now = Date.parse('2026-10-08T20:00:00.000Z'); // 16:00 ET
+  it('finalizes medals at the board day roll (UTC), clears the board and the crown, and keeps medals', () => {
+    let now = Date.parse('2026-10-08T16:00:00.000Z');
     const store = new ProfileStore(null);
     const ana = profile('ana', 'Ana');
     const bia = profile('bia', 'Bia');
     store.add(ana);
     store.add(bia);
     const games = memoryFeiraGames(() => now);
-    games.state.day = todayEastern(now);
+    games.state.day = feiraBoardDay(now);
     games.state.scores = {
       bia: { name: 'Bia', best: 180, game: 'tapioca', at: now - 5_000 },
       ana: { name: 'Ana', best: 180, game: 'tapioca', at: now - 1_000 },
@@ -166,12 +231,12 @@ describe('feira games server', () => {
       broadcastAvatar: () => {},
     });
     expect(engine.crownId()).toBe('bia');
-    // still the same ET day
-    now = Date.parse('2026-10-09T03:30:00.000Z'); // 23:30 ET Oct 8
+    // still the same board day
+    now = Date.parse('2026-10-08T23:30:00.000Z');
     expect(engine.tick().rolled).toBe(false);
     expect(engine.crownId()).toBe('bia');
-    // 00:30 ET Oct 9
-    now = Date.parse('2026-10-09T04:30:00.000Z');
+    // 00:30 UTC Oct 9
+    now = Date.parse('2026-10-09T00:30:00.000Z');
     const rolled = engine.tick();
     expect(rolled.rolled).toBe(true);
     expect(rolled.awards.map((a) => [a.id, a.award.medal])).toEqual([
@@ -329,7 +394,7 @@ describe('feira games server', () => {
   });
 
   it('a test pin makes pastel the only game even when the shipped default has Tapioca on', () => {
-    // 1970-01-01 17:00 UTC is still Jan 1 in ET, and that slot is tapioca.
+    // 1970-01-01 is board day 0, and that slot is tapioca.
     const now = Date.parse('1970-01-01T17:00:00.000Z');
     const store = new ProfileStore(null);
     const ana = profile('ana', 'Ana');
@@ -358,7 +423,7 @@ describe('feira games server', () => {
     let now = Date.parse('2026-10-08T16:00:00.000Z');
     const store = new ProfileStore(null);
     const games = memoryFeiraGames(() => now);
-    games.state.day = todayEastern(now);
+    games.state.day = feiraBoardDay(now);
     games.state.scores = {};
     const engine = new FeiraGamesEngine({
       now: () => now,
@@ -416,7 +481,7 @@ describe('feira games server', () => {
     store.add(ana);
     store.add(jonny);
     const games = memoryFeiraGames(() => now);
-    games.state.day = todayEastern(now);
+    games.state.day = feiraBoardDay(now);
     games.state.scores = {
       jonny: { name: 'Jonny', best: 900, game: 'tapioca', at: now - 5_000 },
       ana: { name: 'Ana', best: 100, game: 'tapioca', at: now - 1_000 },
@@ -463,7 +528,7 @@ describe('feira games server', () => {
     const before = jonny.coins;
     engine.handle(s, { t: 'feiraGame', action: 'finish', outcomes });
     expect(jonny.coins).toBeGreaterThan(before);
-    expect(jonny.testFeiraPaid?.n).toBe(1);
+    expect(jonny.feiraPaid?.n).toBe(1);
     expect(games.state.scores.jonny).toBeUndefined();
     expect(games.state.paid.jonny).toBeUndefined();
     expect(engine.crownId()).toBe('ana');

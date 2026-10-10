@@ -1,8 +1,9 @@
 /**
- * Cartela de carimbos: four bairro activities, at most one stamp each per America/New_York calendar day,
- * seven stamps pay once (then a fresh card). Progress survives logout on the profile.
+ * Cartela de carimbos: four bairro activities, at most one stamp each per player day (playerDay.ts, the player's own
+ * calendar day), seven stamps pay once (then a fresh card). Progress survives logout on the profile.
  */
 import { ROLL_RV_LOSS } from './academia.js';
+import { viewerDay } from './playerDay.js';
 import type { Bilingual } from './types.js';
 
 export const CARTELA_GOAL = 7;
@@ -18,14 +19,21 @@ export const CARTELA_ACTIVITIES: readonly CartelaActivity[] = ['tatame', 'balcao
 export interface CartelaState {
   /** Stamps on the current card (0–6 until the 7th pays and resets). */
   stamps: number;
-  /** Last Eastern calendar day (YYYY-MM-DD) each activity earned a stamp. */
+  /**
+   * Last player day (YYYY-MM-DD) each activity earned a stamp. Saves from before the player day hold New York keys:
+   * a key that is not today's simply means "not stamped today" (the stamps on the card are kept).
+   */
   activityDay: Partial<Record<CartelaActivity, string>>;
 }
 
 export const freshCartela = (): CartelaState => ({ stamps: 0, activityDay: {} });
 
+/**
+ * @deprecated The Cartela no longer keys on New York. This is the viewer's own day (`viewerDay`), kept under the old name
+ * for the client's Cartela card and HUD chip until they import `viewerDay`. The server uses `profileDay`.
+ */
 export function todayEastern(nowMs = Date.now()): string {
-  return new Date(nowMs).toLocaleDateString('sv-SE', { timeZone: 'America/New_York' });
+  return viewerDay(nowMs);
 }
 
 export function normalizeCartela(raw: unknown): CartelaState {
@@ -52,7 +60,7 @@ export type CartelaStampResult =
   | { ok: false }
   | { ok: true; next: CartelaState; paid: boolean; reward: number };
 
-/** Try to add one stamp for `activity` on Eastern calendar day `day`. */
+/** Try to add one stamp for `activity` on player day `day`. */
 export function tryCartelaStamp(st: CartelaState, activity: CartelaActivity, day: string): CartelaStampResult {
   const base = normalizeCartela(st);
   if (activityStampedToday(base, activity, day)) return { ok: false };
