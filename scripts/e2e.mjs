@@ -377,19 +377,19 @@ async function main() {
   assert((await cpus(page)).length === 0, 'CPUs stay out of the Padaria');
   await dwell(1200);
 
-  // 3b. Readable world: walk up to the padaria menu, the card opens and the read counts its words as seen; the Caderno lists them
+  // 3b. Readable world: walk up to the padaria menu, the card opens (Ouvir and close) and the read counts its words as seen
   await interact(page, { hotspot: 'padaria_cardapio' });
   await page.waitForSelector('.hotspot-card', { timeout: 20_000 });
   assert(await page.$('.hotspot-card #hs-listen'), 'sign card has a listen button');
-  assert(await page.$('.hotspot-card #hs-save'), 'sign card has Guardar no caderno');
+  assert(!(await page.$('.hotspot-card #hs-save')), 'sign card has no Guardar button: the Diário is the one word home');
   await waitFor(page, () => Object.keys(window.__tb.game.profile.caderno ?? {}).length >= 5, null, 5000, 'reading the menu marks its words as seen');
   await shot(page, '03b_hotspot_cardapio');
   // a programmatic interact does not take focus away from the chat field (a real click would); Escape is ignored inside inputs
   await page.evaluate(() => document.activeElement?.blur?.());
   await page.keyboard.press('Escape');
   await page.click('#btn-caderno');
-  // the Diário opens on its Início; the Caderno de palavras is its last tab. The book first swings its cover open and the
-  // pages slap in (about 2s of animation); a player taps the tab once the book is open, so wait for that before clicking.
+  // the Diário opens on its Início, with Início, the chapters that hold a word and Fotos (no Caderno tab). The book first swings its
+  // cover open and the pages slap in (about 2s of animation).
   await waitFor(
     page,
     () => {
@@ -400,10 +400,9 @@ async function main() {
     15_000,
     'the Diário cover is open',
   );
-  await page.click('[data-modal="caderno"] [data-journal-tab="caderno"]', { timeout: 15_000 });
-  await page.waitForSelector('[data-modal="caderno"] [data-card="lex.padaria.coxinha"]', { timeout: 5000 });
-  assert(!(await page.textContent('[data-modal="caderno"] [data-card="lex.padaria.coxinha"] .cad-pt')).includes('???'), 'Caderno shows a word the sign taught');
-  await shot(page, '03c_caderno');
+  const tabs = await page.$$eval('[data-modal="caderno"] [data-journal-tab]', (els) => els.map((e) => e.dataset.journalTab));
+  assert(tabs[0] === 'inicio' && tabs.at(-1) === 'fotos' && !tabs.includes('caderno'), `the Diário tabs are Início, chapters, Fotos (${tabs.join(', ')})`);
+  await shot(page, '03c_diario');
   await page.keyboard.press('Escape');
 
   // 4. The baker on duty: today's recado, then the counter (pay, carry it, it goes in the bag). Pedido rápido is gone.

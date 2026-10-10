@@ -2,7 +2,7 @@
 /**
  * Screenshots of the Diário as a sticker album (solo build), and checks that it works: the new-word count on the Diário button, the Início,
  * a chapter (a page turn caught mid-flight, the stickers, a source filter, the search), a word's card (opened out of its sticker, Escape
- * closes the card before the book), Fotos, the Caderno tab, the phone layout and reduced motion. The diary is filled from the page (a spread of
+ * closes the card before the book), Fotos, the phone layout and reduced motion. The diary is filled from the page (a spread of
  * words over every place, Escola boxes, two Feira medals and a few photos) so every state is on screen.
  *
  *   VITE_LOCAL_WORLD=1 pnpm --filter @tudobem/client build
@@ -116,7 +116,8 @@ try {
   await sleep(1400);
   await s('04-chapter-praca');
   const praca = await page.evaluate(() => ({ slots: document.querySelectorAll('.jb-grid .jb-stk').length, gaps: document.querySelectorAll('.jb-grid .jb-stk.gap').length }));
-  assert(praca.slots > 100 && praca.gaps > 0, `the Praça shows every slot, empty ones too (${praca.slots} slots, ${praca.gaps} empty)`);
+  assert(praca.gaps > 0 && praca.gaps <= 6, `the Praça shows its stickers and only the next empty slots (${praca.slots} slots, ${praca.gaps} empty)`);
+  assert(!(await page.$('[data-journal-tab="caderno"]')), 'the Diário has no Caderno tab');
   // a source filter, and the search
   await page.click('[data-jb-source="conversation"]');
   await sleep(500);
@@ -154,10 +155,6 @@ try {
   await page.click('[data-journal-tab="fotos"]');
   await sleep(1500);
   await s('09-fotos');
-  await page.click('[data-journal-tab="caderno"]');
-  await page.waitForSelector('[data-modal="caderno"] [data-card="lex.padaria.coxinha"]', { timeout: 5000 });
-  await sleep(1200);
-  await s('10-caderno');
   await page.click('[data-journal-tab="inicio"]');
   await sleep(1300);
   await page.fill('#jb-search-all', 'ca');

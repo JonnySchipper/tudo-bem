@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Phase 7 review screenshots: the in-world dialogue box (Seu Carlos' Conversa and Pedido rápido, Nanda, Júlia), a sign card with its 👁 cue, and
- * the Caderno panel, at desktop and phone size.
+ * the Diário, at desktop and phone size.
  *
  *   pnpm build && PORT=8802 TB_TEST_ROLL=1 pnpm start          # then, in another terminal:
  *   BASE_URL=http://localhost:8802 node scripts/lifesim-shots-p7.mjs          # → docs/lifesim/shots/p7/
@@ -124,10 +124,6 @@ async function run(browser, vp) {
   await page.waitForSelector('.hotspot-card', { timeout: 20_000 });
   await sleep(500);
   await shot(page, vp, 'hotspot_card_cardapio');
-  await page.click('#hs-save');
-  await page.waitForSelector('[data-modal="caderno"]', { timeout: 5000 });
-  await sleep(500);
-  await shot(page, vp, 'caderno_saved');
   await page.keyboard.press('Escape');
   await sleep(500);
 
@@ -167,16 +163,11 @@ async function run(browser, vp) {
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('#dialogue-box'));
 
-  // the Caderno with progress (the menu was read, the greeting heard)
-  await page.evaluate(() => window.__tb.net.send({ t: 'heard', cardIds: ['lex.padaria.coxinha', 'lex.padaria.cafe', 'lex.social.oi', 'lex.social.tudo_bem'] }));
-  await sleep(500);
+  // the Diário after the menu and the greeting (the Caderno spread is gone: the Diário is the one word home)
   await page.click('#btn-caderno');
   await page.waitForSelector('[data-modal="caderno"]', { timeout: 5000 });
   await sleep(500);
-  await shot(page, vp, 'caderno');
-  await page.click('[data-cad-tab="social"]');
-  await sleep(300);
-  await shot(page, vp, 'caderno_social');
+  await shot(page, vp, 'diario');
   console.log('  artMissing:', JSON.stringify(await page.evaluate(() => window.__tb.artMissing)));
   await ctx.close();
 }

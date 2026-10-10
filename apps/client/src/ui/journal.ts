@@ -2,11 +2,12 @@
  * The Diário: the player's words as an álbum de figurinhas in a leather book. The cover swings open on the Início (how many words, how
  * well they are known, the new stickers since the last visit, every chapter's progress); an index tab per place opens its chapter, where
  * every catalog word has a numbered slot: a sticker once earned (tap it for its card: the word spoken, how it was found, the line it was
- * heard in, its photo, its Escola box), an empty slot that says how to find it until then. Fotos and the Caderno de palavras have their
- * own tabs. Moving between tabs turns a real page (the old page lifts off and lands on the other side); the new stickers since the last
- * visit are slapped in. Reduced motion keeps every page and card, without the travel.
+ * heard in, its photo, its Escola box), an empty slot that says how to find it until then (the next few per chapter). Fotos has its own
+ * tab. Moving between tabs turns a real page (the old page lifts off and lands on the other side); the new stickers since the last visit
+ * are slapped in. Reduced motion keeps every page and card, without the travel. A chapter's tab waits for its first word, and the parts
+ * of a big diary (the Início stats, the chapter sorts and filters) wait until there is enough to sort (journalView.ts says when).
  *
- * The view-model is journalView.ts (pure, tested); the art is journalArt.ts; the Caderno spread is caderno.ts.
+ * The view-model is journalView.ts (pure, tested); the art is journalArt.ts.
  */
 import { FEIRA_GAME_LABEL, ESCOLA_MAX_BOX, diaryWord, normalizeDiary, photoWordIds } from '@tudobem/shared';
 import { game } from '../state';
@@ -15,17 +16,20 @@ import { openModal } from './modal';
 import { speak } from '../audio';
 import { ambience } from '../ambience';
 import { npcPortrait } from './pixelArt';
-import { cadernoSpread } from './caderno';
 import { emblemIcon, sourceIcon, tabIcon } from './journalArt';
 import {
   DEFAULT_FILTER,
   MASTERY_LABEL,
   SOURCE_LABEL,
+  chapterFilter,
+  chapterTools,
   filterWords,
   journalModel,
+  journalShows,
   markWord,
   searchAll,
   seenOnFirstVisit,
+  shownChapters,
   type JournalChapter,
   type JournalFilter,
   type JournalModel,
@@ -110,9 +114,8 @@ export function setArrivalReplay(fn: (() => void) | null): void {
   replayArrival = fn;
 }
 
-/** The chapter filters and the Caderno group, kept for the session. */
+/** The chapter filters, kept for the session. */
 const filters = new Map<string, JournalFilter>();
-let lastCadernoGroup: string | null = null;
 
 // ---------------------------------------------------------------- small animated pieces
 
@@ -196,12 +199,8 @@ function medalSection(): HTMLElement {
 // ---------------------------------------------------------------- the book
 
 export interface DiarioOpen {
-  /** 'inicio', an area id, 'fotos' or 'caderno'. */
+  /** 'inicio', an area id (a chapter with at least one word) or 'fotos'. */
   section?: string;
-  /** Opens the Caderno on this group (a sign's "Guardar no caderno"). */
-  cadernoGroup?: string;
-  /** Caderno cards to mark (the ones a sign just taught). */
-  highlight?: readonly string[];
 }
 
 type Snapshot = { left: HTMLElement; right: HTMLElement; lt: number; rt: number };
@@ -211,15 +210,13 @@ export function openDiario(opts: DiarioOpen = {}): void {
   const seenAtOpen = seenCount();
   storeSeen(earnedCount());
   syncJournalBadge();
-  const marks = new Set(opts.highlight ?? []);
   /** Fresh stickers already slapped in during this visit, per page (`<section>:<word>`): a re-render does not slap them again. */
   const slapped = new Set<string>();
   const build = (): JournalModel =>
     journalModel({ diary: game.profile?.diary, escola: game.profile?.escola, photos: game.photos, seen: seenAtOpen, now: Date.now(), tz: -new Date().getTimezoneOffset() });
   let model = build();
-  const order = () => ['inicio', ...model.chapters.map((c) => c.id), 'fotos', 'caderno'];
-  let section = opts.cadernoGroup || opts.highlight?.length ? 'caderno' : opts.section && order().includes(opts.section) ? opts.section : 'inicio';
-  if (opts.cadernoGroup) lastCadernoGroup = opts.cadernoGroup;
+  const order = () => ['inicio', ...shownChapters(model).map((c) => c.id), 'fotos'];
+  let section = opts.section && order().includes(opts.section) ? opts.section : 'inicio';
   let homeQuery = '';
 
   const left = h('div', { class: 'jb-page jb-left' });
@@ -286,6 +283,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
     const pct = m.total ? Math.round((m.earned / m.total) * 100) : 0;
     const total = h('b', { class: 'jb-big', id: 'jb-earned' }, String(m.earned));
     countUp(total, m.earned, 1100, 350);
+    const regular = journalShows(game.profile);
     const tiers = (['dominada', 'quase', 'aprendendo', 'nova'] as const).map((k) => ({ k, n: m.chapters.reduce((s, c) => s + c.words.filter((w) => w.earned && w.mastery === k).length, 0) }));
     const leftPage = [
       h('div', { class: 'jb-owner' }, h('p', { class: 'jb-kicker' }, 'Diário de'), h('p', { class: 'jb-name' }, game.profile?.name ?? '—'), h('p', { class: 'jb-stamp', 'aria-hidden': 'true' }, 'VILA IPÊ · SP')),
@@ -295,24 +293,28 @@ export function openDiario(opts: DiarioOpen = {}): void {
         h('div', { class: 'jb-ring-wrap' }, ring(pct, 'jb-ring'), h('div', { class: 'jb-ring-n' }, total, h('span', null, `de ${m.total}`))),
         h('div', { class: 'jb-hero-cap' }, h('p', null, h('b', null, 'palavras'), ' no seu diário'), en(`${m.earned} of ${m.total} words found · ${pct}%`)),
       ),
-      h(
-        'div',
-        { class: 'jb-mastery', id: 'cad-mastery' },
-        h('div', { class: 'jb-mbar', role: 'img', 'aria-label': tiers.map((t) => `${MASTERY_LABEL[t.k].pt} ${t.n}`).join(', ') }, ...tiers.map((t) => h('i', { class: `mb-${t.k}`, style: `--w:${m.earned ? (t.n / m.earned) * 100 : 0}%` }))),
-        h(
-          'ul',
-          { class: 'jb-mlegend' },
-          ...tiers.map((t) => h('li', { class: `ml-${t.k}` }, h('i', { 'aria-hidden': 'true' }), h('b', null, String(t.n)), ` ${MASTERY_LABEL[t.k].pt}`, en(MASTERY_LABEL[t.k].en))),
-        ),
-      ),
-      h(
-        'div',
-        { class: 'jb-stats' },
-        h('div', { class: 'jb-stat streak' }, h('b', null, String(m.streak)), h('span', null, m.streak === 1 ? 'dia seguido' : 'dias seguidos'), en(`day streak · best ${m.best}`)),
-        h('div', { class: `jb-stat due${m.due ? ' on' : ''}` }, h('b', null, String(m.due)), h('span', null, 'pra revisar'), en('due in the Escola')),
-        h('div', { class: 'jb-stat xp' }, h('b', null, String(m.xp)), h('span', null, 'XP'), en('Escola points')),
-      ),
-      medalSection(),
+      ...(regular
+        ? [
+            h(
+              'div',
+              { class: 'jb-mastery', id: 'cad-mastery' },
+              h('div', { class: 'jb-mbar', role: 'img', 'aria-label': tiers.map((t) => `${MASTERY_LABEL[t.k].pt} ${t.n}`).join(', ') }, ...tiers.map((t) => h('i', { class: `mb-${t.k}`, style: `--w:${m.earned ? (t.n / m.earned) * 100 : 0}%` }))),
+              h(
+                'ul',
+                { class: 'jb-mlegend' },
+                ...tiers.map((t) => h('li', { class: `ml-${t.k}` }, h('i', { 'aria-hidden': 'true' }), h('b', null, String(t.n)), ` ${MASTERY_LABEL[t.k].pt}`, en(MASTERY_LABEL[t.k].en))),
+              ),
+            ),
+            h(
+              'div',
+              { class: 'jb-stats' },
+              h('div', { class: 'jb-stat streak' }, h('b', null, String(m.streak)), h('span', null, m.streak === 1 ? 'dia seguido' : 'dias seguidos'), en(`day streak · best ${m.best}`)),
+              h('div', { class: `jb-stat due${m.due ? ' on' : ''}` }, h('b', null, String(m.due)), h('span', null, 'pra revisar'), en('due in the Escola')),
+              h('div', { class: 'jb-stat xp' }, h('b', null, String(m.xp)), h('span', null, 'XP'), en('Escola points')),
+            ),
+            medalSection(),
+          ]
+        : []),
     ];
     const results = h('div', { class: 'jb-results' });
     const search = h('input', {
@@ -329,10 +331,11 @@ export function openDiario(opts: DiarioOpen = {}): void {
         fillResults();
       },
     });
+    const chapters = shownChapters(m);
     const chaptersList = h(
       'ol',
       { class: 'jb-chapters' },
-      ...m.chapters.map((c, i) =>
+      ...chapters.map((c, i) =>
         h(
           'li',
           { style: `--i:${i}` },
@@ -361,7 +364,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
           h('div', { class: 'jb-shelf-row' }, ...shelf.map((w, i) => sticker(w, i, shelfList, true))),
         )
       : h('section', { class: 'jb-shelf empty' }, h('p', { class: 'jb-empty' }, 'Seu diário está esperando a primeira palavra.', en('Your diary is waiting for its first word: take a photo, read a sign, talk to someone.')));
-    const browse = h('div', { class: 'jb-browse' }, shelfSection, h('h4', { class: 'jb-chapters-h' }, 'Capítulos', en('Chapters')), chaptersList);
+    const browse = h('div', { class: 'jb-browse' }, shelfSection, ...(chapters.length ? [h('h4', { class: 'jb-chapters-h' }, 'Capítulos', en('Chapters')), chaptersList] : []));
     const fillResults = () => {
       const q = homeQuery.trim();
       browse.hidden = !!q;
@@ -379,7 +382,8 @@ export function openDiario(opts: DiarioOpen = {}): void {
   }
 
   function chapterSpread(c: JournalChapter, grid: HTMLElement, counter: HTMLElement): [(HTMLElement | null)[], HTMLElement[]] {
-    const f = filters.get(c.id) ?? DEFAULT_FILTER;
+    const f = chapterFilter(c, filters.get(c.id) ?? DEFAULT_FILTER);
+    const tools = chapterTools(c);
     const set = (patch: Partial<JournalFilter>) => {
       filters.set(c.id, { ...(filters.get(c.id) ?? DEFAULT_FILTER), ...patch });
       refresh();
@@ -435,24 +439,30 @@ export function openDiario(opts: DiarioOpen = {}): void {
         h('div', { class: 'jb-chap-count' }, n, h('span', null, `/${c.total}`)),
         h('div', { class: 'jb-chap-meter' }, h('span', { class: 'jb-meter' }, h('i', { style: `--w:${pct}%` })), h('p', null, `${pct}% · ★ ${c.mastered} dominadas`, en(`${pct}% found · ${c.mastered} mastered`))),
       ),
-      h(
-        'div',
-        { class: 'jb-sources', role: 'group', 'aria-label': 'Como encontrar · How words are found' },
-        srcBtn('all', 'Todas', 'All', c.earned, c.total),
-        ...c.sources.map((s) => srcBtn(s.source, SOURCE_LABEL[s.source].pt, SOURCE_LABEL[s.source].en, s.earned, s.total)),
-      ),
-      h(
-        'div',
-        { class: 'jb-sorts', role: 'group', 'aria-label': 'Ordem · Order' },
-        ...sorts.map(([k, pt, g]) => h('button', { type: 'button', class: `jb-sort${f.sort === k ? ' on' : ''}`, 'data-jb-sort': k, 'aria-pressed': String(f.sort === k), title: g, onclick: () => set({ sort: k }) }, pt)),
-      ),
-      h(
-        'label',
-        { class: `jb-toggle${f.sort !== 'album' ? ' off' : ''}` },
-        h('input', { type: 'checkbox', checked: f.missing, 'data-jb-missing': '1', onchange: (e: Event) => set({ missing: (e.target as HTMLInputElement).checked }) }),
-        h('span', null, 'Mostrar o que falta'),
-        en('Show the empty slots'),
-      ),
+      tools
+        ? h(
+            'div',
+            { class: 'jb-sources', role: 'group', 'aria-label': 'Como encontrar · How words are found' },
+            srcBtn('all', 'Todas', 'All', c.earned, c.total),
+            ...c.sources.map((s) => srcBtn(s.source, SOURCE_LABEL[s.source].pt, SOURCE_LABEL[s.source].en, s.earned, s.total)),
+          )
+        : null,
+      tools
+        ? h(
+            'div',
+            { class: 'jb-sorts', role: 'group', 'aria-label': 'Ordem · Order' },
+            ...sorts.map(([k, pt, g]) => h('button', { type: 'button', class: `jb-sort${f.sort === k ? ' on' : ''}`, 'data-jb-sort': k, 'aria-pressed': String(f.sort === k), title: g, onclick: () => set({ sort: k }) }, pt)),
+          )
+        : null,
+      tools
+        ? h(
+            'label',
+            { class: `jb-toggle${f.sort !== 'album' ? ' off' : ''}` },
+            h('input', { type: 'checkbox', checked: f.missing, 'data-jb-missing': '1', onchange: (e: Event) => set({ missing: (e.target as HTMLInputElement).checked }) }),
+            h('span', null, 'Mostrar o que falta'),
+            en('Show the empty slots'),
+          )
+        : null,
       c.id === 'chegada' && replayArrival
         ? h(
             'button',
@@ -526,7 +536,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
   function fillGrid(enter: boolean) {
     const c = model.chapters.find((x) => x.id === section);
     if (!c || !grid || !counter) return;
-    const f = filters.get(c.id) ?? DEFAULT_FILTER;
+    const f = chapterFilter(c, filters.get(c.id) ?? DEFAULT_FILTER);
     gridList = filterWords(c.words, f);
     const shown = gridList;
     const earnedShown = shown.filter((w) => w.earned).length;
@@ -559,18 +569,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
     spread.setAttribute('style', chapter ? chapterVars(chapter) : '');
     if (section === 'inicio') pages = homeSpread();
     else if (section === 'fotos') pages = photosSpread();
-    else if (section === 'caderno') {
-      const cs = cadernoSpread(lastCadernoGroup, marks, (id) => {
-        lastCadernoGroup = id;
-        ambience.sfx('page');
-        const snap = snapshot();
-        draw(false);
-        right.scrollTop = 0;
-        if (!narrow()) pageTurn(1, snap, 'right');
-      });
-      lastCadernoGroup = cs.group;
-      pages = [cs.left, cs.right];
-    } else if (chapter) {
+    else if (chapter) {
       grid = h('div', { class: 'jb-grid' });
       counter = h('p', { class: 'jb-count-line' });
       pages = chapterSpread(chapter, grid, counter);
@@ -590,8 +589,6 @@ export function openDiario(opts: DiarioOpen = {}): void {
       left.scrollTop = lt;
       right.scrollTop = rt;
     }
-    const hl = right.querySelector<HTMLElement>('.cad-word.hl');
-    if (enter && hl) hl.scrollIntoView({ block: 'center' });
   }
 
   function drawTabs() {
@@ -615,9 +612,8 @@ export function openDiario(opts: DiarioOpen = {}): void {
       );
     tabs.replaceChildren(
       tab('inicio', 'Início', 'Overview', tabIcon('inicio'), { fresh: model.fresh.length }),
-      ...model.chapters.map((c) => tab(c.id, c.pt, c.en, emblemIcon(c.emblem), { style: chapterVars(c), fresh: c.fresh, complete: c.complete, pct: c.percent })),
+      ...shownChapters(model).map((c) => tab(c.id, c.pt, c.en, emblemIcon(c.emblem), { style: chapterVars(c), fresh: c.fresh, complete: c.complete, pct: c.percent })),
       tab('fotos', 'Fotos', 'Photos', tabIcon('fotos'), { style: '--c:#5b6b7f;--ci:#2a3442' }),
-      tab('caderno', 'Caderno', 'Notebook', tabIcon('caderno'), { style: '--c:#8f3e15;--ci:#4a1e08' }),
     );
     tabs.querySelector<HTMLElement>('.jb-tab.on')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }
@@ -639,8 +635,8 @@ export function openDiario(opts: DiarioOpen = {}): void {
     return { left: strip(left), right: strip(right), lt: left.scrollTop, rt: right.scrollTop };
   }
 
-  /** The old page lifts off and turns over the spine onto the other side, showing the new page on its back. `only` turns within a page. */
-  function pageTurn(dir: 1 | -1, snap: Snapshot, only?: 'right') {
+  /** The old page lifts off and turns over the spine onto the other side, showing the new page on its back. */
+  function pageTurn(dir: 1 | -1, snap: Snapshot) {
     spread.querySelectorAll('.jb-leaf, .jb-under').forEach((x) => x.remove());
     if (reduceMotion() || narrow() || typeof spread.animate !== 'function') {
       spread.classList.remove('fade');
@@ -651,17 +647,16 @@ export function openDiario(opts: DiarioOpen = {}): void {
     const fresh = snapshot();
     const fwd = dir > 0;
     const front = h('div', { class: 'jb-face front' }, fwd ? snap.right : snap.left);
-    const back = h('div', { class: 'jb-face back' }, only === 'right' ? fresh.right : fwd ? fresh.left : fresh.right);
-    const leaf = h('div', { class: `jb-leaf ${fwd ? 'fwd' : 'back'}${only ? ' within' : ''}`, 'aria-hidden': 'true' }, front, back, h('i', { class: 'jb-leaf-shade' }));
-    const under = only ? null : h('div', { class: `jb-under ${fwd ? 'at-left' : 'at-right'}`, 'aria-hidden': 'true' }, fwd ? snap.left : snap.right);
-    if (under) spread.append(under);
-    spread.append(leaf);
+    const back = h('div', { class: 'jb-face back' }, fwd ? fresh.left : fresh.right);
+    const leaf = h('div', { class: `jb-leaf ${fwd ? 'fwd' : 'back'}`, 'aria-hidden': 'true' }, front, back, h('i', { class: 'jb-leaf-shade' }));
+    const under = h('div', { class: `jb-under ${fwd ? 'at-left' : 'at-right'}`, 'aria-hidden': 'true' }, fwd ? snap.left : snap.right);
+    spread.append(under, leaf);
     // the clones open at the top; put them where the pages were
     (front.firstElementChild as HTMLElement).scrollTop = fwd ? snap.rt : snap.lt;
-    if (under) (under.firstElementChild as HTMLElement).scrollTop = fwd ? snap.lt : snap.rt;
+    (under.firstElementChild as HTMLElement).scrollTop = fwd ? snap.lt : snap.rt;
     const done = () => {
       leaf.remove();
-      under?.remove();
+      under.remove();
     };
     leaf.addEventListener('animationend', (e) => e.target === leaf && done());
     window.setTimeout(done, 1400);
@@ -978,7 +973,6 @@ export function openDiario(opts: DiarioOpen = {}): void {
   /** What the book draws from the profile: a profile update that changes none of it (coins, a recado) leaves the pages (and a search being typed) alone. */
   const drawnFrom = () => {
     const p = game.profile;
-    const c = p?.caderno ?? {};
     return JSON.stringify([
       p?.diary?.length,
       p?.diary?.[p.diary.length - 1],
@@ -987,8 +981,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
       p?.escola?.streak,
       p?.film,
       p?.feiraMedals?.length,
-      p?.cadernoPaid?.length,
-      Object.values(c).reduce((n, e) => n + e.seen + e.heard + e.used, 0),
+      p?.giOwned,
       game.photos.length,
       game.photos[0]?.id,
     ]);

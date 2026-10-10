@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CADERNO_GROUP_RV, cadernoGroups, DEFAULT_APPEARANCE, HOTSPOTS, ROOMS, type ClientMsg, type ServerMsg } from '@tudobem/shared';
+import { cadernoGroups, isLearned, DEFAULT_APPEARANCE, HOTSPOTS, ROOMS, type ClientMsg, type ServerMsg } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore, type PersistenceAdapter, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
@@ -148,7 +148,7 @@ describe('Caderno de palavras on the server', () => {
     expect(b.s.profile!.caderno!['lex.padaria.pao']!.heard).toBe(1);
   });
 
-  it('a finished group pays RV exactly once and is remembered in the profile', async () => {
+  it('a finished group no longer pays: the words are learned, no RV, no reward, nothing marked paid', async () => {
     const world = makeWorld();
     const a = await client(world);
     const p = a.s.profile!;
@@ -158,40 +158,31 @@ describe('Caderno de palavras on the server', () => {
     const coins = p.coins;
     const rewards = a.all('reward').length;
 
-    await a.send({ t: 'chat', text: 'oi' }); // not the missing one
+    await a.send({ t: 'chat', text: 'Tchau!' }); // used learns it: the group is complete
+    expect(p.caderno!['lex.social.tchau']!.used).toBe(1);
+    expect(cards.every((id) => isLearned(p.caderno![id]))).toBe(true);
+    await a.send({ t: 'heard', cardIds: cards.slice(0, 10) });
     expect(p.coins).toBe(coins);
-    await a.send({ t: 'heard', cardIds: ['lex.social.tchau'] }); // heard alone is not enough
-    expect(p.coins).toBe(coins);
+    expect(a.all('reward')).toHaveLength(rewards);
     expect(p.cadernoPaid).toEqual([]);
-    await a.send({ t: 'chat', text: 'Tchau!' }); // seen never happened, but used learns it
-    expect(p.coins).toBe(coins + CADERNO_GROUP_RV);
-    expect(p.cadernoPaid).toEqual(['social']);
-    expect(a.all('reward')).toHaveLength(rewards + 1);
-    expect(a.last('reward')).toMatchObject({ amount: CADERNO_GROUP_RV, coins: coins + CADERNO_GROUP_RV });
-    expect(a.last('reward')!.reason.pt).toContain('Cumprimentos');
-    expect(a.last('profile')!.profile.cadernoPaid).toEqual(['social']);
-
-    // Doing it all again pays nothing more.
-    await a.send({ t: 'chat', text: 'Tchau, bom dia, boa noite!' });
-    await a.send({ t: 'heard', cardIds: cards });
-    expect(p.coins).toBe(coins + CADERNO_GROUP_RV);
-    expect(a.all('reward')).toHaveLength(rewards + 1);
   });
 
-  it('a group that was paid stays paid across a reconnect (same profile)', async () => {
+  it('an old save keeps the groups it was paid for, and finishing them again pays nothing', async () => {
     const store = new ProfileStore(null);
     const world = makeWorld(store);
     const a = await client(world);
     const p = a.s.profile!;
+    p.cadernoPaid = ['social'];
     p.caderno = Object.fromEntries(social().cardIds.map((id) => [id, { seen: 0, heard: 0, used: 1, firstAt: 1 }]));
+    const coins = p.coins;
     await a.send({ t: 'heard', cardIds: ['lex.social.oi'] });
     expect(p.cadernoPaid).toEqual(['social']);
-    const coins = p.coins;
     world.disconnect(a.s);
     const s2 = world.connect('again', () => {}, () => {});
     await world.handle(s2, { t: 'hello', token: (store.get(p.id) as StoredProfile).token });
     await world.handle(s2, { t: 'heard', cardIds: ['lex.social.oi'] });
     expect(store.get(p.id)!.coins).toBe(coins);
+    expect(store.get(p.id)!.cadernoPaid).toEqual(['social']);
   });
 
   it('read: a sign counts its cards and the cards found in its text as seen', async () => {

@@ -55,7 +55,6 @@ Every value is read by the server through `apps/server/src/gameConfig.ts`. Overr
 | `tutorialBonus` | 25 RV | 0–200 | first-steps bonus |
 | `kitnetGift` | 10 RV | 0–100 | first visit to your own kitnet |
 | `missionReward` | 25 RV | 0–200 | daily kiosk mission |
-| `cadernoGroupRv` | 15 RV | 0–100 | completed caderno group |
 | `parrotHintCooldownSec` | 45 s | 5–600 | parrot hints |
 | `idleKickMinutes` | 15 min | 2–120 | idle kick (overrides `IDLE_KICK_SECONDS`) |
 | `roomCap` | 16 | 1–16 | players per instance (overrides `ROOM_CAP`) |
