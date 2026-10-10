@@ -1,0 +1,354 @@
+/*
+ * The fishing stage (ui/pesca/pescaStage.ts): a full-screen pixel canvas with one hit layer over it; the world's HUD steps aside while it is
+ * up (`body.pesca-on`). No digits: the tension is a ring, the size a word. Plus Jô's fish tray and Dona Neide's Caderneta de pesca.
+ */
+body.pesca-on .topbar,
+body.pesca-on .bottombar,
+body.pesca-on .hud-actions,
+body.pesca-on .hud-burger,
+body.pesca-on .hud-scrim,
+body.pesca-on .mission-banner,
+body.pesca-on .room-intro,
+body.pesca-on .hover-label,
+body.pesca-on #world-labels,
+body.pesca-on #hotspot-cues {
+  display: none !important;
+}
+
+.pesca-root {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #1d1b26;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pesca-canvas {
+  image-rendering: pixelated;
+  grid-area: 1 / 1;
+}
+.pesca-hit {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+.pesca-top {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 3;
+}
+/* the "?" (ui/howToPlay.ts) sits top-left on the stage, clear of the leave buttons (top-right) and the tension ring (bottom-left) */
+body.pesca-on .howto-help {
+  top: max(12px, env(safe-area-inset-top));
+  bottom: auto;
+  left: 12px;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+}
+.pesca-leave {
+  background: #fbf1e3;
+  border: 2px solid #2a2233;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 700;
+}
+.pesca-label,
+.pesca-pop {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  color: #fff;
+  text-shadow: 0 2px 0 #1f2c4a, 0 0 6px #1f2c4a;
+  font-weight: 800;
+  text-align: center;
+}
+.pesca-label {
+  top: 18%;
+  font-size: 28px;
+}
+.pesca-pops {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.pesca-pop {
+  top: 30%;
+  font-size: 40px;
+  animation: pesca-pop 1.6s ease-out forwards;
+}
+.pesca-pop .en,
+.pesca-label .en {
+  display: block;
+  font-size: 0.45em;
+  font-weight: 600;
+  opacity: 0.9;
+}
+@keyframes pesca-pop {
+  0% { transform: translate(-50%, 10px) scale(0.6); opacity: 0; }
+  15% { transform: translate(-50%, 0) scale(1.1); opacity: 1; }
+  25% { transform: translate(-50%, 0) scale(1); }
+  100% { transform: translate(-50%, -30px) scale(1); opacity: 0; }
+}
+
+/* the tension ring: fills while the line is held against a run */
+.pesca-ring {
+  --fill: 0deg;
+  position: absolute;
+  left: 24px;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: conic-gradient(#f2c230 var(--fill), rgba(31, 44, 74, 0.55) var(--fill));
+  border: 3px solid #2a2233;
+  pointer-events: none;
+}
+.pesca-ring::after {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  background: #fbf1e3;
+  border: 2px solid #2a2233;
+}
+.pesca-ring.held::after {
+  background: #8fd6c8;
+}
+.pesca-ring.hot {
+  background: conic-gradient(#d93232 var(--fill), rgba(31, 44, 74, 0.55) var(--fill));
+  animation: pesca-throb 0.3s infinite alternate;
+}
+@keyframes pesca-throb {
+  to { transform: scale(1.08); }
+}
+
+/* the catch card, dealt in like a sticker */
+.pesca-card {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+.pesca-card-inner {
+  background: #fbf1e3;
+  border: 3px solid #2a2233;
+  border-radius: 10px;
+  padding: 18px 26px;
+  text-align: center;
+  box-shadow: 0 6px 0 #2a2233;
+  animation: pesca-deal 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+  max-width: min(86vw, 360px);
+}
+@keyframes pesca-deal {
+  from { transform: rotate(-8deg) scale(0.3); opacity: 0; }
+  to { transform: rotate(-2deg) scale(1); opacity: 1; }
+}
+.pesca-card-name {
+  font-size: 34px;
+  font-weight: 800;
+  color: #1f5f5a;
+}
+.pesca-card-en {
+  font-size: 15px;
+  color: #6b5a4a;
+}
+.pesca-card-size {
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 700;
+}
+.pesca-card-size .en,
+.pesca-card-new .en {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+}
+.pesca-card-new {
+  display: inline-block;
+  margin: 8px 4px 0;
+  background: #f2c230;
+  border: 2px solid #2a2233;
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-weight: 800;
+  transform: rotate(-4deg);
+}
+.pesca-card-tap {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #6b5a4a;
+}
+.pesca-card-tap .en {
+  display: block;
+}
+.pesca-puff {
+  animation: pesca-puff 0.8s ease-in-out infinite alternate;
+}
+@keyframes pesca-puff {
+  to { transform: scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pesca-pop,
+  .pesca-card-inner,
+  .pesca-puff,
+  .pesca-ring.hot {
+    animation: none;
+  }
+}
+
+/* Jô's tray */
+.pesca-tray {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.pesca-tray-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
+}
+.pesca-tray-name .en {
+  display: block;
+}
+.pesca-jo-says .en {
+  display: block;
+}
+
+/* Dona Neide's Caderneta */
+.pesca-cad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+.pesca-cad-fish {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: 6px;
+  border: 2px solid #d8c79a;
+  border-radius: 8px;
+  background: #fffaf0;
+}
+.pesca-cad-fish.unknown img {
+  filter: brightness(0) opacity(0.35);
+}
+.pesca-cad-rec {
+  font-size: 12px;
+  color: #1f5f5a;
+}
+
+/* ---------------------------------------------------------------- the party boat (ui/pesca/party.ts) */
+.pesca-card-bottle {
+  margin: 10px auto 0;
+  max-width: 280px;
+  padding: 8px 12px;
+  background: #fbf1e3;
+  border: 2px dashed #c9a46a;
+  border-radius: 8px;
+  font-size: 17px;
+  color: #573c2c;
+}
+.pesca-card-bottle .en {
+  display: block;
+  font-size: 13px;
+  color: #6b5a4a;
+}
+.party-pill {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  background: #fbf1e3;
+  border: 2px solid #1f5f5a;
+  border-radius: 999px;
+  color: #1f5f5a;
+  font-size: 14px;
+  pointer-events: auto;
+}
+.party-pill-boat,
+.party-invite-boat {
+  width: 24px;
+  height: 18px;
+  background: linear-gradient(#3fa9a0 0 40%, #f6f6f2 40% 70%, #c0392b 70%);
+  border-radius: 3px 3px 10px 10px;
+  flex: none;
+}
+.party-invite-boat {
+  width: 64px;
+  height: 40px;
+  margin: 0 auto 8px;
+}
+.party-pill-late {
+  color: #b5562b;
+  font-weight: 700;
+}
+.party-pill button {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.party-invite {
+  text-align: center;
+  max-width: 360px;
+}
+.party-summary {
+  max-width: 440px;
+}
+.party-sum-members {
+  font-weight: 700;
+  color: #1f5f5a;
+}
+.party-sum-fish {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.party-sum-catch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 72px;
+  padding: 6px;
+  background: #eef7f5;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.party-sum-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.party-sum-word {
+  padding: 3px 8px;
+  background: #fbf1e3;
+  border: 1px solid #c9a46a;
+  border-radius: 999px;
+}
+.party-sum-earned {
+  margin-top: 10px;
+}
+.party-sum-item {
+  padding: 4px 0;
+}
+@media (max-width: 640px) {
+  .party-pill {
+    top: 64px;
+    font-size: 12px;
+  }
+}

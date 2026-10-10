@@ -1,6 +1,6 @@
 /**
- * Every one of the 532 catalog words has a real way to be earned, and the way matches its source: a player who does only what the word's
- * row says (stand near the object and shoot it, read the sign, hear the line, win the game) ends with all 532 in the diary, each earned
+ * Every one of the 598 catalog words has a real way to be earned, and the way matches its source: a player who does only what the word's
+ * row says (stand near the object and shoot it, read the sign, hear the line, win the game) ends with all 598 in the diary, each earned
  * from its own source and none twice.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -9,6 +9,11 @@ import {
   COUNTER_STAND_INS,
   DEFAULT_APPEARANCE,
   DIARY_WORDS,
+  FISH_IDS,
+  PESCA_WORDS,
+  WATER_IDS,
+  fishWord,
+  momentWord,
   GAME_DAY_MS,
   HOTSPOT_READ_RANGE,
   MS_PER_GAME_MINUTE,
@@ -90,7 +95,12 @@ describe('every catalog word can be earned from its own source', () => {
     let room: RoomId | null = null;
     const goRoom = async (to: RoomId) => {
       if (room === to) return;
-      await a.send({ t: 'join', room: to });
+      if (to === 'barco_festa') {
+        // the party deck is never a public shard: rent a trip at Bento's to stand on it
+        world.join(a.s, 'praia', {}, { tile: ROOMS.praia.npcs.find((n) => n.id === 'bento')!.interact, dir: 'SW' });
+        a.s.profile!.coins += 500;
+        await a.send({ t: 'party', action: 'create' });
+      } else await a.send({ t: 'join', room: to });
       expect(a.last('roomState')?.room).toBe(to);
       room = to;
     };
@@ -198,13 +208,16 @@ describe('every catalog word can be earned from its own source', () => {
     await goRoom('escola');
     // a finished lesson teaches the practice game's word (aula)
     await playLesson({ inbox: a.inbox, send: a.send, held: () => a.s.profile!.diary ?? [] });
-    const diary = (world as unknown as { diary: { onCorreriaWin: (s: Session, items: string[]) => void } }).diary;
+    const diary = (world as unknown as { diary: { onCorreriaWin: (s: Session, items: string[]) => void; teachPesca: (s: Session, words: unknown[]) => unknown[] } }).diary;
     diary.onCorreriaWin(a.s, ['bolo', 'guarana', 'coxinha', 'pao_de_queijo', 'misto_quente']);
+    // the Praia: every water's moments and every species' first catch (the fishing engine calls this; pesca.test.ts plays it for real)
+    for (const water of WATER_IDS) diary.teachPesca(a.s, PESCA_WORDS[water].map((r) => momentWord(water, r.earn)));
+    diary.teachPesca(a.s, FISH_IDS.map((f) => fishWord(f)));
     for (const w of DIARY_WORDS.filter((x) => x.source === 'game')) expect(have(a).has(w.id), `game: ${w.pt}`).toBe(true);
 
     // all of them, once each
-    expect(a.s.profile!.diary).toHaveLength(532);
-    expect(new Set(a.s.profile!.diary).size).toBe(532);
+    expect(a.s.profile!.diary).toHaveLength(598);
+    expect(new Set(a.s.profile!.diary).size).toBe(598);
     expect(DIARY_WORDS.every((w) => have(a).has(w.id))).toBe(true);
   }, 120_000);
 });

@@ -126,6 +126,10 @@ export const NPC_TAG_COLORS: Record<string, string> = {
   chico: '#b89a2c',
   rosa: '#c4708a',
   prof: '#4a7c59',
+  // the Praia: Bento's faded blue shirt, Neide's sea teal, Jô's terracotta visor
+  bento: '#3f6a9a',
+  neide: '#2f8f8c',
+  jo: '#c45c26',
 };
 
 export const npcTagColor = (npcId: string | null | undefined): string => (npcId && NPC_TAG_COLORS[npcId]) || '#8b5e3c';

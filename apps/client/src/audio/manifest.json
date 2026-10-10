@@ -16,7 +16,10 @@
     "rosa": "pt-BR-FranciscaNeural",
     "ze": "pt-BR-AntonioNeural",
     "chico": "pt-BR-AntonioNeural",
-    "dito": "pt-BR-AntonioNeural"
+    "dito": "pt-BR-AntonioNeural",
+    "bento": "pt-BR-AntonioNeural",
+    "neide": "pt-BR-FranciscaNeural",
+    "jo": "pt-BR-FranciscaNeural"
   },
   "lines": [
     {
@@ -96,6 +99,108 @@
       "voice": "prof",
       "text": "Beleza! Até a próxima.",
       "file": "prof-3f794cf6c7.mp3"
+    },
+    {
+      "id": "bento-131d76927e",
+      "voice": "bento",
+      "text": "Bom dia! Eu sou o Bento. Esses barcos aí são todos meus.",
+      "file": "bento-131d76927e.mp3"
+    },
+    {
+      "id": "bento-4948245837",
+      "voice": "bento",
+      "text": "Boa tarde! Eu sou o Bento. Esses barcos aí são todos meus.",
+      "file": "bento-4948245837.mp3"
+    },
+    {
+      "id": "bento-716d559383",
+      "voice": "bento",
+      "text": "Boa noite! Eu sou o Bento. Esses barcos aí são todos meus.",
+      "file": "bento-716d559383.mp3"
+    },
+    {
+      "id": "bento-8f0fd39c50",
+      "voice": "bento",
+      "text": "O barquinho a remo é baratinho. Os outros custam mais. Quer ver?",
+      "file": "bento-8f0fd39c50.mp3"
+    },
+    {
+      "id": "bento-c02f84075a",
+      "voice": "bento",
+      "text": "Pra começar, o barquinho a remo. Pra peixe grande, o de alto-mar.",
+      "file": "bento-c02f84075a.mp3"
+    },
+    {
+      "id": "bento-6b7a4f0c1d",
+      "voice": "bento",
+      "text": "Esse é pra ir com os amigos. Música, churrasco e muita pescaria.",
+      "file": "bento-6b7a4f0c1d.mp3"
+    },
+    {
+      "id": "neide-485d24326f",
+      "voice": "neide",
+      "text": "Bom dia. Senta aí. Já pescou hoje?",
+      "file": "neide-485d24326f.mp3"
+    },
+    {
+      "id": "neide-8967073a3f",
+      "voice": "neide",
+      "text": "Boa tarde. Senta aí. Já pescou hoje?",
+      "file": "neide-8967073a3f.mp3"
+    },
+    {
+      "id": "neide-b9818ea390",
+      "voice": "neide",
+      "text": "Boa noite. Senta aí. Já pescou hoje?",
+      "file": "neide-b9818ea390.mp3"
+    },
+    {
+      "id": "neide-0e557d3d84",
+      "voice": "neide",
+      "text": "Segura pra lançar, e solta.",
+      "file": "neide-0e557d3d84.mp3"
+    },
+    {
+      "id": "neide-ee18166b46",
+      "voice": "neide",
+      "text": "Quando a boia afunda, é Fisgou! Toca rápido.",
+      "file": "neide-ee18166b46.mp3"
+    },
+    {
+      "id": "neide-de050377c6",
+      "voice": "neide",
+      "text": "Puxa segurando. Ele corre? Solta um pouco.",
+      "file": "neide-de050377c6.mp3"
+    },
+    {
+      "id": "neide-06d4931d95",
+      "voice": "neide",
+      "text": "Na lagoa tem tucunaré. No alto-mar tem marlim. Mas cada um no seu dia.",
+      "file": "neide-06d4931d95.mp3"
+    },
+    {
+      "id": "jo-250089fc86",
+      "voice": "jo",
+      "text": "Bom dia, meu bem! Vai um coco?",
+      "file": "jo-250089fc86.mp3"
+    },
+    {
+      "id": "jo-4f136fe93c",
+      "voice": "jo",
+      "text": "Boa tarde, meu bem! Vai um coco?",
+      "file": "jo-4f136fe93c.mp3"
+    },
+    {
+      "id": "jo-595fad488c",
+      "voice": "jo",
+      "text": "Boa noite, meu bem! Vai um coco?",
+      "file": "jo-595fad488c.mp3"
+    },
+    {
+      "id": "jo-35f862cc65",
+      "voice": "jo",
+      "text": "Quero sim! Mostra o balde.",
+      "file": "jo-35f862cc65.mp3"
     },
     {
       "id": "julia-7b43b4bfbb",
@@ -3722,10 +3827,10 @@
       "file": "ui-3e0a463c5a.mp3"
     },
     {
-      "id": "ui-6adfc3166a",
+      "id": "ui-cb9362d042",
       "voice": "ui",
-      "text": "ÔNIBUS. Linha 875 · Centro · Aeroporto",
-      "file": "ui-6adfc3166a.mp3"
+      "text": "ÔNIBUS. Linha 875 · Centro · Aeroporto · Praia",
+      "file": "ui-cb9362d042.mp3"
     },
     {
       "id": "ui-44328d97aa",
@@ -3966,6 +4071,48 @@
       "voice": "ui",
       "text": "DESEMBARQUE. Saída para o aeroporto",
       "file": "ui-2059ec9361.mp3"
+    },
+    {
+      "id": "ui-2ed4ee7431",
+      "voice": "ui",
+      "text": "PRAIA DO JERIVÁ. Litoral paulista",
+      "file": "ui-2ed4ee7431.mp3"
+    },
+    {
+      "id": "ui-75bb5a9a2a",
+      "voice": "ui",
+      "text": "BARRACA DA JÔ. Água de coco sete reais. Queijo coalho seis reais. Milho verde cinco reais. Picolé quatro reais",
+      "file": "ui-75bb5a9a2a.mp3"
+    },
+    {
+      "id": "ui-6ace14c347",
+      "voice": "ui",
+      "text": "PÍER. Barcos de aluguel na ponta",
+      "file": "ui-6ace14c347.mp3"
+    },
+    {
+      "id": "ui-060e75dfd6",
+      "voice": "ui",
+      "text": "PERIGO. Correnteza forte. Não nade aqui.",
+      "file": "ui-060e75dfd6.mp3"
+    },
+    {
+      "id": "ui-98548d406b",
+      "voice": "ui",
+      "text": "PROIBIDO PESCAR AQUI. Pesque na beira do mar.",
+      "file": "ui-98548d406b.mp3"
+    },
+    {
+      "id": "ui-caa8a7cde1",
+      "voice": "ui",
+      "text": "ALUGUEL DE BARCOS. Fale com o Seu Bento.",
+      "file": "ui-caa8a7cde1.mp3"
+    },
+    {
+      "id": "ui-400317c94b",
+      "voice": "ui",
+      "text": "CHURRASCO · REFRI · MÚSICA",
+      "file": "ui-400317c94b.mp3"
     },
     {
       "id": "ui-97e4ea2659",
@@ -10406,6 +10553,402 @@
       "file": "ui-0ed918d7b8.mp3"
     },
     {
+      "id": "ui-262172f0c8",
+      "voice": "ui",
+      "text": "bagre",
+      "file": "ui-262172f0c8.mp3"
+    },
+    {
+      "id": "ui-40b58f8c77",
+      "voice": "ui",
+      "text": "sardinha",
+      "file": "ui-40b58f8c77.mp3"
+    },
+    {
+      "id": "ui-eb06e2d02c",
+      "voice": "ui",
+      "text": "baiacu",
+      "file": "ui-eb06e2d02c.mp3"
+    },
+    {
+      "id": "ui-237cecde9f",
+      "voice": "ui",
+      "text": "tainha",
+      "file": "ui-237cecde9f.mp3"
+    },
+    {
+      "id": "ui-13807b8b28",
+      "voice": "ui",
+      "text": "robalo",
+      "file": "ui-13807b8b28.mp3"
+    },
+    {
+      "id": "ui-01ec50a903",
+      "voice": "ui",
+      "text": "corvina",
+      "file": "ui-01ec50a903.mp3"
+    },
+    {
+      "id": "ui-f22a7623a0",
+      "voice": "ui",
+      "text": "pargo",
+      "file": "ui-f22a7623a0.mp3"
+    },
+    {
+      "id": "ui-5ed13067ba",
+      "voice": "ui",
+      "text": "garoupa",
+      "file": "ui-5ed13067ba.mp3"
+    },
+    {
+      "id": "ui-bf3dcb8c23",
+      "voice": "ui",
+      "text": "dourado-do-mar",
+      "file": "ui-bf3dcb8c23.mp3"
+    },
+    {
+      "id": "ui-ff328bb7dc",
+      "voice": "ui",
+      "text": "atum",
+      "file": "ui-ff328bb7dc.mp3"
+    },
+    {
+      "id": "ui-f3b7fd0bac",
+      "voice": "ui",
+      "text": "marlim-azul",
+      "file": "ui-f3b7fd0bac.mp3"
+    },
+    {
+      "id": "ui-b3ae4fbd56",
+      "voice": "ui",
+      "text": "tilápia",
+      "file": "ui-b3ae4fbd56.mp3"
+    },
+    {
+      "id": "ui-9ce79daa89",
+      "voice": "ui",
+      "text": "tambaqui",
+      "file": "ui-9ce79daa89.mp3"
+    },
+    {
+      "id": "ui-eaa3302d30",
+      "voice": "ui",
+      "text": "tucunaré",
+      "file": "ui-eaa3302d30.mp3"
+    },
+    {
+      "id": "ui-e2e07b9b16",
+      "voice": "ui",
+      "text": "anzol",
+      "file": "ui-e2e07b9b16.mp3"
+    },
+    {
+      "id": "ui-1b14d4d826",
+      "voice": "ui",
+      "text": "isca",
+      "file": "ui-1b14d4d826.mp3"
+    },
+    {
+      "id": "ui-04ea67d1f1",
+      "voice": "ui",
+      "text": "vara",
+      "file": "ui-04ea67d1f1.mp3"
+    },
+    {
+      "id": "ui-41df2a9278",
+      "voice": "ui",
+      "text": "linha",
+      "file": "ui-41df2a9278.mp3"
+    },
+    {
+      "id": "ui-0a7e2546e1",
+      "voice": "ui",
+      "text": "boia",
+      "file": "ui-0a7e2546e1.mp3"
+    },
+    {
+      "id": "ui-88a0205cf4",
+      "voice": "ui",
+      "text": "maré",
+      "file": "ui-88a0205cf4.mp3"
+    },
+    {
+      "id": "ui-a93afa7ca9",
+      "voice": "ui",
+      "text": "lagoa",
+      "file": "ui-a93afa7ca9.mp3"
+    },
+    {
+      "id": "ui-45d4e2d009",
+      "voice": "ui",
+      "text": "água doce",
+      "file": "ui-45d4e2d009.mp3"
+    },
+    {
+      "id": "ui-d168570ac3",
+      "voice": "ui",
+      "text": "margem",
+      "file": "ui-d168570ac3.mp3"
+    },
+    {
+      "id": "ui-6055227fa5",
+      "voice": "ui",
+      "text": "caniço",
+      "file": "ui-6055227fa5.mp3"
+    },
+    {
+      "id": "ui-f963600168",
+      "voice": "ui",
+      "text": "remo",
+      "file": "ui-f963600168.mp3"
+    },
+    {
+      "id": "ui-e8df2ac062",
+      "voice": "ui",
+      "text": "remar",
+      "file": "ui-e8df2ac062.mp3"
+    },
+    {
+      "id": "ui-968bbfb046",
+      "voice": "ui",
+      "text": "barquinho",
+      "file": "ui-968bbfb046.mp3"
+    },
+    {
+      "id": "ui-19e6496fa3",
+      "voice": "ui",
+      "text": "colete",
+      "file": "ui-19e6496fa3.mp3"
+    },
+    {
+      "id": "ui-b9ff2a96e8",
+      "voice": "ui",
+      "text": "enseada",
+      "file": "ui-b9ff2a96e8.mp3"
+    },
+    {
+      "id": "ui-08559fb183",
+      "voice": "ui",
+      "text": "proa",
+      "file": "ui-08559fb183.mp3"
+    },
+    {
+      "id": "ui-3afc5e5653",
+      "voice": "ui",
+      "text": "convés",
+      "file": "ui-3afc5e5653.mp3"
+    },
+    {
+      "id": "ui-039a8d0b72",
+      "voice": "ui",
+      "text": "âncora",
+      "file": "ui-039a8d0b72.mp3"
+    },
+    {
+      "id": "ui-e67cebf9b9",
+      "voice": "ui",
+      "text": "pescador",
+      "file": "ui-e67cebf9b9.mp3"
+    },
+    {
+      "id": "ui-9a7d5aa735",
+      "voice": "ui",
+      "text": "mar aberto",
+      "file": "ui-9a7d5aa735.mp3"
+    },
+    {
+      "id": "ui-c6d5c9f961",
+      "voice": "ui",
+      "text": "alto-mar",
+      "file": "ui-c6d5c9f961.mp3"
+    },
+    {
+      "id": "ui-7a0bb885b7",
+      "voice": "ui",
+      "text": "onda",
+      "file": "ui-7a0bb885b7.mp3"
+    },
+    {
+      "id": "ui-bab4abbe9a",
+      "voice": "ui",
+      "text": "profundo",
+      "file": "ui-bab4abbe9a.mp3"
+    },
+    {
+      "id": "ui-68def3d685",
+      "voice": "ui",
+      "text": "horizonte",
+      "file": "ui-68def3d685.mp3"
+    },
+    {
+      "id": "ui-8170fd690e",
+      "voice": "ui",
+      "text": "bússola",
+      "file": "ui-8170fd690e.mp3"
+    },
+    {
+      "id": "ui-59728a8c4d",
+      "voice": "ui",
+      "text": "recorde",
+      "file": "ui-59728a8c4d.mp3"
+    },
+    {
+      "id": "ui-9664949aae",
+      "voice": "ui",
+      "text": "capitão",
+      "file": "ui-9664949aae.mp3"
+    },
+    {
+      "id": "ui-437689897c",
+      "voice": "ui",
+      "text": "tripulação",
+      "file": "ui-437689897c.mp3"
+    },
+    {
+      "id": "ui-c3c972c694",
+      "voice": "ui",
+      "text": "convidado",
+      "file": "ui-c3c972c694.mp3"
+    },
+    {
+      "id": "ui-00c42ebe0a",
+      "voice": "ui",
+      "text": "festa",
+      "file": "ui-00c42ebe0a.mp3"
+    },
+    {
+      "id": "ui-621135f3d7",
+      "voice": "ui",
+      "text": "pôr do sol",
+      "file": "ui-621135f3d7.mp3"
+    },
+    {
+      "id": "ui-c956ffb234",
+      "voice": "ui",
+      "text": "garrafa com mensagem",
+      "file": "ui-c956ffb234.mp3"
+    },
+    {
+      "id": "ui-959618b361",
+      "voice": "ui",
+      "text": "castelo de areia",
+      "file": "ui-959618b361.mp3"
+    },
+    {
+      "id": "ui-68282d4423",
+      "voice": "ui",
+      "text": "concha",
+      "file": "ui-68282d4423.mp3"
+    },
+    {
+      "id": "ui-65e534f22b",
+      "voice": "ui",
+      "text": "canoa",
+      "file": "ui-65e534f22b.mp3"
+    },
+    {
+      "id": "ui-d0995731a5",
+      "voice": "ui",
+      "text": "gaivota",
+      "file": "ui-d0995731a5.mp3"
+    },
+    {
+      "id": "ui-626c4e50e1",
+      "voice": "ui",
+      "text": "salva-vidas",
+      "file": "ui-626c4e50e1.mp3"
+    },
+    {
+      "id": "ui-5ff84c75c4",
+      "voice": "ui",
+      "text": "barco",
+      "file": "ui-5ff84c75c4.mp3"
+    },
+    {
+      "id": "ui-4abd501964",
+      "voice": "ui",
+      "text": "cadeira de praia",
+      "file": "ui-4abd501964.mp3"
+    },
+    {
+      "id": "ui-05a95262bb",
+      "voice": "ui",
+      "text": "pegadas",
+      "file": "ui-05a95262bb.mp3"
+    },
+    {
+      "id": "ui-70d98bf8e4",
+      "voice": "ui",
+      "text": "costão",
+      "file": "ui-70d98bf8e4.mp3"
+    },
+    {
+      "id": "ui-2e7034b891",
+      "voice": "ui",
+      "text": "rede de pesca",
+      "file": "ui-2e7034b891.mp3"
+    },
+    {
+      "id": "ui-2601f3bd5d",
+      "voice": "ui",
+      "text": "praia",
+      "file": "ui-2601f3bd5d.mp3"
+    },
+    {
+      "id": "ui-08a408f1fe",
+      "voice": "ui",
+      "text": "píer",
+      "file": "ui-08a408f1fe.mp3"
+    },
+    {
+      "id": "ui-b8e8c5c001",
+      "voice": "ui",
+      "text": "milho verde",
+      "file": "ui-b8e8c5c001.mp3"
+    },
+    {
+      "id": "ui-0243e374fa",
+      "voice": "ui",
+      "text": "perigo",
+      "file": "ui-0243e374fa.mp3"
+    },
+    {
+      "id": "ui-f577382de8",
+      "voice": "ui",
+      "text": "proibido",
+      "file": "ui-f577382de8.mp3"
+    },
+    {
+      "id": "ui-6421827648",
+      "voice": "ui",
+      "text": "aluguel",
+      "file": "ui-6421827648.mp3"
+    },
+    {
+      "id": "ui-3782624acf",
+      "voice": "ui",
+      "text": "churrasco",
+      "file": "ui-3782624acf.mp3"
+    },
+    {
+      "id": "ui-c19f009097",
+      "voice": "ui",
+      "text": "lançar",
+      "file": "ui-c19f009097.mp3"
+    },
+    {
+      "id": "ui-b1049d66a1",
+      "voice": "ui",
+      "text": "fisgar",
+      "file": "ui-b1049d66a1.mp3"
+    },
+    {
+      "id": "ui-b5c73d38a5",
+      "voice": "ui",
+      "text": "puxar",
+      "file": "ui-b5c73d38a5.mp3"
+    },
+    {
       "id": "lucia-70aae4b72b",
       "voice": "lucia",
       "text": "Seu diário ainda tá vazio. Tire fotos, leia as placas e converse com o pessoal, depois volta aqui!",
@@ -10736,6 +11279,282 @@
       "file": "comissaria-407de93fcb.mp3"
     },
     {
+      "id": "ui-566ec56228",
+      "voice": "ui",
+      "text": "Bora pro barco de festa?",
+      "file": "ui-566ec56228.mp3"
+    },
+    {
+      "id": "ui-e6907fadfc",
+      "voice": "ui",
+      "text": "O barco voltou pro píer.",
+      "file": "ui-e6907fadfc.mp3"
+    },
+    {
+      "id": "ui-ec70bc45e6",
+      "voice": "ui",
+      "text": "Encerrar a festa? Todo mundo volta pro píer.",
+      "file": "ui-ec70bc45e6.mp3"
+    },
+    {
+      "id": "ui-6f422d9aba",
+      "voice": "ui",
+      "text": "Você desembarcou no píer.",
+      "file": "ui-6f422d9aba.mp3"
+    },
+    {
+      "id": "ui-7d84020f18",
+      "voice": "ui",
+      "text": "quase acabando",
+      "file": "ui-7d84020f18.mp3"
+    },
+    {
+      "id": "ui-aa6ee1c08c",
+      "voice": "ui",
+      "text": "Quem lê isso, me manda um “oi” da praia!",
+      "file": "ui-aa6ee1c08c.mp3"
+    },
+    {
+      "id": "ui-ec44f7ef84",
+      "voice": "ui",
+      "text": "Hoje o mar estava calmo e eu estava feliz.",
+      "file": "ui-ec44f7ef84.mp3"
+    },
+    {
+      "id": "ui-b5b7f0c574",
+      "voice": "ui",
+      "text": "Se você achou esta garrafa, faça um pedido.",
+      "file": "ui-b5b7f0c574.mp3"
+    },
+    {
+      "id": "ui-fbb214d272",
+      "voice": "ui",
+      "text": "Aprendi uma palavra nova hoje: saudade.",
+      "file": "ui-fbb214d272.mp3"
+    },
+    {
+      "id": "ui-745b76f72d",
+      "voice": "ui",
+      "text": "O pôr do sol daqui é o mais bonito do mundo.",
+      "file": "ui-745b76f72d.mp3"
+    },
+    {
+      "id": "ui-1ceda5f3a7",
+      "voice": "ui",
+      "text": "Não esqueça o protetor solar!",
+      "file": "ui-1ceda5f3a7.mp3"
+    },
+    {
+      "id": "ui-b3a8ef091c",
+      "voice": "ui",
+      "text": "Um dia eu volto pra essa praia.",
+      "file": "ui-b3a8ef091c.mp3"
+    },
+    {
+      "id": "ui-1ef86ddde6",
+      "voice": "ui",
+      "text": "Peixe grande gosta de gente paciente.",
+      "file": "ui-1ef86ddde6.mp3"
+    },
+    {
+      "id": "ui-3e8581982f",
+      "voice": "ui",
+      "text": "Boa sorte na pescaria, amigo!",
+      "file": "ui-3e8581982f.mp3"
+    },
+    {
+      "id": "ui-076a6cba57",
+      "voice": "ui",
+      "text": "Obrigado por ler até aqui. Tenha um bom dia!",
+      "file": "ui-076a6cba57.mp3"
+    },
+    {
+      "id": "ui-28ca548710",
+      "voice": "ui",
+      "text": "Segura… solta!",
+      "file": "ui-28ca548710.mp3"
+    },
+    {
+      "id": "ui-a4d6b6315b",
+      "voice": "ui",
+      "text": "Ih, enrolou!",
+      "file": "ui-a4d6b6315b.mp3"
+    },
+    {
+      "id": "ui-9f924906c5",
+      "voice": "ui",
+      "text": "Fisgou!",
+      "file": "ui-9f924906c5.mp3"
+    },
+    {
+      "id": "ui-b74a60e06c",
+      "voice": "ui",
+      "text": "Cedo demais!",
+      "file": "ui-b74a60e06c.mp3"
+    },
+    {
+      "id": "ui-0c2e6633fc",
+      "voice": "ui",
+      "text": "Escapou…",
+      "file": "ui-0c2e6633fc.mp3"
+    },
+    {
+      "id": "ui-e5ddbf15d5",
+      "voice": "ui",
+      "text": "Arrebentou a linha!",
+      "file": "ui-e5ddbf15d5.mp3"
+    },
+    {
+      "id": "ui-00a8f436ca",
+      "voice": "ui",
+      "text": "Pegou!",
+      "file": "ui-00a8f436ca.mp3"
+    },
+    {
+      "id": "ui-f2fb215d3c",
+      "voice": "ui",
+      "text": "Ih, um baiacu!",
+      "file": "ui-f2fb215d3c.mp3"
+    },
+    {
+      "id": "ui-319823923f",
+      "voice": "ui",
+      "text": "Volta pro mar, baiacu!",
+      "file": "ui-319823923f.mp3"
+    },
+    {
+      "id": "ui-551c6a5047",
+      "voice": "ui",
+      "text": "Novo!",
+      "file": "ui-551c6a5047.mp3"
+    },
+    {
+      "id": "ui-e969aa378c",
+      "voice": "ui",
+      "text": "Recorde!",
+      "file": "ui-e969aa378c.mp3"
+    },
+    {
+      "id": "ui-05e5b3fdc0",
+      "voice": "ui",
+      "text": "Ele corre! Solta!",
+      "file": "ui-05e5b3fdc0.mp3"
+    },
+    {
+      "id": "ui-57abea4907",
+      "voice": "ui",
+      "text": "Puxa!",
+      "file": "ui-57abea4907.mp3"
+    },
+    {
+      "id": "ui-2e7524268f",
+      "voice": "ui",
+      "text": "Boa pescaria!",
+      "file": "ui-2e7524268f.mp3"
+    },
+    {
+      "id": "ui-479bb632aa",
+      "voice": "ui",
+      "text": "pequeno",
+      "file": "ui-479bb632aa.mp3"
+    },
+    {
+      "id": "ui-9fdcaae5c6",
+      "voice": "ui",
+      "text": "médio",
+      "file": "ui-9fdcaae5c6.mp3"
+    },
+    {
+      "id": "ui-35272bf81d",
+      "voice": "ui",
+      "text": "grande",
+      "file": "ui-35272bf81d.mp3"
+    },
+    {
+      "id": "ui-af8f99ddbf",
+      "voice": "ui",
+      "text": "enorme",
+      "file": "ui-af8f99ddbf.mp3"
+    },
+    {
+      "id": "ui-4828eb2f85",
+      "voice": "ui",
+      "text": "um chinelo",
+      "file": "ui-4828eb2f85.mp3"
+    },
+    {
+      "id": "ui-528af9e86e",
+      "voice": "ui",
+      "text": "uma lata",
+      "file": "ui-528af9e86e.mp3"
+    },
+    {
+      "id": "ui-035044285f",
+      "voice": "ui",
+      "text": "uma alga",
+      "file": "ui-035044285f.mp3"
+    },
+    {
+      "id": "ui-2c3e6ea153",
+      "voice": "ui",
+      "text": "uma garrafa com mensagem",
+      "file": "ui-2c3e6ea153.mp3"
+    },
+    {
+      "id": "neide-a1d5441aeb",
+      "voice": "neide",
+      "text": "Arrebentou. Da próxima, solta quando ele correr.",
+      "file": "neide-a1d5441aeb.mp3"
+    },
+    {
+      "id": "neide-6bed860c78",
+      "voice": "neide",
+      "text": "Olha isso! Esse vai pro recorde.",
+      "file": "neide-6bed860c78.mp3"
+    },
+    {
+      "id": "neide-6158153e76",
+      "voice": "neide",
+      "text": "Baiacu não se come, se devolve.",
+      "file": "neide-6158153e76.mp3"
+    },
+    {
+      "id": "jo-67b7b0b24a",
+      "voice": "jo",
+      "text": "Peixe bom! Toma aqui.",
+      "file": "jo-67b7b0b24a.mp3"
+    },
+    {
+      "id": "jo-377622a02b",
+      "voice": "jo",
+      "text": "Hoje já comprei o que dava. Amanhã tem mais.",
+      "file": "jo-377622a02b.mp3"
+    },
+    {
+      "id": "jo-df2252a51e",
+      "voice": "jo",
+      "text": "Balde vazio, meu bem. Vai pescar!",
+      "file": "jo-df2252a51e.mp3"
+    },
+    {
+      "id": "bento-f5c4de2fd6",
+      "voice": "bento",
+      "text": "Tá alugado. Volta antes da maré virar!",
+      "file": "bento-f5c4de2fd6.mp3"
+    },
+    {
+      "id": "bento-795510f1d7",
+      "voice": "bento",
+      "text": "RV insuficiente, viu? Pesca na praia e vende pra Jô.",
+      "file": "bento-795510f1d7.mp3"
+    },
+    {
+      "id": "bento-cbde591800",
+      "voice": "bento",
+      "text": "O barco voltou. Como foi lá fora?",
+      "file": "bento-cbde591800.mp3"
+    },
+    {
       "id": "nanda-6c6d85bb9e",
       "voice": "nanda",
       "text": "Esse boné verde fica legal!",
@@ -11010,6 +11829,78 @@
       "voice": "dito",
       "text": "Vira-lata é o cachorro mais fiel que existe.",
       "file": "dito-ce625607fc.mp3"
+    },
+    {
+      "id": "bento-6850f7d1a1",
+      "voice": "bento",
+      "text": "Barco bom é barco que volta.",
+      "file": "bento-6850f7d1a1.mp3"
+    },
+    {
+      "id": "bento-ad83ac5a7c",
+      "voice": "bento",
+      "text": "Hoje o mar tá manso.",
+      "file": "bento-ad83ac5a7c.mp3"
+    },
+    {
+      "id": "bento-8416595812",
+      "voice": "bento",
+      "text": "Quer ir mais longe? Aluga o de alto-mar.",
+      "file": "bento-8416595812.mp3"
+    },
+    {
+      "id": "bento-723d5dc0d2",
+      "voice": "bento",
+      "text": "A maré não dorme, e eu também não.",
+      "file": "bento-723d5dc0d2.mp3"
+    },
+    {
+      "id": "neide-aeaaa23f4e",
+      "voice": "neide",
+      "text": "Peixe grande gosta de quem tem paciência.",
+      "file": "neide-aeaaa23f4e.mp3"
+    },
+    {
+      "id": "neide-4a89cce97f",
+      "voice": "neide",
+      "text": "Segura firme, solta quando ele corre.",
+      "file": "neide-4a89cce97f.mp3"
+    },
+    {
+      "id": "neide-5eb7d27c96",
+      "voice": "neide",
+      "text": "De manhãzinha o robalo tá acordado.",
+      "file": "neide-5eb7d27c96.mp3"
+    },
+    {
+      "id": "neide-217eca96a4",
+      "voice": "neide",
+      "text": "Chuva fina, peixe bobo.",
+      "file": "neide-217eca96a4.mp3"
+    },
+    {
+      "id": "jo-27aa743a34",
+      "voice": "jo",
+      "text": "Água de coco geladinha!",
+      "file": "jo-27aa743a34.mp3"
+    },
+    {
+      "id": "jo-0b2fd2c4ae",
+      "voice": "jo",
+      "text": "Queijo coalho na brasa, meu bem!",
+      "file": "jo-0b2fd2c4ae.mp3"
+    },
+    {
+      "id": "jo-dcfc137f53",
+      "voice": "jo",
+      "text": "Compro peixe fresco! Traz pra cá!",
+      "file": "jo-dcfc137f53.mp3"
+    },
+    {
+      "id": "jo-dc48d51b61",
+      "voice": "jo",
+      "text": "Fechando a barraca, mas o gelo fica.",
+      "file": "jo-dc48d51b61.mp3"
     },
     {
       "id": "comissaria-d293b32fd0",

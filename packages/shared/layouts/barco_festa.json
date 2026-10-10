@@ -1,0 +1,484 @@
+{
+  "room": "barco_festa",
+  "objects": [
+    {
+      "id": "grade_n1",
+      "kind": "cenario",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s1",
+      "kind": "cenario",
+      "x": 1,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n2",
+      "kind": "cenario",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s2",
+      "kind": "cenario",
+      "x": 2,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n3",
+      "kind": "cenario",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s3",
+      "kind": "cenario",
+      "x": 3,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n4",
+      "kind": "cenario",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s4",
+      "kind": "cenario",
+      "x": 4,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n5",
+      "kind": "cenario",
+      "x": 5,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s5",
+      "kind": "cenario",
+      "x": 5,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n6",
+      "kind": "cenario",
+      "x": 6,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s6",
+      "kind": "cenario",
+      "x": 6,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n7",
+      "kind": "cenario",
+      "x": 7,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s7",
+      "kind": "cenario",
+      "x": 7,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n8",
+      "kind": "cenario",
+      "x": 8,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s8",
+      "kind": "cenario",
+      "x": 8,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n9",
+      "kind": "cenario",
+      "x": 9,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s9",
+      "kind": "cenario",
+      "x": 9,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n10",
+      "kind": "cenario",
+      "x": 10,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s10",
+      "kind": "cenario",
+      "x": 10,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n11",
+      "kind": "cenario",
+      "x": 11,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s11",
+      "kind": "cenario",
+      "x": 11,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n12",
+      "kind": "cenario",
+      "x": 12,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s12",
+      "kind": "cenario",
+      "x": 12,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n13",
+      "kind": "cenario",
+      "x": 13,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s13",
+      "kind": "cenario",
+      "x": 13,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_n14",
+      "kind": "cenario",
+      "x": 14,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "grade_s14",
+      "kind": "cenario",
+      "x": 14,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_grade"
+    },
+    {
+      "id": "cabine",
+      "kind": "cenario",
+      "x": 12,
+      "y": 3,
+      "w": 3,
+      "h": 4,
+      "blocks": true,
+      "label": {
+        "pt": "Casa do leme",
+        "en": "Wheelhouse"
+      },
+      "art": "praia/festa_cabine"
+    },
+    {
+      "id": "som",
+      "kind": "cenario",
+      "x": 14,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_som"
+    },
+    {
+      "id": "churrasqueira",
+      "kind": "cenario",
+      "x": 14,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_churrasqueira"
+    },
+    {
+      "id": "cooler",
+      "kind": "cenario",
+      "x": 11,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/festa_cooler"
+    },
+    {
+      "id": "placa_festa",
+      "kind": "cenario",
+      "x": 11,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Churrasco, refri e música",
+        "en": "Barbecue, soda and music (sign)"
+      },
+      "art": "praia/festa_placa"
+    },
+    {
+      "id": "banco_1",
+      "kind": "banco",
+      "x": 3,
+      "y": 3,
+      "w": 2,
+      "blocks": false,
+      "seat": "SW"
+    },
+    {
+      "id": "banco_2",
+      "kind": "banco",
+      "x": 7,
+      "y": 3,
+      "w": 2,
+      "blocks": false,
+      "seat": "SW"
+    },
+    {
+      "id": "banco_3",
+      "kind": "banco",
+      "x": 3,
+      "y": 6,
+      "w": 2,
+      "blocks": false,
+      "seat": "SW"
+    },
+    {
+      "id": "banco_4",
+      "kind": "banco",
+      "x": 7,
+      "y": 6,
+      "w": 2,
+      "blocks": false,
+      "seat": "SW"
+    },
+    {
+      "id": "bandeirinhas_1",
+      "kind": "cenario",
+      "x": 2,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "props/bandeirinha",
+      "lightAtNight": true
+    },
+    {
+      "id": "bandeirinhas_2",
+      "kind": "cenario",
+      "x": 6,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "props/bandeirinha",
+      "lightAtNight": true
+    },
+    {
+      "id": "bandeirinhas_3",
+      "kind": "cenario",
+      "x": 10,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "props/bandeirinha",
+      "lightAtNight": true
+    },
+    {
+      "id": "pesca_festa_n1",
+      "kind": "pesca_spot",
+      "x": 4,
+      "y": 1,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 4,
+        "y": 1
+      },
+      "label": {
+        "pt": "Pescar do barco de festa",
+        "en": "Fish from the party boat"
+      },
+      "art": "praia/pesca_bollard",
+      "water": "festa"
+    },
+    {
+      "id": "pesca_festa_n2",
+      "kind": "pesca_spot",
+      "x": 9,
+      "y": 1,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 9,
+        "y": 1
+      },
+      "label": {
+        "pt": "Pescar do barco de festa",
+        "en": "Fish from the party boat"
+      },
+      "art": "praia/pesca_bollard",
+      "water": "festa"
+    },
+    {
+      "id": "pesca_festa_s1",
+      "kind": "pesca_spot",
+      "x": 4,
+      "y": 8,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 4,
+        "y": 8
+      },
+      "label": {
+        "pt": "Pescar do barco de festa",
+        "en": "Fish from the party boat"
+      },
+      "art": "praia/pesca_bollard",
+      "water": "festa"
+    },
+    {
+      "id": "pesca_festa_s2",
+      "kind": "pesca_spot",
+      "x": 9,
+      "y": 8,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 9,
+        "y": 8
+      },
+      "label": {
+        "pt": "Pescar do barco de festa",
+        "en": "Fish from the party boat"
+      },
+      "art": "praia/pesca_bollard",
+      "water": "festa"
+    }
+  ]
+}

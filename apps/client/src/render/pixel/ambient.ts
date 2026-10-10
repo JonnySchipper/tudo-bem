@@ -260,14 +260,16 @@ export class AmbientLife {
       this.rig.shadows?.follow(spr, 'critters/dog');
     }
     // pigeons
-    const pd = this.def_('critters/pigeon');
     const s10 = this.m.sprites['fx/shadow_10'];
     data.flocks.forEach((f, fi) => {
+      // pigeons, or the Praia's gulls (the same flock, recoloured)
+      const birdKey = f.bird === 'gaivota' ? 'critters/gaivota' : 'critters/pigeon';
+      const pd = this.def_(birdKey);
       if (!pd) return;
       const birds = makeFlock((f.x + 0.5) * T, (f.y + 0.7) * T, f.n, fi + 1);
       const sprites = birds.map((b, i) => {
         const spr = this.reg(this.scene.add.sprite(b.x, b.y, pd.atlas, pd.frame)).setOrigin(...originOf(pd));
-        spr.play({ key: ensureAnim(this.scene, 'critters/pigeon', pd), startFrame: Math.floor(unit(fi, i, 41) * 6) });
+        spr.play({ key: ensureAnim(this.scene, birdKey, pd), startFrame: Math.floor(unit(fi, i, 41) * 6) });
         spr.anims.timeScale = 0.5 + unit(fi, i, 42) * 0.7;
         return spr;
       });

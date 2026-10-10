@@ -61,4 +61,10 @@ export interface WorldView {
   hold?(on: boolean): void;
   /** Two small hearts rise over a pen animal you petted (#234, `fx/carinho`). */
   carinho?(target: { penId: string; slot: number }): void;
+  /** The camera's viewfinder (client px) as a world-px rect, through the camera as drawn (ui/viewfinder.ts). */
+  frameToWorld?(frame: { x: number; y: number; w: number; h: number }): { x0: number; y0: number; x1: number; y1: number } | null;
+  /** World rects of what is drawn for a prop of this room, or null when it is not drawn. */
+  propArt?(propId: string): { x0: number; y0: number; x1: number; y1: number }[] | null;
+  /** World rect of what is drawn for a placed piece of furniture. */
+  furnitureArt?(f: PlacedFurniture): { x0: number; y0: number; x1: number; y1: number } | null;
 }

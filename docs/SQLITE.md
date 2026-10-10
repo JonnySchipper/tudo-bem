@@ -23,8 +23,10 @@ Each row is the same JSON object the old files held, keyed by id. Writes update 
 | `feedback` | `id` | One note. `created_at` is the sort key |
 | `feira_cart` | `id = 'state'` | Cart on/off blob |
 | `feira_games` | `id = 'state'` | Board, medals, paid runs |
-| `kv` | `key` | Small singletons. `layouts` is the design-mode override blob |
+| `kv` | `key` | Small singletons. `layouts` is the design-mode override blob; `praia` is the beach switch `{ mode, partyBoat }` (`PraiaStore`, default open with the party boat on) |
 | `meta` | `key` | Import bookkeeping (`json_imported`, `json_import_stamp`) |
+
+Fishing stays on the profile JSON too (`pesca`: the log, the bucket, rentals, the trip under way, the day's sales; `normalizePesca` on load), so the Praia adds no table. Party boat trips live in server memory only: a trip never outlives a process, and a restart lands everyone on the pier. The dashboard's "today" beach numbers are server memory as well.
 
 Lemon Squeezy state stays on the profile (`subscription`, `billingEventIds`). There is no separate billing file.
 

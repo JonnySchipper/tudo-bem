@@ -8,7 +8,10 @@ import {
   PHOTO_RANGE,
   ROOMS,
   FILM,
-  PHOTO_KEEP,
+  addPhoto,
+  frameNearPlayer,
+  frameReaches,
+  photoFrame,
   areaBoard,
   diaryGame,
   diaryLine,
@@ -21,7 +24,6 @@ import {
   hotspotDistance,
   normalizeDiary,
   normalizeFilm,
-  normalizePhotos,
   photoImage,
   photoSpotById,
   progressLine,
@@ -33,6 +35,7 @@ import {
   type ClientMsg,
   type DiaryWord,
   type NpcId,
+  type PhotoFrame,
   type PlacedFurniture,
   type RoomId,
   type Tile,
@@ -140,12 +143,17 @@ export class DiaryTracker {
     this.earn(s, word, 'reading');
   }
 
-  /** Is this object inside reach of the player right now? Props and photo spots by distance, furniture by being placed. */
-  private reachable(s: Session, id: string, room: RoomId | null, tile: Tile): boolean {
+  /**
+   * Can this object be in the picture? Props and photo spots: with the shot's `frame` (the viewfinder in world px, already checked to be on the
+   * player's screen), the object must stand where its art can show in that frame; a shot without one (an older client) falls back to a radius
+   * around the player. Furniture by being placed in this apartment.
+   */
+  private reachable(s: Session, id: string, room: RoomId | null, tile: Tile, frame: PhotoFrame | null): boolean {
+    const near = (box: { x: number; y: number; w?: number; h?: number }) => (frame ? frameReaches(frame, box) : hotspotDistance(box, tile) <= PHOTO_RANGE);
     const prop = room ? ROOMS[room].props.find((q) => q.id === id) : undefined;
-    if (prop) return diaryVisible(room!, id, this.d.day()) && hotspotDistance(prop, tile) <= PHOTO_RANGE;
+    if (prop) return diaryVisible(room!, id, this.d.day()) && near(prop);
     const spot = photoSpotById(id);
-    if (spot) return spot.room === room && hotspotDistance(spot, tile) <= PHOTO_RANGE;
+    if (spot) return spot.room === room && near(spot);
     if (furnitureById(id)) return room === 'kitnet' && this.d.apartmentOf(s).some((f) => f.itemId === id);
     return false;
   }
@@ -157,7 +165,9 @@ export class DiaryTracker {
     const claimed = photoAnchors(msg);
     const room = this.d.roomOf(s);
     const tile = this.d.tileOf(s);
-    const inFrame = claimed.filter((id) => this.reachable(s, id, room, tile));
+    // a frame off the player's screen names nothing
+    const frame = photoFrame(msg.frame);
+    const inFrame = frame && !frameNearPlayer(frame, tile) ? [] : claimed.filter((id) => this.reachable(s, id, room, tile, frame));
     // the arrival tutorial's first photos cost no film
     const free = room === 'aeroporto';
     const image = photoImage(msg.image);
@@ -182,9 +192,8 @@ export class DiaryTracker {
         } else if (got.reason === 'already') seen ??= word;
       }
     }
-    if (image) {
-      p.photos = [{ id: crypto.randomUUID(), at: this.d.now(), image, ...(fresh[0] ? { wordId: fresh[0].id } : {}) }, ...normalizePhotos(p.photos)].slice(0, PHOTO_KEEP);
-    }
+    // one picture for the whole shot: every word it taught points at the same stored image
+    if (image) p.photos = addPhoto(p.photos, { id: crypto.randomUUID(), at: this.d.now(), image, wordIds: fresh.map((w) => w.id) });
     this.d.store.save(p.id);
     this.d.pushProfile(s);
     if (image) this.d.pushPhotos?.(s);
@@ -332,6 +341,30 @@ export class DiaryTracker {
       this.announce(s, got.word, 'game');
       this.d.onWord?.(s, got.word);
     }
+  }
+
+  /**
+   * Fishing at the Praia (PRAIA-PLAN.md 4.3): the words a moment earned on a water, or a species' word on its first catch (`pescaWords.ts`).
+   * Each word once, announced like any game word. Returns the words actually taught.
+   */
+  teachPesca(s: Session, words: readonly (DiaryWord | undefined)[]): DiaryWord[] {
+    const p = s.profile;
+    if (!p) return [];
+    const out: DiaryWord[] = [];
+    for (const word of words) {
+      if (!word) continue;
+      const got = grantDiaryWord(p.diary, word.id, 'game');
+      if (!got.ok) continue;
+      p.diary = got.earned;
+      out.push(got.word);
+      this.announce(s, got.word, 'game');
+      this.d.onWord?.(s, got.word);
+    }
+    if (out.length) {
+      this.d.store.save(p.id);
+      this.d.pushProfile(s);
+    }
+    return out;
   }
 
   /**

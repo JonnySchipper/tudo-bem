@@ -86,6 +86,7 @@ describe('what the camera and the readers can reach', () => {
 
   it('teaches nothing from objects that are not in the catalog', () => {
     expect(wordsForPhoto('sebe_n_0')).toEqual([]);
-    expect(DIARY_WORDS.filter((w) => w.source === 'camera' && w.origin === 'added').length).toBe(317);
+    // + the Praia's ten (PRAIA-PLAN.md 4.3)
+    expect(DIARY_WORDS.filter((w) => w.source === 'camera' && w.origin === 'added').length).toBe(327);
   });
 });

@@ -9,7 +9,8 @@
  * Praça's east path; the Aeroporto (its runway and terminal front) sits up the road the 875 bus takes from the rua leste.
  *
  * Every room in the shared room list has an entry in `ROOM_ON_MAP` (a new RoomId fails to compile until it is placed or routed through
- * another place). Praia and Fazenda are drawn at the end of the road as "Em breve": tapping them shows a teaser, never travel.
+ * another place). The Praia sits in the corner east of the Feira (the 875 bus goes on there); the Fazenda is drawn below it as "Em breve":
+ * tapping it shows a teaser, never travel. While the admin has the beach closed, the Praia is a teaser again (`mapSpots`).
  */
 import { ROOMS, ROOM_IDS, type RoomId } from '@tudobem/shared';
 
@@ -45,7 +46,7 @@ export const AERO_KEEP = 14;
 export const AERO_FRONT = 23;
 export const AERO_MAP_ROWS = AERO_KEEP + (ROOMS.aeroporto.rows - AERO_FRONT);
 
-export type SoonId = 'praia' | 'fazenda';
+export type SoonId = 'fazenda';
 
 export interface MapSpot {
   /** A RoomId for a real place, or a coming-soon id. */
@@ -83,21 +84,32 @@ export const ROOM_ON_MAP: Record<RoomId, MapSpot | { via: RoomId }> = {
   feira: place('feira', [at('feira', 0, 0, ROOMS.feira.cols, ROOMS.feira.rows)]),
   // a player academy's floor is upstairs in the Academia do Bairro
   andar: { via: 'academia' },
+  // the beach, in the corner east of the Feira where it waited as a teaser (the picture does not move); the party deck is out at sea off it
+  praia: place('praia', [praiaBox()]),
+  barco_festa: { via: 'praia' },
 };
 
-/** The corner east of the Feira, under the bus road: the Praia (top) and the Fazenda (bottom) wait there. */
+/** The corner east of the Feira, under the bus road: the Praia (top) and the Fazenda (bottom). */
 export const SOON_AT = { col: AREA_AT.feira[0] + ROOMS.feira.cols, praia: 20, fazenda: 30 } as const;
+
+/** The Praia's corner of the map, in map pixels. */
+function praiaBox(): Box {
+  const col = AREA_AT.feira[0] + ROOMS.feira.cols;
+  return [col * MAP_T, 20 * MAP_T, (MAP_COLS - col) * MAP_T, 10 * MAP_T];
+}
+
+/** The beach while the admin has it closed (PRAIA-PLAN.md 1.2): the old teaser, never travel. needs_br: true */
+export const PRAIA_SOON: MapSpot = {
+  id: 'praia',
+  room: null,
+  pt: 'Praia',
+  en: 'Beach',
+  hit: [praiaBox()],
+  soon: { pt: 'Areia, mar e um quiosque com água de coco. Logo dá pra pegar o ônibus até a praia!', en: 'Sand, sea and a kiosk with coconut water. Soon you can take the bus to the beach!' },
+};
 
 /** The coming-soon places: drawn small at the end of the road, a teaser on tap. */
 export const SOON_SPOTS: MapSpot[] = [
-  {
-    id: 'praia',
-    room: null,
-    pt: 'Praia',
-    en: 'Beach',
-    hit: [[SOON_AT.col * MAP_T, SOON_AT.praia * MAP_T, (MAP_COLS - SOON_AT.col) * MAP_T, (SOON_AT.fazenda - SOON_AT.praia) * MAP_T]],
-    soon: { pt: 'Areia, mar e um quiosque com água de coco. Logo dá pra pegar o ônibus até a praia!', en: 'Sand, sea and a kiosk with coconut water. Soon you can take the bus to the beach!' }, // needs_br: true
-  },
   {
     id: 'fazenda',
     room: null,
@@ -108,9 +120,14 @@ export const SOON_SPOTS: MapSpot[] = [
   },
 ];
 
-/** All the places on the map: the rooms in the shared room-list order, then the coming-soon places. */
-export function mapSpots(): MapSpot[] {
-  const rooms = ROOM_IDS.map((id) => ROOM_ON_MAP[id]).filter((s): s is MapSpot => 'hit' in s);
+/**
+ * All the places on the map: the rooms in the shared room-list order, then the coming-soon places. `praiaOpen: false` (the beach is closed to
+ * this player) puts the Praia back as a teaser.
+ */
+export function mapSpots(o: { praiaOpen?: boolean } = {}): MapSpot[] {
+  const rooms = ROOM_IDS.map((id) => ROOM_ON_MAP[id])
+    .filter((s): s is MapSpot => 'hit' in s)
+    .map((s) => (s.id === 'praia' && o.praiaOpen === false ? PRAIA_SOON : s));
   return [...rooms, ...SOON_SPOTS];
 }
 

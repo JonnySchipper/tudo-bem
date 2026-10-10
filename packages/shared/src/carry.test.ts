@@ -25,7 +25,12 @@ describe('carry', () => {
       expect(carryOf(id)).toMatchObject({ kind: 'trash', leaves: null });
       expect(carryAction(id)).toEqual({ action: 'toss', pt: 'Jogar fora', en: 'Throw away' });
     }
-    expect(Object.keys(CARRY)).toHaveLength(16);
+    // the Barraca da Jô: the cheese leaves its skewer, the ice pop its stick, the corn its cob
+    expect(carryOf('queijo_coalho')).toMatchObject({ kind: 'food', leaves: 'palito_vazio' });
+    expect(carryOf('picole')).toMatchObject({ kind: 'food', leaves: 'palito_picole' });
+    expect(carryOf('milho_verde')).toMatchObject({ kind: 'food', leaves: 'sabugo' });
+    for (const id of ['palito_vazio', 'palito_picole', 'sabugo'] as const) expect(carryOf(id)).toMatchObject({ kind: 'trash', leaves: null });
+    expect(Object.keys(CARRY)).toHaveLength(22);
   });
 
   it('labels Comer, Beber, and Jogar fora, and ignores cosmetics', () => {

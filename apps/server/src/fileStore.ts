@@ -224,6 +224,17 @@ export function layoutFileAdapter(dataDir: string): { load: () => unknown; save:
   };
 }
 
+/** The Praia's mode and party-boat switch (praiaStore.ts). Missing row means open, party boat on. */
+export function praiaFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
+  const db = dbFor(dataDir);
+  return {
+    load: () => loadKv(db, 'praia'),
+    save: (state) => {
+      if (writable(db)) saveKv(db, 'praia', state);
+    },
+  };
+}
+
 /** Dashboard game-variable overrides (gameConfig.ts). Missing row means every value is the shipped default. */
 export function gameConfigFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
   const db = dbFor(dataDir);

@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { ROOM_IDS, ROOMS } from '@tudobem/shared';
 import type { Manifest } from '../render/pixel/manifest';
 import { aeroportoForMap, groundForMap, planTownMap } from './townMapArt';
-import { AERO_MAP_ROWS, AREA_AT, MAP_COLS, MAP_H, MAP_ROWS, MAP_T, MAP_W, ROOM_ON_MAP, SOON_SPOTS, hereSpotId, mapSpots, PIN_ROOM, pinPlace, spotAnchor, tagPlace, tapResult, type Box, type MapArea } from './townMapData';
+import { AERO_MAP_ROWS, AREA_AT, MAP_COLS, MAP_H, MAP_ROWS, MAP_T, MAP_W, PRAIA_SOON, ROOM_ON_MAP, SOON_SPOTS, hereSpotId, mapSpots, PIN_ROOM, pinPlace, spotAnchor, tagPlace, tapResult, type Box, type MapArea } from './townMapData';
 
 const root = path.resolve(__dirname, '../../public/pixel');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')) as Manifest;
-// every atlas the world loads up front (the pet shop's pieces have their own, #234)
+// every atlas the world loads up front (the outdoor one, and the beach's own; the pet shop's pieces have their own, #234)
 const atlases = Object.fromEntries(
   Object.entries(manifest.atlases).filter(([, a]) => !a.lazy).map(([name, a]) => [name, JSON.parse(fs.readFileSync(path.join(root, a.data), 'utf8')) as { frames: Record<string, unknown> }]),
 );
@@ -27,7 +27,7 @@ describe('the Mapa: one picture of Vila Ipê', () => {
       if ('via' in on) expect(ROOM_ON_MAP[on.via], `${id} via ${on.via}`).toHaveProperty('hit');
     }
     const rooms = mapSpots().filter((s) => s.room);
-    expect(rooms.map((s) => s.id).sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'petshop', 'praca', 'rua', 'rua_leste']);
+    expect(rooms.map((s) => s.id).sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'petshop', 'praca', 'praia', 'rua', 'rua_leste']);
     // each place travels to its own room and is labelled with that room's own name and gloss
     for (const s of rooms) {
       expect(s.room).toBe(s.id);
@@ -88,11 +88,8 @@ describe('the Mapa: one picture of Vila Ipê', () => {
     expect((ROOM_ON_MAP.petshop as { hit: Box[] }).hit[0]).toEqual(front('rua_leste', 'facades/petshop'));
   });
 
-  it('draws Praia and Fazenda as coming soon: no travel, a bilingual teaser', () => {
-    expect(SOON_SPOTS.map((s) => [s.id, s.pt, s.en])).toEqual([
-      ['praia', 'Praia', 'Beach'],
-      ['fazenda', 'Fazenda', 'Farm'],
-    ]);
+  it('draws the Fazenda as coming soon: no travel, a bilingual teaser', () => {
+    expect(SOON_SPOTS.map((s) => [s.id, s.pt, s.en])).toEqual([['fazenda', 'Fazenda', 'Farm']]);
     for (const s of SOON_SPOTS) {
       expect(s.room).toBeNull();
       expect(s.soon?.pt.length).toBeGreaterThan(10);
@@ -100,6 +97,21 @@ describe('the Mapa: one picture of Vila Ipê', () => {
       expect(tapResult(s, { touch: false, selected: null, here: 'rua' })).toBe('teaser');
       expect(tapResult(s, { touch: true, selected: s.id, here: 'rua' })).toBe('teaser');
     }
+  });
+
+  it('travels to the Praia, in the corner it waited in, and shows the teaser again while the admin has it closed', () => {
+    const open = mapSpots().find((s) => s.id === 'praia')!;
+    expect(open.room).toBe('praia');
+    expect([open.pt, open.en]).toEqual(['Praia', 'Beach']);
+    expect(open.hit[0]).toEqual(PRAIA_SOON.hit[0]);
+    expect(tapResult(open, { touch: false, selected: null, here: 'rua' })).toBe('travel');
+    expect(hereSpotId('praia')).toBe('praia');
+    expect(hereSpotId('barco_festa')).toBe('praia');
+    const closed = mapSpots({ praiaOpen: false }).find((s) => s.id === 'praia')!;
+    expect(closed.room).toBeNull();
+    expect(closed.soon?.pt).toContain('praia');
+    expect(tapResult(closed, { touch: false, selected: null, here: 'rua' })).toBe('teaser');
+    expect(mapSpots({ praiaOpen: true }).find((s) => s.id === 'praia')!.room).toBe('praia');
   });
 
   it('gives a phone big tap targets (the map fills the sheet\'s height on a 390×844 phone and pans sideways)', () => {
@@ -158,7 +170,7 @@ describe('the Mapa picture (drawn from the game\'s own areas)', () => {
 
   it('draws the real buildings and landmarks of every place', () => {
     const frames = new Set(plan.ops.flatMap((o) => (o.kind === 'sprite' ? [o.frame] : [])));
-    for (const key of ['facades/padaria', 'facades/edificio_ipe', 'facades/academia', 'casas/terraco_azul', 'facades/petshop', 'props/fountain', 'props/coreto', 'props/ponto_onibus', 'aero/aviao', 'aero/torre', 'aero/vidraca_letreiro', 'vehicles/onibus_w', 'props/carrinho_coco'])
+    for (const key of ['facades/padaria', 'facades/edificio_ipe', 'facades/academia', 'casas/terraco_azul', 'facades/petshop', 'props/fountain', 'props/coreto', 'props/ponto_onibus', 'aero/aviao', 'aero/torre', 'aero/vidraca_letreiro', 'vehicles/onibus_w', 'props/carrinho_coco', 'praia/quiosque_coco', 'praia/barco_remo'])
       expect(frames.has(manifest.sprites[key]?.frame ?? key), key).toBe(true);
     expect([...frames].some((f) => f.startsWith('feira/frutas')), 'feira stalls').toBe(true);
   });

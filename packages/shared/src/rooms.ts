@@ -1,4 +1,5 @@
 import type { Appearance, Bilingual, Dir, PlacedFurniture, RoomId, Tile } from './types.js';
+import type { WaterId } from './pesca.js';
 import { furnitureById } from './catalog.js';
 import { SCHEDULES, type ScheduleSlot } from './schedules.js';
 import { bundledObjects } from './roomLayoutFiles.js';
@@ -55,9 +56,46 @@ export type PropKind =
   | 'cercadinho'
   | 'gatil'
   | 'prateleira_racao'
-  | 'banheira';
+  | 'banheira'
+  // Praia (PRAIA-PLAN.md): every one draws its `art`; umbrellas and the kiosk roof carry an overhead part
+  | 'quiosque_praia'
+  | 'guarda_sol'
+  | 'cadeira_praia'
+  | 'posto_salva_vidas'
+  | 'galpao_barcos'
+  | 'barco'
+  | 'pesca_spot'
+  | 'pedras'
+  | 'canoa';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter' | 'feira_cart' | 'feira_sign' | 'leaderboard' | 'petshop_counter' | 'petshop_pen';
+export type PropAction =
+  | 'shop_hats'
+  | 'minigame'
+  | 'kiosk'
+  | 'parrot_perch'
+  | 'catalog'
+  | 'bjj_roll'
+  | 'feira_stall'
+  | 'street_snack'
+  | 'checkers'
+  | 'buy_gi'
+  | 'escola'
+  | 'academy_elevator'
+  | 'academy_board'
+  | 'padaria_door'
+  | 'padaria_counter'
+  | 'feira_cart'
+  | 'feira_sign'
+  | 'leaderboard'
+  // Praia: open the fishing stage, Bento's rental menu, board or start the party boat, Jô's fish tray, Jô's beach rack
+  | 'pesca'
+  | 'boat_rental'
+  | 'party_boat'
+  | 'fish_sell'
+  | 'beach_shop'
+  // Pet Shop do Seu Dito (#234)
+  | 'petshop_counter'
+  | 'petshop_pen';
 
 export interface PropDef {
   id: string;
@@ -90,6 +128,8 @@ export interface PropDef {
   flip?: boolean;
   /** Pixel view: draw-order bias in world px (design mode's bring forward / send back). The server ignores it. */
   z?: number;
+  /** A `pesca_spot`: which water a cast from here fishes (`pesca.ts`). */
+  water?: WaterId;
 }
 
 export type WallSide = 'left' | 'right';
@@ -127,7 +167,7 @@ export interface PortalDef {
 export const OFFSTAGE_NPCS: Partial<Record<NpcId, { name: string; role: Bilingual }>> = {};
 
 /** The feira vendors (Phase 9): Tia Lu (fruit), Seu Zé (vegetables), Seu Chico (pastel and caldo de cana), Dona Rosa (flowers). */
-export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia' | 'celia' | 'agente' | 'comissaria' | 'dito';
+export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia' | 'celia' | 'agente' | 'comissaria' | 'dito' | 'bento' | 'neide' | 'jo';
 
 export interface NpcDef {
   id: NpcId;
@@ -147,7 +187,7 @@ export interface NpcDef {
   idleLines: Bilingual[];
 }
 
-export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame' | 'paralelepipedo' | 'granilite';
+export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame' | 'paralelepipedo' | 'granilite' | 'areia' | 'agua' | 'deque';
 
 export interface RoomDef {
   id: RoomId;
@@ -199,7 +239,14 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
   j: 'tatame',
   p: 'paralelepipedo',
   z: 'granilite',
+  // the Praia: sand, the sea (never walkable: `buildGrid` blocks it), the wooden deck of the pier and every boat
+  s: 'areia',
+  o: 'agua',
+  b: 'deque',
 };
+
+/** Floor chars nobody walks on (the sea and the lagoa). A portal tile on one (the party boat's gangway) stays open. */
+export const WATER_CHARS: ReadonlySet<string> = new Set(['o']);
 
 // ---------------------------------------------------------------- Vila Ipê, split into three open-air areas ("Split into areas")
 //
@@ -227,6 +274,10 @@ const FEIRA_COLS = 32;
 const AERO_COLS = 30;
 const AERO_ROWS = 26;
 const FEIRA_ROWS = 20;
+const PRAIA_COLS = 40;
+const PRAIA_ROWS = 28;
+const FESTA_COLS = 16;
+const FESTA_ROWS = 10;
 
 /** Parking bays on the south curb of Rua dos Ipês: first and last tile x of each, all on row 12 (asphalt notches in the sidewalk). Per area (the east one is in rua_leste's own tiles). */
 export const PARKING_BAYS_IPES: readonly [number, number][] = [[2, 6]];
@@ -295,6 +346,45 @@ function aeroFloor(): string[] {
     paint('a', 0, 5, AERO_COLS - 1, 9);
     paint('c', 0, 24, AERO_COLS - 1, 24);
     paint('a', 0, 25, AERO_COLS - 1, 25);
+  });
+}
+
+/**
+ * The Praia (PRAIA-PLAN.md 1.3), top to bottom: the Avenida Beira-Mar (rows 0-1, behind the mureta, cars only), the calçadão (2-4, the bus
+ * stop back to the Vila), the sand (5-18, the dune strip, the umbrellas, the lagoa pocket in the west), the shore row (18, the free fishing
+ * spots) and the sea (19-27). The pier is deck from the sand into the sea (x28-29, y12-25); the three rental boats moor east of it on their
+ * own deck tiles, the only walkable water.
+ */
+export const PRAIA_PIER = { x0: 28, x1: 29, y0: 12, y1: 25 } as const;
+/** Deck tiles of the moored rental boats (the prop's footprint; the hull over the water is art). */
+export const PRAIA_BOAT_DECKS = {
+  remo: { x: 30, y: 19, w: 2, h: 1 },
+  pesca: { x: 30, y: 21, w: 3, h: 2 },
+  alto_mar: { x: 30, y: 24, w: 4, h: 2 },
+} as const;
+/** The pier tile where the party boat is boarded, and where everyone lands when a trip ends. */
+export const PRAIA_PARTY_PIER: Tile = { x: 28, y: 23 };
+
+function praiaFloor(): string[] {
+  return floorGrid(PRAIA_COLS, PRAIA_ROWS, 's', (paint) => {
+    paint('a', 0, 0, PRAIA_COLS - 1, 1); // Avenida Beira-Mar
+    paint('c', 0, 2, PRAIA_COLS - 1, 4); // the calçadão: street furniture on its first row, a two-tile promenade under it
+    paint('o', 0, 19, PRAIA_COLS - 1, PRAIA_ROWS - 1); // the sea
+    paint('o', 2, 9, 5, 11); // the lagoa, a ring of sand round it
+    paint('b', PRAIA_PIER.x0, PRAIA_PIER.y0, PRAIA_PIER.x1, PRAIA_PIER.y1);
+    for (const d of Object.values(PRAIA_BOAT_DECKS)) paint('b', d.x, d.y, d.x + d.w - 1, d.y + d.h - 1);
+  });
+}
+
+/** The party boat's deck: all planks, a ring of sea round it, and the gangway on the west rail (an edge portal back to the pier). */
+export const FESTA_GANGWAY: Tile = { x: 0, y: 5 };
+function festaFloor(): string[] {
+  return floorGrid(FESTA_COLS, FESTA_ROWS, 'b', (paint) => {
+    paint('o', 0, 0, FESTA_COLS - 1, 0);
+    paint('o', 0, FESTA_ROWS - 1, FESTA_COLS - 1, FESTA_ROWS - 1);
+    paint('o', 0, 0, 0, FESTA_ROWS - 1);
+    paint('o', FESTA_COLS - 1, 0, FESTA_COLS - 1, FESTA_ROWS - 1);
+    paint('b', FESTA_GANGWAY.x, FESTA_GANGWAY.y, FESTA_GANGWAY.x, FESTA_GANGWAY.y);
   });
 }
 
@@ -368,6 +458,9 @@ const rua: RoomDef = {
   private: false,
 };
 
+/** The bus portal from Rua dos Ipês (leste) to the Praia; the closed beach refuses it like `join('praia')`. */
+export const PRAIA_BUS_PORTAL = 'rua_praia';
+
 // ---------------------------------------------------------------- rua_leste (east half)
 const ruaLeste: RoomDef = {
   id: 'rua_leste',
@@ -417,6 +510,8 @@ const ruaLeste: RoomDef = {
     },
     // the airport bus (line 875) stops here too: the little sign next to the shelter
     { id: 'rua_aeroporto', x: 9, y: 12, to: 'aeroporto', arrive: { x: 20, y: 24 }, arriveDir: 'NW', doorAt: { x: 9, y: 12 }, label: { pt: 'Ônibus para o Aeroporto', en: 'Bus to the Airport' } },
+    // and on to the beach (PRAIA-PLAN.md 1.1): the blue plaque on the other side of the shelter. needs_br: true
+    { id: PRAIA_BUS_PORTAL, x: 5, y: 12, to: 'praia', arrive: { x: 3, y: 4 }, arriveDir: 'SW', doorAt: { x: 5, y: 12 }, label: { pt: 'Ônibus para a Praia', en: 'Bus to the beach' } },
     ...edgePortals('leste_rua', 'rua', RUA_SEAM_ROWS.map((y) => ({ x: 0, y })), (t) => ({ x: RUA_COLS - 2, y: t.y }), 'SW', { pt: 'Rua dos Ipês', en: 'Ipê Street' }),
   ],
   npcs: [],
@@ -1064,7 +1159,115 @@ const desembarque: RoomDef = {
   private: false,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar, aeroporto, desembarque, petshop };
+// ---------------------------------------------------------------- praia
+/**
+ * Praia do Jerivá, on the litoral paulista (PRAIA-PLAN.md 1.3). Reached by the 875 bus from Rua dos Ipês (leste); the admin mode (`praia.ts`)
+ * can close it. Needs_br: every Portuguese string in this room.
+ */
+const praia: RoomDef = {
+  id: 'praia',
+  name: 'Praia',
+  gloss: 'Beach',
+  cols: PRAIA_COLS,
+  rows: PRAIA_ROWS,
+  outdoor: true,
+  floor: praiaFloor(),
+  wallHeight: 0,
+  wallColor: '#d8cbb6',
+  wallTrim: '#9c8b74',
+  lighting: 'tarde',
+  spawn: { x: 3, y: 4 },
+  props: bundledObjects('praia'),
+  walls: [],
+  portals: [
+    { id: 'praia_vila', x: 3, y: 3, to: 'rua_leste', arrive: { x: 5, y: 13 }, arriveDir: 'SW', doorAt: { x: 3, y: 2.5 }, label: { pt: 'Ônibus para a Vila', en: 'Bus to the Vila' } },
+  ],
+  // PRAIA-PLAN.md 6. All three stand at their place at every hour (D12: renting, fishing and selling never wait on the clock); their idle
+  // lines change with the hour. Nobody waves. needs_br: true (every line)
+  npcs: [
+    {
+      id: 'bento',
+      name: 'Seu Bento',
+      role: { pt: 'Aluguel de barcos', en: 'Boat rental' },
+      x: 28,
+      y: 7,
+      dir: 'SW',
+      interact: { x: 28, y: 8 },
+      appearance: { body: 'forte', skin: 4, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 6, bottom: 'calca', bottomColor: 1, shoes: 2, face: 'maduro', extra: 'barba', idle: 'bracos' },
+      hat: null,
+      idleLines: [
+        { pt: 'Barco bom é barco que volta.', en: 'A good boat is one that comes back.' },
+        { pt: 'Hoje o mar tá manso.', en: 'The sea is calm today.' },
+        { pt: 'Quer ir mais longe? Aluga o de alto-mar.', en: 'Want to go farther out? Rent the deep-sea boat.' },
+        { pt: 'A maré não dorme, e eu também não.', en: 'The tide doesn’t sleep, and neither do I.' },
+      ],
+    },
+    {
+      id: 'neide',
+      name: 'Dona Neide',
+      role: { pt: 'Pescadora', en: 'Fisherwoman' },
+      x: 23,
+      y: 12,
+      dir: 'SE',
+      interact: { x: 23, y: 13 },
+      appearance: { body: 'medio', skin: 6, hair: 'coque', hairColor: 5, top: 'camiseta', topColor: 9, bottom: 'calca', bottomColor: 3, shoes: 0, face: 'maduro', extra: 'oculos', idle: 'solto' },
+      hat: null,
+      idleLines: [
+        { pt: 'Peixe grande gosta de quem tem paciência.', en: 'Big fish like patient people.' },
+        { pt: 'Segura firme, solta quando ele corre.', en: 'Hold tight, let go when it runs.' },
+        { pt: 'De manhãzinha o robalo tá acordado.', en: 'Early morning, the snook is awake.' },
+        { pt: 'Chuva fina, peixe bobo.', en: 'Light rain, silly fish.' },
+      ],
+    },
+    {
+      id: 'jo',
+      name: 'Jô',
+      role: { pt: 'Barraca da praia', en: 'Beach kiosk' },
+      x: 7,
+      y: 6,
+      dir: 'SW',
+      interact: { x: 7, y: 7 },
+      appearance: { body: 'medio', skin: 6, hair: 'trancas', hairColor: 0, top: 'regata', topColor: 4, bottom: 'bermuda', bottomColor: 8, shoes: 3, face: 'marcante', extra: 'brincos', idle: 'cintura' },
+      hat: null,
+      idleLines: [
+        { pt: 'Água de coco geladinha!', en: 'Ice-cold coconut water!' },
+        { pt: 'Queijo coalho na brasa, meu bem!', en: 'Grilled cheese on a stick, dear!' },
+        { pt: 'Compro peixe fresco! Traz pra cá!', en: 'I buy fresh fish! Bring it here!' },
+        { pt: 'Fechando a barraca, mas o gelo fica.', en: 'Closing the kiosk, but the ice stays.' },
+      ],
+    },
+  ],
+  private: false,
+};
+
+// ---------------------------------------------------------------- barco_festa
+/**
+ * The party boat's deck (PRAIA-PLAN.md 5.1): one instance per trip (`festa@<hostId>-<startedAt>`), only the trip's members may join it. No NPCs;
+ * the gangway on the west rail walks you back to the pier. Needs_br: every Portuguese string in this room.
+ */
+const barcoFesta: RoomDef = {
+  id: 'barco_festa',
+  name: 'Barco de festa',
+  gloss: 'Party boat',
+  cols: FESTA_COLS,
+  rows: FESTA_ROWS,
+  outdoor: true,
+  floor: festaFloor(),
+  wallHeight: 0,
+  wallColor: '#d8cbb6',
+  wallTrim: '#9c8b74',
+  lighting: 'tarde',
+  spawn: { x: 2, y: 5 },
+  props: bundledObjects('barco_festa'),
+  walls: [],
+  portals: [
+    { id: 'festa_pier', x: FESTA_GANGWAY.x, y: FESTA_GANGWAY.y, to: 'praia', arrive: { ...PRAIA_PARTY_PIER }, arriveDir: 'SW', label: { pt: 'Desembarcar no píer', en: 'Go ashore at the pier' }, edge: true },
+  ],
+  npcs: [],
+  private: false,
+};
+
+export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar, aeroporto, desembarque, petshop, praia, barco_festa: barcoFesta };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;
@@ -1108,6 +1311,10 @@ export function buildGrid(room: RoomDef, furniture: PlacedFurniture[] = []): Roo
   const blocked = new Set<string>();
   const seats = new Map<string, Dir>();
   const reserved = new Set<string>();
+  // water is never walkable; the deck tiles of the pier and the boats (`b`) are
+  room.floor.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) if (WATER_CHARS.has(row[x])) blocked.add(key(x, y));
+  });
   for (const p of room.props) {
     for (const t of propTiles(p)) {
       reserved.add(key(t.x, t.y));

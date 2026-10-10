@@ -1,0 +1,16 @@
+{
+  "$comment": "Praia do Jerivá (PRAIA-PLAN.md 1.6): the three beach terrains (sand, the sea with its foam edge, the pier deck) and every praia/* piece, authored in custom/praia.mjs (one derive that emits all of them, the boats' overheads and the lit overlays). praia/* frames pack into their own `praia` atlas (the outdoor atlas is at the 1024 x 2048 cap). Fish, junk and kiosk icons are DOM images.",
+  "atlas": {"praia": {"maxWidth": 1024}},
+  "terrain": {
+    "s": {"name": "areia", "kind": "flat", "custom": "areia"},
+    "o": {"name": "agua", "kind": "shore", "custom": "agua"},
+    "b": {"name": "deque", "kind": "flush", "custom": "deque", "rim": "#4a3c32"}
+  },
+  "sprites": [
+    {"key": "praia/mureta", "kind": "derive", "fn": "praia"}
+  ],
+  "images": [
+    {"fn": "praiaIcons"},
+    {"fn": "pescaStage"}
+  ]
+}

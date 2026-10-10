@@ -128,7 +128,7 @@ describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira
   it('has each rua door on row 5 inside its facade, walkable, with the sidewalk tile in front as the arrive tile', () => {
     const doors = ROOMS.rua.portals.filter((p) => !p.edge);
     expect(doors.map((p) => p.to).sort()).toEqual(['kitnet', 'padaria']);
-    for (const p of [...doors, ...ROOMS.rua_leste.portals.filter((q) => !q.edge && q.to !== 'aeroporto')]) {
+    for (const p of [...doors, ...ROOMS.rua_leste.portals.filter((q) => !q.edge && q.to !== 'aeroporto' && q.to !== 'praia')]) {
       const rua = ROOMS[p.to === 'academia' || p.to === 'escola' || p.to === 'petshop' ? 'rua_leste' : 'rua'];
       const grid = buildGrid(rua);
       expect(p.wall, p.id).toBeUndefined();
@@ -215,7 +215,7 @@ describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira
     const seen = new Set<string>(['praca']);
     const queue = ['praca'] as (keyof typeof ROOMS)[];
     while (queue.length) for (const p of ROOMS[queue.shift()!].portals) if (!seen.has(p.to)) (seen.add(p.to), queue.push(p.to));
-    expect([...seen].sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'petshop', 'praca', 'rua', 'rua_leste']);
+    expect([...seen].sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'petshop', 'praca', 'praia', 'rua', 'rua_leste']);
   });
 });
 
@@ -289,7 +289,7 @@ describe('the street is two areas (rua west, rua_leste east)', () => {
     for (const a of ['rua', 'rua_leste', 'praca'] as const) for (const b of ['rua', 'rua_leste', 'praca'] as const) expect(reach(a).has(b), `${a} -> ${b}`).toBe(true);
     // the rua_leste is only joined to the rua (not to the praça directly)
     expect(ROOMS.rua_leste.portals.filter((p) => p.edge).every((p) => p.to === 'rua')).toBe(true);
-    expect(ROOMS.rua_leste.portals.filter((p) => !p.edge).map((p) => p.to).sort()).toEqual(['academia', 'aeroporto', 'escola', 'petshop']);
+    expect(ROOMS.rua_leste.portals.filter((p) => !p.edge).map((p) => p.to).sort()).toEqual(['academia', 'aeroporto', 'escola', 'petshop', 'praia']);
     expect(ROOMS.rua.portals.filter((p) => !p.edge).map((p) => p.to).sort()).toEqual(['kitnet', 'padaria']);
   });
 
@@ -316,8 +316,8 @@ describe('the street is two areas (rua west, rua_leste east)', () => {
   it('has every interior door return to the half it was entered from, on the sidewalk tile in front of the door', () => {
     for (const half of ['rua', 'rua_leste'] as const) {
       const room = ROOMS[half];
-      // (the airport bus is not a door: it has its own test)
-      for (const door of room.portals.filter((p) => !p.edge && p.to !== 'aeroporto')) {
+      // (the airport and beach buses are not doors: they have their own tests)
+      for (const door of room.portals.filter((p) => !p.edge && p.to !== 'aeroporto' && p.to !== 'praia')) {
         const inside = ROOMS[door.to];
         const exits = inside.portals.filter((p) => p.to === half || p.to === (half === 'rua' ? 'rua_leste' : 'rua'));
         expect(exits, `${door.to}`).toHaveLength(1);
@@ -389,6 +389,122 @@ describe('the pet shop (#234)', () => {
         owner.set(key(t.x, t.y), p.id);
       }
     }
+  });
+});
+
+describe('the Praia (PRAIA-PLAN.md 1.3) and the party boat (5.1)', () => {
+  const praia = ROOMS.praia;
+  const grid = buildGrid(praia);
+
+  it('is outdoor, 40 x 28, every floor char known, spawning at the bus stop', () => {
+    expect([praia.cols, praia.rows]).toEqual([40, 28]);
+    expect(praia.outdoor).toBe(true);
+    expect(praia.private).toBe(false);
+    expect(praia.floor).toHaveLength(praia.rows);
+    for (const row of praia.floor) expect(row).toHaveLength(praia.cols);
+    for (const ch of praia.floor.join('') + ROOMS.barco_festa.floor.join('')) expect(FLOOR_CHARS[ch], `floor char ${ch}`).toBeDefined();
+    expect(praia.spawn).toEqual({ x: 3, y: 4 });
+    expect(isWalkable(grid, 3, 4)).toBe(true);
+  });
+
+  it('water is never walkable, sand and deck are', () => {
+    expect(floorAt(praia, 10, 10)).toBe('areia');
+    expect(floorAt(praia, 10, 22)).toBe('agua');
+    expect(floorAt(praia, 28, 20)).toBe('deque');
+    for (let y = 0; y < praia.rows; y++) for (let x = 0; x < praia.cols; x++) if (praia.floor[y][x] === 'o') expect(isWalkable(grid, x, y), `water ${x},${y}`).toBe(false);
+    expect(isWalkable(grid, 10, 12)).toBe(true);
+    for (let y = 12; y <= 25; y++) expect(isWalkable(grid, 28, y) && isWalkable(grid, 29, y), `pier row ${y}`).toBe(true);
+  });
+
+  it('never opens onto void: every border tile is blocked (water, the mureta, the fence and the costão)', () => {
+    for (const room of [praia, ROOMS.barco_festa]) {
+      const g = buildGrid(room);
+      const edge = new Set(room.portals.filter((p) => p.edge).map(edgeKey));
+      for (let x = 0; x < room.cols; x++) for (const y of [0, room.rows - 1]) expect(isWalkable(g, x, y) && !edge.has(edgeKey({ x, y })), `${room.id}: open border ${x},${y}`).toBe(false);
+      for (let y = 0; y < room.rows; y++) for (const x of [0, room.cols - 1]) expect(isWalkable(g, x, y) && !edge.has(edgeKey({ x, y })), `${room.id}: open border ${x},${y}`).toBe(false);
+    }
+  });
+
+  it('reaches every door, NPC, interact tile and seat from the bus stop, on a lane at least 2 tiles wide', () => {
+    const lane = reachableWide(grid, praia.spawn);
+    for (const t of targets(praia)) {
+      if (t.what.startsWith('sidewalk in front of')) continue;
+      expect(isWalkable(grid, t.tile.x, t.tile.y), `${t.what} is walkable`).toBe(true);
+      expect(findPath(grid, praia.spawn, t.tile), `path to ${t.what}`).not.toBeNull();
+      if (t.what.startsWith('seat')) continue;
+      expect([...lane].some((k) => cheb({ x: Number(k.split(',')[0]), y: Number(k.split(',')[1]) }, t.tile) <= 1), `${t.what} touches the wide lane`).toBe(true);
+    }
+  });
+
+  it('leaves no empty 4 x 4 of sand: every such square has a prop, a decal or the water in it (the HOWTO beauty checklist)', () => {
+    const dressed = new Set<string>();
+    for (const p of praia.props) for (const t of propTiles(p)) dressed.add(`${t.x},${t.y}`);
+    for (const n of praia.npcs) dressed.add(`${n.x},${n.y}`);
+    const bare: string[] = [];
+    for (let y = 0; y + 4 <= praia.rows; y++) for (let x = 0; x + 4 <= praia.cols; x++) {
+      let empty = true;
+      for (let dy = 0; dy < 4 && empty; dy++) for (let dx = 0; dx < 4; dx++) {
+        if (praia.floor[y + dy][x + dx] !== 's' || dressed.has(`${x + dx},${y + dy}`)) {
+          empty = false;
+          break;
+        }
+      }
+      if (empty) bare.push(`${x},${y}`);
+    }
+    expect(bare, 'empty 4 x 4 squares of sand at (top-left)').toEqual([]);
+  });
+
+  it('closes the lagoa: a ring of sand round its water, a spot on its south bank', () => {
+    const water: Tile[] = [];
+    for (let y = 8; y <= 12; y++) for (let x = 1; x <= 6; x++) if (praia.floor[y][x] === 'o') water.push({ x, y });
+    expect(water.length).toBeGreaterThanOrEqual(9);
+    for (const w of water) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const ch = praia.floor[w.y + dy][w.x + dx];
+      expect(ch === 'o' || ch === 's', `lagoa edge ${w.x + dx},${w.y + dy}`).toBe(true);
+    }
+    const spot = praia.props.find((p) => p.kind === 'pesca_spot' && p.water === 'lagoa')!;
+    expect(spot).toBeDefined();
+    expect(water.some((w) => cheb(w, spot) === 1)).toBe(true);
+  });
+
+  it('every fishing spot looks onto its own water, and the boats sit on their decks', () => {
+    const spots = [...praia.props, ...ROOMS.barco_festa.props].filter((p) => p.kind === 'pesca_spot');
+    expect(new Set(spots.map((p) => p.water))).toEqual(new Set(['praia', 'lagoa', 'remo', 'pesca', 'alto_mar', 'festa']));
+    for (const p of spots) {
+      expect(p.action, p.id).toBe('pesca');
+      expect(p.blocks, p.id).toBe(false);
+      expect(p.interact, p.id).toBeDefined();
+    }
+    for (const id of ['barco_remo', 'barco_pesca', 'barco_alto_mar']) {
+      const b = praia.props.find((p) => p.id === id)!;
+      for (const t of propTiles(b)) expect(floorAt(praia, t.x, t.y), `${id} deck`).toBe('deque');
+    }
+  });
+
+  it('runs the 875 both ways between the rua leste and the beach', () => {
+    const out = ROOMS.rua_leste.portals.find((p) => p.to === 'praia')!;
+    const back = praia.portals.find((p) => p.to === 'rua_leste')!;
+    expect(out.id).toBe('rua_praia');
+    expect(out.arrive).toEqual(praia.spawn);
+    const gl = buildGrid(ROOMS.rua_leste);
+    expect(isWalkable(gl, out.x, out.y)).toBe(true);
+    expect(isWalkable(gl, back.arrive.x, back.arrive.y)).toBe(true);
+    expect(findPath(gl, back.arrive, out)).not.toBeNull();
+    expect(findPath(grid, praia.spawn, back)).not.toBeNull();
+  });
+
+  it('the party deck: all planks inside a ring of sea, the gangway an edge portal back to the pier', () => {
+    const deck = ROOMS.barco_festa;
+    const g = buildGrid(deck);
+    expect([deck.cols, deck.rows]).toEqual([16, 10]);
+    expect(deck.npcs).toHaveLength(0);
+    const gangway = deck.portals.find((p) => p.to === 'praia')!;
+    expect(gangway.edge).toBe(true);
+    expect(isWalkable(g, gangway.x, gangway.y)).toBe(true);
+    expect(isWalkable(grid, gangway.arrive.x, gangway.arrive.y)).toBe(true);
+    expect(floorAt(praia, gangway.arrive.x, gangway.arrive.y)).toBe('deque');
+    for (const p of deck.props.filter((q) => q.interact)) expect(findPath(g, deck.spawn, p.interact!), p.id).not.toBeNull();
+    expect(findPath(g, deck.spawn, gangway)).not.toBeNull();
   });
 });
 

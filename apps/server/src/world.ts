@@ -23,6 +23,7 @@ import {
   HAIR_STYLES,
   hatById,
   isStallHat,
+  isPraiaHat,
   npcAvatarId,
   ADMIN_KICKED_COPY,
   BANNED_COPY,
@@ -116,6 +117,7 @@ import {
   ownedParrotColorIds,
   parrotColorById,
   snackById,
+  snackPropIds,
   carryOf,
   carryTossNotice,
   CARRY_BIN,
@@ -156,6 +158,14 @@ import {
   type PlayerPadaria,
   type PrivateProfile,
   type FeiraCartSchedule,
+  isPraiaMode,
+  praiaAllows,
+  PRAIA_CLOSED,
+  PRAIA_PARTY_PIER,
+  PRAIA_DEFAULT,
+  weatherAt,
+  type FishId,
+  type PraiaConfig,
 } from '@tudobem/shared';
 import type { ChatSafetyCtx, ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { JEV_CONTEXT_LINES } from './services/jevModel.js';
@@ -176,6 +186,11 @@ import { Leaderboards } from './leaderboards.js';
 import { FeiraCounter } from './feira.js';
 import { FeiraGamesEngine, FeiraGamesStore, type FeiraGameRun } from './feiraGames.js';
 import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
+import { PraiaStore, memoryPraia } from './praiaStore.js';
+import { PescaEngine, type PescaCastRun } from './pesca.js';
+import { BarcoEngine } from './barco.js';
+import { PartyBoats } from './partyBoat.js';
+import { PraiaStats, type PraiaAdminView } from './praiaStats.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
@@ -214,6 +229,10 @@ export interface WorldOptions {
   feiraGames?: import('./feiraGames.js').FeiraGamesStore;
   /** Feira cart on/off switch. Omitted stores start with every game off. */
   feiraCart?: FeiraCartStore;
+  /** The Praia's open / preview / closed switch. Omitted: an in-memory store, open. */
+  praia?: PraiaStore;
+  /** TB_TEST_PESCA: every cast rolls the short pinned fish (pescaSim.pinnedRoll), so an e2e can land one in seconds. */
+  pescaPin?: boolean;
   /** Bout intro length in ms (default: 4.2 s, 0.5 s in hint mode). Env `TB_TEST_BOUT_INTRO_MS`. */
   boutIntroMs?: number;
   /** Bout pause scale (default 1, 0.35 in hint mode). Env `TB_TEST_BOUT_PACE`: shots want the real pauses with the hints on. */
@@ -298,6 +317,10 @@ export interface Session {
   mg?: CorreriaRun;
   /** Feira cart game in progress (apps/server/src/feiraGames.ts). Separate from Correria so the two never share a slot. */
   feiraGame?: FeiraGameRun;
+  /** The cast out at the Praia (pesca.ts): one at a time per session. */
+  pesca?: PescaCastRun;
+  /** When this session last cast (the 2 s spacing), and the spot it has open. */
+  pescaSpot?: { spotId: string; lastCastAt: number };
   /** Treino no tatame: the bout in progress (apps/server/src/bout.ts). */
   bout?: BoutSession;
   chatTimes: number[];
@@ -392,6 +415,16 @@ export class World {
   readonly padarias: PadariaStore;
   readonly padariaOwnership: boolean;
   private readonly layouts: LayoutStore;
+  /** The Praia's admin switch (PRAIA-PLAN.md 1.2). */
+  readonly praia: PraiaStore;
+  /** Fishing at the Praia (pesca.ts). */
+  private readonly pescaEngine: PescaEngine;
+  /** Seu Bento's rentals (barco.ts). */
+  private readonly barco: BarcoEngine;
+  /** The party boat's trips (partyBoat.ts). */
+  readonly parties: PartyBoats;
+  /** Today's beach numbers for the dashboard (praiaStats.ts). */
+  private readonly praiaStats = new PraiaStats(() => todaySaoPaulo());
   private readonly githubToken?: string;
   private readonly githubFetch?: typeof fetch;
 
@@ -424,6 +457,7 @@ export class World {
     this.padarias = opts.padarias ?? new PadariaStore(null);
     this.padariaOwnership = opts.padariaOwnership ?? readEnv('TB_PADARIA_OWNERSHIP') === '1';
     this.layouts = opts.layouts ?? new LayoutStore();
+    this.praia = opts.praia ?? memoryPraia();
     for (const row of this.layouts.overrides()) installRoomProps(row.room, row.objects);
     if (opts.githubToken === null) this.githubToken = undefined;
     else if (typeof opts.githubToken === 'string') this.githubToken = opts.githubToken.trim() || undefined;
@@ -512,6 +546,74 @@ export class World {
       moderateName: (s, raw) => this.moderatePetName(s, raw),
       earnLine: (s, anchor) => this.diary.earnLine(s, anchor),
       homePetsChanged: (ownerId) => this.sendHomePets(ownerId),
+    });
+    this.pescaEngine = new PescaEngine({
+      now: () => this.now(),
+      rng: () => this.rng(),
+      save: (p) => this.store.save(p.id),
+      pushProfile: (s) => this.pushProfile(s as Session),
+      err: (s, code, pt, en) => this.err(s as Session, code, pt, en),
+      tileOf: (s) => this.currentTile(s as Session).tile,
+      reward: (s, rv, reason) => this.reward(s as Session, rv, reason),
+      teach: (s, words) => this.diary.teachPesca(s as Session, words),
+      weather: () => this.weatherPin ?? weatherAt(this.clockNow()),
+      minute: () => gameMinutes(this.clockNow()),
+      day: (p) => this.capDate(todaySaoPaulo(), p),
+      saleCap: () => this.config.get('pescaSaleCapRv'),
+      pinned: opts.pescaPin ?? readEnv('TB_TEST_PESCA') === '1',
+      aboardParty: (s) => this.aboardParty(s as Session),
+      onPartyCatch: (s, fish) => this.parties.onCatch(s as Session, fish),
+      onBottle: () => this.praiaStats.bottle(),
+      onCaught: (fish) => this.praiaStats.caught(fish),
+      onSold: (rv) => this.praiaStats.sold(rv),
+    });
+    this.barco = new BarcoEngine({
+      now: () => this.now(),
+      save: (p) => this.store.save(p.id),
+      pushProfile: (s) => this.pushProfile(s as Session),
+      err: (s, code, pt, en) => this.err(s as Session, code, pt, en),
+      tileOf: (s) => this.currentTile(s as Session).tile,
+      schedule: (fn, ms) => this.schedule(fn, ms),
+      teach: (s, words) => this.diary.teachPesca(s as Session, words),
+      price: (tier) => this.config.get(tier === 'remo' ? 'boatRemoRv' : tier === 'pesca' ? 'boatPescaRv' : tier === 'alto_mar' ? 'boatAltoMarRv' : 'boatFestaRv'),
+      tripMs: () => this.config.get('tripMinutes') * 60_000,
+      partyBoat: () => this.praia.config().partyBoat,
+      dropCast: (s) => this.pescaEngine.dropCast(s),
+      sessionOf: (id) => this.sessionByProfile(id),
+      onRent: (tier) => this.praiaStats.rented(tier),
+    });
+    const pescaPinned = opts.pescaPin ?? readEnv('TB_TEST_PESCA') === '1';
+    this.parties = new PartyBoats({
+      now: () => this.now(),
+      schedule: (fn, ms) => this.schedule(fn, ms),
+      profile: (id) => this.store.get(id),
+      save: (...ids) => this.store.save(...ids),
+      sessionOf: (id) => this.sessionByProfile(id),
+      pushProfile: (s) => this.pushProfile(s as Session),
+      err: (s, code, pt, en) => this.err(s as Session, code, pt, en),
+      teach: (s, words) => this.diary.teachPesca(s as Session, words),
+      board: (s, tripId) => {
+        this.join(s as Session, 'barco_festa', { instanceId: tripId });
+        return s.instance?.id === tripId;
+      },
+      ashore: (s) => {
+        const sess = s as Session;
+        if (this.praiaOpenFor(sess)) this.join(sess, 'praia', {}, { tile: { ...PRAIA_PARTY_PIER }, dir: 'SW' });
+        else this.join(sess, 'rua_leste', {}, { tile: { x: 5, y: 13 }, dir: 'SW' });
+      },
+      nearBoat: (s) => this.barco.nearShack(s as Session),
+      busy: (s) => {
+        const sess = s as Session;
+        return !!sess.bout || !!sess.feiraGame || !!this.correria.shiftOf(sess);
+      },
+      enabled: () => this.praia.config().partyBoat,
+      price: () => this.config.get('boatFestaRv'),
+      cap: () => this.config.get('partyBoatCap'),
+      tripMs: () => this.config.get('partyTripMinutes') * 60_000,
+      companyMs: () => (pescaPinned ? 5_000 : 5 * 60_000),
+      minute: () => gameMinutes(this.clockNow()),
+      avatarChanged: (s) => this.broadcastAvatar(s as Session),
+      onTrip: () => this.praiaStats.rented('festa'),
     });
     this.escola = new EscolaTracker({
       store,
@@ -632,6 +734,7 @@ export class World {
         s.send({ t: 'idleWarning', msLeft, ...idleWarningCopy(warnWindow) });
       }
     }
+    this.parties.sweep();
     this.pruneMemory();
   }
 
@@ -716,6 +819,12 @@ export class World {
         return this.buy(s, msg.kind, msg.itemId);
       case 'snack':
         return this.buySnack(s, msg.itemId);
+      case 'pesca':
+        return this.pescaEngine.handle(s, msg);
+      case 'barco':
+        return this.barco.handle(s, msg);
+      case 'party':
+        return this.parties.handle(s, msg);
       case 'padaria':
         return this.buyCounter(s, msg.itemId);
       case 'carry':
@@ -1077,6 +1186,9 @@ export class World {
       ...(layouts.length ? { layouts } : {}),
     });
     if (p.photos?.length) this.pushPhotos(s);
+    // the client starts at the default (open, party boat on): only a changed switch needs telling
+    const praia = this.praia.config();
+    if (praia.mode !== PRAIA_DEFAULT.mode || praia.partyBoat !== PRAIA_DEFAULT.partyBoat) s.send(this.praiaMsg(s));
     this.notifyFriendsOfPresence(p.id);
     if (this.friendReqs.incoming(p.id).length) this.sendFriends(s);
   }
@@ -1203,6 +1315,20 @@ export class World {
 
   private instanceFor(room: RoomId, s: Session, opts: { instanceId?: string; ownerId?: string; academyId?: string; padariaId?: string }): Instance | { error: Bilingual } {
     const def = ROOMS[room];
+    // the party deck: only the trip's roster, never a public shard, a full boat is a hard refusal
+    if (def.id === 'barco_festa') {
+      const id = s.profile!.id;
+      const trip = this.parties.tripOf(id);
+      const inst = trip ? this.instances.get(trip.id) : undefined;
+      const ok = this.parties.admit(id, opts.instanceId, inst?.members.size ?? 0);
+      if ('error' in ok) return ok;
+      let deck = inst;
+      if (!deck) {
+        deck = new Instance(ok.trip.id, def, `${def.name} · ${this.store.get(ok.trip.hostId)?.name ?? ''}`.trim(), null);
+        this.instances.set(deck.id, deck);
+      }
+      return deck;
+    }
     if (def.id === 'andar') {
       const academyId = opts.academyId ?? academyIdFromInstance(opts.instanceId);
       const academy = academyId ? this.academies.get(academyId) : undefined;
@@ -1268,8 +1394,18 @@ export class World {
 
   join(s: Session, room: RoomId, opts: { instanceId?: string; ownerId?: string; academyId?: string; padariaId?: string } = {}, arrive?: { tile: Tile; dir: Dir }) {
     if (!isRoomId(room)) return this.err(s, 'room', 'Sala desconhecida.', 'Unknown room.');
+    if ((room === 'praia' || room === 'barco_festa') && !this.praiaOpenFor(s)) {
+      // a reconnect that remembered the beach lands at the bus stop it came from instead of nowhere
+      if (!s.instance) {
+        this.join(s, 'rua_leste', {}, { tile: { x: 5, y: 13 }, dir: 'SW' });
+        return;
+      }
+      return this.err(s, 'praia', PRAIA_CLOSED.pt, PRAIA_CLOSED.en);
+    }
     const target = this.instanceFor(room, s, opts);
     if ('error' in target) return this.err(s, 'join', target.error.pt, target.error.en);
+    // a rented boat stays at the beach: leaving it hands the boat back
+    if (s.instance?.def.id === 'praia' && room !== 'praia') this.barco.end(s, 'left');
     this.leaveInstance(s);
     const def = target.def;
     const tile = arrive?.tile ?? def.spawn;
@@ -1509,6 +1645,12 @@ export class World {
     }
     if (msg.action === 'feiraCart') return this.adminFeiraCart(s);
     if (msg.action === 'feiraCartSet') return this.adminFeiraCartSet(s, msg.game, msg.mode, msg.schedule);
+    if (msg.action === 'praiaSet') {
+      if (msg.mode !== undefined && !isPraiaMode(msg.mode)) return this.err(s, 'admin', 'Modo inválido.', 'Invalid mode.');
+      if (msg.partyBoat !== undefined && typeof msg.partyBoat !== 'boolean') return this.err(s, 'admin', 'Valor inválido.', 'Invalid value.');
+      const cfg = this.setPraia({ ...(msg.mode ? { mode: msg.mode } : {}), ...(msg.partyBoat !== undefined ? { partyBoat: msg.partyBoat } : {}) });
+      return s.send({ t: 'notice', level: 'info', pt: `Praia: ${cfg.mode}, barco de festa ${cfg.partyBoat ? 'ligado' : 'desligado'}.`, en: `Beach: ${cfg.mode}, party boat ${cfg.partyBoat ? 'on' : 'off'}.` });
+    }
     if (msg.action === 'weather') {
       if (msg.weather !== null && !(WEATHER_KINDS as readonly string[]).includes(msg.weather)) {
         return this.err(s, 'admin', 'Clima inválido.', 'Invalid weather.');
@@ -1611,6 +1753,58 @@ export class World {
     const msg = this.feiraGames.cartMsg();
     for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
     return this.adminFeiraCart(s);
+  }
+
+  /** Aboard a party boat trip right now (the `festa` water): a member of the trip, on its deck. */
+  private aboardParty(s: Session): boolean {
+    return this.parties.aboard(s);
+  }
+
+  /** The dashboard's Praia card (PRAIA-PLAN.md 8.5). */
+  praiaAdminView(): PraiaAdminView {
+    const cfg = this.praia.config();
+    const t = this.now();
+    const tripsNow: PraiaAdminView['tripsNow'] = {};
+    let onBeach = 0;
+    for (const s of this.sessions.values()) {
+      if (!s.profile) continue;
+      if (s.instance?.def.id === 'praia') onBeach++;
+      const trip = s.profile.pesca?.trip;
+      if (trip && trip.until > t) tripsNow[trip.tier] = (tripsNow[trip.tier] ?? 0) + 1;
+    }
+    const party = this.parties.stats();
+    if (party.active) tripsNow.festa = party.active;
+    return { mode: cfg.mode, partyBoat: cfg.partyBoat, onBeach, aboardParty: party.aboard, tripsNow, today: this.praiaStats.view() };
+  }
+
+  /** May this session's player be on the beach now (open, or preview with a subscriber's early access)? */
+  private praiaOpenFor(s: Session): boolean {
+    return praiaAllows(this.praia.config(), s.profile?.subscription, this.now());
+  }
+
+  private praiaMsg(s: Session): Extract<ServerMsg, { t: 'praia' }> {
+    const cfg = this.praia.config();
+    return { t: 'praia', phase: 'mode', mode: cfg.mode, partyBoat: cfg.partyBoat, allowed: this.praiaOpenFor(s) };
+  }
+
+  /**
+   * The admin switch (socket door and the dashboard): store it, tell every player, and walk anyone the beach is now closed to back to the
+   * Vila's bus stop with a notice.
+   */
+  setPraia(patch: Partial<PraiaConfig>): PraiaConfig {
+    const cfg = this.praia.set(patch);
+    // the party boat switched off: every trip sails back to the pier now
+    if (!cfg.partyBoat) this.parties.endAll('off');
+    for (const sess of [...this.sessions.values()]) {
+      if (!sess.profile) continue;
+      sess.send(this.praiaMsg(sess));
+      const here = sess.instance?.def.id;
+      if ((here === 'praia' || here === 'barco_festa') && !this.praiaOpenFor(sess)) {
+        sess.send({ t: 'notice', level: 'info', pt: 'A praia fechou por agora. O ônibus te trouxe de volta.', en: 'The beach has closed for now. The bus brought you back.' });
+        this.join(sess, 'rua_leste', {}, { tile: { x: 5, y: 13 }, dir: 'SW' });
+      }
+    }
+    return cfg;
   }
 
   private adminList(s: Session) {
@@ -1717,6 +1911,8 @@ export class World {
       dropAccount: (accountId) => this.dropAccount(accountId),
       forgetAccount: (accountId, profileId) => this.forgetAccount(accountId, profileId),
       classify: (text, nameplate) => this.services.safety.classify(text, { playerId: 'admin', room: '-', nameplate, recent: [] }),
+      praiaView: () => this.praiaAdminView(),
+      setPraia: (patch) => this.setPraia(patch),
       feiraCartView: () => this.feiraGames.cartView(),
       setFeiraCart: (game, mode) => {
         if (!this.feiraGames.setCartMode(game, mode)) return false;
@@ -1793,6 +1989,8 @@ export class World {
     this.correria.clear(s);
     if (s.bout) this.bouts.clear(s);
     s.scene = undefined;
+    // a line out on the water does not follow you to another room
+    this.pescaEngine.dropCast(s);
     if (!inst) return;
     if (inst.def.id === 'petshop') this.petShop.leftRoom(s);
     inst.members.delete(s.id);
@@ -1804,6 +2002,8 @@ export class World {
       inst.crowd?.stop();
       this.instances.delete(inst.id);
     } else inst.crowd?.sync();
+    // off the party deck (the gangway, another room, a disconnect): a guest leaves the trip, the host ends it
+    if (inst.def.id === 'barco_festa' && s.profile) this.parties.onLeftDeck(s.profile.id, inst.id);
   }
 
   private makeCrowd(inst: Instance) {
@@ -2133,6 +2333,7 @@ export class World {
     this.store.save(p.id, target.id);
     this.pushProfile(s);
     this.sendFriends(s);
+    this.parties.onBlock(p.id, target.id);
     s.send({ t: 'notice', level: 'info', pt: `Você bloqueou ${target.name}.`, en: `You blocked ${target.name}.` });
   }
 
@@ -2453,14 +2654,18 @@ export class World {
     }
     if (kind === 'hat') {
       const hat = hatById(itemId);
-      if (!hat || !isStallHat(hat.id)) return;
-      if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'A barraca da Nanda fica na praça.', 'Nanda’s stall is in the square.');
+      // Nanda's stall sells hers in the praça; Jô's beach rack sells the beach ones at the Praia; earned hats are never sold
+      const praiaRack = !!hat && isPraiaHat(hat.id);
+      if (!hat || !(isStallHat(hat.id) || praiaRack)) return;
+      if (praiaRack && s.instance?.def.id !== 'praia') return this.err(s, 'shop', 'Esse chapéu só a Jô vende, lá na praia.', 'Only Jô sells this hat, at the beach.');
+      if (!praiaRack && s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'A barraca da Nanda fica na praça.', 'Nanda’s stall is in the square.');
       if (p.hats.includes(hat.id)) return this.err(s, 'owned', 'Você já tem esse chapéu.', 'You already own this hat.');
       if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV yet: play “Correria no Balcão” at the bakery, or do a favor (Favores).');
       p.coins -= hat.price;
       p.hats.push(hat.id);
       this.store.save(p.id);
-      s.send({ t: 'notice', level: 'reward', pt: `Nanda: “${hat.pt}? Fica bem em você!”`, en: `Nanda: “${hat.en}? Looks good on you!”` });
+      const seller = praiaRack ? 'Jô' : 'Nanda';
+      s.send({ t: 'notice', level: 'reward', pt: `${seller}: “${hat.pt}? Fica bem em você!”`, en: `${seller}: “${hat.en}? Looks good on you!”` });
       this.pushProfile(s);
       return this.equipHat(s, hat.id);
     }
@@ -2491,7 +2696,8 @@ export class World {
     const p = s.profile!;
     if (!snack) return;
     // the cart (or the airport café) has to be in the room you are standing in
-    const prop = s.instance?.def.props.find((q) => q.id === snack.propId);
+    const sellers = snackPropIds(snack);
+    const prop = s.instance?.def.props.find((q) => sellers.includes(q.id));
     if (!prop) return this.err(s, 'shop', 'Compre na praça.', 'Buy this in the square.');
     const cur = this.currentTile(s);
     const spot = prop.interact ?? { x: prop.x, y: prop.y };

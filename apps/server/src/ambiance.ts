@@ -21,6 +21,7 @@ import {
   type RoomGrid,
   type ServerMsg,
   type Tile,
+  NO_WAVE_ROOMS,
 } from '@tudobem/shared';
 
 export const CPU_TICK_MS = 1000;
@@ -261,6 +262,8 @@ export class CpuCrowd {
 
   private wave(c: Cpu) {
     c.lastWave = this.host.now();
+    if (NO_WAVE_ROOMS.has(this.room.id)) return; // nobody waves on the beach
+
     this.host.send({ t: 'emote', id: c.id, kind: 'oi' });
   }
 

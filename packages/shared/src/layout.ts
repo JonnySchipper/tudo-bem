@@ -5,6 +5,7 @@ import { invalidateRoomNavigation } from './npcMotion.js';
 import { bundledObjects } from './roomLayoutFiles.js';
 import { ROOM_IDS, ROOMS, isRoomId, type PropAction, type PropDef, type PropKind } from './rooms.js';
 import type { Dir, RoomId, Tile } from './types.js';
+import { isWaterId } from './pesca.js';
 
 export const LAYOUT_MAX_OBJECTS = 800;
 export const LAYOUT_MARGIN = 16;
@@ -20,14 +21,16 @@ export const LAYOUT_KINDS: readonly PropKind[] = [
   'banqueta', 'mesa', 'cadeira_padaria', 'trilho_pedidos', 'vaso', 'cama', 'cozinha', 'caixa', 'orelhao', 'placa_rua', 'estufa', 'mesa_cafe',
   'jornais', 'saco_lixo', 'floreira', 'tatame', 'parede_faixas', 'quadro_fila', 'banco_espectador', 'vestiario', 'quadro_foto', 'fachada',
   'cenario', 'fonte', 'cerca', 'sebe', 'ponto_onibus', 'arvore', 'feira', 'hortifruti',
+  'quiosque_praia', 'guarda_sol', 'cadeira_praia', 'posto_salva_vidas', 'galpao_barcos', 'barco', 'pesca_spot', 'pedras', 'canoa',
 ];
 export const LAYOUT_ACTIONS: readonly PropAction[] = [
   'shop_hats', 'minigame', 'kiosk', 'parrot_perch', 'catalog', 'bjj_roll', 'feira_stall', 'street_snack', 'checkers', 'buy_gi', 'escola',
   'academy_elevator', 'academy_board', 'padaria_door', 'padaria_counter', 'feira_cart', 'feira_sign', 'leaderboard',
+  'pesca', 'boat_rental', 'party_boat', 'fish_sell', 'beach_shop',
 ];
 export const LAYOUT_DIRS: readonly Dir[] = ['SE', 'SW', 'NE', 'NW'];
 export const LAYOUT_VENDORS = ['tia_lu', 'ze', 'chico', 'rosa', 'banca'] as const;
-const KEY_ORDER = ['id', 'kind', 'x', 'y', 'w', 'h', 'blocks', 'seat', 'action', 'interact', 'label', 'hero', 'art', 'vendor', 'gaps', 'lightAtNight', 'ox', 'oy', 'flip', 'z'] as const;
+const KEY_ORDER = ['id', 'kind', 'x', 'y', 'w', 'h', 'blocks', 'seat', 'action', 'interact', 'label', 'hero', 'art', 'vendor', 'gaps', 'lightAtNight', 'ox', 'oy', 'flip', 'z', 'water'] as const;
 
 const kindSet = new Set<string>(LAYOUT_KINDS);
 const actionSet = new Set<string>(LAYOUT_ACTIONS);
@@ -159,6 +162,10 @@ export function validateRoomLayout(roomId: string, objects: unknown): LayoutSucc
     if (o.z !== undefined) {
       if (!intIn(o.z, -LAYOUT_MAX_Z, LAYOUT_MAX_Z)) return fail(`Ordem inválida: ${o.id}.`, `Invalid draw order: ${o.id}.`);
       if (o.z !== 0) prop.z = o.z;
+    }
+    if (o.water !== undefined) {
+      if (!isWaterId(o.water)) return fail(`Água inválida: ${o.id}.`, `Invalid water: ${o.id}.`);
+      prop.water = o.water;
     }
     out.push(prop);
   }

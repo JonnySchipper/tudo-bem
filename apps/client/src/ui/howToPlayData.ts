@@ -23,6 +23,8 @@ export interface HowToPlay {
   phone?: string;
   /** Rooms where the card does not open by itself (a guided tutorial already explains it there). The "?" still works. */
   quietIn?: readonly string[];
+  /** `false`: the card never opens by itself, only from the "?" (the thing teaches by doing and must never wait on a card). */
+  autoOpen?: boolean;
 }
 
 // (Correria no Balcão has no card: it teaches by doing, one coach mark per new action, ui/correriaPracticeLogic.ts)
@@ -278,6 +280,24 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
       'At midnight (New York time), 1st, 2nd and 3rd place each win a gold, silver or bronze medal to keep.',
       'Your medals are on the first page of your diary (Diário).',
     ],
+  },
+  {
+    // PRAIA-PLAN.md 2.2: fishing has no How-to card of its own. The first cast's labels teach it; this card opens only from the "?".
+    id: 'pesca',
+    kind: 'place',
+    autoOpen: false,
+    selector: '#pesca-root',
+    pt: 'Pescaria',
+    en: 'Fishing',
+    goal: 'Segura pra lançar, solta. Fisgou? Toca. Segura pra puxar, solta quando ele corre. (Hold to cast, let go. Bite? Tap. Hold to reel, let go when it runs.)',
+    steps: [
+      'Press and hold anywhere on the water: the arc under the rod swells and shrinks. Let go to cast. Held too long, the line tangles (free).',
+      'The bobber dips a little when a fish nibbles. When it plunges and Fisgou! appears, tap at once to set the hook.',
+      'Hold to reel it in. When the rod dips and it runs, let go: the ring fills while you fight a run, and a full ring snaps the line.',
+      'A catch lands on a card with its name. Sell fish to Jô at the kiosk; a baiacu always goes back in the water.',
+    ],
+    desktop: 'Hold the mouse button or Space, let go to release. Esc twice leaves.',
+    phone: 'Hold your finger anywhere on the stage, lift it to release.',
   },
 ];
 

@@ -111,6 +111,10 @@ import { openNpcTalk } from './ui/npcTalk';
 import { profileMetJulia } from './ui/juliaMet';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty } from './ui/feira';
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
+import { askTray, bindPesca, onPescaMsg, onPescaRefused, openCaderneta, openPescaSpot } from './ui/pesca';
+import { askBarcos, bindBarco, onBarcoMsg, returnBarco } from './ui/pesca/barcoMenu';
+import { aboardMyParty, bindParty, createParty, hostingParty, inviteToBoat, onAboardCatch, onPartyMsg, onPartyRoomChanged, sendAshore } from './ui/pesca/party';
+import './styles/pesca.css';
 import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
@@ -132,7 +136,9 @@ import { talkIdleOpen } from './ui/talkIdle';
 import { startAchado, claimReadingWord } from './ui/achado';
 import { roomTally } from './ui/achadoLogic';
 import { wantsReveal } from './ui/journalReveal';
-import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
+import { framedIds, cameraFrameAt } from './ui/viewfinder';
+import { T } from './render/pixel/coords';
+import { captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
 import { escolaPracticeOpen, openEscola, onEscolaMsg } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
@@ -470,6 +476,13 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
       openMat: () => openBout(),
       papo: () => void openPapo(npc, papoHooks),
       juliaAlreadyMet: npc === 'julia' ? juliaMet : undefined,
+      praia: (what) => {
+        if (what === 'snacks') openStreetSnack('barraca_jo', (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
+        else if (what === 'rack') openBeachRack();
+        else if (what === 'sell') praiaAction('fish_sell');
+        else if (what === 'rental') praiaAction('boat_rental');
+        else praiaAction('caderneta');
+      },
     });
   }
 }
@@ -522,10 +535,6 @@ function clickHotspot(hs: HotspotDef) {
   walkTo(spot, { kind: 'hotspot', hotspotId: hs.id, tile: spot });
 }
 
-function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) {
-  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-}
-
 let lastShutterAt = -1e9;
 
 /** A shutter click: spend film, keep the photo, and teach any camera word inside the frame. The player does not walk. */
@@ -550,30 +559,33 @@ function takePhoto(clientX: number, clientY: number) {
   lastShutterAt = t;
   // a tap on a phone has no hover before it: the viewfinder jumps to the tap so the blades close where the photo is taken
   syncCameraFrame(clientX, clientY);
-  const frame = cameraFrameAt(clientX, clientY);
+  // the frame stays wholly on screen; the print, the words and the blades all use this one rect
+  const frame = cameraFrameAt(clientX, clientY, window.innerWidth, window.innerHeight);
   const anchors: string[] = [];
   const room = game.roomDef;
-  const view = renderer as { propClientRect?: (p: { x: number; y: number; w?: number; h?: number }) => { x: number; y: number; w: number; h: number } | null };
-  if (room && view.propClientRect) {
-    // everything the frame touches that the diary teaches a word for: props, wall decor on the north wall, and furniture placed in the kitnet.
-    // The ones nearest the reticle go first, so the cards come in the order the player aimed.
-    const touched: { id: string; d: number }[] = [];
-    const aim = { x: frame.x + frame.w / 2, y: frame.y + frame.h / 2 };
+  const world = renderer.frameToWorld?.(frame) ?? null;
+  if (room && world) {
+    // what the print shows that the diary teaches a word for: props, wall decor on the north wall, and furniture placed in the kitnet.
+    // Each is measured by its drawn art (a tree's crown, a sign on its post), not the floor tiles it stands on, and counts when most of it is
+    // inside the frame or it fills a good part of the frame. The ones nearest the reticle go first, so the cards come in the order the player aimed.
     const taught = cameraObjectIds();
-    const tag = (id: string, box: { x: number; y: number; w?: number; h?: number }) => {
-      const rect = view.propClientRect!(box);
-      if (!rect || !rectsOverlap(frame, rect) || touched.some((t) => t.id === id)) return;
-      touched.push({ id, d: Math.hypot(rect.x + rect.w / 2 - aim.x, rect.y + rect.h / 2 - aim.y) });
-    };
     const day = clock.day();
-    for (const prop of room.props) if (taught.has(prop.id) && diaryVisible(room.id, prop.id, day)) tag(prop.id, prop);
-    for (const spot of PHOTO_SPOTS) if (spot.room === room.id && taught.has(spot.id)) tag(spot.id, spot);
-    for (const f of game.furniture) if (taught.has(f.itemId)) tag(f.itemId, { x: f.x, y: f.y });
-    anchors.push(...touched.sort((a, b) => a.d - b.d).map((t) => t.id).slice(0, 24));
+    const tiles = (b: { x: number; y: number; w?: number; h?: number }) => ({ x0: b.x * T, y0: b.y * T, x1: (b.x + (b.w ?? 1)) * T, y1: (b.y + (b.h ?? 1)) * T });
+    const candidates: { id: string; art: { x0: number; y0: number; x1: number; y1: number }[] }[] = [];
+    for (const prop of room.props) {
+      if (!taught.has(prop.id) || !diaryVisible(room.id, prop.id, day)) continue;
+      // a prop the view has not drawn (a small diary object that is not out today) is not in the picture
+      const art = renderer.propArt ? renderer.propArt(prop.id) : [tiles(prop)];
+      if (art) candidates.push({ id: prop.id, art });
+    }
+    // photo spots are boxes drawn around the painted thing itself (wall decor, the plane through the glass)
+    for (const spot of PHOTO_SPOTS) if (spot.room === room.id && taught.has(spot.id)) candidates.push({ id: spot.id, art: [tiles(spot)] });
+    for (const f of game.furniture) if (taught.has(f.itemId)) candidates.push({ id: f.itemId, art: [renderer.furnitureArt?.(f) ?? tiles(f)] });
+    anchors.push(...framedIds(world, candidates));
   }
   const image = captureFrame(frame);
   shutter(frame, image);
-  net.send({ t: 'diary', action: 'photo', anchors, image });
+  net.send({ t: 'diary', action: 'photo', anchors, image, ...(world ? { frame: world } : {}) });
   // one photo per opening: the camera closes once the blades have opened again (the print carries on to the Diário)
   window.setTimeout(() => {
     if (!game.cameraOn) return;
@@ -603,6 +615,8 @@ function propAction(action: string, propId?: string) {
   else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
   else if (action === 'street_snack' && propId) openStreetSnack(propId, (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
+  else if (action === 'beach_shop') openBeachRack();
+  else if (action === 'pesca' || action === 'fish_sell' || action === 'boat_rental' || action === 'party_boat') praiaAction(action, propId);
   else if (action === 'checkers') openCheckers();
   else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
@@ -696,6 +710,26 @@ function openShop() {
     closed ? { closedNote: { pt: 'Nanda volta às 8h', en: 'Nanda is back at 8 am' } } : {},
   );
 }
+
+/** Jô's beach rack at the Praia: her three sun hats (sold only there). Open at every hour (D12). */
+function openBeachRack() {
+  closeDialogue();
+  openHatShop('shop', { buy: (id) => net.send({ t: 'buy', kind: 'hat', itemId: id }), equip: (id) => net.send({ t: 'equipHat', hatId: id }) }, { stall: 'jo' });
+}
+
+/** The Praia's fishing, the fish tray, Bento's boats and the party boat. */
+function praiaAction(action: 'pesca' | 'fish_sell' | 'boat_rental' | 'party_boat' | 'caderneta', propId?: string) {
+  closeDialogue();
+  if (action === 'pesca' && propId) openPescaSpot(propId);
+  else if (action === 'fish_sell') askTray();
+  else if (action === 'caderneta') openCaderneta();
+  // the party boat's gangway on the pier: Bento's menu (his boats are moored there), whose festa chip starts a trip
+  else if (action === 'boat_rental' || action === 'party_boat') askBarcos();
+}
+
+bindPesca((m) => net.send(m), () => returnBarco());
+bindBarco({ send: (m) => net.send(m), party: () => createParty() });
+bindParty((m) => net.send(m));
 
 function startMinigame() {
   closeDialogue();
@@ -950,7 +984,7 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'petshop' || last === 'aeroporto' || last === 'desembarque';
+      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'petshop' || last === 'aeroporto' || last === 'desembarque' || last === 'praia';
       // a new arrival starts in the arrivals hall (the guided tutorial), then the airport until Célia's hand-over; everybody else comes
       // back where they were, or to the praça
       // the dashboard's design link (`/?design=<room>`) wins over both, once the player has arrived
@@ -974,6 +1008,7 @@ net.on((m: ServerMsg) => {
     case 'error':
       if (m.code === 'far' || m.code === 'photo' || m.code === 'film' || m.code === 'camera') dropPendingPrint();
       if (m.code === 'feira_closed') closeFeiraGame();
+      if (m.code === 'pesca_busy' || m.code === 'pesca' || m.code === 'far') onPescaRefused();
       if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
       else if (m.code === 'petName' && showPetNameError(m.pt, m.en)) {
         /* the naming dialog shows the note */
@@ -985,6 +1020,21 @@ net.on((m: ServerMsg) => {
       break;
     case 'feiraGame':
       onFeiraGameMsg(m);
+      break;
+    case 'pesca':
+      if (m.phase === 'aboard') onAboardCatch(m);
+      else onPescaMsg(m);
+      break;
+    case 'barco':
+      onBarcoMsg(m);
+      break;
+    case 'party':
+      onPartyMsg(m);
+      break;
+    case 'praia':
+      // the admin switch: the map shows the beach as a teaser again while it is closed to this player
+      game.praia = { mode: m.mode, partyBoat: m.partyBoat, allowed: m.allowed };
+      game.emit('praia');
       break;
     case 'photos':
       game.photos = m.photos;
@@ -1030,7 +1080,8 @@ net.on((m: ServerMsg) => {
       game.placing = null;
       game.selectedFurniture = null;
       game.npcBubbles.clear();
-      if (m.room !== 'andar' && (m.room !== 'kitnet' || m.ownerId === game.profile?.id)) sessionStorage.setItem(LAST_ROOM_KEY, m.room);
+      // a party deck is never remembered: a reconnect lands back at the beach
+      if (m.room !== 'andar' && (m.room !== 'kitnet' || m.ownerId === game.profile?.id)) sessionStorage.setItem(LAST_ROOM_KEY, m.room === 'barco_festa' ? 'praia' : m.room);
       ambience.setRoom(m.room);
       updateGuides();
       game.emit('room');
@@ -1073,6 +1124,7 @@ net.on((m: ServerMsg) => {
       syncAcademyFloor();
       syncPadariaFloor();
       maybeAskPetName();
+      onPartyRoomChanged();
       break;
     }
     case 'academy':
@@ -1397,6 +1449,7 @@ function startGame() {
         hop: (room, instanceId, ownerId) => joinRoom(room, instanceId ?? undefined, ownerId),
         refresh: () => net.send({ t: 'friends' }),
         unblock: (id) => net.send({ t: 'block', action: 'unblock', targetId: id }),
+        boat: { hosting: hostingParty, invite: inviteToBoat },
       }),
     openWardrobe: () => openHatShop('wardrobe', { buy: () => {}, equip: (id) => net.send({ t: 'equipHat', hatId: id }) }),
     toggleDecor: () => {
@@ -1577,6 +1630,7 @@ function handleClickInner(hit: Hit | null) {
           report: (id, reason) => net.send({ t: 'report', targetId: id, reason }),
           block: (id, on) => net.send({ t: 'block', action: on ? 'block' : 'unblock', targetId: id }),
           wave: () => net.send({ t: 'emote', kind: 'oi' }),
+          ...(aboardMyParty(a.pub.id) ? { ashore: (id: string) => sendAshore(id) } : {}),
         });
       break;
     }

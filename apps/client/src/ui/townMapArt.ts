@@ -1,7 +1,7 @@
 /**
  * The Mapa's picture: the real Vila Ipê, drawn once on an offscreen canvas from the same layouts, atlas, terrain tiles and props the game
  * uses (`planSnapshot`, the title screen's snapshot), each area placed where `townMapData.AREA_AT` puts it. The ground between the areas
- * (lawn, the 875 bus road from the rua leste up to the airport, the corner where the Praia and the Fazenda wait) is one more made-up area
+ * (lawn, the 875 bus road from the rua leste up to the airport, the corner of the Praia and the Fazenda) is one more made-up area
  * drawn the same way, so the seams are the game's own terrain edges.
  *
  * `planTownMap` is pure (a list of draw ops) and unit tested; `townMapCanvas` touches the DOM.
@@ -46,9 +46,6 @@ function ruaLesteForMap(): RoomDef {
   return { ...def, props: def.props.filter((p) => !(p.kind === 'cerca' && p.art === 'cerca_rua')) };
 }
 
-/** The sand pit decal (top-left anchored, 7 x 5 tiles) with its top-left on tile x, y. */
-const sandAt = (id: string, x: number, y: number): PropDef => ({ id, kind: 'cenario', art: 'decals/areia_pg', x, y: y - 1, w: 1, h: 1, ox: -8, blocks: false });
-
 const prop = (id: string, kind: PropDef['kind'], art: string, x: number, y: number, w = 1, h = 1): PropDef => ({ id, kind, art, x, y, w, h, blocks: false });
 
 /** The ground between the areas, the whole map wide: lawn, the bus road and the corner of the Praia and the Fazenda. */
@@ -61,18 +58,26 @@ export function groundForMap(): RoomDef {
     paint('a', road, 8, road + 3, roadRow + 2); // the street turns south between the rua leste and the airport
     paint('a', road, roadRow, MAP_COLS - 1, roadRow + 2); // and runs east under the airport, on past the feira
     paint('c', s, roadRow + 3, MAP_COLS - 1, roadRow + 3); // a sidewalk past the feira's corner
+    // the Praia's corner: sand down to the sea, the pier's planks out over the water
+    paint('s', s, SOON_AT.praia, MAP_COLS - 1, SOON_AT.fazenda - 1);
+    paint('o', s, SOON_AT.praia + 7, MAP_COLS - 1, SOON_AT.fazenda - 1);
+    paint('b', s + 7, SOON_AT.praia + 4, s + 8, SOON_AT.fazenda - 1);
+    paint('b', s + 5, SOON_AT.praia + 8, s + 6, SOON_AT.praia + 8);
   });
   const props: PropDef[] = [
     // trees on the lawn north of the corner, and along the left edge of the praça
     prop('m_jeriva_n', 'arvore', 'props/jeriva', road, 2, 2),
     prop('m_arvore_n', 'arvore', 'props/arvore_rua', road + 2, 4, 2),
-    // the Praia: a stretch of sand with palms, towels and the coconut cart, under the end of the road
-    sandAt('m_areia', s + 1, SOON_AT.praia + 3),
-    prop('m_coco', 'cenario', 'props/carrinho_coco', s + 6, SOON_AT.praia + 2, 3, 1),
-    prop('m_palm_a', 'arvore', 'props/jeriva', s, SOON_AT.praia + 3, 2),
-    prop('m_toalha_a', 'cenario', 'decals/toalha_azul', s + 2, SOON_AT.praia + 6, 2, 2),
-    prop('m_toalha_b', 'cenario', 'decals/toalha_amarela', s + 5, SOON_AT.praia + 7, 2, 2),
-    prop('m_palm_b', 'arvore', 'props/jeriva_b', s + 7, SOON_AT.praia + 9, 2),
+    // the Praia, a small picture of the real one: sand, Jô's kiosk, two umbrellas, the pier running out into the sea with a boat moored at it
+    prop('m_palm_a', 'arvore', 'props/jeriva', s, SOON_AT.praia + 2, 2),
+    prop('m_quiosque', 'quiosque_praia', 'praia/quiosque_coco', s + 2, SOON_AT.praia + 2, 3, 1),
+    prop('m_gs_a', 'guarda_sol', 'praia/guarda_sol_a', s + 2, SOON_AT.praia + 5),
+    prop('m_toalha_a', 'cenario', 'decals/toalha_azul', s + 3, SOON_AT.praia + 5),
+    prop('m_gs_b', 'guarda_sol', 'praia/guarda_sol_b', s + 5, SOON_AT.praia + 4),
+    prop('m_castelo', 'cenario', 'praia/castelo_areia', s + 1, SOON_AT.praia + 6),
+    prop('m_remo', 'barco', 'praia/barco_remo', s + 5, SOON_AT.praia + 8, 2, 1),
+    prop('m_pier_fim', 'cenario', 'praia/pier_fim', s + 7, SOON_AT.praia + 9, 2),
+    prop('m_palm_b', 'arvore', 'props/jeriva_b', s + 7, SOON_AT.praia + 3, 2),
     // the Fazenda: a fenced plot of furrows, crates and sacks of the harvest, and a mango tree
     { ...prop('m_cerca', 'cerca', 'cerca_jardim', s, SOON_AT.fazenda + 1, 7, 7), blocks: true },
     ...[0, 1, 2, 3, 4].flatMap((i) => [{ ...prop(`m_sulco_${i}`, 'cenario', 'decals/dirt_2', s + 2, SOON_AT.fazenda + 2 + i, 3), oy: -8 }]),

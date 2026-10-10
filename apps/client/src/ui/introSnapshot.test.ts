@@ -11,7 +11,7 @@ import { PAN_ROUTE, introZoom, mapOffset, panCenter } from './introCamera';
 
 const root = path.resolve(__dirname, '../../public/pixel');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')) as Manifest;
-// every atlas the world loads up front (the pet shop's pieces have their own, #234)
+// every atlas the world loads up front (the outdoor one, and the beach's own; the pet shop's pieces have their own, #234)
 const atlases = Object.fromEntries(
   Object.entries(manifest.atlases).filter(([, a]) => !a.lazy).map(([name, a]) => [name, JSON.parse(fs.readFileSync(path.join(root, a.data), 'utf8')) as { frames: Record<string, unknown> }]),
 );

@@ -62,6 +62,8 @@ export const LIGHT_PRESETS: Record<string, LightPreset> = {
   // the feira's bunting over the aisle (96 px overhead, wire at its top): warm bulbs along the wire, so the aisle between the folded stalls
   // reads at night like the praça's lit corners, and the puddles under it catch them in the rain
   'props/bandeirinhas_b': { lights: stringLights(84, -18, 4, '#ffcf7a') },
+  // the short bunting (one post, a 16 px overhead line): on the party boat's deck its two bulbs come on with the pier lamps at sunset
+  'props/bandeirinha': { lights: stringLights(12, -14, 2, '#ffcf7a') },
 };
 
 /** The preset of a sprite key, the generic one when the prop is flagged, else none. */

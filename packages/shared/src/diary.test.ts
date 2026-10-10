@@ -14,7 +14,12 @@ import {
   handCartela,
   normalizeArrival,
   normalizeDiary,
+  PHOTO_KEEP,
   PHOTO_MAX_CHARS,
+  addPhoto,
+  normalizePhotos,
+  photoForWord,
+  photoWordIds,
   pickPhotoUrl,
   objectAnchorExists,
   practiceCorrect,
@@ -103,6 +108,36 @@ describe('language diary catalog', () => {
     expect(pickPhotoUrl([small, big])).toBe(small);
   });
 
+  it('keeps one image for a shot of several words, and shows it for each of them', () => {
+    const img = 'data:image/jpeg;base64,AAAA';
+    const [fonte, banco, telhado] = [...wordsForPhoto('fonte'), ...wordsForPhoto('banco_1'), ...wordsForPhoto('coreto')].map((w) => w.id);
+    const older = addPhoto([], { id: 'a', at: 1, image: 'data:image/jpeg;base64,BBBB', wordIds: [] });
+    const photos = addPhoto(older, { id: 'b', at: 2, image: img, wordIds: [fonte!, banco!, telhado!, fonte!, 'nada'] });
+    expect(photos.map((p) => p.id)).toEqual(['b', 'a']);
+    // stored once, linked from every word the shot taught (in order, no repeats, no unknown ids); `wordId` stays the first for old clients
+    expect(photos[0]).toEqual({ id: 'b', at: 2, image: img, wordId: fonte, wordIds: [fonte, banco, telhado] });
+    expect(photos[1]).toEqual({ id: 'a', at: 1, image: 'data:image/jpeg;base64,BBBB' });
+    for (const id of [fonte!, banco!, telhado!]) expect(photoForWord(photos, id)?.id).toBe('b');
+    expect(photoForWord(photos, 'nada')).toBeUndefined();
+    // a newer shot of the same thing is the one shown
+    const again = addPhoto(photos, { id: 'c', at: 3, image: img, wordIds: [banco!] });
+    expect(photoForWord(again, banco!)?.id).toBe('c');
+    expect(photoForWord(again, fonte!)?.id).toBe('b');
+    // the kept photos stay capped
+    let many = again;
+    for (let i = 0; i < PHOTO_KEEP + 3; i++) many = addPhoto(many, { id: `x${i}`, at: 10 + i, image: img, wordIds: [] });
+    expect(many).toHaveLength(PHOTO_KEEP);
+  });
+
+  it('reads an old save’s one-word photo as the photo of that word', () => {
+    const fonte = wordsForPhoto('fonte')[0]!.id;
+    const [old] = normalizePhotos([{ id: 'o', at: 5, image: 'data:image/jpeg;base64,AAAA', wordId: fonte }]);
+    expect(old).toEqual({ id: 'o', at: 5, image: 'data:image/jpeg;base64,AAAA', wordId: fonte, wordIds: [fonte] });
+    expect(photoWordIds({ wordId: fonte })).toEqual([fonte]);
+    expect(photoWordIds({ wordIds: 'nope', wordId: 'nada' })).toEqual([]);
+    expect(normalizePhotos([{ id: 'n', at: 1, image: 'data:image/jpeg;base64,AAAA' }])[0]).toEqual({ id: 'n', at: 1, image: 'data:image/jpeg;base64,AAAA' });
+  });
+
   it('hands the cartela over with the camera, and treats a missing arrival flag as already home', () => {
     expect(handCartela()).toEqual({ given: true });
     expect(normalizeArrival(undefined)).toEqual({ arrivalIntroDone: true, hasCamera: false });
@@ -125,17 +160,19 @@ describe('language diary catalog v2', () => {
     escola: [22, 5, 3, 1],
     // the Pet Shop do Seu Dito (#234): the six pen words are earned by petting an animal, never by adopting one
     petshop: [16, 6, 14, 0],
+    // the Praia (PRAIA-PLAN.md 4.3): 14 fish and 32 moment words from fishing, Neide's three beats, the beach's signs and things
+    praia: [10, 7, 3, 46],
   };
 
-  it('has 532 words: the counts of every area and source, 135 that were already anchored and 397 that were added', () => {
-    expect(DIARY_WORDS).toHaveLength(532);
+  it('has 598 words: the counts of every area and source, 135 that were already anchored and 463 that were added', () => {
+    expect(DIARY_WORDS).toHaveLength(598);
     for (const [area, want] of Object.entries(TOTALS)) {
       const got = DIARY_SOURCES.map((src) => DIARY_WORDS.filter((w) => w.area === area && w.source === src).length);
       expect(got, area).toEqual(want);
     }
     expect(DIARY_AREAS.map((a) => a.id)).toEqual(Object.keys(TOTALS));
     expect(DIARY_WORDS.filter((w) => w.origin === 'existing')).toHaveLength(135);
-    expect(DIARY_WORDS.filter((w) => w.origin === 'added')).toHaveLength(397);
+    expect(DIARY_WORDS.filter((w) => w.origin === 'added')).toHaveLength(463);
     for (const w of DIARY_WORDS) expect(w.needsBr, w.id).toBe(true);
   });
 
@@ -154,7 +191,7 @@ describe('language diary catalog v2', () => {
   });
 
   it('puts every added object in the room its area is about, on a tile the room has', () => {
-    const roomsOf: Record<string, (keyof typeof ROOMS)[]> = { praca: ['praca'], rua: ['rua', 'rua_leste'], padaria: ['padaria'], feira: ['feira'], kitnet: ['kitnet'], academia: ['academia'], escola: ['escola'], petshop: ['petshop', 'rua_leste'] };
+    const roomsOf: Record<string, (keyof typeof ROOMS)[]> = { praca: ['praca'], rua: ['rua', 'rua_leste'], padaria: ['padaria'], feira: ['feira'], kitnet: ['kitnet'], academia: ['academia'], escola: ['escola'], petshop: ['petshop', 'rua_leste'], praia: ['praia', 'barco_festa'] };
     for (const w of DIARY_WORDS.filter((x) => x.origin === 'added' && x.source === 'camera' && x.area !== 'chegada')) {
       const rooms = roomsOf[w.area]!.map((r) => ROOMS[r]);
       const there = (id: string) => rooms.some((room) => room.props.some((p) => p.id === id)) || !!(id.startsWith('kitnet_') || id.startsWith('padaria_') || id === 'cobogo');
@@ -166,10 +203,12 @@ describe('language diary catalog v2', () => {
   });
 
   it('keeps practice and the jiu-jitsu fight out of the sources, and the game words to aula and the five Correria wins', () => {
-    const game = DIARY_WORDS.filter((w) => w.source === 'game').map((w) => w.pt).sort();
+    const game = DIARY_WORDS.filter((w) => w.source === 'game' && w.area !== 'praia').map((w) => w.pt).sort();
     expect(game).toEqual(['aula', 'bolo', 'coxinha', 'guaraná', 'misto', 'queijo']);
+    // the Praia's game words all come from fishing, one game per water
+    expect(DIARY_WORDS.filter((w) => w.area === 'praia' && w.source === 'game').every((w) => w.anchor.id.startsWith('pesca.'))).toBe(true);
     expect(DIARY_WORDS.filter((w) => w.area === 'academia' && w.source === 'game')).toEqual([]);
-    expect(DIARY_GAMES.map((g) => g.id).sort()).toEqual(['correria', 'escola.pratica']);
+    expect(DIARY_GAMES.map((g) => g.id).sort()).toEqual(['correria', 'escola.pratica', 'pesca.alto_mar', 'pesca.festa', 'pesca.lagoa', 'pesca.pesca', 'pesca.praia', 'pesca.remo']);
     expect(DIARY_GAMES.find((g) => g.id === 'correria')).toMatchObject({ room: 'padaria', host: { npc: 'carlos' } });
     expect(DIARY_GAMES.find((g) => g.id === 'escola.pratica')).toMatchObject({ room: 'escola', host: { npc: 'lucia' }, rv: 1 });
     for (const pt of ['fonte', 'coreto', 'guia', 'aula']) expect(DIARY_WORDS.find((w) => w.pt === pt)?.seed, pt).toBe(true);

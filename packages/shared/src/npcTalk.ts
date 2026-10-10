@@ -106,6 +106,100 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
       },
     },
   },
+  // ---- the Praia (PRAIA-PLAN.md 6). Special `next`s: `rental` (Bento's boats), `caderneta` (Neide's fishing log), `snacks` (Jô's menu),
+  // `sell` (Jô's fish tray), `rack` (Jô's beach hats). needs_br: true (every line and chip)
+  bento: {
+    start: 'oi',
+    nodes: {
+      oi: {
+        line: { pt: '{saudacao}! Eu sou o Bento. Esses barcos aí são todos meus.', en: '{greeting}! I’m Bento. Those boats there are all mine.' },
+        chips: [
+          { pt: 'Quanto custa alugar?', en: 'How much to rent?', next: 'precos' },
+          { pt: 'Qual é o melhor barco?', en: 'Which is the best boat?', next: 'melhor' },
+          { pt: 'E o barco de festa?', en: 'And the party boat?', next: 'festa' },
+          { pt: 'Tchau, Seu Bento!', en: 'Bye, Mr. Bento!', next: 'end' },
+        ],
+      },
+      precos: {
+        line: { pt: 'O barquinho a remo é baratinho. Os outros custam mais. Quer ver?', en: 'The little rowboat is cheap. The others cost more. Want to see?' },
+        chips: [
+          { pt: 'Quero ver os barcos.', en: 'I want to see the boats.', next: 'rental' },
+          { pt: 'Agora não, {obrigad}.', en: 'Not now, thanks.', next: 'end' },
+        ],
+      },
+      melhor: {
+        line: { pt: 'Pra começar, o barquinho a remo. Pra peixe grande, o de alto-mar.', en: 'To start, the little rowboat. For big fish, the deep-sea boat.' },
+        chips: [
+          { pt: 'Quero alugar um barco.', en: 'I want to rent a boat.', next: 'rental' },
+          { pt: 'Valeu, Seu Bento!', en: 'Thanks, Mr. Bento!', next: 'end' },
+        ],
+      },
+      festa: {
+        line: { pt: 'Esse é pra ir com os amigos. Música, churrasco e muita pescaria.', en: 'That one’s for going with friends. Music, barbecue and lots of fishing.' },
+        chips: [
+          { pt: 'Quero ver os barcos.', en: 'I want to see the boats.', next: 'rental' },
+          { pt: 'Legal! Tchau!', en: 'Cool! Bye!', next: 'end' },
+        ],
+      },
+    },
+  },
+  neide: {
+    start: 'oi',
+    nodes: {
+      oi: {
+        line: { pt: '{saudacao}, {nome}. Senta aí. Já pescou hoje?', en: '{greeting}, {nome}. Sit down. Fished yet today?' },
+        chips: [
+          { pt: 'Como é que pesca?', en: 'How do you fish?', next: 'como' },
+          { pt: 'Onde tem peixe grande?', en: 'Where are the big fish?', next: 'grande' },
+          { pt: 'Minha caderneta de pesca', en: 'My fishing log', next: 'caderneta' },
+          { pt: 'Tchau, Dona Neide!', en: 'Bye, Dona Neide!', next: 'end' },
+        ],
+      },
+      como: {
+        line: { pt: 'Segura pra lançar, e solta.', en: 'Hold to cast, and let go.' },
+        chips: [{ pt: 'E depois?', en: 'And then?', next: 'como2' }],
+      },
+      como2: {
+        line: { pt: 'Quando a boia afunda, é Fisgou! Toca rápido.', en: 'When the bobber sinks, that’s Fisgou! Tap fast.' },
+        chips: [{ pt: 'E depois?', en: 'And then?', next: 'como3' }],
+      },
+      como3: {
+        line: { pt: 'Puxa segurando. Ele corre? Solta um pouco.', en: 'Reel by holding. He runs? Let go a bit.' },
+        chips: [
+          { pt: 'Entendi, {obrigad}!', en: 'Got it, thanks!', next: 'end' },
+          { pt: 'Onde tem peixe grande?', en: 'Where are the big fish?', next: 'grande' },
+        ],
+      },
+      grande: {
+        line: { pt: 'Na lagoa tem tucunaré. No alto-mar tem marlim. Mas cada um no seu dia.', en: 'The lagoon has peacock bass. The high seas have marlin. Each on its own day.' },
+        chips: [
+          { pt: 'Como é que pesca?', en: 'How do you fish?', next: 'como' },
+          { pt: 'Valeu, Dona Neide!', en: 'Thanks, Dona Neide!', next: 'end' },
+        ],
+      },
+    },
+  },
+  jo: {
+    start: 'oi',
+    nodes: {
+      oi: {
+        line: { pt: '{saudacao}, meu bem! Vai um coco?', en: '{greeting}, dear! Coconut water?' },
+        chips: [
+          { pt: 'Vou querer um lanche.', en: 'I’d like a snack.', next: 'snacks' },
+          { pt: 'Quer comprar peixe?', en: 'Do you want to buy fish?', next: 'peixe' },
+          { pt: 'Tem chapéu aí?', en: 'Got any hats?', next: 'rack' },
+          { pt: 'Só olhando, {obrigad}!', en: 'Just looking, thanks!', next: 'end' },
+        ],
+      },
+      peixe: {
+        line: { pt: 'Quero sim! Mostra o balde.', en: 'Sure I do! Show me the bucket.' },
+        chips: [
+          { pt: 'Tá aqui!', en: 'Here it is!', next: 'sell' },
+          { pt: 'Depois eu volto.', en: 'I’ll come back later.', next: 'end' },
+        ],
+      },
+    },
+  },
   julia: {
     start: 'oi',
     nodes: {

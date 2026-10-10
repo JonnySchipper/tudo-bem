@@ -2,7 +2,9 @@
 
 > **NOT NEEDED UNTIL LATE DECEMBER 2026.** This is a future feature and isn't part of the current beta. Don't schedule it before then.
 
-**Status:** Future feature spec from Jonny, written 8 Oct 2026 by TB Brainstorm. Not built.
+**Built in #251** (10 Oct 2026, Jonny moved it up from December), see [docs/PRAIA-PLAN.md](../PRAIA-PLAN.md) and the "Praia" entry in [DECISIONS.md](../lifesim/DECISIONS.md).
+
+**Status:** Future feature spec from Jonny, written 8 Oct 2026 by TB Brainstorm.
 **Owner:** CEO Tudo Bem. CEO Tudo Bem can assign **Grok Build or Composer 2.5** when it's time.
 **Depends on:** the Praia room, which shows as "Em breve" today (GDD v2 §3 and §8.5). This spec replaces v1's "Praia pesca: Fisgou!" vision.
 **Must follow:** [events-requirements.md](events-requirements.md) (exclusive words).

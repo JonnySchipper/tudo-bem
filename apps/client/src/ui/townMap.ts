@@ -1,7 +1,8 @@
 /**
  * The Mapa panel: one big picture of Vila Ipê, drawn from the game's own areas (`townMapArt.ts`). Each place is its own button (it lights up
  * on hover or the first tap on a phone, with its name in Portuguese and English); a click travels with the same `join` the game always used.
- * "Você está aqui" marks where you are; Praia and Fazenda sit fogged in their corner with an "Em breve" ribbon and a teaser. Data and rules:
+ * "Você está aqui" marks where you are; the Fazenda sits fogged in its corner with an "Em breve" ribbon and a teaser (the Praia too, while the
+ * admin has it closed). Data and rules:
  * `townMapData.ts`.
  */
 import type { RoomId } from '@tudobem/shared';
@@ -24,7 +25,7 @@ const at = (x: number, y: number) => `left:${((x / MAP_W) * 100).toFixed(3)}%;to
 
 export function openMap(go: (room: RoomId) => void) {
   const here = hereSpotId(game.room?.room);
-  const spots = mapSpots();
+  const spots = mapSpots({ praiaOpen: game.praia.allowed });
   let selected: string | null = null;
   let touch = false;
 
@@ -139,7 +140,7 @@ export function openMap(go: (room: RoomId) => void) {
       { class: 'panel townmap' },
       h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('h2', null, 'Vila Ipê · São Paulo'),
-      en('Tap a place to go there. Praia and Fazenda are coming soon.'),
+      en(game.praia.allowed ? 'Tap a place to go there. Fazenda is coming soon.' : 'Tap a place to go there. Praia and Fazenda are coming soon.'),
       scroll,
       teaser,
     ),

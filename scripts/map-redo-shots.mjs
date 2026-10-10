@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * The Mapa redo (#173): one illustrated map where each place is the button. Opens the map on desktop (1280x800) and phone (390x844), shoots it
- * plain, with a place hovered (desktop) or tapped once (phone), and with the Praia teaser up. Then it checks travel: a click on every place
- * of the map joins that room, and a click on Praia / Fazenda never leaves the room you are in.
+ * plain, with a place hovered (desktop) or tapped once (phone), and with the Fazenda teaser up. Then it checks travel: a click on every place
+ * of the map (the Praia too) joins that room, and a click on the Fazenda never leaves the room you are in.
  *
  *   pnpm build && pnpm start &
  *   node scripts/map-redo-shots.mjs        # BASE_URL (default http://localhost:8787/), CHROME_PATH, SHOTS_DIR optional
@@ -23,7 +23,8 @@ assert(CHROME, 'Chrome/Chromium not found: set CHROME_PATH');
 fs.mkdirSync(OUT, { recursive: true });
 const log = (...a) => console.log('  ·', ...a);
 
-const PLACES = ['aeroporto', 'kitnet', 'padaria', 'academia', 'escola', 'rua', 'rua_leste', 'praca', 'feira'];
+// the Praia travels (the 875 bus goes on there, PRAIA-PLAN.md 1.1); the Fazenda is still a teaser
+const PLACES = ['aeroporto', 'kitnet', 'padaria', 'academia', 'escola', 'rua', 'rua_leste', 'praca', 'feira', 'praia'];
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
@@ -74,12 +75,12 @@ try {
     log(vp.name, vp.touch ? 'tap' : 'hover');
 
     // the coming-soon teaser: never travel
-    for (const soon of ['fazenda', 'praia']) {
+    for (const soon of ['fazenda']) {
       if (vp.touch) {
-        await page.evaluate((id) => {
+        await page.evaluate(() => {
           const s = document.querySelector('.tm-scroll');
-          s.scrollLeft = id === 'praia' ? 0 : s.scrollWidth;
-        }, soon);
+          s.scrollLeft = s.scrollWidth;
+        });
         await sleep(200);
         await page.tap(`.tm-spot[data-spot="${soon}"] .tm-hit`);
       } else await page.click(`.tm-spot[data-spot="${soon}"] .tm-hit`);

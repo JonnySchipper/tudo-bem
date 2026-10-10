@@ -10,6 +10,7 @@ import { JULIA_INTRO, JULIA_INTRO_FROM_GREETING, JULIA_TREE } from './juliaTalk.
 import { localizeGreetingText } from './clock.js';
 import { DIARY_WORDS } from './diary.js';
 import { luciaSpokenLines } from './escolaCopy.js';
+import { pescaSpokenLines } from './pescaLines.js';
 import { airportSpokenLines } from './airportTalk.js';
 import { flightSpokenLines } from './flightTalk.js';
 import { ROOMS, type NpcId } from './rooms.js';
@@ -148,6 +149,8 @@ export function collectSpokenLines(): SpokenLine[] {
   for (const l of airportSpokenLines()) add(l.speaker, l.text, `airport ${l.speaker}`);
   // the flight in (the new-account cutscene): Lia in the cabin, the captain over the PA
   for (const l of flightSpokenLines()) add(l.speaker, l.text, `flight ${l.speaker}`);
+  // the Praia: the fishing stage's words, Dona Neide's coaching, Jô buying fish, Seu Bento's rentals
+  for (const l of pescaSpokenLines()) add(l.speaker, l.text, `praia ${l.speaker}`);
   for (const room of Object.values(ROOMS))
     for (const npc of room.npcs) npc.idleLines.forEach((l, i) => MINUTES.forEach((minute) => add(npc.id, localizeGreetingText(l.pt, minute), `idle ${npc.id}.idle${i}`)));
 

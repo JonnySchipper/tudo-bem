@@ -26,7 +26,8 @@ export interface SpriteDef {
 
 export interface TerrainLayerDef {
   name: string;
-  edge: 'slab' | 'flat' | 'flush';
+  /** `shore`: the Praia's sea, cut like `flush` with foam on its edges */
+  edge: 'slab' | 'flat' | 'flush' | 'shore';
   first: number;
   phases: number;
   /** vertical phases of a 2D phase grid (flush floors); absent = 1 */

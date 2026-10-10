@@ -13,13 +13,7 @@ import { ambience } from '../ambience';
 import { WordQueue, cardMs, momentsOfShot, type QueuedWord, type WordMoment } from './diaryWordQueue';
 import { flyWord } from './wordFlight';
 import { miniBook, revealJournal, wantsReveal } from './journalReveal';
-
-export const FRAME_W = 220;
-export const FRAME_H = 148;
-
-export function cameraFrameAt(x: number, y: number) {
-  return { x: x - FRAME_W / 2, y: y - FRAME_H / 2, w: FRAME_W, h: FRAME_H };
-}
+import { cameraFrameAt, clientRectToCanvas } from './viewfinder';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
@@ -53,9 +47,10 @@ export function syncCameraFrame(x?: number, y?: number) {
     document.getElementById('ui')?.append(el);
   }
   if (x != null && y != null) {
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
-    const f = cameraFrameAt(x, y);
+    // the same rect the shot uses (slid back on screen near an edge), so what is framed is what is taken
+    const f = cameraFrameAt(x, y, window.innerWidth, window.innerHeight);
+    el.style.left = `${f.x + f.w / 2}px`;
+    el.style.top = `${f.y + f.h / 2}px`;
     const [l, t, r, b] = [f.x, f.y, f.x + f.w, f.y + f.h].map((v) => `${Math.round(v)}px`);
     shade.style.clipPath = `polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${l} ${t}, ${r} ${t}, ${r} ${b}, ${l} ${b}, ${l} ${t})`;
   }
@@ -310,10 +305,9 @@ export function captureFrame(frame: { x: number; y: number; w: number; h: number
   const canvas = document.getElementById('world');
   if (!(canvas instanceof HTMLCanvasElement)) return;
   const r = canvas.getBoundingClientRect();
-  const sx = ((frame.x - r.left) / r.width) * canvas.width;
-  const sy = ((frame.y - r.top) / r.height) * canvas.height;
-  const sw = (frame.w / r.width) * canvas.width;
-  const sh = (frame.h / r.height) * canvas.height;
+  if (!r.width || !r.height) return;
+  // the canvas' backing store under the frame: the same client -> device mapping the shot uses to find the words (viewfinder.ts)
+  const { x: sx, y: sy, w: sw, h: sh } = clientRectToCanvas(frame, { x: r.left, y: r.top, w: r.width, h: r.height }, { w: canvas.width, h: canvas.height });
   if (sw < 2 || sh < 2) return;
   const out = document.createElement('canvas');
   out.width = 240;

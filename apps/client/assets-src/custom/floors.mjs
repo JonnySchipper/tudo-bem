@@ -12,6 +12,7 @@ import { blank, clone, crop } from '../../../../scripts/lib/pixel/img.mjs';
 import { C, K, put, fillRect, h2 } from './paint.mjs';
 import { recolorRamp } from './kit.mjs';
 import { mat, MAT_BLUE } from './gym3.mjs';
+import { agua, deque } from './praia.mjs';
 
 const tile = () => blank(16, 16);
 
@@ -197,6 +198,9 @@ export const FLOORS = {
   xadrez: { fn: xadrez, phasesX: 1, phasesY: 1 },
   tatame: { fn: tatame, phasesX: 4, phasesY: 4 },
   granilite: { fn: granilite, phasesX: 4, phasesY: 4 },
+  // the Praia (custom/praia.mjs): the sea (a `shore` terrain: foam where it meets anything) and the pier's planks
+  agua: { fn: agua, phasesX: 2, phasesY: 2 },
+  deque: { fn: deque, phasesX: 2, phasesY: 1 },
 };
 
 export { C, clone };

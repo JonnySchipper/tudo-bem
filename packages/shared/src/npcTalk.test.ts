@@ -4,12 +4,14 @@ import { classifyChat } from './safety.js';
 import { cardsInText } from './caderno.js';
 import { isNpcId } from './bonds.js';
 
-const RESERVED = new Set(['end', 'help', 'shop', 'treino', 'adopt', 'petshop']);
+// the Praia's trees leave the talk for a panel: Bento's boats, Neide's log, Jô's snacks / fish tray / beach rack; Seu Dito's opens the pet shop
+const RESERVED = new Set(['end', 'help', 'shop', 'treino', 'rental', 'caderneta', 'snacks', 'sell', 'rack', 'adopt', 'petshop']);
+const PRAIA_NPCS = ['bento', 'neide', 'jo'] as const;
 
 describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia, Seu Dito)', () => {
   it('exist for Nanda and Júlia, three lines with two reply chips each (Seu Dito has five)', () => {
-    expect(TALKING_NPCS.sort()).toEqual(['dito', 'graca', 'julia', 'nanda', 'prof']);
-    for (const npc of TALKING_NPCS) {
+    expect(TALKING_NPCS.sort()).toEqual(['bento', 'dito', 'graca', 'jo', 'julia', 'nanda', 'neide', 'prof']);
+    for (const npc of TALKING_NPCS.filter((id) => !(PRAIA_NPCS as readonly string[]).includes(id))) {
       const t = NPC_TALK[npc]!;
       expect(isNpcId(npc)).toBe(true);
       expect(Object.keys(t.nodes)).toHaveLength(npc === 'dito' ? 5 : 3);
@@ -40,6 +42,20 @@ describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia, Se
       }
       expect(seen.size, npc).toBe(Object.keys(t.nodes).length);
       expect(ends).toBe(true);
+    }
+  });
+
+  it('the Praia: Bento opens the rentals, Neide teaches the three beats and keeps the log, Jô sells snacks, buys fish and has hats', () => {
+    const next = (npc: (typeof PRAIA_NPCS)[number]) => Object.values(NPC_TALK[npc]!.nodes).flatMap((n) => n.chips.map((c) => c.next));
+    expect(next('bento')).toContain('rental');
+    expect(next('neide')).toEqual(expect.arrayContaining(['como', 'caderneta']));
+    expect(['como', 'como2', 'como3'].every((id) => NPC_TALK.neide!.nodes[id])).toBe(true);
+    expect(next('jo')).toEqual(expect.arrayContaining(['snacks', 'sell', 'rack']));
+    for (const npc of PRAIA_NPCS) {
+      expect(isNpcId(npc)).toBe(true);
+      for (const [id, node] of Object.entries(NPC_TALK[npc]!.nodes)) for (const c of node.chips) expect(RESERVED.has(c.next) || NPC_TALK[npc]!.nodes[c.next], `${npc}.${id} -> ${c.next}`).toBeTruthy();
+      // nobody on the beach waves or says "oi" as a wave: the greeting is by the hour
+      expect(NPC_TALK[npc]!.nodes[NPC_TALK[npc]!.start]!.line.pt).toMatch(/^\{saudacao\}/);
     }
   });
 

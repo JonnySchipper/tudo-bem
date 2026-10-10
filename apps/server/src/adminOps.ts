@@ -38,6 +38,7 @@ import {
   grantCompSubscription,
   hasPerkAccess,
   isBelt,
+  isPraiaMode,
   isRoomId,
   itemById,
   mutedCopy,
@@ -46,10 +47,12 @@ import {
   normalizeEscola,
   parrotColorById,
   revokeCompSubscription,
+  speciesCaught,
   takeFromBag,
   validateName,
   type Belt,
   type FeiraCartMode,
+  type PraiaConfig,
   type TutorialStep,
 } from '@tudobem/shared';
 import type { Account, AccountStore } from './auth.js';
@@ -278,6 +281,7 @@ export function playerDetail(ctx: AdminCtx, id: unknown): OpResult {
       banned: p.banned ?? null,
       testUser: p.testUser === true,
       feiraMedals: p.feiraMedals ?? [],
+      pesca: pescaSummary(p),
     },
     academy: academy ? { id: academy.id, name: academy.name, owner: academy.ownerId === p.id, members: academy.members.length } : null,
     padaria: padaria ? { id: padaria.id, name: padaria.name, size: padaria.size } : null,
@@ -535,6 +539,62 @@ export function resetIntro(ctx: AdminCtx, actor: string, body: Body): OpResult {
     ctx.audit.append({ actor, action: 'player.reset-intro', target: p.id, summary: `reset ${which} (${p.name})`, before, after });
     return { ok: true };
   });
+}
+
+/** Support: clear a player's fishing (log, bucket, rentals, trip, sales, coaching). Words already in the diary and earned items stay. */
+export function resetPesca(ctx: AdminCtx, actor: string, body: Body): OpResult {
+  return withProfile(ctx, body, (p) => {
+    const before = pescaSummary(p);
+    delete p.pesca;
+    ctx.store.save(p.id);
+    ctx.world.changed(p.id);
+    ctx.audit.append({ actor, action: 'player.reset-pesca', target: p.id, summary: `reset fishing (${p.name})`, before, after: null });
+    return { ok: true };
+  });
+}
+
+/** The player page's fishing summary (PRAIA-PLAN.md 8.5). Null: never fished. */
+export function pescaSummary(p: StoredProfile) {
+  const pr = p.pesca;
+  if (!pr) return null;
+  let record: { fish: string; cm: number } | null = null;
+  for (const [fish, row] of Object.entries(pr.log)) if (row && (!record || row.bestCm > record.cm)) record = { fish, cm: row.bestCm };
+  return {
+    casts: pr.casts,
+    catches: pr.catches,
+    species: speciesCaught(pr).length,
+    record,
+    balde: pr.balde,
+    rentals: pr.rentals,
+    trip: pr.trip,
+    salesToday: pr.sales,
+    party: pr.party,
+  };
+}
+
+// ---------------------------------------------------------------- the Praia (PRAIA-PLAN.md 1.2, 8.5)
+
+export function praiaView(ctx: AdminCtx) {
+  return { ok: true as const, praia: ctx.world.praiaView() };
+}
+
+/** The Praia switch: mode (open / preview / closed) and the party boat, either or both. Audited before/after; every player is told. */
+export function setPraiaMode(ctx: AdminCtx, actor: string, body: Body): OpResult {
+  const patch: Partial<PraiaConfig> = {};
+  if (body.mode !== undefined) {
+    if (!isPraiaMode(body.mode)) return fail(400, 'Mode is open, preview or closed.');
+    patch.mode = body.mode;
+  }
+  if (body.partyBoat !== undefined) {
+    if (typeof body.partyBoat !== 'boolean') return fail(400, 'partyBoat is true or false.');
+    patch.partyBoat = body.partyBoat;
+  }
+  if (!Object.keys(patch).length) return fail(400, 'Send mode, partyBoat or both.');
+  const v = ctx.world.praiaView();
+  const before = { mode: v.mode, partyBoat: v.partyBoat };
+  const after = ctx.world.setPraia(patch);
+  ctx.audit.append({ actor, action: 'world.praia', target: 'praia', summary: `praia: ${before.mode}/${before.partyBoat ? 'boat on' : 'boat off'} -> ${after.mode}/${after.partyBoat ? 'boat on' : 'boat off'}`, before, after: { ...after } });
+  return { ok: true, praia: ctx.world.praiaView() };
 }
 
 /** Gameplay progress back to a new player's, keeping the login, the name and looks, friends, photos, founder marks and any subscription. */
@@ -806,6 +866,7 @@ export function worldView(ctx: AdminCtx) {
     instances: ctx.world.instances(),
     layouts: overrides.size ? [...overrides].map(([room, objects]) => ({ room, objects })) : [],
     feiraCart: ctx.world.feiraCartView(),
+    praia: ctx.world.praiaView(),
     roomCap: { value: ctx.config.get('roomCap'), overridden: ctx.config.isOverridden('roomCap') },
   };
 }
