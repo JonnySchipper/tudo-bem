@@ -135,7 +135,7 @@ export function decorArt(d: WallDecor): DecorArt | null {
     case 'foto': return { key: 'walls/foto', mode: 'center', bottom: -12, tiles: 2 };
     // the pet shop's two plaques carry their own lettering (#234); every other placa is the academia's
     case 'placa':
-      if (d.text === 'BANHO E TOSA') return { key: 'walls/placa_banho_tosa', mode: 'center', bottom: -12, tiles: 3 };
+      if (d.text === 'BANHO E TOSA') return { key: 'walls/placa_banho_tosa', mode: 'center', bottom: -12, tiles: 2 };
       if (d.text === 'VETERINÁRIO') return { key: 'walls/placa_vet', mode: 'center', bottom: -12, tiles: 3 };
       return { key: 'walls/placa', mode: 'center', bottom: -12, tiles: 4 };
     case 'poster': return { key: d.text?.startsWith('RESPEITO') ? 'walls/poster_respeito' : d.text === 'ADOÇÃO' ? 'walls/poster_adocao' : 'walls/poster', mode: 'center', bottom: -8, tiles: 2 };

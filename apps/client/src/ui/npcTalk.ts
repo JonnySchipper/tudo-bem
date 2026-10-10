@@ -17,8 +17,10 @@ import { hasPapo } from './papo';
 export interface TalkHooks {
   /** Tell the server (`{ t: 'talk', npc }`); optional now that the caller sends it when the NPC is first spoken to. */
   talked?: (npc: NpcId) => void;
-  /** Open the hat shop (Nanda). */
+  /** Open the hat shop (Nanda); Seu Dito's pet shop panel on the Lojinha tab. */
   openShop: () => void;
+  /** Seu Dito's "Quero ver!": the pet shop panel on the Adotar tab. */
+  openAdopt?: () => void;
   /** A node is on screen (`npc.node`). The diary may keep a conversation word from it. */
   onLine?: (anchor: string) => void;
   /** Buy a pack of film from Júlia. */
@@ -39,6 +41,7 @@ const SPEAKER: Record<string, { name: string; role: string }> = {
   julia: { name: 'Júlia', role: 'Guia da praça (Square guide)' },
   graca: { name: 'Dona Graça', role: 'Padeira da noite (Night baker)' },
   prof: { name: 'Professora Bia', role: 'Professora de jiu-jitsu (Jiu-jitsu teacher)' },
+  dito: { name: 'Seu Dito', role: 'Dono do pet shop (Pet shop owner)' },
 };
 
 /** Which node the greeting is on, and how many replies were picked (the expression turns happy once the player answered). */
@@ -70,9 +73,13 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
       if (!c) return;
       answered++;
       if (c.next === 'end') return closeDialogue();
-      if (c.next === 'shop') {
+      if (c.next === 'shop' || c.next === 'petshop') {
         closeDialogue();
         return hooks.openShop();
+      }
+      if (c.next === 'adopt') {
+        closeDialogue();
+        return hooks.openAdopt?.();
       }
       if (c.next === 'help') {
         closeDialogue();
@@ -97,7 +104,9 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
           ? h('button', { class: 'primary', id: 'btn-ver-chapeus', onclick: () => (closeDialogue(), hooks.openShop()) }, bi('Ver chapéus', 'See the hats'))
           : npcId === 'julia' && hooks.buyFilm
             ? h('button', { class: 'primary', id: 'btn-comprar-filme', onclick: () => hooks.buyFilm?.() }, bi(`Filme · ${FILM.price} RV`, `Film · ${FILM.price} reais virtuais (RV)`))
-            : undefined,
+            : npcId === 'dito' && hooks.openAdopt
+              ? h('button', { class: 'primary', id: 'btn-ver-bichinhos', onclick: () => (closeDialogue(), hooks.openAdopt?.()) }, bi('Ver os bichinhos', 'See the animals'))
+              : undefined,
       onChip: choose,
       onClose: closeDialogue,
     });

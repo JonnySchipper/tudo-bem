@@ -128,6 +128,48 @@
       "file": "julia-5fef280ff4.mp3"
     },
     {
+      "id": "dito-bf94d94e31",
+      "voice": "dito",
+      "text": "Bom dia! Bem-vindo ao pet shop. Quer ver os bichinhos?",
+      "file": "dito-bf94d94e31.mp3"
+    },
+    {
+      "id": "dito-d61136d705",
+      "voice": "dito",
+      "text": "Boa tarde! Bem-vindo ao pet shop. Quer ver os bichinhos?",
+      "file": "dito-d61136d705.mp3"
+    },
+    {
+      "id": "dito-7f85df99b9",
+      "voice": "dito",
+      "text": "Boa noite! Bem-vindo ao pet shop. Quer ver os bichinhos?",
+      "file": "dito-7f85df99b9.mp3"
+    },
+    {
+      "id": "dito-dc79cc373d",
+      "voice": "dito",
+      "text": "Tem cachorro e gato esperando um lar. Pode fazer carinho, eles adoram.",
+      "file": "dito-dc79cc373d.mp3"
+    },
+    {
+      "id": "dito-fb7ce6bd6e",
+      "voice": "dito",
+      "text": "Vamos ver quem tá esperando um lar! Escolhe com calma, viu?",
+      "file": "dito-fb7ce6bd6e.mp3"
+    },
+    {
+      "id": "dito-f601057653",
+      "voice": "dito",
+      "text": "Tem ração, brinquedo, coleira e caminha. Tudo com reais virtuais.",
+      "file": "dito-f601057653.mp3"
+    },
+    {
+      "id": "dito-a233277e04",
+      "voice": "dito",
+      "text": "O banho e tosa é ali no canto. O bichinho sai cheiroso!",
+      "file": "dito-a233277e04.mp3"
+    },
+    {
       "id": "julia-a13cfa886f",
       "voice": "julia",
       "text": "Oi! Eu sou a Júlia, guia da praça. Posso te ajudar?",
@@ -3714,6 +3756,42 @@
       "voice": "ui",
       "text": "KIMONO. Compre aqui. antes do tatame",
       "file": "ui-b36c320347.mp3"
+    },
+    {
+      "id": "ui-f1658ce738",
+      "voice": "ui",
+      "text": "PET SHOP. Do Seu Dito",
+      "file": "ui-f1658ce738.mp3"
+    },
+    {
+      "id": "ui-d9d41d2562",
+      "voice": "ui",
+      "text": "ADOÇÃO. Adote um amigo",
+      "file": "ui-d9d41d2562.mp3"
+    },
+    {
+      "id": "ui-eca3f307bb",
+      "voice": "ui",
+      "text": "RAÇAS. Vira-lata · Fila brasileiro · Poodle. Siamês · Persa",
+      "file": "ui-eca3f307bb.mp3"
+    },
+    {
+      "id": "ui-35443c5108",
+      "voice": "ui",
+      "text": "VETERINÁRIO. Terça e quinta",
+      "file": "ui-35443c5108.mp3"
+    },
+    {
+      "id": "ui-457b192d8f",
+      "voice": "ui",
+      "text": "BANHO E TOSA",
+      "file": "ui-457b192d8f.mp3"
+    },
+    {
+      "id": "ui-8b2fc2a137",
+      "voice": "ui",
+      "text": "RAÇÃO · PETISCO · BRINQUEDO",
+      "file": "ui-8b2fc2a137.mp3"
     },
     {
       "id": "ui-4e34534995",

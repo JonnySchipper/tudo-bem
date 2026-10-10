@@ -579,27 +579,14 @@ function posterAdocao() {
   return { img, anchor: [0, H] };
 }
 
-/** A plaque (w x 24) with two lines of type and a little icon on the left: BANHO E TOSA, VETERINÁRIO. */
-function placaDupla(w, l1, l2, icon) {
+/** A plaque (w x 24) with two lines of type: BANHO / E TOSA, VETERINÁRIO / TER E QUI. */
+function placaDupla(w, l1, l2) {
   const H = 24;
   const img = board(w, H, P.sp1, P.sp3, P.sp0);
   hline(img, 3, 3, w - 6, P.mu3); hline(img, 3, H - 4, w - 6, P.mu3);
-  const iw = icon ? 9 : 0;
-  const cx = (s) => iw + Math.floor((w - iw - textW(s)) / 2);
+  const cx = (s) => Math.floor((w - textW(s)) / 2);
   text(img, cx(l1), 7, l1, P.cream);
   text(img, cx(l2), 14, l2, P.mu4);
-  if (icon === 'bolhas') {
-    // three soap bubbles: a ring of light blue with a white glint
-    const ring4 = ['.##.', '#..#', '#..#', '.##.'];
-    const ring3 = ['.#.', '#.#', '.#.'];
-    for (const [rows, x, y] of [[ring4, 2, 13], [ring3, 5, 8], [ring3, 2, 6]]) {
-      rows.forEach((r, ry) => [...r].forEach((ch, rx) => ch === '#' && put(img, x + rx, y + ry, P.blue4)));
-      put(img, x + 1, y + 1, P.white);
-    }
-  } else if (icon === 'cruz') {
-    rect(img, 4, 9, 2, 7, P.white); rect(img, 2, 11, 6, 3, P.white);
-    rect(img, 4, 10, 2, 5, P.red2); rect(img, 3, 12, 4, 1, P.red2);
-  }
   for (const [x, y] of [[1, 1], [w - 2, 1], [1, H - 2], [w - 2, H - 2]]) put(img, x, y, P.grey1);
   return { img, anchor: [0, H] };
 }
@@ -747,8 +734,8 @@ export async function petshopSet(ctx) {
   // the north wall
   add('walls/quadro_racas', quadroRacas(), { shadow: null });
   add('walls/poster_adocao', posterAdocao(), { shadow: null });
-  add('walls/placa_banho_tosa', placaDupla(40, 'BANHO', 'E TOSA', 'bolhas'), { shadow: null });
-  add('walls/placa_vet', placaDupla(48, 'VETERINÁRIO', 'TER E QUI', null), { shadow: null });
+  add('walls/placa_banho_tosa', placaDupla(32, 'BANHO', 'E TOSA'), { shadow: null });
+  add('walls/placa_vet', placaDupla(48, 'VETERINÁRIO', 'TER E QUI'), { shadow: null });
   // fx
   parts.push({ key: 'fx/carinho', frames: carinhoFrames(), fps: 6, anchor: [8, 15], meta: { shadow: null } });
   add('fx/ossinho', ossinhoFx(), { shadow: null });

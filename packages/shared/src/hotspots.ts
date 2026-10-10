@@ -111,6 +111,13 @@ const BASE_HOTSPOTS: HotspotDef[] = [
   { id: 'academia_horarios', room: 'academia', x: 10, y: 4, pt: 'AULAS\nSegunda a sexta: 18h\nSábado: 10h', en: 'CLASSES\nMonday to Friday: 6 pm\nSaturday: 10 am' },
   { id: 'academia_faixas', room: 'academia', x: 0, y: 1, w: 1, h: 2, pt: 'FAIXAS\nbranca · azul · roxa\nmarrom · preta', en: 'BELTS\nwhite · blue · purple\nbrown · black' },
   { id: 'academia_vestiario', room: 'academia', x: 2, y: 7, pt: 'KIMONO\nCompre aqui\nantes do tatame', en: 'GI\nBuy here\nbefore the mat' },
+  // ---- Pet Shop do Seu Dito (#234). needs_br: every line. The wall signs hang over row-0 tiles that are not a pen (rooms.ts PETSHOP_WALLS).
+  { id: 'petshop_letreiro', room: 'rua_leste', x: 17, y: 1, w: 4, h: 2, pt: 'PET SHOP\nDo Seu Dito', en: 'PET SHOP\nSeu Dito’s' },
+  { id: 'petshop_adocao', room: 'petshop', x: 0, y: 0, w: 2, h: 1, up: 2, pt: 'ADOÇÃO\nAdote um amigo', en: 'ADOPTION\nAdopt a friend' },
+  { id: 'petshop_racas', room: 'petshop', x: 2, y: 0, w: 3, h: 1, up: 2, pt: 'RAÇAS\nVira-lata · Fila brasileiro · Poodle\nSiamês · Persa', en: 'BREEDS\nMutt · Fila Brasileiro · Poodle\nSiamese · Persian' },
+  { id: 'petshop_vet', room: 'petshop', x: 5, y: 0, up: 2, pt: 'VETERINÁRIO\nTerça e quinta', en: 'VET\nTuesday and Thursday' },
+  { id: 'petshop_banho_tosa', room: 'petshop', x: 11, y: 0, up: 2, pt: 'BANHO E TOSA', en: 'BATH AND GROOMING' },
+  { id: 'petshop_lojinha', room: 'petshop', x: 1, y: 4, w: 1, h: 2, pt: 'RAÇÃO · PETISCO · BRINQUEDO', en: 'PET FOOD · TREATS · TOYS' },
 ];
 
 /**

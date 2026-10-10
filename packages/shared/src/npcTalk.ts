@@ -133,6 +133,47 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
       },
     },
   },
+  // Seu Dito (Pet Shop, #234): `adopt` opens the panel on Adotar, `petshop` on the Lojinha. Adoption is "quando o coração mandar": never pushy.
+  dito: {
+    start: 'oi',
+    nodes: {
+      oi: {
+        line: { pt: '{saudacao}, {nome}! Bem-vindo ao pet shop. Quer ver os bichinhos?', en: '{greeting}, {nome}! Welcome to the pet shop. Want to see the little animals?' },
+        chips: [
+          { pt: 'Quero ver os bichinhos.', en: 'I want to see the animals.', next: 'bichos' },
+          { pt: 'O que tem na loja?', en: 'What’s in the shop?', next: 'loja' },
+        ],
+      },
+      bichos: {
+        line: { pt: 'Tem cachorro e gato esperando um lar. Pode fazer carinho, eles adoram.', en: 'There are dogs and cats waiting for a home. You can pet them, they love it.' },
+        chips: [
+          { pt: 'Posso adotar um?', en: 'Can I adopt one?', next: 'adotar' },
+          { pt: 'Vou fazer carinho.', en: 'I’ll go pet them.', next: 'end' },
+        ],
+      },
+      adotar: {
+        line: { pt: 'Vamos ver quem tá esperando um lar! Escolhe com calma, viu?', en: 'Let’s see who’s waiting for a home! Choose calmly, okay?' },
+        chips: [
+          { pt: 'Quero ver!', en: 'Show me!', next: 'adopt' },
+          { pt: 'Deixa eu pensar.', en: 'Let me think.', next: 'end' },
+        ],
+      },
+      loja: {
+        line: { pt: 'Tem ração, brinquedo, coleira e caminha. Tudo com reais virtuais, {nome}.', en: 'There’s food, toys, collars and beds. All with virtual reais, {nome}.' },
+        chips: [
+          { pt: 'Quero ver a lojinha.', en: 'I want to see the shop.', next: 'petshop' },
+          { pt: 'E banho e tosa?', en: 'And bath and grooming?', next: 'tosa' },
+        ],
+      },
+      tosa: {
+        line: { pt: 'O banho e tosa é ali no canto. O bichinho sai cheiroso!', en: 'The bath and grooming is over in the corner. The little one comes out smelling great!' },
+        chips: [
+          { pt: 'Que legal!', en: 'Nice!', next: 'end' },
+          { pt: 'Muito {obrigad}, Seu Dito.', en: 'Thank you very much, Seu Dito.', next: 'end' },
+        ],
+      },
+    },
+  },
 };
 
 /**

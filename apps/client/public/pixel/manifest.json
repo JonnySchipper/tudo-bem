@@ -21901,7 +21901,7 @@
   "walls/placa_banho_tosa": {
    "atlas": "petshop",
    "frame": "walls/placa_banho_tosa",
-   "w": 40,
+   "w": 32,
    "h": 24,
    "ax": 0,
    "ay": 24,

@@ -4,15 +4,15 @@ import { classifyChat } from './safety.js';
 import { cardsInText } from './caderno.js';
 import { isNpcId } from './bonds.js';
 
-const RESERVED = new Set(['end', 'help', 'shop', 'treino']);
+const RESERVED = new Set(['end', 'help', 'shop', 'treino', 'adopt', 'petshop']);
 
-describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia)', () => {
-  it('exist for Nanda and Júlia, three lines with two reply chips each', () => {
-    expect(TALKING_NPCS.sort()).toEqual(['graca', 'julia', 'nanda', 'prof']);
+describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia, Seu Dito)', () => {
+  it('exist for Nanda and Júlia, three lines with two reply chips each (Seu Dito has five)', () => {
+    expect(TALKING_NPCS.sort()).toEqual(['dito', 'graca', 'julia', 'nanda', 'prof']);
     for (const npc of TALKING_NPCS) {
       const t = NPC_TALK[npc]!;
       expect(isNpcId(npc)).toBe(true);
-      expect(Object.keys(t.nodes)).toHaveLength(3);
+      expect(Object.keys(t.nodes)).toHaveLength(npc === 'dito' ? 5 : 3);
       expect(t.nodes[t.start]).toBeDefined();
       for (const [id, node] of Object.entries(t.nodes)) {
         expect(node.chips, `${npc}.${id}`).toHaveLength(2);
@@ -31,7 +31,7 @@ describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia)', 
       let ends = false;
       while (queue.length) {
         for (const c of t.nodes[queue.shift()!]!.chips) {
-          if (c.next === 'end' || c.next === 'help' || c.next === 'shop' || c.next === 'treino') ends = true;
+          if (RESERVED.has(c.next)) ends = true;
           else if (!seen.has(c.next)) {
             seen.add(c.next);
             queue.push(c.next);
@@ -48,6 +48,11 @@ describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia)', 
     expect(next('nanda')).toContain('shop');
     expect(next('julia')).toContain('help');
     expect(next('prof')).toContain('treino');
+  });
+
+  it('Seu Dito opens the pet shop on Adotar and on the Lojinha', () => {
+    const next = Object.values(NPC_TALK.dito!.nodes).flatMap((n) => n.chips.map((c) => c.next));
+    expect(next).toEqual(expect.arrayContaining(['adopt', 'petshop']));
   });
 
   it('lines are short (A1), informal, safe for the chat filter and never say “Give me”', () => {

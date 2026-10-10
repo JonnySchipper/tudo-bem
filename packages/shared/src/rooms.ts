@@ -892,12 +892,13 @@ const DITO: NpcDef = {
   ],
 };
 
-// the four pieces fill the north wall edge to edge (poster 40 px, chart 62, vet plaque 48, banho e tosa 40), centred on these spans
+// The four pieces fill the north wall (poster 40 px, chart 62, vet plaque 48, banho e tosa 32), centred on these spans. Each is a readable
+// sign (hotspots.ts), so each hangs over a row-0 tile that is not a pen: the dog and cat pens (x6-10) keep their click.
 const PETSHOP_WALLS: WallDecor[] = [
-  { kind: 'poster', wall: 'right', from: -0.75, to: 1.5, text: 'ADOÇÃO' },
-  { kind: 'quadro_racas', wall: 'right', from: 1.75, to: 5.75 },
-  { kind: 'placa', wall: 'right', from: 5.75, to: 9, text: 'VETERINÁRIO' },
-  { kind: 'placa', wall: 'right', from: 9.25, to: 12, text: 'BANHO E TOSA' },
+  { kind: 'poster', wall: 'right', from: -1, to: 1.5, text: 'ADOÇÃO' },
+  { kind: 'quadro_racas', wall: 'right', from: 2, to: 5 },
+  { kind: 'placa', wall: 'right', from: 5.5, to: 8.5, text: 'VETERINÁRIO' },
+  { kind: 'placa', wall: 'right', from: 10, to: 12, text: 'BANHO E TOSA' },
 ];
 
 const petshop: RoomDef = {
