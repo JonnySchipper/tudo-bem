@@ -40,7 +40,6 @@ import {
   withoutHiddenFeiraCart,
   installRoomProps,
   revertRoomProps,
-  validateRoomLayout,
   isRoomId,
   key,
   MAX_CHAT_LEN,
@@ -1480,10 +1479,6 @@ export class World {
     if (msg.action === 'subscribers') return this.adminSubscribers(s);
     if (msg.action === 'grantSub') return this.adminGrantSub(s, msg.targetId);
     if (msg.action === 'revokeSub') return this.adminRevokeSub(s, msg.targetId);
-    if (msg.action === 'layoutGet') return this.adminLayoutGet(s, msg.room);
-    if (msg.action === 'layoutSave') return this.adminLayoutSave(s, msg.room, msg.objects);
-    if (msg.action === 'layoutRevert') return this.adminLayoutRevert(s, msg.room);
-    if (msg.action === 'layoutPublish') return this.adminLayoutPublish(s, msg.room, msg.objects);
     if (isAdminTestAction(msg.action)) return handleAdminTest(this.adminTestHost(), s, msg);
   }
 
@@ -1545,54 +1540,12 @@ export class World {
     for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
   }
 
-  private adminLayoutGet(s: Session, roomId: string) {
-    if (!isRoomId(roomId)) return this.err(s, 'admin', 'Sala desconhecida.', 'Unknown room.');
-    s.send({ t: 'admin', phase: 'layout', room: roomId, source: this.layouts.has(roomId) ? 'override' : 'code' });
-  }
-
-  private adminLayoutSave(s: Session, roomId: string, objects: unknown) {
-    const v = validateRoomLayout(roomId, objects);
-    if (!v.ok) return this.err(s, 'admin', v.pt, v.en);
-    installRoomProps(v.room, v.objects);
-    this.noteLayout(v.room);
-    this.layouts.set(v.room, v.objects);
-    this.broadcastLayout(v.room, v.objects);
-    s.send({ t: 'admin', phase: 'layout', room: v.room, source: 'override' });
-    s.send({ t: 'notice', level: 'info', pt: 'Layout salvo. Todo mundo já vê.', en: 'Layout saved. Everyone can see it.' });
-  }
-
-  private adminLayoutRevert(s: Session, roomId: string) {
-    if (!isRoomId(roomId)) return this.err(s, 'admin', 'Sala desconhecida.', 'Unknown room.');
-    revertRoomProps(roomId);
-    this.noteLayout(roomId);
-    this.layouts.set(roomId, null);
-    this.broadcastLayout(roomId, null);
-    s.send({ t: 'admin', phase: 'layout', room: roomId, source: 'code' });
-    s.send({ t: 'notice', level: 'info', pt: 'Sala de volta ao código.', en: 'Room is back to the code layout.' });
-  }
-
-  private adminLayoutPublish(s: Session, roomId: string, objects: unknown) {
-    const v = validateRoomLayout(roomId, objects);
-    if (!v.ok) return this.err(s, 'admin', v.pt, v.en);
-    return publishLayoutPullRequest({ token: this.githubToken, room: v.room, objects: v.objects, fetch: this.githubFetch }).then((r) => {
-      if (this.sessions.get(s.id) !== s) return;
-      if (r.ok) {
-        s.send({ t: 'admin', phase: 'layoutPublished', room: v.room, url: r.url, fallback: false, pt: 'Pull request aberto.', en: 'Pull request opened.' });
-        return;
-      }
-      if (r.reason === 'no-token') {
-        s.send({
-          t: 'admin',
-          phase: 'layoutPublished',
-          room: v.room,
-          fallback: true,
-          pt: 'O token do GitHub não está configurado. Baixe o arquivo e guarde no repositório.',
-          en: 'The GitHub token is not configured. Download the file and commit it in the repo.',
-        });
-        return;
-      }
-      s.send({ t: 'notice', level: 'warn', pt: 'Não consegui abrir o pull request.', en: 'Could not open the pull request.' });
-    });
+  /** Put a layout live in this process and on every client. The caller has already stored it (designOps.ts). `null`: the code layout. */
+  private applyLayout(room: import('@tudobem/shared').RoomId, objects: import('@tudobem/shared').PropDef[] | null) {
+    if (objects) installRoomProps(room, objects);
+    else revertRoomProps(room);
+    this.noteLayout(room);
+    this.broadcastLayout(room, objects);
   }
 
   private adminFeiraCart(s: Session) {
@@ -1728,12 +1681,14 @@ export class World {
       layoutOverrides: () => this.layouts.overrides().map((o) => ({ room: o.room, objects: o.objects.length })),
       revertLayout: (room) => {
         if (!this.layouts.has(room)) return false;
-        revertRoomProps(room);
-        this.noteLayout(room);
-        this.layouts.set(room, null);
-        this.broadcastLayout(room, null);
+        this.layouts.publish(room, null, 'dashboard');
+        this.applyLayout(room, null);
         return true;
       },
+      layouts: () => this.layouts,
+      applyLayout: (room, objects) => this.applyLayout(room, objects),
+      githubConfigured: () => !!this.githubToken,
+      layoutPullRequest: (room, objects) => publishLayoutPullRequest({ token: this.githubToken, room, objects, fetch: this.githubFetch }),
       markBoardsDirty: () => this.leaderboards.markDirty(),
       now: () => this.now(),
     });

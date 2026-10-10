@@ -49,6 +49,7 @@ import {
   type PlayerRow,
 } from './adminOps.js';
 import { FEEDBACK_STATUSES } from './adminStores.js';
+import { designPullRequest, designState, discardDraft, publishDesign, resetDesign, revertDesign, saveDraft } from './designOps.js';
 
 export interface AdminApiDeps {
   ctx: AdminCtx;
@@ -100,12 +101,15 @@ function fileSize(file: string): number {
   }
 }
 
-const BACKUP_NAME = /^tudobem-[0-9TZ.\-]+\.sqlite$/;
+const DESIGN_MAX_BODY = 512 * 1024;
+
+const BACKUP_NAME =/^tudobem-[0-9TZ.\-]+\.sqlite$/;
 
 export function createAdminApi(deps: AdminApiDeps) {
   const { ctx } = deps;
 
-  const body = async (req: IncomingMessage) => (await readJson(req)) ?? {};
+  // a whole room layout (up to LAYOUT_MAX_OBJECTS props) is far over the 8 KB every other route allows
+  const body = async (req: IncomingMessage) => (await readJson(req, req.url?.startsWith('/api/admin/design/') ? DESIGN_MAX_BODY : undefined)) ?? {};
   const op = (fn: (ctx: AdminCtx, actor: string, b: Record<string, unknown>) => OpResult | Promise<OpResult>): Handler => async (req, res, _url, actor) =>
     sendOp(res, await fn(ctx, actor, await body(req)));
 
@@ -305,6 +309,7 @@ export function createAdminApi(deps: AdminApiDeps) {
         }),
         actions: ctx.audit.actions(),
       }),
+    '/api/admin/design/state': (_q, res, url) => sendOp(res, designState(ctx, url.searchParams.get('room'))),
     '/api/admin/audit/entry': (_q, res, url) => {
       const e = ctx.audit.get(Number(url.searchParams.get('id')));
       return e ? send(res, 200, { ok: true, entry: e }) : send(res, 404, { ok: false, error: 'No audit entry with that id.' });
@@ -334,6 +339,12 @@ export function createAdminApi(deps: AdminApiDeps) {
     '/api/admin/world/feira-cart': op(setFeiraCart),
     '/api/admin/config': op(setConfig),
     '/api/admin/audit/restore': op(restore),
+    '/api/admin/design/draft': op(saveDraft),
+    '/api/admin/design/draft/discard': op(discardDraft),
+    '/api/admin/design/publish': op(publishDesign),
+    '/api/admin/design/revert': op(revertDesign),
+    '/api/admin/design/reset': op(resetDesign),
+    '/api/admin/design/pr': op(designPullRequest),
     '/api/admin/data/backup': async (_req, res, _url, actor) => {
       try {
         const file = await backupDatabase(deps.db, deps.dataDir, { force: true });
