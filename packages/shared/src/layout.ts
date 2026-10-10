@@ -5,6 +5,7 @@ import { invalidateRoomNavigation } from './npcMotion.js';
 import { bundledObjects } from './roomLayoutFiles.js';
 import { ROOM_IDS, ROOMS, isRoomId, type PropAction, type PropDef, type PropKind } from './rooms.js';
 import type { Dir, RoomId, Tile } from './types.js';
+import { isWaterId } from './pesca.js';
 
 export const LAYOUT_MAX_OBJECTS = 800;
 export const LAYOUT_MARGIN = 16;
@@ -18,14 +19,16 @@ const KINDS: readonly PropKind[] = [
   'banqueta', 'mesa', 'cadeira_padaria', 'trilho_pedidos', 'vaso', 'cama', 'cozinha', 'caixa', 'orelhao', 'placa_rua', 'estufa', 'mesa_cafe',
   'jornais', 'saco_lixo', 'floreira', 'tatame', 'parede_faixas', 'quadro_fila', 'banco_espectador', 'vestiario', 'quadro_foto', 'fachada',
   'cenario', 'fonte', 'cerca', 'sebe', 'ponto_onibus', 'arvore', 'feira', 'hortifruti',
+  'quiosque_praia', 'guarda_sol', 'cadeira_praia', 'posto_salva_vidas', 'galpao_barcos', 'barco', 'pesca_spot', 'pedras', 'canoa',
 ];
 const ACTIONS: readonly PropAction[] = [
   'shop_hats', 'minigame', 'kiosk', 'parrot_perch', 'catalog', 'bjj_roll', 'feira_stall', 'street_snack', 'checkers', 'buy_gi', 'escola',
   'academy_elevator', 'academy_board', 'padaria_door', 'padaria_counter', 'feira_cart', 'feira_sign', 'leaderboard',
+  'pesca', 'boat_rental', 'party_boat', 'fish_sell', 'beach_shop',
 ];
 const DIRS: readonly Dir[] = ['SE', 'SW', 'NE', 'NW'];
 const VENDORS = ['tia_lu', 'ze', 'chico', 'rosa', 'banca'] as const;
-const KEY_ORDER = ['id', 'kind', 'x', 'y', 'w', 'h', 'blocks', 'seat', 'action', 'interact', 'label', 'hero', 'art', 'vendor', 'gaps', 'lightAtNight', 'ox', 'oy'] as const;
+const KEY_ORDER = ['id', 'kind', 'x', 'y', 'w', 'h', 'blocks', 'seat', 'action', 'interact', 'label', 'hero', 'art', 'vendor', 'gaps', 'lightAtNight', 'ox', 'oy', 'water'] as const;
 
 const kindSet = new Set<string>(KINDS);
 const actionSet = new Set<string>(ACTIONS);
@@ -149,6 +152,10 @@ export function validateRoomLayout(roomId: string, objects: unknown): LayoutSucc
     if (o.oy !== undefined) {
       if (!intIn(o.oy, -MAX_NUDGE, MAX_NUDGE)) return fail(`Deslocamento inválido: ${o.id}.`, `Invalid nudge: ${o.id}.`);
       if (o.oy !== 0) prop.oy = o.oy;
+    }
+    if (o.water !== undefined) {
+      if (!isWaterId(o.water)) return fail(`Água inválida: ${o.id}.`, `Invalid water: ${o.id}.`);
+      prop.water = o.water;
     }
     out.push(prop);
   }

@@ -22,6 +22,18 @@ export function areaRoute(from, to) {
   return out;
 }
 
+/**
+ * The Praia is not an edge away: it is the 875 bus from the rua leste. Walk to the rua leste, take the blue "Praia" plaque by the shelter and
+ * wait for the beach.
+ */
+export async function goPraia(page, { timeout = 30_000 } = {}) {
+  if ((await page.evaluate(() => window.__tb.game.room?.room)) === 'praia') return;
+  await goArea(page, 'rua_leste', { timeout });
+  await page.evaluate(() => window.__tb.interact({ portal: 'rua_praia' }));
+  await waitFor(page, () => window.__tb.game.room?.room === 'praia', null, timeout, 'take the bus to the praia');
+  await sleep(500);
+}
+
 /** Walk off the edge of the current area toward `target` until you are in it. Resolves when `game.room.room === target`. */
 export async function goArea(page, target, { timeout = 30_000 } = {}) {
   for (let hop = 0; hop < 5; hop++) {

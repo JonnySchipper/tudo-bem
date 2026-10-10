@@ -70,3 +70,5 @@ export * from './layout.js';
 export * from './roomLayoutFiles.js';
 export * from './adminTestes.js';
 export * from './speechChunks.js';
+export * from './praia.js';
+export * from './pesca.js';

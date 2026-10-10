@@ -52,7 +52,7 @@ const BASE_HOTSPOTS: HotspotDef[] = [
   },
   { id: 'bicicletario', room: 'rua', x: 17, y: 7, pt: 'BICICLETÁRIO', en: 'Bike rack' },
   // ---- Vila Ipê, south sidewalk and the praça
-  { id: 'ponto_onibus', room: 'rua_leste', x: 6, y: 12, w: 3, h: 1, pt: 'ÔNIBUS\nLinha 875 · Centro · Aeroporto', en: 'BUS\nLine 875 · Downtown · Airport' },
+  { id: 'ponto_onibus', room: 'rua_leste', x: 6, y: 12, w: 3, h: 1, pt: 'ÔNIBUS\nLinha 875 · Centro · Aeroporto · Praia', en: 'BUS\nLine 875 · Downtown · Airport · Beach' },
   { id: 'parquimetro', room: 'rua', x: 14, y: 12, pt: 'ESTACIONAMENTO\nR$ 5 por hora', en: 'PARKING\nR$ 5 per hour' },
   { id: 'lixeira_praca', room: 'rua_leste', x: 3, y: 13, pt: 'LIXO', en: 'Trash' },
   { id: 'fonte_praca', room: 'praca', x: 14, y: 10, w: 4, h: 3, pt: 'Praça Central\nFonte de 1985', en: 'Central Square\nFountain from 1985' },
@@ -158,7 +158,25 @@ const DIARY_SIGNS: HotspotDef[] = [
   ...DIARY_PLACEMENTS.filter((p) => p.sign).map((p): HotspotDef => ({ id: p.id, room: p.room, x: p.x, y: p.y, ...(p.w ? { w: p.w } : {}), ...(p.h ? { h: p.h } : {}), ...(p.up ? { up: p.up } : {}), pt: p.sign!.pt, en: p.sign!.en })),
 ];
 
-export const HOTSPOTS: HotspotDef[] = [...BASE_HOTSPOTS, ...AIRPORT_SIGNS, ...DIARY_SIGNS];
+/**
+ * The Praia (PRAIA-PLAN.md 1.3). Its reading words (praia, aluguel, perigo, correnteza, posto, proibido) are diary signs in `diaryWorld.ts`; these
+ * are the longer boards. Prices on Jô's board agree with `STREET_SNACKS` (tested). needs_br: every line.
+ */
+const PRAIA_SIGNS: HotspotDef[] = [
+  { id: 'praia_letreiro', room: 'praia', x: 18, y: 2, w: 3, h: 1, pt: 'PRAIA DO JERIVÁ\nLitoral paulista', en: 'JERIVÁ BEACH\nSão Paulo coast' },
+  {
+    id: 'praia_cardapio_jo',
+    room: 'praia',
+    x: 5,
+    y: 5,
+    pt: 'BARRACA DA JÔ\nÁgua de coco R$ 7\nQueijo coalho R$ 6\nMilho verde R$ 5\nPicolé R$ 4',
+    en: 'JÔ’S KIOSK\nCoconut water R$ 7\nGrilled cheese on a stick R$ 6\nCorn on the cob R$ 5\nIce pop R$ 4',
+  },
+  { id: 'praia_pier', room: 'praia', x: 27, y: 12, pt: 'PÍER\nBarcos de aluguel na ponta', en: 'PIER\nRental boats at the end' },
+  { id: 'festa_placa', room: 'barco_festa', x: 11, y: 8, pt: 'CHURRASCO · REFRI · MÚSICA', en: 'BARBECUE · SODA · MUSIC' },
+];
+
+export const HOTSPOTS: HotspotDef[] = [...BASE_HOTSPOTS, ...AIRPORT_SIGNS, ...PRAIA_SIGNS, ...DIARY_SIGNS];
 
 export const hotspotById = (id: string): HotspotDef | undefined => HOTSPOTS.find((h) => h.id === id);
 

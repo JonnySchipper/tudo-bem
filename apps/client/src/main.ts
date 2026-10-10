@@ -939,7 +939,7 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque';
+      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque' || last === 'praia';
       // a new arrival starts in the arrivals hall (the guided tutorial), then the airport until Célia's hand-over; everybody else comes
       // back where they were, or to the praça
       // the dashboard's design link (`/?design=<room>`) wins over both, once the player has arrived
@@ -1019,7 +1019,8 @@ net.on((m: ServerMsg) => {
       game.placing = null;
       game.selectedFurniture = null;
       game.npcBubbles.clear();
-      if (m.room !== 'andar' && (m.room !== 'kitnet' || m.ownerId === game.profile?.id)) sessionStorage.setItem(LAST_ROOM_KEY, m.room);
+      // a party deck is never remembered: a reconnect lands back at the beach
+      if (m.room !== 'andar' && (m.room !== 'kitnet' || m.ownerId === game.profile?.id)) sessionStorage.setItem(LAST_ROOM_KEY, m.room === 'barco_festa' ? 'praia' : m.room);
       ambience.setRoom(m.room);
       updateGuides();
       game.emit('room');

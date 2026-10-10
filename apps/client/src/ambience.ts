@@ -68,7 +68,7 @@ interface ZoneLayers {
 }
 
 /** How loud each layer is at full presence (the bed's own wind sits at 0.05). */
-const ZONE_LEVEL: Record<keyof ZoneMix, number> = { traffic: 0.16, fountain: 0.035, birds: 1, crickets: 1, rain: 0.07, radio: 1 };
+const ZONE_LEVEL: Record<keyof ZoneMix, number> = { traffic: 0.16, fountain: 0.035, birds: 1, crickets: 1, rain: 0.07, radio: 1, waves: 0.09, gulls: 1 };
 const ZONE_TAU = 0.35;
 
 /** Seconds a bed takes to fade out (about four crossfade time constants). */
@@ -146,6 +146,36 @@ function chirp(ctx: AudioContext, dest: AudioNode, freq: number, when: number) {
   o.stop(when + 0.16);
 }
 
+/** A gull's cry: a sawtooth through a band-pass that jumps up and falls away, with a little throat flutter. */
+function gullCry(ctx: AudioContext, dest: AudioNode, freq: number, when: number) {
+  const o = ctx.createOscillator();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(freq * 0.8, when);
+  o.frequency.exponentialRampToValueAtTime(freq * 1.15, when + 0.05);
+  o.frequency.exponentialRampToValueAtTime(freq * 0.62, when + 0.26);
+  const f = ctx.createBiquadFilter();
+  f.type = 'bandpass';
+  f.frequency.value = freq * 1.6;
+  f.Q.value = 2.2;
+  const flutter = ctx.createOscillator();
+  const flutterDepth = ctx.createGain();
+  flutter.frequency.value = 28;
+  flutterDepth.gain.value = 40;
+  flutter.connect(flutterDepth);
+  flutterDepth.connect(o.frequency);
+  const g = vca(ctx);
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(0.012, when + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.28);
+  o.connect(f);
+  f.connect(g);
+  g.connect(dest);
+  o.start(when);
+  flutter.start(when);
+  o.stop(when + 0.3);
+  flutter.stop(when + 0.3);
+}
+
 /** A short noise swoosh through a band-pass sweep: a car going by, far away. */
 function swoosh(ctx: AudioContext, dest: AudioNode, white: AudioBuffer, when: number, from: number, to: number, dur: number, gain: number) {
   const src = ctx.createBufferSource();
@@ -180,7 +210,7 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
     keep(g);
     return g;
   };
-  const gains = { traffic: mk(), fountain: mk(), birds: mk(), crickets: mk(), rain: mk(), radio: mk() };
+  const gains = { traffic: mk(), fountain: mk(), birds: mk(), crickets: mk(), rain: mk(), radio: mk(), waves: mk(), gulls: mk() };
   const mix: ZoneMix = { ...SILENT_MIX };
   bed.zones = { gains, mix };
 
@@ -206,6 +236,33 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
   burbleDepth.connect((fountainGain as GainNode).gain);
   burble.start();
   keep(burble, burbleDepth);
+
+  // the Praia's waves: pink-ish noise through a lowpass whose cutoff breathes on a slow LFO (a wave every ~7 s), and a hiss of foam on top
+  const surf = loopNoise(ctx, gains.waves, brown, 520, 'lowpass', 0.8, 0.7);
+  keep(...surf);
+  const surfFilter = surf[1] as BiquadFilterNode;
+  const swell = ctx.createOscillator();
+  const swellDepth = ctx.createGain();
+  swell.frequency.value = 0.14;
+  swellDepth.gain.value = 380;
+  swell.connect(swellDepth);
+  swellDepth.connect(surfFilter.frequency);
+  swell.start();
+  keep(swell, swellDepth);
+  const foam = loopNoise(ctx, gains.waves, white, 4200, 'highpass', 0.05, 0.3);
+  keep(...foam);
+  const foamDepth = ctx.createGain();
+  foamDepth.gain.value = 0.04;
+  swell.connect(foamDepth);
+  foamDepth.connect((foam[2] as GainNode).gain);
+  keep(foamDepth);
+
+  // gulls (day, near the costão): a short falling cry, two or three in a row
+  schedule(bed, () => {
+    if (Math.random() > mix.gulls * 0.9) return;
+    const n = 1 + Math.floor(Math.random() * 3);
+    for (let k = 0; k < n; k++) gullCry(ctx, gains.gulls, ctx.currentTime + 0.02 + k * 0.32, 1500 + Math.random() * 300);
+  }, 2900);
 
   // rain on the ground: hiss plus a soft drumming
   keep(...loopNoise(ctx, gains.rain, white, 3400, 'bandpass', 0.6, 0.3));
@@ -684,7 +741,8 @@ class Ambience {
     if (!this.unlocked) return null;
     // the open-air areas share one outdoor bed, so walking between them never restarts the music; the feira has its own while it is open
     if (this.room === 'feira') return feiraOpen(this.world.minute) ? 'feira' : 'praca';
-    if (this.room === 'rua' || this.room === 'rua_leste') return 'praca';
+    // the Praia and the party deck share it too until the beach gets a bed of its own (PRAIA-PLAN.md 11); the waves zone makes it sound like the sea
+    if (this.room === 'rua' || this.room === 'rua_leste' || this.room === 'praia' || this.room === 'barco_festa') return 'praca';
     // the arrivals hall (the first room): the kitnet's quiet bed, so the tutorial and the journal reveal sit over something calm
     if (this.room === 'escola' || this.room === 'desembarque') return 'kitnet';
     return this.room === 'padaria' && padariaIsNight(this.world.minute) ? 'padariaNight' : this.room;

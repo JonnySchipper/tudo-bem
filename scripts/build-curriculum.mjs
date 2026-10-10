@@ -215,7 +215,7 @@ export function buildCpuNames() {
  * meveum.ts); curriculum.test.ts fails if any list drifts from the code.
  */
 export const RECADO_NPC_IDS = ['carlos', 'nanda', 'julia', 'graca', 'prof', 'tia_lu', 'ze', 'chico', 'rosa', 'lucia', 'celia', 'agente', 'comissaria'];
-export const RECADO_ROOM_IDS = ['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'kitnet', 'academia', 'escola', 'andar', 'aeroporto', 'desembarque'];
+export const RECADO_ROOM_IDS = ['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'kitnet', 'academia', 'escola', 'andar', 'aeroporto', 'desembarque', 'praia', 'barco_festa'];
 export const RECADO_FLAG_IDS = ['feira', 'dialogue'];
 export const RECADO_ITEM_IDS = [
   // the padaria shelf (meveum.ts SHELF)

@@ -15,6 +15,8 @@ import escola from '../layouts/escola.json';
 import andar from '../layouts/andar.json';
 import aeroporto from '../layouts/aeroporto.json';
 import desembarque from '../layouts/desembarque.json';
+import praia from '../layouts/praia.json';
+import barcoFesta from '../layouts/barco_festa.json';
 
 const FILES: Record<RoomId, { objects: PropDef[] }> = {
   praca: praca as { objects: PropDef[] },
@@ -28,6 +30,8 @@ const FILES: Record<RoomId, { objects: PropDef[] }> = {
   andar: andar as { objects: PropDef[] },
   aeroporto: aeroporto as { objects: PropDef[] },
   desembarque: desembarque as { objects: PropDef[] },
+  praia: praia as { objects: PropDef[] },
+  barco_festa: barcoFesta as { objects: PropDef[] },
 };
 
 /** A fresh copy of the layout shipped in the repo. Edits must not mutate the module's JSON. */

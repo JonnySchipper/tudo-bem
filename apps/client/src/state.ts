@@ -67,6 +67,8 @@ class Game {
   feiraCart: { closed: boolean; game: import('@tudobem/shared').FeiraGameId | null } | null = null;
   /** Which Feira panel to open when the next board message arrives. */
   pendingFeiraOpen: 'cart' | 'sign' | null = null;
+  /** The Praia's admin switch (`{ t: 'praia', phase: 'mode' }`), and whether this player may go now. Open until the server says otherwise. */
+  praia: { mode: import('@tudobem/shared').PraiaMode; partyBoat: boolean; allowed: boolean } = { mode: 'open', partyBoat: true, allowed: true };
   sound = localStorage.getItem('tb_sound') !== 'off';
   /** Background beds. Separate from voice so Carlos can stay on while the room is quiet. */
   music = localStorage.getItem('tb_music') !== 'off';
