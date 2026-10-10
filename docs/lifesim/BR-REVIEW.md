@@ -37,6 +37,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [Z. Chat hints](#z-chat-hints) (2)
 - [AA. Tatame staging](#aa-tatame-staging) (2)
 - [AB. Tapioca practice](#ab-tapioca-practice) (4)
+- [AD. Favores step copy](#ad-favores-step-copy) (33)
 
 ## A. Time of day, weekdays and weather
 
@@ -185,7 +186,7 @@ Idle lines of the three original NPCs (Carlos, Nanda, Júlia) pre-date the conve
 ## F. Recados (errands)
 
 <a id="f-recados"></a>
-The 18 recados are authored in `content/curriculum/phase0/recados.md` (all `needs_br: true`); the templated step lines below are built in `describeStep`, so each distinct rendering is listed once.
+The 18 recados are authored in `content/curriculum/phase0/recados.md` (all `needs_br: true`); the templated step lines below are built in `describeStep`, so each distinct rendering is listed once. The order, hand-over and greeting step lines were reworded as sentences in section AD, which supersedes them.
 
 | # | PT | EN | Where | Note | OK? |
 |---|---|---|---|---|---|
@@ -912,6 +913,47 @@ one of those words is already on the stage (pan labels, the bowls, the lixeira).
 | 649 | Treino · Pular ▶ · Começar ▶ · De novo · Boa! 🎉 Agora é pra valer. | Practice · Skip · Start · Again · Nice! Now for real. | `feiraStage.ts` HUD, `feiraTapiocaPractice.ts` | Correria's practice words (Começar o turno ▶ shortened to Começar ▶) | |
 | 650 | ●●● na fila | (the line of people) | `feiraStage.ts` queue chip | dots instead of a number, no digits on the stage | |
 
+## AD. Favores step copy
+
+<a id="ad-favores-step-copy"></a>
+The step line of a favor, as a plain sentence (E4, `describeStep` in `packages/shared/src/recados.ts`). Shown in the tracker, the panel and the "✓" notice; never spoken (no TTS). These replace the "Peça 1× …" / "Entregue 1× …" / "Cumprimente … no chat" lines of section F (rows 114 to 198 for the order, hand-over and greeting steps); the "Vá para: …" lines are unchanged. A quantity above one is spelled in words with a plural noun ("dois pães de queijo"); no favor asks for more than one yet, so row 692 is a rendered sample. The chat bar's three quick replies (Oi!, Bom dia / Boa tarde / Boa noite by the hour, Valeu!) reuse the emote row's and the clock's words and add no new Portuguese. **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 661 | Peça um café com leite pro Seu Carlos. | Ask Seu Carlos for the coffee with milk. | `packages/shared/src/recados.ts (describeStep)` | carlos_cafe_pra_nanda · pedir step line (tracker and "✓" notice) | |
+| 662 | Leve o café com leite pra Nanda. | Take the coffee with milk to Nanda. | `packages/shared/src/recados.ts (describeStep)` | carlos_cafe_pra_nanda · entregar step line (tracker and "✓" notice) | |
+| 663 | Peça uma coxinha pro Seu Carlos. | Ask Seu Carlos for the chicken croquette. | `packages/shared/src/recados.ts (describeStep)` | nanda_coxinha · pedir step line (tracker and "✓" notice) | |
+| 664 | Leve a coxinha pra Nanda. | Take the chicken croquette to Nanda. | `packages/shared/src/recados.ts (describeStep)` | nanda_coxinha · entregar step line (tracker and "✓" notice) | |
+| 665 | Cumprimente alguém do jeito certo pra hora. | Greet someone the right way for the time of day. | `packages/shared/src/recados.ts (describeStep)` | julia_cumprimento_certo · cumprimentar step line (tracker and "✓" notice) | |
+| 666 | Peça um pão na chapa pro Seu Carlos. | Ask Seu Carlos for the grilled buttered bread. | `packages/shared/src/recados.ts (describeStep)` | graca_pao_pra_julia · pedir step line (tracker and "✓" notice) | |
+| 667 | Leve o pão na chapa pra Júlia. | Take the grilled buttered bread to Júlia. | `packages/shared/src/recados.ts (describeStep)` | graca_pao_pra_julia · entregar step line (tracker and "✓" notice) | |
+| 668 | Cumprimente Seu Carlos. | Greet Seu Carlos. | `packages/shared/src/recados.ts (describeStep)` | nanda_um_oi_pro_carlos · cumprimentar step line (tracker and "✓" notice) | |
+| 669 | Peça uma banana pra Tia Lu. | Ask Tia Lu for the banana. | `packages/shared/src/recados.ts (describeStep)` | tia_lu_banana_pra_nanda · pedir step line (tracker and "✓" notice) | |
+| 670 | Leve a banana pra Nanda. | Take the banana to Nanda. | `packages/shared/src/recados.ts (describeStep)` | tia_lu_banana_pra_nanda · entregar step line (tracker and "✓" notice) | |
+| 671 | Peça uma água pro Seu Carlos. | Ask Seu Carlos for the water. | `packages/shared/src/recados.ts (describeStep)` | carlos_agua_pra_julia · pedir step line (tracker and "✓" notice) | |
+| 672 | Leve a água pra Júlia. | Take the water to Júlia. | `packages/shared/src/recados.ts (describeStep)` | carlos_agua_pra_julia · entregar step line (tracker and "✓" notice) | |
+| 673 | Peça um pastel pro Seu Carlos. | Ask Seu Carlos for the fried pastry (savory). | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_pra_nanda · pedir step line (tracker and "✓" notice) | |
+| 674 | Leve o pastel pra Nanda. | Take the fried pastry (savory) to Nanda. | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_pra_nanda · entregar step line (tracker and "✓" notice) | |
+| 675 | Leve a água pra Professora Bia. | Take the water to Professora Bia. | `packages/shared/src/recados.ts (describeStep)` | graca_agua_pra_academia · entregar step line (tracker and "✓" notice) | |
+| 676 | Fale com a Nanda. | Talk to Nanda. | `packages/shared/src/recados.ts (describeStep)` | julia_conhecer_nanda · falar step line (tracker and "✓" notice) | |
+| 677 | Peça flores pra Tia Lu. | Ask Tia Lu for the flowers. | `packages/shared/src/recados.ts (describeStep)` | tia_lu_flores_pra_julia · pedir step line (tracker and "✓" notice) | |
+| 678 | Leve as flores pra Júlia. | Take the flowers to Júlia. | `packages/shared/src/recados.ts (describeStep)` | tia_lu_flores_pra_julia · entregar step line (tracker and "✓" notice) | |
+| 679 | Peça uma maçã pra Tia Lu. | Ask Tia Lu for the apple. | `packages/shared/src/recados.ts (describeStep)` | nanda_maca · pedir step line (tracker and "✓" notice) | |
+| 680 | Leve a maçã pra Nanda. | Take the apple to Nanda. | `packages/shared/src/recados.ts (describeStep)` | nanda_maca · entregar step line (tracker and "✓" notice) | |
+| 681 | Peça uma alface pro Seu Zé. | Ask Seu Zé for the lettuce. | `packages/shared/src/recados.ts (describeStep)` | carlos_salada_do_ze · pedir step line (tracker and "✓" notice) | |
+| 682 | Peça um tomate pro Seu Zé. | Ask Seu Zé for the tomato. | `packages/shared/src/recados.ts (describeStep)` | carlos_salada_do_ze · pedir step line (tracker and "✓" notice) | |
+| 683 | Leve a alface pro Seu Carlos. | Take the lettuce to Seu Carlos. | `packages/shared/src/recados.ts (describeStep)` | carlos_salada_do_ze · entregar step line (tracker and "✓" notice) | |
+| 684 | Leve o tomate pro Seu Carlos. | Take the tomato to Seu Carlos. | `packages/shared/src/recados.ts (describeStep)` | carlos_salada_do_ze · entregar step line (tracker and "✓" notice) | |
+| 685 | Fale com Seu Carlos. | Talk to Seu Carlos. | `packages/shared/src/recados.ts (describeStep)` | nanda_pergunta_pro_carlos · falar step line (tracker and "✓" notice) | |
+| 686 | Cumprimente a Júlia do jeito certo pra hora. | Greet Júlia the right way for the time of day. | `packages/shared/src/recados.ts (describeStep)` | graca_cumprimenta_julia · cumprimentar step line (tracker and "✓" notice) | |
+| 687 | Cumprimente a Júlia. | Greet Júlia. | `packages/shared/src/recados.ts (describeStep)` | julia_volta_pela_vizinhanca · cumprimentar step line (tracker and "✓" notice) | |
+| 688 | Peça um pastel pro Seu Chico. | Ask Seu Chico for the fried pastry (savory). | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · pedir step line (tracker and "✓" notice) | |
+| 689 | Peça um caldo de cana pro Seu Chico. | Ask Seu Chico for the sugarcane juice. | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · pedir step line (tracker and "✓" notice) | |
+| 690 | Leve o pastel pra Professora Bia. | Take the fried pastry (savory) to Professora Bia. | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · entregar step line (tracker and "✓" notice) | |
+| 691 | Leve o caldo de cana pra Professora Bia. | Take the sugarcane juice to Professora Bia. | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · entregar step line (tracker and "✓" notice) | |
+| 692 | Peça dois pães de queijo pro Seu Carlos. | Ask Seu Carlos for two orders of cheese bread (cassava cheese roll). | `packages/shared/src/recados.ts (describeStep)` | (sample, quantity 2): no recado uses it yet | |
+| 693 | Leia a placa “PADARIA DO SEU CARLOS”. | Read the sign “Bakery of Seu Carlos”. | `packages/shared/src/recados.ts (describeStep)` | (sample, sign step): no recado uses it yet | |
+
 ## Totals
 
-650 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z, AA and AB, plus 9 proposed-card entries.
+650 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z, AA and AB, plus 33 in section AD (numbered 661 to 693; 651 to 660 are held for section AC), plus 9 proposed-card entries.

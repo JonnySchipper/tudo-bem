@@ -173,6 +173,37 @@ describe('advance', () => {
 describe('the recados pack (recados.md)', () => {
   const gated = RECADOS.filter((d) => d.requires);
 
+  it('describe every step as a plain sentence (no "1×", no "(Name)")', () => {
+    expect(describeStep({ kind: 'pedir', npc: 'carlos', itemId: 'cafe_com_leite', qty: 1 })).toEqual({ pt: 'Peça um café com leite pro Seu Carlos.', en: 'Ask Seu Carlos for the coffee with milk.' });
+    expect(describeStep({ kind: 'pedir', npc: 'carlos', itemId: 'coxinha', qty: 1 }).pt).toBe('Peça uma coxinha pro Seu Carlos.');
+    expect(describeStep({ kind: 'entregar', npc: 'nanda', itemId: 'cafe_com_leite', qty: 1 })).toEqual({ pt: 'Leve o café com leite pra Nanda.', en: 'Take the coffee with milk to Nanda.' });
+    expect(describeStep({ kind: 'entregar', npc: 'prof', itemId: 'agua', qty: 1 }).pt).toBe('Leve a água pra Professora Bia.');
+    expect(describeStep({ kind: 'entregar', npc: 'julia', itemId: 'flores', qty: 1 }).pt).toBe('Leve as flores pra Júlia.');
+    expect(describeStep({ kind: 'falar', npc: 'julia' })).toEqual({ pt: 'Fale com a Júlia.', en: 'Talk to Júlia.' });
+    expect(describeStep({ kind: 'falar', npc: 'carlos' }).pt).toBe('Fale com Seu Carlos.');
+    expect(describeStep({ kind: 'ler', hotspotId: 'padaria_letreiro' }).pt).toBe('Leia a placa “PADARIA DO SEU CARLOS”.');
+    expect(describeStep({ kind: 'ler', hotspotId: 'nope' }).pt).toBe('Leia a placa.');
+    expect(describeStep({ kind: 'cumprimentar', npc: 'julia', timeCorrect: true }).pt).toBe('Cumprimente a Júlia do jeito certo pra hora.');
+    expect(describeStep({ kind: 'cumprimentar', timeCorrect: true }).pt).toBe('Cumprimente alguém do jeito certo pra hora.');
+    expect(describeStep({ kind: 'cumprimentar', npc: 'carlos' }).pt).toBe('Cumprimente Seu Carlos.');
+    expect(describeStep({ kind: 'cumprimentar' }).pt).toBe('Cumprimente alguém.');
+  });
+
+  it('spell quantities above one with number words and a plural noun', () => {
+    expect(describeStep({ kind: 'pedir', npc: 'carlos', itemId: 'pao_de_queijo', qty: 2 }).pt).toBe('Peça dois pães de queijo pro Seu Carlos.');
+    expect(describeStep({ kind: 'pedir', npc: 'carlos', itemId: 'coxinha', qty: 3 }).pt).toBe('Peça três coxinhas pro Seu Carlos.');
+    expect(describeStep({ kind: 'entregar', npc: 'nanda', itemId: 'agua', qty: 2 }).pt).toBe('Leve duas águas pra Nanda.');
+    expect(describeStep({ kind: 'entregar', npc: 'nanda', itemId: 'pastel', qty: 2 }).pt).toBe('Leve dois pastéis pra Nanda.');
+    expect(describeStep({ kind: 'pedir', npc: 'ze', itemId: 'flores', qty: 2 }).pt).toBe('Peça duas flores pro Seu Zé.');
+    expect(describeStep({ kind: 'pedir', npc: 'carlos', itemId: 'cafe_com_leite', qty: 2 }).en).toBe('Ask Seu Carlos for two orders of coffee with milk.');
+    for (const it of ITEMS) {
+      const t = describeStep({ kind: 'pedir', npc: 'carlos', itemId: it.id, qty: 2 }).pt;
+      expect(t, it.id).not.toMatch(/\d|×|[(]/);
+      expect(t, it.id).toMatch(/^Peça (dois|duas) /);
+    }
+    for (const d of RECADOS) for (const st of d.steps) expect(describeStep(st).pt, d.id).not.toMatch(/×|[(]/);
+  });
+
   it('are well formed: unique ids, needs_br, real items, real cards, real NPCs and rooms', () => {
     expect(new Set(RECADOS.map((d) => d.id)).size).toBe(RECADOS.length);
     for (const d of RECADOS) {

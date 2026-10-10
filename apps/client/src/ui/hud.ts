@@ -35,6 +35,8 @@ import { tierIcon, tierName } from './plate';
 import { wireHudNote } from './hudNotes';
 import { CARTELA_RULE } from './hudNotesData';
 import { hudShows } from './disclosure';
+import { chatChips, chatChipsShown } from './chatChips';
+import { clock } from '../gameClock';
 import { showSupportButton } from './supportGate';
 import { fetchPublicConfig } from '../auth/config';
 
@@ -340,16 +342,21 @@ export function buildHud(actions: HudActions) {
   const input = h('input', { type: 'text', maxLength: MAX_CHAT_LEN, placeholder: 'Diga oi! (Say hi — Portuguese or English)', 'aria-label': 'Conversa (Chat)', id: 'chat-input' });
 const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.placeholder = phMq.matches ? 'Diga oi! (Say hi)' : 'Diga oi! (Say hi — Portuguese or English)');  setPh();  phMq.addEventListener('change', setPh);
   const hint = h('span', { class: 'hint' }, 'Enter ↵');
-  const send = () => {
-    const text = input.value.trim();
-    if (!text) return;
+  /** One chat line out: the same path for the typed text and the quick replies (safety first, then the server). */
+  const sendLine = (text: string): boolean => {
     const v = classifyChat(text);
     if (v.action === 'block' || v.action === 'escalate') {
       toast('block', v.note?.pt ?? 'Mensagem bloqueada.', v.note?.en);
       if (v.action === 'escalate') actions.chat(text);
-      return;
+      return false;
     }
     actions.chat(text);
+    return true;
+  };
+  const send = () => {
+    const text = input.value.trim();
+    if (!text) return;
+    if (!sendLine(text)) return;
     input.value = '';
     hint.textContent = 'Enter ↵';
     hint.className = 'hint';
@@ -389,6 +396,18 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       },
       bi(pt, e),
     );
+  // quick replies (S1 and later): each sends a real chat line, so a typed greeting and a tapped one count the same
+  const chipsEl = h('div', { class: 'chat-chips', id: 'chat-chips', style: 'display:none' });
+  let chipsKey = '';
+  const paintChips = () => {
+    chipsEl.style.display = chatChipsShown(game.profile) ? '' : 'none';
+    const lines = chatChips(clock.minutes());
+    const key = lines.map((c) => c.pt).join('|');
+    if (key === chipsKey) return; // the hour's greeting changes a few times a day: repaint only then
+    chipsKey = key;
+    chipsEl.replaceChildren(...lines.map((c) => h('button', { type: 'button', 'data-chip': c.pt, title: c.en, onclick: () => void sendLine(c.pt) }, c.pt)));
+  };
+  window.setInterval(paintChips, 15_000);
   const standBtn = h('button', { onclick: actions.stand, id: 'btn-stand', style: 'display:none' }, bi('Levantar', 'Stand up'));
   const carryBtn = h('button', {
     type: 'button',
@@ -417,6 +436,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       parrotBtn,
       parrotToggle,
     ),
+    chipsEl,
     h('div', { class: 'chatbar' }, emoteToggle, carryBtn, input, hint, sendBtn),
   );
 
@@ -452,6 +472,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       roomName.replaceChildren(h('span', { class: 'room-name' }, ...(r.instanceName.includes(' · ') ? [r.instanceName.split(' · ')[0]!, h('span', { class: 'room-inst' }, ` · ${r.instanceName.split(' · ').slice(1).join(' · ')}`)] : [r.instanceName])), h('small', null, p && !hudShows(p).roomCounts ? roomGloss(r) : `${roomGloss(r)} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
       document.title = `Tudo Bem · ${r.instanceName}`;
     }
+    paintChips();
     if (p) {
       paintHudBelt(p.bjj);
       // the disclosure ladder (disclosure.ts): each element waits for the stage at which it means something

@@ -26,6 +26,7 @@
 .rtrack,
 .chatbar,
 .emotes button,
+.chat-chips button,
 .hud-menu,
 .parrot-whisper,
 .mission-banner {
@@ -752,6 +753,34 @@ button.hud-burger,
 .emotes button.green {
   background: var(--sp-green);
   color: #f5e6d3;
+}
+
+.chat-chips {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.chat-chips button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 2px 12px 4px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  transition: none;
+}
+
+.chat-chips button:hover {
+  background: #fffdf8;
+  transform: translateY(-1px);
+}
+
+.chat-chips button:active {
+  transform: translateY(2px);
 }
 
 .chatbar {
