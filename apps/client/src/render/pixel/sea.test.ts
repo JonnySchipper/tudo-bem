@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS } from '@tudobem/shared';
-import { CRABS_MAX, FOAM_MAX, crabHomes, shoreTiles, sunPathAlpha, sunPathColumn } from './sea';
+import { CRABS_MAX, FOAM_MAX, crabHomes, lagoas, paintSeaShade, seaShore, shoreTiles, sunPathAlpha, sunPathColumn, swashReach } from './sea';
 
 describe('the Praia sea (foam and crabs)', () => {
   const floor = ROOMS.praia.floor;
@@ -52,5 +52,64 @@ describe('the Praia sea (foam and crabs)', () => {
     expect(floor[col.y0 - 1][col.x]).toBe('s');
     // the party deck's ring of sea is too thin for a path
     expect(sunPathColumn(ROOMS.barco_festa.floor)).toBeNull();
+  });
+});
+
+describe('the Praia sea shading (the visual pass)', () => {
+  const floor = ROOMS.praia.floor;
+
+  it('finds the shoreline on every column, the pier taking its neighbours’ row', () => {
+    const shore = seaShore(floor);
+    expect(shore).toHaveLength(floor[0].length);
+    for (let x = 0; x < shore.length; x++) {
+      expect(shore[x]).toBeGreaterThan(0);
+      expect(floor[shore[x]][x] === 'o' || floor[shore[x]][x] === 'b').toBe(true);
+    }
+    // the pier's planks run down into the sea, yet its columns share the beach's shoreline
+    expect(shore[28]).toBe(shore[20]);
+    expect(seaShore(ROOMS.praca.floor).every((y) => y === -1)).toBe(true);
+  });
+
+  it('tells the lagoa from the sea', () => {
+    const l = lagoas(floor);
+    expect(l).toHaveLength(1);
+    expect(l[0]).toEqual({ x0: 2, y0: 9, x1: 5, y1: 11 });
+    expect(lagoas(ROOMS.barco_festa.floor)).toEqual([]);
+  });
+
+  it('paints the shading once: clear shallows by the sand, darker toward the horizon, wet sand above the water', () => {
+    const shade = paintSeaShade(floor, 2)!;
+    expect(shade).not.toBeNull();
+    expect(shade.data.length).toBe(shade.w * shade.h * 4);
+    const at = (wx: number, wy: number) => {
+      const i = ((wy - shade.y) * shade.w + (wx - shade.x)) * 4;
+      return [...shade.data.slice(i, i + 4)];
+    };
+    const shoreY = seaShore(floor)[10] * 16;
+    const shallow = at(10 * 16 + 4, shoreY + 6);
+    const deep = at(10 * 16 + 4, (floor.length - 1) * 16);
+    expect(shallow[3]).toBeGreaterThan(0);
+    expect(shallow[1]).toBeGreaterThan(deep[1]); // the shallows are paler
+    expect(deep[3]).toBeGreaterThan(0);
+    expect(at(10 * 16 + 4, shoreY - 2)[3]).toBeGreaterThan(0); // wet sand
+    expect(at(10 * 16 + 4, shoreY - 40)[3]).toBe(0); // dry sand is left alone
+    expect(paintSeaShade(ROOMS.praca.floor)).toBeNull();
+  });
+
+  it('runs the swash up and back: never below the waterline, never past a hand’s width, never all in step', () => {
+    let max = 0;
+    const reach = new Set<number>();
+    for (let t = 0; t < 13; t += 0.25) {
+      for (let x = 0; x < 640; x += 16) {
+        const r = swashReach(x, t);
+        expect(r).toBeGreaterThanOrEqual(0);
+        max = Math.max(max, r);
+      }
+      reach.add(Math.round(swashReach(0, t)));
+    }
+    expect(max).toBeLessThanOrEqual(10);
+    expect(reach.has(0)).toBe(true);
+    expect(Math.max(...reach)).toBeGreaterThan(3);
+    expect(new Set([0, 160, 320, 480].map((x) => Math.round(swashReach(x, 2))))).not.toEqual(new Set([Math.round(swashReach(0, 2))]));
   });
 });

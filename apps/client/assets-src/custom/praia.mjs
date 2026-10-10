@@ -9,15 +9,20 @@
 //   the sand     praia/guarda_sol_a|b|c + _copa (overhead) + _fechado, praia/cadeira_praia(_b), praia/castelo_areia, praia/concha_a|b,
 //                praia/pegadas, praia/madeira_mar, praia/canoa, praia/rede_secando, praia/balde, praia/vara_apoiada, praia/pesca_stake
 //   the lagoa    praia/pedras_a|b|c, praia/taboa
-//   the costão   praia/costao (one 6 x 17 pile of granite), praia/placa_perigo, praia/gaivota (a perched gull, 2 frames)
+//   the costão   praia/costao (a 6 x 17 rocky point heaped from the pack's sea boulders), praia/placa_perigo, praia/gaivota (a perched gull)
 //   the pier     praia/pier_poste, praia/pier_grade, praia/pier_lampada, praia/pier_fim, praia/placa_pier, praia/pesca_bollard
 //   the boats    praia/barco_remo, praia/barco_pesca, praia/barco_alto_mar, praia/barco_festa (hull and deck as a decal you walk on, the cabin,
 //                mast and upper deck as an overhead part)
 //   the deck     praia/festa_grade, praia/festa_cabine, praia/festa_som, praia/festa_churrasqueira, praia/festa_cooler, praia/festa_placa
+//   visual pass  pack pieces from 21_Beach (sand pulled onto our ramp, the water ring keyed to foam): praia/pedra_mar_* (sea rocks),
+//                praia/boia_* (floats), praia/rede_volei (the net), praia/restinga_* (dune sprouts), praia/castelo_torres, praia/balde_pa,
+//                praia/bola, praia/estrela; authored: praia/farol + _lit (the lighthouse on its islet), praia/quadra_volei (the court's
+//                tape, a decal), praia/canga_listras|brasil|onda|sol, praia/prancha_a|b, praia/frescobol, praia/isopor, praia/chinelos,
+//                praia/bolsa_praia
 //   life         critters/gaivota (the pigeon strip recoloured white and grey), critters/caranguejo (2 frames), fx/onda_0..2 (the foam roll)
 //   kitnet       furniture/<id>_0|1 for the beach items (`kit.mjs` rules: rot 1 is the mirror)
 //   icons        icons/peixe_<id> (14 fish), the junk, the bottle, the kiosk snacks and what they leave in your hand
-import { blank, crop, paste, flipH } from '../../../../scripts/lib/pixel/img.mjs';
+import { blank, crop, paste, flipH, clone, trim, remapExact, rgbToHex } from '../../../../scripts/lib/pixel/img.mjs';
 import { put, fillRect, NAVY, h2, shape, ell, and, or } from './paint.mjs';
 import { C, K, drawShaded, newMask, fillMask, outlineAround, recolorRamp, stripSoftAlpha } from './kit.mjs';
 import { text, textW } from './aeroporto.mjs';
@@ -559,45 +564,7 @@ function taboa() {
   return { img, anchor: [8, 25] };
 }
 
-// ------------------------------------------------------------------ the costão
-/** The rocky headland: one tall pile of weathered granite boulders (6 x 17 tiles), lichen, a few tufts on its top. */
-function costao() {
-  const W = 100, H = 286;
-  const img = blank(W, H);
-  const rocks = [];
-  // back to front: rows of boulders, a few larger ones, jittered; the left edge stays ragged
-  for (let row = 0; row < 24; row++) {
-    const cy = 10 + row * 11.6;
-    for (let k = 0; k < 5; k++) {
-      const rx = 9 + h2(row, k, 3) * 9;
-      const ry = 6 + h2(row, k, 4) * 5;
-      const cx = 8 + k * 21 + (h2(row, k, 5) - 0.5) * 10 + (row % 2) * 8;
-      if (cx - rx < 1 || cx + rx > W - 1) continue;
-      rocks.push([cx, cy + (h2(row, k, 6) - 0.5) * 5, rx, ry, row * 10 + k]);
-    }
-  }
-  rocks.sort((p, q) => p[1] - q[1]);
-  for (const [cx, cy, rx, ry, seed] of rocks) {
-    const wob = (x, y) => {
-      const a = Math.atan2(y - cy, x - cx);
-      const r = 1 + Math.sin(a * 3 + seed) * 0.08 + Math.cos(a * 5 + seed * 2) * 0.05;
-      return ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= r * r;
-    };
-    if (cy + ry > H - 1) continue;
-    solid(img, wob, ROCK, { rimShade: 2 });
-    // a crack and lichen
-    for (let i = 0; i < rx * 0.8; i++) { const x = Math.round(cx - rx * 0.3 + i), y = Math.round(cy + Math.sin(i + seed) * 1.2); if (wob(x + 0.5, y + 0.5) && h2(x, y, seed) < 0.6) dot(img, x, y, ROCK[0]); }
-    for (let n = 0; n < 4; n++) {
-      const x = Math.round(cx + (h2(seed, n, 8) - 0.5) * rx), y = Math.round(cy - ry * 0.3 + (h2(seed, n, 9) - 0.5) * ry * 0.6);
-      if (wob(x + 0.5, y + 0.5)) dot(img, x, y, n % 2 ? '#a8b46a' : '#c9cf8a');
-    }
-    // the gulls' marks on the upper rocks
-    if (h2(seed, 1, 12) < 0.3) dot(img, Math.round(cx + 2), Math.round(cy - ry * 0.5), C.white);
-  }
-  // tufts of restinga on the top
-  for (let x = 6; x < 94; x += 7) for (let i = 0; i < 4; i++) dot(img, x + i, 5 + (i % 2), i % 2 ? C.g1 : C.g2);
-  return { img, anchor: [50, H - 1] };
-}
+// ------------------------------------------------------------------ the costão (built from the pack's boulders: `costaoLz` below)
 /** PERIGO · CORRENTEZA: a yellow board with a red header. */
 function placaPerigo() {
   const img = blank(46, 30);
@@ -1194,6 +1161,258 @@ export async function praiaIconParts() {
   return parts;
 }
 
+// ------------------------------------------------------------------ the visual pass (2026-10): pack beach pieces and new dressing
+// The LimeZu exteriors pack has a beach theme after all (21_Beach): sea rocks, floats, a lighthouse, a volleyball net, restinga sprouts,
+// sand castles. They come in the pack's orange sand and blue water, so the sand is pulled onto the Praia's pale ramp and the water ring is
+// keyed out (the real sea shows through) with its light rim kept as foam.
+const LZ = 'ext:ME_Theme_Sorter_16x16/21_Beach_Singles_16x16/21_Beach_16x16_';
+const LZ_SAND = new Map([['#e8bb5b', SAND.hi], ['#e6ae55', SAND.hi], ['#e1934b', SAND.base], ['#e09b4e', SAND.base], ['#db8447', SAND.lo], ['#d4703f', SAND.lo2], ['#c05c42', SAND.speck], ['#ab4a36', '#b39568']]);
+const LZ_WATER = new Set(['#22648d', '#2974a2', '#3a93b0']);
+const LZ_FOAM = new Map([['#41b5be', '#a9e3d6'], ['#5bc2cb', SEA.foam2], ['#5bc9d2', SEA.foam]]);
+/** A pack piece, trimmed. `sand`: onto our sand. `water`: 'foam' keys the ring out and keeps a foam rim, 'drop' keys out the rim too. `dropSand`: no sand at all. */
+async function lz(ctx, name, { sand = false, water = null, dropSand = false } = {}) {
+  let img = stripSoftAlpha(await ctx.load(`${LZ}${name}.png`));
+  if (sand) img = remapExact(img, LZ_SAND);
+  if (water || dropSand) {
+    img = clone(img);
+    for (let i = 0; i < img.data.length; i += 4) {
+      if (!img.data[i + 3]) continue;
+      const hex = rgbToHex(img.data[i], img.data[i + 1], img.data[i + 2]).toLowerCase();
+      const gone = (water && LZ_WATER.has(hex)) || (water === 'drop' && LZ_FOAM.has(hex)) || (dropSand && LZ_SAND.has(hex));
+      if (gone) img.data[i + 3] = 0;
+      else if (water && LZ_FOAM.has(hex)) {
+        const c = LZ_FOAM.get(hex);
+        img.data[i] = parseInt(c.slice(1, 3), 16); img.data[i + 1] = parseInt(c.slice(3, 5), 16); img.data[i + 2] = parseInt(c.slice(5, 7), 16);
+      }
+    }
+  }
+  return trim(img).img;
+}
+const bottomCentre = (img, lift = 0) => ({ img, anchor: [Math.floor(img.w / 2), img.h - 1 - lift] });
+
+/**
+ * The costão rebuilt from the pack's sea boulders: a rocky point of granite heaped over a dark crevice fill, restinga on its crown, wet and
+ * darker at its foot, ragged on both sides (the beach goes on past it). 7 tiles wide over its 6-tile footprint.
+ */
+async function costaoLz(ctx) {
+  const W = 112, H = 286;
+  const img = blank(W, H);
+  const big = [await lz(ctx, 'Big_Sea_Rock_Vers_1', { water: 'drop' }), await lz(ctx, 'Big_Sea_Rock_Vers_2', { water: 'drop' })];
+  const med = [];
+  for (const n of ['Medium_Sea_Rock_1_Vers_1', 'Medium_Sea_Rock_1_Vers_2', 'Medium_Sea_Rock_3_Vers_1', 'Medium_Sea_Rock_3_Vers_2', 'Medium_Sea_Rock_4_Vers_1', 'Medium_Sea_Rock_2_Vers_2', 'Medium_Sea_Rock_2_Vers_1', 'Medium_Sea_Rock_4_Vers_2']) med.push(await lz(ctx, n, { water: 'drop' }));
+  const small = [await lz(ctx, 'Small_Sea_Rock_1_Vers_1', { water: 'drop' }), await lz(ctx, 'Small_Sea_Rock_2_Vers_2', { water: 'drop' })];
+  const sprouts = [await lz(ctx, 'Big_Sprout_Vers_1', { dropSand: true }), await lz(ctx, 'Small_Sprout_1_Vers_1', { dropSand: true }), await lz(ctx, 'Small_Sprout_3_Vers_1', { dropSand: true }), await lz(ctx, 'Big_Sprout_Vers_2', { dropSand: true }), await lz(ctx, 'Small_Sprout_2_Vers_1', { dropSand: true })];
+  // the outline: ragged on both sides, a little narrower at the crown
+  const west = (y) => 8 + Math.round(Math.sin(y * 0.09) * 4 + Math.sin(y * 0.031 + 1) * 3 + Math.max(0, 30 - y) * 0.3);
+  const east = (y) => W - 8 - Math.round(Math.sin(y * 0.07 + 2) * 4 + Math.sin(y * 0.023) * 3 + Math.max(0, 30 - y) * 0.3);
+  const inside = (x, y) => x >= west(y) && x <= east(y) && y > 10;
+  // the crevices between the boulders
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (inside(x, y) && x >= west(y) + 4 && x <= east(y) - 4) put(img, x, y, h2(x >> 1, y >> 1, 61) < 0.2 ? '#4f4448' : '#3f3a46');
+  const pieces = [];
+  let n = 0;
+  for (let foot = 34; foot < H + 8; foot += 9) {
+    for (let x = 0; x < W; ) {
+      n++;
+      const r = h2(n, foot, 62);
+      const im = r < 0.3 ? big[n % 2] : r < 0.9 ? med[n % med.length] : small[n % 2];
+      const px = x + Math.round((h2(n, 1, 63) - 0.5) * 10);
+      const fy = foot + Math.round((h2(n, 2, 63) - 0.5) * 8);
+      if (inside(px + im.w / 2, fy - 2) && inside(px + 4, fy - 2) && inside(px + im.w - 4, fy - 2)) pieces.push({ im, x: px, foot: Math.min(H - 1, fy), flip: h2(n, 3, 63) < 0.5 });
+      x += Math.round(im.w * (0.55 + h2(n, 4, 63) * 0.25));
+    }
+  }
+  pieces.sort((a, b) => a.foot - b.foot);
+  for (const p of pieces) {
+    const im = p.flip ? flipH(p.im) : p.im;
+    const x = Math.min(W - im.w, Math.max(0, p.x)), y = Math.max(0, p.foot - im.h);
+    paste(img, im, x, y);
+  }
+  // the crown: restinga and a few bromeliads growing over the top rocks, thicker to the east
+  for (let i = 0; i < 16; i++) {
+    const sp = sprouts[i % sprouts.length];
+    const x = Math.round(8 + h2(i, 1, 64) * (W - 20) - sp.w / 2), y = Math.round(4 + h2(i, 2, 64) * (30 + (x / W) * 40));
+    if (inside(x + sp.w / 2, y + sp.h)) paste(img, sp, Math.max(0, Math.min(W - sp.w, x)), y);
+  }
+  // wet foot: the bottom rows darken toward the sea
+  for (let y = H - 44; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4;
+    if (!img.data[i + 3]) continue;
+    const t = ((y - (H - 44)) / 44) * 0.34;
+    for (let c = 0; c < 3; c++) img.data[i + c] = Math.round(img.data[i + c] * (1 - t) + [36, 58, 70][c] * t);
+  }
+  outlineAround(img);
+  return { img, anchor: [56, H - 1] };
+}
+
+/**
+ * The farol on its islet off the costão: a small red-and-white tower (the pack's lighthouse is 7 tiles wide, too big for the beach), a
+ * gallery, the lantern room and a red cap, standing on a round concrete base. `lit` glows the glass at night; the beams are `sea.ts`.
+ */
+function farolPequeno() {
+  const W = 34, H = 100;
+  const img = blank(W, H);
+  const cx = 17;
+  const RED_ = ['#792c38', '#a82b2d', '#e63f38', '#fc5c46'];
+  const WHT = ['#989ebe', '#b2aecb', '#d8d0e0', '#ebe4f2'];
+  // the base: a round concrete step
+  solid(img, elp(cx, 93, 15.5, 5.5), ['#6c6e85', '#8b8bab', '#b2aecb', '#d8d0e0'], { rimShade: 2 });
+  solid(img, elp(cx, 90, 13, 4.5), WHT, { rimShade: 1 });
+  // the tower: tapered, banded red and white, lit from the left like a cylinder
+  const top = 30, bot = 90;
+  for (let y = top; y < bot; y++) {
+    const hw = 6.5 + ((y - top) / (bot - top)) * 3.5;
+    const band = Math.floor((y - top) / 10) % 2 === 0 ? RED_ : WHT;
+    for (let x = Math.ceil(cx - hw); x < cx + hw; x++) {
+      const u = (x + 0.5 - (cx - hw)) / (2 * hw); // 0 west .. 1 east
+      dot(img, x, y, u < 0.18 ? band[2] : u < 0.32 ? band[3] : u < 0.72 ? band[2] : u < 0.88 ? band[1] : band[0]);
+    }
+  }
+  // door and two little windows
+  solid(img, box(cx - 3, 81, cx + 3, 90), [C.w5, C.w4, C.w3, C.w2], { rimShade: 1 });
+  rect(img, cx - 2, 81, 4, 1, '#3a3a50');
+  for (const y of [48, 66]) { rect(img, cx - 1, y, 2, 4, '#3a4c78'); dot(img, cx - 1, y, '#556a98'); }
+  // the gallery: a dark ring with a rail
+  solid(img, box(cx - 11, 26, cx + 11, 31), ['#46465e', '#565972', '#6c6e85', '#8b8bab'], { rimShade: 1 });
+  for (let x = cx - 10; x < cx + 11; x += 3) rect(img, x, 22, 1, 4, '#46465e');
+  rect(img, cx - 11, 21, 22, 1, '#565972');
+  // the lantern room: glass between mullions
+  solid(img, box(cx - 7, 13, cx + 7, 22), ['#738ca8', '#8fa1c8', '#a4bbd5', '#bad2e0'], { rimShade: 1 });
+  for (const x of [cx - 4, cx, cx + 4]) rect(img, x, 13, 1, 9, '#46465e');
+  // the cap and its finial
+  solid(img, (x, y) => elp(cx, 13, 9, 7)(x, y) && y < 13.5, RED_, { rimShade: 1 });
+  rect(img, cx - 1, 2, 2, 4, '#46465e');
+  solid(img, elp(cx, 2.5, 1.8, 1.8), RED_, { rimShade: 0 });
+  outlineAround(img);
+  const lit = blank(W, H);
+  for (let y = 13; y < 22; y++) for (let x = cx - 7; x < cx + 7; x++) if (opaque(img, x, y)) {
+    const i = (y * W + x) * 4;
+    const hex = rgbToHex(img.data[i], img.data[i + 1], img.data[i + 2]).toLowerCase();
+    if (hex !== '#46465e') glow(lit, x, y, x < cx ? '#fff1b8' : '#ffd27a', 240);
+  }
+  for (const y of [48, 66]) for (let dy = 0; dy < 4; dy++) for (const x of [cx - 1, cx]) glow(lit, x, y + dy, WARM, 200);
+  return { img, lit, anchor: [cx, H - 3] };
+}
+/** Where the lamp sits in the lighthouse image (the beams' origin; `sea.ts` keeps the same numbers). */
+export const FAROL_LAMP = { x: 17, y: 17 };
+
+/** The volleyball net: the pack's two posts with the net strung across four of its middle pieces (6 tiles). */
+async function redeVolei(ctx) {
+  const left = await lz(ctx, 'Beach_Volley_Net_Left', { sand: true });
+  const mid = await lz(ctx, 'Beach_Volley_Net_Middle_Modular', { sand: true });
+  const right = await lz(ctx, 'Beach_Volley_Net_Right', { sand: true });
+  const n = Math.round((96 - left.w - right.w) / mid.w);
+  const img = blank(left.w + right.w + n * mid.w, Math.max(left.h, right.h));
+  paste(img, left, 0, img.h - left.h);
+  for (let i = 0; i < n; i++) paste(img, mid, left.w + i * mid.w, img.h - left.h);
+  paste(img, right, left.w + n * mid.w, img.h - right.h);
+  return { img, anchor: [Math.floor(img.w / 2), img.h - 3] };
+}
+
+/** The court: a rectangle of blue tape pegged into raked sand, a centre line under the net (6 x 7 tiles, a decal). */
+function quadraVolei() {
+  const W = 96, H = 112;
+  const img = blank(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    // the raked sand inside the lines: faint parallel furrows
+    if (x > 3 && x < W - 4 && y > 3 && y < H - 4 && (y % 6 === 0) && h2(x >> 2, y, 51) < 0.7) glow(img, x, y, '#cdb789', 70);
+  }
+  const tape = (x, y) => { dot(img, x, y, '#2f64a6'); };
+  for (let x = 2; x < W - 2; x++) { tape(x, 2); tape(x, H - 3); dot(img, x, 3, '#244f86'); dot(img, x, H - 2, '#244f86'); }
+  for (let y = 2; y < H - 2; y++) { tape(2, y); tape(W - 3, y); dot(img, 3, y, '#244f86'); dot(img, W - 2, y, '#244f86'); }
+  // the line under the net
+  for (let x = 2; x < W - 2; x++) if (x % 4 < 3) dot(img, x, 56, '#3f7cc4');
+  // corner pegs
+  for (const [x, y] of [[1, 1], [W - 4, 1], [1, H - 4], [W - 4, H - 4]]) { rect(img, x, y, 3, 3, WOOD[2]); dot(img, x, y, WOOD[3]); }
+  return { img, anchor: [W / 2, H - 1] };
+}
+
+/** A canga (a beach wrap laid out as a towel), 1 x 2 tiles, flat. `kind`: 'listras' (terracotta stripes), 'brasil', 'onda' (teal waves), 'sol' (mustard and white). */
+function canga(kind) {
+  const W = 14, H = 28;
+  const img = blank(W, H);
+  const o = { x0: 1, y0: 2, x1: W - 1, y1: H - 2 };
+  for (let y = o.y0; y < o.y1; y++) for (let x = o.x0; x < o.x1; x++) {
+    const u = x - o.x0, v = y - o.y0, cw = o.x1 - o.x0, ch = o.y1 - o.y0;
+    let c;
+    if (kind === 'listras') c = (v >> 2) % 2 ? TERRA[2] : CREAM[3];
+    else if (kind === 'sol') c = (v >> 1) % 3 === 0 ? MUST[2] : (u + (v >> 1)) % 6 === 0 ? MUST[3] : '#fbf3e6';
+    else if (kind === 'onda') c = (v + Math.round(Math.sin(u * 0.9) * 1.2)) % 5 < 2 ? SEA.base : '#e9f6f2';
+    else {
+      // brasil: the green field, the yellow diamond, the blue disc
+      const dx = Math.abs(u + 0.5 - cw / 2) / (cw / 2 - 0.5), dy = Math.abs(v + 0.5 - ch / 2) / (ch / 2 - 1);
+      const disc = (u + 0.5 - cw / 2) ** 2 / 9 + (v + 0.5 - ch / 2) ** 2 / 9 <= 1;
+      c = disc ? (v === Math.round(ch / 2) ? '#e9eef7' : '#2a4f98') : dx + dy <= 1 ? '#f2c41a' : '#1f8a4c';
+    }
+    dot(img, x, y, c);
+  }
+  // the fold shade on the right and the bottom, a lit edge on the left
+  for (let y = o.y0; y < o.y1; y++) { glow(img, o.x1 - 1, y, '#3a2e24', 70); glow(img, o.x0, y, '#ffffff', 60); }
+  for (let x = o.x0; x < o.x1; x++) glow(img, x, o.y1 - 1, '#3a2e24', 60);
+  // a fringe at both short ends
+  for (let x = o.x0; x < o.x1; x += 2) { glow(img, x, o.y0 - 1, '#f4ecd8', 220); glow(img, x, o.y0 - 2, '#f4ecd8', 140); glow(img, x, o.y1, '#f4ecd8', 220); glow(img, x, o.y1 + 1, '#f4ecd8', 140); }
+  // a soft contact shade down-right on the sand
+  for (let y = o.y0 + 1; y <= o.y1; y++) glow(img, o.x1, y, '#8a6a3a', 60);
+  return { img, anchor: [7, H - 1] };
+}
+
+/** A surfboard stuck nose-up in the sand. */
+function prancha(ramp, stripe) {
+  const img = blank(14, 38);
+  solid(img, (x, y) => elp(7, 17, 4.6, 16)(x, y) && y < 33, ramp, { rimShade: 1 });
+  for (let y = 4; y < 31; y++) dot(img, 7, y, stripe); // the stringer
+  for (let y = 12; y < 15; y++) for (let x = 3; x < 12; x++) if (opaque(img, x, y)) dot(img, x, y, stripe);
+  // half buried: a little mound of sand round the tail
+  solid(img, (x, y) => elp(7, 34.5, 6.4, 2.6)(x, y), [SAND.lo2, SAND.lo, SAND.base, SAND.hi], { rimShade: 1, outline: false });
+  return { img, anchor: [7, 36] };
+}
+
+/** Frescobol: two wooden paddles and the little rubber ball, dropped on the sand. */
+function frescobol() {
+  const img = blank(24, 16);
+  const paddle = (cx, cy, ang, ramp) => {
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    solid(img, (x, y) => {
+      const u = (x - cx) * ca + (y - cy) * sa, v = -(x - cx) * sa + (y - cy) * ca;
+      return (u / 4.2) ** 2 + (v / 3.6) ** 2 <= 1 || (u > 3 && u < 9.5 && Math.abs(v) < 1.1);
+    }, ramp, { rimShade: 1 });
+  };
+  paddle(6, 7, 0.5, ['#7a3b1c', '#a85424', '#cf7a3a', '#e9a464']);
+  paddle(15, 9, -0.35, ['#1f5b6e', '#2a7a8f', '#3fa0b2', '#7cc6d2']);
+  solid(img, elp(20.5, 3.5, 1.8, 1.8), ['#c23a2a', '#e0553a', '#ff7a52', '#ffb08a'], { rimShade: 1 });
+  return { img, anchor: [12, 14] };
+}
+
+/** A styrofoam cooler (isopor), the beach's fridge: white with a lid and a strap. */
+function isopor() {
+  const img = blank(16, 15);
+  solid(img, box(1, 5, 15, 14), [C.lav3, C.lav4, '#f7f5fb', C.white], { rimShade: 1 });
+  solid(img, box(0, 2, 16, 6), [C.lav3, '#e9e6f0', '#f7f5fb', C.white], { rimShade: 1 });
+  rect(img, 3, 1, 10, 1, C.navy2); dot(img, 2, 2, C.navy2); dot(img, 13, 2, C.navy2);
+  rect(img, 1, 9, 14, 1, C.r3);
+  return { img, anchor: [8, 14] };
+}
+
+/** A pair of rubber flip-flops (chinelos) left on the sand. */
+function chinelos() {
+  const img = blank(14, 12);
+  for (const [cx, cy, sole, strap] of [[4, 6, '#2f64a6', '#f2c41a'], [10, 5, '#2f64a6', '#f2c41a']]) {
+    solid(img, elp(cx, cy, 2.4, 4.4), [sole, sole, '#6aa0dc', '#8fbbe8'], { rimShade: 1 });
+    dot(img, cx, cy - 2, strap); dot(img, cx - 1, cy - 1, strap); dot(img, cx + 1, cy - 1, strap); dot(img, cx - 2, cy, strap); dot(img, cx + 2, cy, strap);
+  }
+  return { img, anchor: [7, 11] };
+}
+
+/** A straw beach bag with a towel sticking out. */
+function bolsa() {
+  const img = blank(16, 16);
+  solid(img, poly([[1.5, 6], [14.5, 6], [13, 15], [3, 15]]), THATCH, { rimShade: 1 });
+  for (let y = 8; y < 15; y += 2) for (let x = 3; x < 14; x++) if (opaque(img, x, y) && (x + y) % 3) dot(img, x, y, THATCH[1]);
+  for (let x = 4; x < 12; x++) dot(img, x, 3 + Math.round(Math.abs(x - 7.5) * 0.5), C.w3);
+  rect(img, 9, 3, 4, 3, SEA.base); rect(img, 9, 3, 4, 1, SEA.hi);
+  outlineAround(img);
+  return { img, anchor: [8, 15] };
+}
+
 // ------------------------------------------------------------------ parts for the import pipeline
 const meta = (fp, shadow = 'fx/shadow_16', cast = true) => ({ footprint: fp, shadow, ...(cast ? { cast: { kx: 0.4, ky: 0.22 } } : {}) });
 const flatMeta = (fp) => ({ footprint: fp, shadow: null, decal: true });
@@ -1241,7 +1460,6 @@ export async function praia(ctx) {
   add('praia/pesca_bollard', pescaBollard(), meta([1, 1], 'fx/shadow_10'));
   for (const k of ['a', 'b', 'c']) add(`praia/pedras_${k}`, pedras(k), meta(k === 'a' ? [1, 1] : k === 'b' ? [2, 1] : [2, 2], k === 'c' ? 'fx/shadow_32' : 'fx/shadow_16'));
   add('praia/taboa', taboa(), meta([1, 1], 'fx/shadow_10', false));
-  add('praia/costao', costao(), meta([6, 17], null, false));
   add('praia/placa_perigo', placaPerigo(), meta([1, 1], 'fx/shadow_16'));
   add('praia/gaivota', gaivotaPousada(), meta([1, 1], 'fx/shadow_10', false));
   add('praia/pier_poste', pierPoste(), meta([1, 1], null, false));
@@ -1264,6 +1482,29 @@ export async function praia(ctx) {
   add('praia/festa_churrasqueira', festaChurrasqueira(), meta([1, 1], 'fx/shadow_16'));
   add('praia/festa_cooler', festaCooler(), meta([1, 1], 'fx/shadow_10'));
   add('praia/festa_placa', festaPlaca(), meta([1, 1], 'fx/shadow_10'));
+  // the visual pass: pack beach pieces (rocks, floats, lighthouse, net, restinga, castles) and the new dressing
+  add('praia/costao', await costaoLz(ctx), meta([6, 17], null, false));
+  for (const [key, name] of [['pedra_mar_g1', 'Big_Sea_Rock_Vers_1'], ['pedra_mar_g2', 'Big_Sea_Rock_Vers_2'], ['pedra_mar_m1', 'Medium_Sea_Rock_1_Vers_2'], ['pedra_mar_m2', 'Medium_Sea_Rock_3_Vers_1'], ['pedra_mar_m3', 'Medium_Sea_Rock_4_Vers_2'], ['pedra_mar_p1', 'Small_Sea_Rock_1_Vers_1'], ['pedra_mar_p2', 'Small_Sea_Rock_2_Vers_2'], ['pedra_mar_arco', 'Broken_Arch_Sea_Rock_1_Vers_2']]) {
+    add(`praia/${key}`, bottomCentre(await lz(ctx, name, { water: 'foam' }), 2), { footprint: [1, 1], shadow: null });
+  }
+  for (const [key, name] of [['boia_vermelha', 'Red_Float'], ['boia_laranja', 'Orange_Float'], ['boia_verde', 'Green_Float']]) add(`praia/${key}`, bottomCentre(await lz(ctx, name, { water: 'foam' }), 2), { footprint: [1, 1], shadow: null });
+  const farol = farolPequeno();
+  add('praia/farol', { img: farol.img, anchor: farol.anchor }, { footprint: [2, 1], shadow: null, lit: 'praia/farol_lit', light: { x: FAROL_LAMP.x, y: FAROL_LAMP.y, r: 60, color: '#ffe2a0' } });
+  add('praia/farol_lit', { img: farol.lit, anchor: farol.anchor }, { footprint: [2, 1], shadow: null });
+  add('praia/rede_volei', await redeVolei(ctx), meta([6, 1], null, false));
+  add('praia/quadra_volei', quadraVolei(), flatMeta([6, 7]));
+  for (const [key, name] of [['restinga_g1', 'Big_Sprout_Vers_1'], ['restinga_g2', 'Big_Sprout_Vers_2'], ['restinga_p1', 'Small_Sprout_1_Vers_1'], ['restinga_p2', 'Small_Sprout_2_Vers_2'], ['restinga_p3', 'Small_Sprout_3_Vers_2']]) add(`praia/${key}`, bottomCentre(await lz(ctx, name, { sand: true }), 1), meta([1, 1], null, false));
+  add('praia/castelo_torres', bottomCentre(await lz(ctx, 'Sand_Castle_2_Vers_1', { sand: true })), flatMeta([2, 2]));
+  add('praia/balde_pa', bottomCentre(await lz(ctx, 'Example_Bucket_With_Shovel', { sand: true })), meta([1, 1], 'fx/shadow_10', false));
+  add('praia/bola', bottomCentre(await lz(ctx, 'Ball', { sand: true })), flatMeta([1, 1]));
+  add('praia/estrela', bottomCentre(await lz(ctx, 'Yellow_Big_Starfish')), flatMeta([1, 1]));
+  for (const k of ['listras', 'brasil', 'onda', 'sol']) add(`praia/canga_${k}`, canga(k), flatMeta([1, 2]));
+  add('praia/prancha_a', prancha(['#b0522b', '#dc8350', '#f2b27c', '#fbe0c4'], C.cr0), meta([1, 1], 'fx/shadow_10'));
+  add('praia/prancha_b', prancha(['#2f64a6', '#3f7cc4', '#6aa0dc', '#a8c8f0'], '#f2c41a'), meta([1, 1], 'fx/shadow_10'));
+  add('praia/frescobol', frescobol(), flatMeta([1, 1]));
+  add('praia/isopor', isopor(), meta([1, 1], 'fx/shadow_10'));
+  add('praia/chinelos', chinelos(), flatMeta([1, 1]));
+  add('praia/bolsa_praia', bolsa(), meta([1, 1], 'fx/shadow_10'));
   // living things and the foam
   for (const k of [0, 1, 2]) add(`fx/onda_${k}`, onda(k), { footprint: [1, 1], shadow: null, decal: true });
   add('critters/gaivota', await gaivotaFlock(ctx), { footprint: [1, 1], shadow: null });
