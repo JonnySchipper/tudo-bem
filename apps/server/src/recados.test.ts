@@ -370,7 +370,7 @@ describe('recados on the server', () => {
     // Out of reach of Seu Carlos the wave greets nobody; next to him it does.
     await a.send({ t: 'emote', kind: 'oi' });
     expect(p.recados!.done).not.toContain('nanda_um_oi_pro_carlos');
-    const carlos = world.npcs.whoIn('padaria').find((n) => n.id === 'carlos')!;
+    const carlos = ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
     await walkTo(a, carlos.interact.x, carlos.interact.y);
     await a.send({ t: 'emote', kind: 'oi' });
     expect(p.recados!.done).toContain('nanda_um_oi_pro_carlos');
