@@ -26,7 +26,8 @@ body.dm-active.dm-panning #world {
   pointer-events: none;
 }
 
-.dm-root {
+.dm-root,
+.dm-signin-back {
   --dm-top: 56px;
   --dm-left: 292px;
   --dm-right: 324px;
@@ -1149,8 +1150,12 @@ body.dm-active.dm-panning #world {
     --dm-right: 288px;
   }
 
-  .dm-brand small {
+  .dm-brand {
     display: none;
+  }
+
+  .dm-room {
+    max-width: 180px;
   }
 }
 

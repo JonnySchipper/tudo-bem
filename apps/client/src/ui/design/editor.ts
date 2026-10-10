@@ -38,7 +38,9 @@ import {
   T,
   cloneProps,
   drawDepth,
+  footprint,
   freshId,
+  inBox,
   layerOf as layerOfSprite,
   marqueeIds,
   normBox,
@@ -204,6 +206,28 @@ class Editor {
     const l = this.layers[this.layerOf(p)];
     return l.hidden || l.locked;
   };
+  /** A click lands on a prop where its sprite is painted, or on its footprint (not for overhead art, which sits over other things). */
+  hitTest = (p: PropDef, wx: number, wy: number): boolean => {
+    const key = this.artKey(p);
+    const s = this.art.sprite(key);
+    if (!s || !key) return true;
+    const w = p.w ?? 1;
+    const hh = p.h ?? 1;
+    const ax = (p.x + w / 2) * T + (p.ox ?? 0);
+    const ay = (p.y + hh) * T + (p.oy ?? 0);
+    let lx = wx - (ax - s.ax);
+    const ly = wy - (ay - s.ay);
+    if (p.flip) lx = s.w - lx;
+    const painted = this.art.opaqueAt(key, lx, ly);
+    if (painted !== false) return true;
+    return this.layerOf(p) !== 'overhead' && inBox(footprint(p), wx, wy);
+  };
+  /** The marquee takes what stands in it: footprints (a wire's sprite box spans half the street). */
+  footBox = (p: PropDef): Box => {
+    const f = footprint(p);
+    return { x0: f.x0 + (p.ox ?? 0), y0: f.y0 + (p.oy ?? 0), x1: f.x1 + (p.ox ?? 0), y1: f.y1 + (p.oy ?? 0) };
+  };
+  propAt = (wx: number, wy: number) => pickAt(this.objects, wx, wy, this.boxOf, this.layerOf, this.hiddenOrLocked, this.hitTest);
   selectedProps = () => this.objects.filter((p) => this.selected.has(p.id));
   byId = (id: string) => this.objects.find((p) => p.id === id);
 
@@ -372,14 +396,8 @@ class Editor {
   rotate(): void {
     const props = this.selectedProps();
     if (!props.length) return;
-    let turned = 0;
-    this.edit('Girar', () => {
-      for (const p of props) if (rotateProp(p, this.art.has)) turned++;
-    });
-    if (!turned) {
-      this.history.undo(this.objects);
-      this.toast('Esse sprite não tem outras direções. Use espelhar (F).');
-    }
+    if (!props.some((p) => rotateProp(structuredClone(p), this.art.has))) return this.toast('Esse sprite não tem outras direções. Use espelhar (F).');
+    this.edit('Girar', () => props.forEach((p) => rotateProp(p, this.art.has)));
   }
 
   flip(): void {
@@ -591,6 +609,17 @@ class Editor {
     this.renderTop();
   }
 
+  /** Open on the autosaved draft: it is what the server has, so it counts as saved. */
+  restoreDraft(objects: PropDef[], at: number): void {
+    this.objects = structuredClone(objects);
+    this.lastSaved = JSON.stringify(this.objects);
+    this.savedAt = at;
+    this.setSave('saved');
+    this.paint(true);
+    this.scheduleChecks();
+    this.renderPanels();
+  }
+
   async discardDraft(): Promise<void> {
     this.adopt('Descartar rascunho', this.baseline);
     await designApi.discardDraft(this.room).catch(() => {});
@@ -673,7 +702,7 @@ class Editor {
       if (!e.shiftKey && window.matchMedia('(pointer: coarse)').matches) this.arm(null);
       return;
     }
-    const hit = pickAt(this.objects, w.wx, w.wy, this.boxOf, this.layerOf, this.hiddenOrLocked);
+    const hit = this.propAt(w.wx, w.wy);
     const additive = e.shiftKey || e.ctrlKey || e.metaKey;
     if (hit) {
       if (additive) {
@@ -698,7 +727,7 @@ class Editor {
       }
       const w = this.worldAt(e.clientX, e.clientY);
       this.pointerTile = w ? { x: Math.floor(w.wx / T), y: Math.floor(w.wy / T) } : null;
-      const hit = w && !this.placing && !this.pick ? pickAt(this.objects, w.wx, w.wy, this.boxOf, this.layerOf, this.hiddenOrLocked) : null;
+      const hit = w && !this.placing && !this.pick ? this.propAt(w.wx, w.wy) : null;
       this.hover = hit?.id ?? null;
       document.body.classList.toggle('dm-hovering', !!hit);
       return;
@@ -716,7 +745,7 @@ class Editor {
     if (d.kind === 'marquee') {
       if (!d.box && Math.hypot(w.wx - d.wx, w.wy - d.wy) < 3) return;
       d.box = normBox({ x: d.wx, y: d.wy }, { x: w.wx, y: w.wy });
-      this.selected = new Set([...d.base, ...marqueeIds(this.objects, d.box, this.boxOf, this.hiddenOrLocked)]);
+      this.selected = new Set([...d.base, ...marqueeIds(this.objects, d.box, this.footBox, this.hiddenOrLocked)]);
       return;
     }
     if (!d.snap.size) return;
@@ -799,14 +828,27 @@ class Editor {
       return;
     }
     if (this.preview) {
-      stop();
-      if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') this.togglePreview();
-      else this.preview.keyDown(e.key);
+      e.stopPropagation();
+      if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        this.togglePreview();
+      } else if (arrowForKey(e.key) && !mod) {
+        e.preventDefault();
+        this.preview.keyDown(e.key);
+      }
       return;
     }
     const k = e.key;
+    // the game never hears a key while the editor is open; the browser keeps the ones the editor does not use (Tab, F5...)
+    e.stopPropagation();
+    // keyboard use of the editor's own buttons
+    if ((k === 'Tab' || k === 'Enter' || k === ' ') && target?.closest?.('.dm-ui') && !mod) return;
     const arrows: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-    stop();
+    if (this.shortcut(e, k, mod, arrows) !== false) e.preventDefault();
+  };
+
+  /** Runs the shortcut for this key; false when the key is not one. */
+  private shortcut(e: KeyboardEvent, k: string, mod: boolean, arrows: Record<string, [number, number]>): boolean | void {
     if (arrows[k]) {
       const [dx, dy] = arrows[k]!;
       if (!this.selected.size) {
@@ -827,7 +869,7 @@ class Editor {
       if (lk === 's') return void this.saveNow();
       if (lk === 'a') return this.select(this.objects.filter((p) => !this.hiddenOrLocked(p)).map((p) => p.id));
       if (k === 'Enter') return this.openPublish();
-      return;
+      return false;
     }
     switch (k) {
       case 'Escape':
@@ -891,7 +933,8 @@ class Editor {
       case '?':
         return this.openCheatSheet();
     }
-  };
+    return false;
+  }
 
   onKeyUp = (e: KeyboardEvent): void => {
     if (e.key === ' ') {
@@ -1003,6 +1046,24 @@ class Editor {
     window.addEventListener('keyup', this.onKeyUp, true);
     window.addEventListener('beforeunload', this.onUnload);
     this.offLayout = game.on('layout', () => this.onLayout());
+    // e2e and screenshot hook, like the other `window.__tb` ones
+    const hook = (window as unknown as { __tb?: Record<string, unknown> }).__tb;
+    if (hook)
+      hook.design = {
+        room: this.room,
+        selected: () => [...this.selected],
+        objects: () => structuredClone(this.objects),
+        issues: () => this.issues.map((i) => ({ kind: i.kind, severity: i.severity, ids: i.ids })),
+        saveState: () => this.saveState,
+        select: (ids: string[]) => this.select(ids),
+        focus: (ids: string[]) => this.focusIds(ids),
+        focusTile: (x: number, y: number) => this.focusTiles([{ x, y }]),
+        /** The prop a click at this client point would pick, or null. */
+        hitAt: (cx: number, cy: number) => {
+          const w = this.worldAt(cx, cy);
+          return w ? (this.propAt(w.wx, w.wy)?.id ?? null) : null;
+        },
+      };
     this.paint(true);
     this.scheduleChecks();
     this.raf = requestAnimationFrame(this.frame);
@@ -1017,6 +1078,7 @@ class Editor {
     clearTimeout(this.saveTimer);
     clearTimeout(this.checkTimer);
     cancelAnimationFrame(this.raf);
+    cancelAnimationFrame(this.panelRaf);
     window.removeEventListener('pointerdown', this.onDown, true);
     window.removeEventListener('pointermove', this.onMove, true);
     window.removeEventListener('pointerup', this.onUp, true);
@@ -1027,6 +1089,7 @@ class Editor {
     window.removeEventListener('keyup', this.onKeyUp, true);
     window.removeEventListener('beforeunload', this.onUnload);
     this.offLayout?.();
+    delete (window as unknown as { __tb?: Record<string, unknown> }).__tb?.design;
     this.overlay.canvas.remove();
     this.root.remove();
     document.body.classList.remove('dm-active', 'dm-panning', 'dm-space', 'dm-hovering');
@@ -1182,7 +1245,7 @@ class Editor {
             btn('⇋', 'Flip (F)', () => this.flip(), { cls: 'dm-btn dm-icon', id: 'design-flip' }),
             btn('⤒', 'Bring forward (])', () => this.restack(1), { cls: 'dm-btn dm-icon', id: 'design-forward' }),
             btn('⤓', 'Send back ([)', () => this.restack(-1), { cls: 'dm-btn dm-icon', id: 'design-back' }),
-            btn('⧉', 'Duplicate (Ctrl+D)', () => this.duplicate(), { cls: 'dm-btn dm-icon', id: 'design-duplicate' }),
+            btn('⊞', 'Duplicate (Ctrl+D)', () => this.duplicate(), { cls: 'dm-btn dm-icon', id: 'design-duplicate' }),
             btn('🗑', 'Delete (Del)', () => this.removeSelected(), { cls: 'dm-btn dm-icon dm-danger', id: 'design-delete' }),
           )
         : null,
@@ -1350,7 +1413,25 @@ class Editor {
     this.renderPanels();
   }
 
+  private panelRaf = 0;
+
+  /**
+   * Redraw the right panel once per frame. Deferred so an inspector field's `change` (fired as Tab moves focus on) re-renders after the
+   * focus has landed, and the field that has it gets it back.
+   */
   renderPanels(): void {
+    if (this.panelRaf) return;
+    this.panelRaf = requestAnimationFrame(() => {
+      this.panelRaf = 0;
+      const right = this.els.right;
+      const active = document.activeElement as HTMLElement | null;
+      const focusId = active && right?.contains(active) ? active.id : '';
+      this.renderPanelsNow();
+      if (focusId) document.getElementById(focusId)?.focus();
+    });
+  }
+
+  private renderPanelsNow(): void {
     const right = this.els.right;
     if (!right) return;
     const tabs = h('div', { class: 'dm-tabs', role: 'tablist' });
@@ -1376,8 +1457,9 @@ class Editor {
   renderInspectorOnly(): void {
     const body = this.els.body;
     if (!body || this.tab !== 'inspect') return;
-    // typing in a field: keep it (the edit already landed), only refresh when focus is elsewhere
-    if (body.contains(document.activeElement) && (document.activeElement as HTMLElement).tagName === 'INPUT') return;
+    // a field in this inspector has the focus: leave it until its edit lands (renderPanels rebuilds and puts the focus back)
+    const active = document.activeElement as HTMLElement | null;
+    if (active && body.contains(active) && (active.tagName === 'INPUT' || active.tagName === 'SELECT')) return;
     renderInspector(body, this.inspectorHost());
   }
 
@@ -1768,9 +1850,7 @@ export async function openDesign(room: RoomId): Promise<void> {
     const d = state.draft;
     if (d && !same(d.objects, state.live)) {
       if (d.baseRev === state.rev) {
-        ed.objects = structuredClone(d.objects);
-        ed.paint(true);
-        ed.renderPanels();
+        ed.restoreDraft(d.objects, d.at);
         ed.toast(`Rascunho de ${fmtDate(d.at)} restaurado.`, 'ok');
       } else {
         ed.confirm({

@@ -88,6 +88,37 @@ export class Art {
     return wrap;
   }
 
+  private pixels = new Map<string, { data: Uint8ClampedArray; w: number } | null>();
+
+  /**
+   * Is the sprite's pixel at (x, y) (art px from its top-left) painted? Null when the art cannot be read. Lets a click on the empty
+   * corner of a big sprite (a wire across the street, a tree's sky) fall through to what is drawn there.
+   */
+  opaqueAt(key: string, x: number, y: number): boolean | null {
+    const fr = this.frameOf(key);
+    if (!fr) return null;
+    const { f, atlas } = fr;
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
+    if (ix < 0 || iy < 0 || ix >= f.w || iy >= f.h) return false;
+    let px = this.pixels.get(atlas.url);
+    if (px === undefined) {
+      try {
+        const c = document.createElement('canvas');
+        c.width = atlas.img.naturalWidth;
+        c.height = atlas.img.naturalHeight;
+        const ctx = c.getContext('2d', { willReadFrequently: true })!;
+        ctx.drawImage(atlas.img, 0, 0);
+        px = { data: ctx.getImageData(0, 0, c.width, c.height).data, w: c.width };
+      } catch {
+        px = null;
+      }
+      this.pixels.set(atlas.url, px);
+    }
+    if (!px) return null;
+    return px.data[((f.y + iy) * px.w + f.x + ix) * 4 + 3]! > 24;
+  }
+
   /** Draw a sprite with its anchor at canvas point (x, y), `scale` canvas px per art px. */
   draw(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, scale: number, flip = false): boolean {
     const s = this.sprite(key);

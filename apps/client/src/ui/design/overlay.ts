@@ -111,7 +111,8 @@ export class Overlay {
     }
 
     if (v.grid) {
-      c.strokeStyle = 'rgba(44, 44, 44, 0.22)';
+      // dark on light paving, and still readable on dark grass
+      c.strokeStyle = 'rgba(30, 24, 20, 0.38)';
       c.lineWidth = 1;
       c.beginPath();
       for (let x = 0; x <= room.cols; x++) {
@@ -160,11 +161,19 @@ export class Overlay {
         this.marker(cx, cy, '#d4a017', 'use', m.s);
         if (p.action && v.selected.has(p.id)) label(p.action, cx, cy - ts * 0.4, '#8f3e15');
       }
+      const edges = new Map<string, Tile[]>();
       for (const portal of room.portals) {
         const cx = sx((portal.x + 0.5) * T);
         const cy = sy((portal.y + 0.5) * T);
         this.marker(cx, cy, '#2b5ba8', 'door', m.s);
-        label(`→ ${portal.label.pt}`, cx, cy - ts * 0.45, 'rgba(43, 91, 168, 0.92)');
+        if (portal.edge) edges.set(portal.to, [...(edges.get(portal.to) ?? []), portal]);
+        else label(`→ ${portal.label.pt}`, cx, cy - ts * 0.45, 'rgba(43, 91, 168, 0.92)');
+      }
+      // one label per map edge exit, on its middle tile
+      for (const tiles of edges.values()) {
+        const mid = tiles[Math.floor(tiles.length / 2)]!;
+        const portal = room.portals.find((p) => p.x === mid.x && p.y === mid.y)!;
+        label(`→ ${portal.label.pt}`, sx((mid.x + 0.5) * T), sy((mid.y + 0.5) * T) - ts * 0.45, 'rgba(43, 91, 168, 0.92)');
       }
       this.marker(sx((room.spawn.x + 0.5) * T), sy((room.spawn.y + 0.5) * T), '#2e8a55', 'spawn', m.s);
       for (const p of v.objects) for (const g of p.gaps ?? []) tileRect(g, 'rgba(46, 138, 85, 0.35)', 2);

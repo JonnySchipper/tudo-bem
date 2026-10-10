@@ -76,12 +76,21 @@ export const drawDepth = (p: PropDef) => (p.y + size(p).h) * T + (p.oy ?? 0) + (
  * The prop drawn on top at a world point, skipping `skip` (hidden or locked). Floor art loses to anything standing on it, so a click
  * on a bench on a mosaic picks the bench.
  */
-export function pickAt(objects: readonly PropDef[], wx: number, wy: number, boxOf: (p: PropDef) => Box, layer: (p: PropDef) => Layer, skip: (p: PropDef) => boolean): PropDef | null {
+export function pickAt(
+  objects: readonly PropDef[],
+  wx: number,
+  wy: number,
+  boxOf: (p: PropDef) => Box,
+  layer: (p: PropDef) => Layer,
+  skip: (p: PropDef) => boolean,
+  /** Finer test inside the box (the sprite's painted pixels). */
+  hit: (p: PropDef, wx: number, wy: number) => boolean = () => true,
+): PropDef | null {
   const rank: Record<Layer, number> = { floor: 0, objects: 1, overhead: 2 };
   let best: PropDef | null = null;
   let bestKey = -Infinity;
   for (const p of objects) {
-    if (skip(p) || !inBox(boxOf(p), wx, wy)) continue;
+    if (skip(p) || !inBox(boxOf(p), wx, wy) || !hit(p, wx, wy)) continue;
     const k = rank[layer(p)] * 1e6 + drawDepth(p);
     if (k >= bestKey) {
       best = p;

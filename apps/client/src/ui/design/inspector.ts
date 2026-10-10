@@ -117,7 +117,7 @@ function quickActions(host: InspectorHost): HTMLElement {
     mini('⤒ Frente', 'Bring forward (])', () => host.restack(1)),
     mini('⤓ Trás', 'Send back ([)', () => host.restack(-1)),
     mini('# Grade', 'Snap back onto the grid', host.snap),
-    mini('⧉ Duplicar', 'Duplicate (Ctrl+D)', host.duplicate),
+    mini('⊞ Duplicar', 'Duplicate (Ctrl+D)', host.duplicate),
     mini('🗑 Apagar', 'Delete (Del)', host.remove, 'design-insp-delete'),
   );
 }
@@ -126,14 +126,23 @@ const fmtMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${
 
 function roomOverview(host: InspectorHost): HTMLElement[] {
   const { room, server } = host;
-  const doors = room.portals.map((p) =>
-    h(
+  // an edge of the map is one exit made of many tiles: one row for each target
+  const exits = new Map<string, typeof room.portals>();
+  for (const p of room.portals) {
+    const k = p.edge ? `edge:${p.to}` : p.id;
+    exits.set(k, [...(exits.get(k) ?? []), p]);
+  }
+  const doors = [...exits.values()].map((ps) => {
+    const p = ps[0]!;
+    const tiles = ps.map((q) => ({ x: q.x, y: q.y }));
+    const where = ps.length > 1 ? `borda, ${ps.length} pisos de ${tiles[0]!.x},${tiles[0]!.y} a ${tiles.at(-1)!.x},${tiles.at(-1)!.y}` : `piso ${p.x},${p.y}${p.edge ? ' · borda' : ''}`;
+    return h(
       'button',
-      { type: 'button', class: 'dm-listrow', onclick: () => host.focusTiles([{ x: p.x, y: p.y }]) },
+      { type: 'button', class: 'dm-listrow', onclick: () => host.focusTiles(tiles) },
       h('b', null, `→ ${ROOMS[p.to]?.name ?? p.to}`),
-      h('small', null, `${p.label.pt} · piso ${p.x},${p.y}${p.edge ? ' · borda' : ''} · chega em ${p.arrive.x},${p.arrive.y}`),
-    ),
-  );
+      h('small', null, `${p.label.pt} · ${where} · chega em ${p.arrive.x},${p.arrive.y}`),
+    );
+  });
   const npcs = room.npcs.map((n) =>
     h('button', { type: 'button', class: 'dm-listrow', 'aria-pressed': String(host.npcFocus === n.id), onclick: () => host.focusNpc(n.id) }, h('b', null, n.name), h('small', null, `${n.role.pt} · piso ${n.x},${n.y}`)),
   );
