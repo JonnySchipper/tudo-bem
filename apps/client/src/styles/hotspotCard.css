@@ -1,0 +1,454 @@
+/*
+ * The card a readable sign opens (ui/hotspotCard.ts). The card is the sign itself: a painted board hung from a nail
+ * (or the padaria's chalkboard for a price list), 🔊 Ouvir on its bottom edge, and the English on a paper slip taped below.
+ * Loaded after panels.css: it drops the shared panel's paper and awning so the board floats over the dimmed world.
+ */
+
+.hotspot-card {
+  --hs-wood: #8b5e3c;
+  --hs-wood-hi: #a8754c;
+  --hs-wood-lo: #5e3d26;
+  --hs-ink: #3b2618;
+  --hs-face: #fdf3dc;
+  --hs-face-lo: #f1e0bc;
+  --hs-title: var(--terracota-dark, #8f3e15);
+  --hs-text: #3a2a20;
+  --hs-price: var(--sp-green, #2f5d50);
+  --hs-leader: rgba(87, 60, 44, 0.35);
+}
+
+.hotspot-card.is-menu {
+  --hs-face: #2e4a3e;
+  --hs-face-lo: #253d33;
+  --hs-title: #f6d77e;
+  --hs-text: #f3eee2;
+  --hs-price: #ffe7a6;
+  --hs-leader: rgba(243, 238, 226, 0.4);
+}
+
+/* ---- the panel: no paper, no awning, just room for the cords */
+html .backdrop > .panel.hotspot-card {
+  width: min(520px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 14px 18px;
+  background: none;
+  box-shadow: none;
+  text-align: center;
+  scrollbar-width: none;
+}
+
+html .backdrop > .panel.hotspot-card .close {
+  top: 24px;
+  right: 4px;
+  z-index: 3;
+}
+
+/* ---- the cords and the nail */
+.hotspot-card .hs-hang {
+  position: relative;
+  height: 46px;
+  margin: 0 12%;
+}
+
+.hotspot-card .hs-hang svg {
+  position: absolute;
+  inset: 4px 0 -6px;
+  width: 100%;
+  height: calc(100% + 2px);
+  overflow: visible;
+}
+
+.hotspot-card .hs-hang path {
+  fill: none;
+  stroke: #e9d6b0;
+  stroke-width: 3px;
+  filter: drop-shadow(0 2px 0 rgba(20, 10, 6, 0.45));
+}
+
+.hotspot-card .hs-nail {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  background: #cfc2a8;
+  box-shadow:
+    inset -3px -3px 0 0 #8c7e66,
+    inset 2px 2px 0 0 #f4ecdc,
+    0 0 0 2px var(--hs-ink);
+}
+
+/* ---- the board: a 3 px ink edge, a wooden frame, the painted (or chalk) face */
+.hotspot-card .hs-sign {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 30px 30px 40px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 5px, rgba(120, 80, 40, 0.035) 5px 6px),
+    linear-gradient(var(--hs-face), var(--hs-face-lo));
+  box-shadow:
+    0 0 0 3px var(--hs-ink),
+    inset 0 0 0 9px var(--hs-wood),
+    inset 3px 3px 0 9px var(--hs-wood-hi),
+    inset -3px -3px 0 9px var(--hs-wood-lo),
+    inset 0 0 0 12px var(--hs-ink),
+    0 10px 0 3px rgba(20, 10, 6, 0.45);
+  transform-origin: 50% -46px;
+  animation: hs-swing 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.hotspot-card.is-menu .hs-sign {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.07), transparent 60%),
+    radial-gradient(ellipse at 75% 85%, rgba(255, 255, 255, 0.05), transparent 55%),
+    linear-gradient(var(--hs-face), var(--hs-face-lo));
+}
+
+/* screws in the frame's corners */
+.hotspot-card .hs-screw {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #d8c9a8;
+  box-shadow:
+    inset -2px -2px 0 0 #8a7a5c,
+    0 0 0 1px var(--hs-ink);
+}
+.hotspot-card .hs-screw.tl { top: 2px; left: 2px; }
+.hotspot-card .hs-screw.tr { top: 2px; right: 2px; }
+.hotspot-card .hs-screw.bl { bottom: 2px; left: 2px; }
+.hotspot-card .hs-screw.br { bottom: 2px; right: 2px; }
+
+/* "Placa · Sign": a small tag nailed over the frame's top edge */
+.hotspot-card .hs-kicker {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 10px 4px;
+  white-space: nowrap;
+  font-family: var(--font-pixel, var(--font-body));
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff3e0;
+  background: var(--terracota, #b0501f);
+  box-shadow:
+    0 0 0 2px var(--hs-ink),
+    inset 0 -2px 0 0 #7a3a16;
+}
+
+.hotspot-card .hs-kicker .en {
+  font-family: var(--font-body);
+  font-size: 0.72em;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #ffd9bd;
+}
+
+/* ---- the Portuguese: big, painted */
+.hotspot-card .hs-pt {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 1.3rem;
+  line-height: 1.3;
+  color: var(--hs-text);
+  overflow-wrap: anywhere;
+}
+
+.hotspot-card .hs-pt.first {
+  font-family: var(--font-title, var(--font-body));
+  font-size: clamp(1.8rem, 6.5vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: var(--hs-title);
+  text-shadow: 0 2px 0 rgba(87, 60, 44, 0.18);
+}
+
+.hotspot-card.is-menu .hs-pt {
+  font-weight: 700;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.hotspot-card.is-menu .hs-pt.first {
+  text-shadow: 0 0 2px rgba(246, 215, 126, 0.35);
+}
+
+/* the painted rule under the name: a line with a diamond in the middle */
+.hotspot-card .hs-rule {
+  position: relative;
+  height: 2px;
+  margin: 8px 18% 8px;
+  background: currentColor;
+  color: var(--hs-title);
+  opacity: 0.55;
+}
+
+.hotspot-card .hs-rule::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+/* price lines: name, leader, price */
+.hotspot-card .priced {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  text-align: left;
+}
+
+.hotspot-card .priced .lead {
+  flex: 1;
+  min-width: 16px;
+  border-bottom: 3px dotted var(--hs-leader);
+  transform: translateY(-5px);
+}
+
+.hotspot-card .hs-pt .price {
+  font-weight: 800;
+  color: var(--hs-price);
+  white-space: nowrap;
+}
+
+/* ---- 🔊 Ouvir, hung on the board's bottom edge */
+.hotspot-card .hs-actions {
+  position: relative;
+  z-index: 2;
+  margin: -24px 0 0;
+  animation: hs-rise 0.45s 0.25s ease-out both;
+}
+
+.hotspot-card #hs-listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  padding: 6px 18px 6px 6px;
+  border: 0;
+  border-radius: 0;
+  font-family: var(--font-body);
+  text-align: left;
+  color: var(--hs-ink);
+  background: #fff8ea;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 3px var(--hs-ink),
+    inset 0 -3px 0 0 #e3cfa8,
+    0 5px 0 3px rgba(20, 10, 6, 0.4);
+  transition: transform 0.08s;
+}
+
+.hotspot-card #hs-listen:hover {
+  background: #fffdf6;
+  transform: translateY(-1px);
+}
+
+.hotspot-card #hs-listen:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0 0 3px var(--hs-ink),
+    inset 0 -1px 0 0 #e3cfa8,
+    0 2px 0 3px rgba(20, 10, 6, 0.4);
+}
+
+.hotspot-card #hs-listen:focus-visible {
+  outline: 3px solid var(--mustard, #d4a017);
+  outline-offset: 5px;
+}
+
+.hotspot-card .hs-listen-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  font-size: 1.15rem;
+  background: var(--terracota, #b0501f);
+  box-shadow:
+    0 0 0 2px #7a3a16,
+    inset 0 -3px 0 0 #8f3e15;
+}
+
+.hotspot-card #hs-listen .btn-label {
+  display: grid;
+  line-height: 1.1;
+}
+
+.hotspot-card #hs-listen .btn-label .pt {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.hotspot-card #hs-listen .btn-label .en {
+  font-size: 0.78rem;
+  font-style: italic;
+  font-weight: 700;
+  color: var(--ink-soft, #5e5550);
+}
+
+/* ---- the English: a paper slip taped under the board */
+.hotspot-card .hs-gloss {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  margin: 30px 18px 0;
+  padding: 30px 22px 14px;
+  text-align: center;
+  color: #4a3f38;
+  font-style: italic;
+  font-weight: 600;
+  background: #fffaf0;
+  box-shadow:
+    0 0 0 2px rgba(59, 38, 24, 0.75),
+    0 6px 0 2px rgba(20, 10, 6, 0.3);
+  transform: rotate(-0.8deg);
+  animation: hs-slip 0.45s 0.35s ease-out both;
+}
+
+/* the tape */
+.hotspot-card .hs-gloss::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 84px;
+  height: 20px;
+  margin-left: -42px;
+  background: rgba(242, 194, 48, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(160, 120, 20, 0.25);
+  transform: rotate(2deg);
+}
+
+.hotspot-card .hs-gloss-tag {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 5px;
+  font-style: normal;
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: var(--verde, #2e8a55);
+}
+
+.hotspot-card .hs-gloss-tag > span {
+  position: absolute;
+  left: calc(100% + 6px);
+  white-space: nowrap;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft, #5e5550);
+}
+
+.hotspot-card .hs-en {
+  line-height: 1.5;
+  font-size: 1rem;
+}
+
+.hotspot-card.is-menu .hs-en {
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.hotspot-card .hs-en.first {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #3a2a20;
+}
+
+.hotspot-card .hs-en.priced .lead {
+  border-bottom-width: 2px;
+  border-bottom-color: rgba(87, 60, 44, 0.25);
+  transform: translateY(-4px);
+}
+
+.hotspot-card .hs-en .price {
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ---- Guardar no caderno */
+.hotspot-card .hs-save {
+  margin-top: 22px;
+  animation: hs-rise 0.45s 0.45s ease-out both;
+}
+
+html .backdrop > .panel.hotspot-card #hs-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px 9px 14px;
+}
+
+.hotspot-card .hs-save-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.hotspot-card #hs-save .btn-label {
+  display: grid;
+  text-align: left;
+  line-height: 1.15;
+}
+
+/* ---- motion: the board swings on its nail, the rest settles in after */
+@keyframes hs-swing {
+  0% { transform: rotate(-5deg); opacity: 0; }
+  20% { opacity: 1; }
+  45% { transform: rotate(3deg); }
+  70% { transform: rotate(-1.2deg); }
+  100% { transform: rotate(0); }
+}
+
+@keyframes hs-rise {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes hs-slip {
+  from { opacity: 0; transform: translateY(-14px) rotate(2deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hotspot-card .hs-sign,
+  .hotspot-card .hs-actions,
+  .hotspot-card .hs-gloss,
+  .hotspot-card .hs-save {
+    animation: none;
+  }
+}
+
+/* ---- phones */
+@media (max-width: 640px) {
+  /* phone panels are bottom sheets; a hung sign sits in the middle of the screen */
+  html .backdrop > .panel.hotspot-card {
+    margin-block: auto;
+    padding: 0 8px calc(12px + var(--safe-bottom));
+    max-height: calc(100dvh - 24px);
+  }
+  .hotspot-card .hs-hang { height: 34px; }
+  .hotspot-card .hs-sign { padding: 26px 22px 36px; transform-origin: 50% -34px; }
+  .hotspot-card .hs-pt { font-size: 1.12rem; }
+  .hotspot-card .hs-gloss { margin: 26px 8px 0; padding: 28px 14px 12px; }
+  html .backdrop > .panel.hotspot-card .close { top: 12px; right: 6px; }
+}

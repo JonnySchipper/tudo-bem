@@ -115,6 +115,7 @@ import { askTray, bindPesca, onPescaMsg, onPescaRefused, openCaderneta, openPesc
 import { askBarcos, bindBarco, onBarcoMsg, returnBarco } from './ui/pesca/barcoMenu';
 import { aboardMyParty, bindParty, createParty, hostingParty, inviteToBoat, onAboardCatch, onPartyMsg, onPartyRoomChanged, sendAshore } from './ui/pesca/party';
 import './styles/pesca.css';
+import './styles/hotspotCard.css';
 import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
