@@ -341,7 +341,8 @@ describe('arrival, camera, diary and the escola', () => {
     expect(plane.ok && plane.words?.map((w) => w.pt)).toEqual(['asa', 'turbina', 'motor', 'ponte']);
     // and any other part of the plane teaches its own word: the tail, the nose, a window, the door, a wheel, the body
     await a.send({ t: 'diary', action: 'photo', anchors: ['hall_cauda', 'hall_nariz', 'hall_janela', 'hall_porta', 'hall_roda', 'hall_fuselagem'] });
-    expect(photoMsgs(a).at(-1)!.words?.map((w) => w.pt)).toEqual(['cauda', 'nariz', 'janela', 'porta', 'roda', 'fuselagem']);
+    const parts = photoMsgs(a).at(-1)!;
+    expect(parts.ok && parts.words?.map((w) => w.pt)).toEqual(['cauda', 'nariz', 'janela', 'porta', 'roda', 'fuselagem']);
     expect(a.s.profile?.film).toBe(film);
   });
 

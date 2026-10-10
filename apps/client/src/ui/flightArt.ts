@@ -662,6 +662,46 @@ export function cabinLayout(w: number, h: number): CabinLayout {
   return { seatY, mySeat, nextSeat: mySeat + 24, aisleX: mySeat + 57, floorY, windows, sign: { x: mySeat + 12, y: winY - 26 } };
 }
 
+/** Seat pitch along a row, art px. */
+export const SEAT_PITCH = 24;
+/** How far up the row behind sits: only its headrests and its passengers' heads show over the row in front. */
+export const BACK_ROW_RISE = 18;
+
+/**
+ * A full cabin: the player's row runs across the screen (seats on the window side of the aisle, the player's and the sleeper's among
+ * them, then more past the aisle where Lia stands), and the row behind it shows over their headrests. Seat centres, art px, left to right.
+ */
+export function cabinRows(L: CabinLayout, w: number): { front: number[]; back: number[] } {
+  const front: number[] = [];
+  for (let x = L.mySeat - SEAT_PITCH * Math.ceil((L.mySeat + 12) / SEAT_PITCH); x <= L.nextSeat; x += SEAT_PITCH) front.push(x);
+  for (let x = L.aisleX + 36; x < w + 12; x += SEAT_PITCH) front.push(x);
+  // the row behind sits half a seat over, so its heads show between the headrests in front
+  const back = front.map((x) => x + SEAT_PITCH / 2).filter((x) => Math.abs(x - L.aisleX) > 18);
+  return { front, back };
+}
+
+/** A folded newspaper held in front of a seated passenger (chest at `y`); its page turns now and then. */
+export function drawNewspaper(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, phase: number) {
+  const turning = (t + phase) % 7 < 0.35;
+  const w = turning ? 6 : 12;
+  const x0 = Math.round(x - 6);
+  rect(ctx, x0 - 1, y - 1, 14, 10, '#2a2233');
+  rect(ctx, x0, y, 12, 8, '#efe9dc');
+  if (turning) rect(ctx, x0 + 6, y - 1, 7, 9, '#d9d2c2');
+  ctx.fillStyle = '#9a9488';
+  for (let ly = 2; ly < 8; ly += 2) ctx.fillRect(x0 + 1, y + ly, w - 2 - (ly === 4 ? 3 : 0), 1);
+  rect(ctx, x0 + 1, y + 1, 4, 1, '#2e9e5b');
+}
+
+/** A small coffee cup: it rests on the armrest and comes up for a sip every few seconds (`k` 0 resting, 1 at the lips). */
+export function drawCup(ctx: CanvasRenderingContext2D, x: number, y: number, k: number) {
+  const cy = Math.round(y - k * 7);
+  rect(ctx, x - 1, cy - 1, 5, 6, '#2a2233');
+  rect(ctx, x, cy, 3, 4, '#ffffff');
+  rect(ctx, x, cy, 3, 1, '#8a5a3a');
+  rect(ctx, x + 3, cy + 1, 1, 2, '#2a2233');
+}
+
 const seatCache = new Map<string, HTMLCanvasElement>();
 
 /** A seat facing the camera: the back with a cream headrest cover, the cushion; `front` is the armrest drawn over the sitter. */

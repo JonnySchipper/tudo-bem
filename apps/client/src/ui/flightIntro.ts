@@ -8,7 +8,7 @@
  * Everything is drawn by ui/flightArt.ts on one small canvas scaled up by a whole number; the characters are the game's own composed
  * sheets. The words live in @tudobem/shared (flightTalk.ts, voiced by `pnpm tts`). It can be skipped at any moment, and it saves nothing.
  */
-import { FLIGHT_CABIN, FLIGHT_CAPTION, FLIGHT_PROLOGUE, FLIGHT_PROLOGUE_AFTER, FLIGHT_SEATBELT, FLIGHT_TITLE, JULIA_LETTER, ROOMS, STARTER_OUTFITS, DEFAULT_APPEARANCE, letterGreeting, type Appearance, type FlightBeat, type FlightLine } from '@tudobem/shared';
+import { FLIGHT_CABIN, FLIGHT_CAPTION, FLIGHT_PROLOGUE, FLIGHT_PROLOGUE_AFTER, FLIGHT_SEATBELT, FLIGHT_TITLE, JULIA_LETTER, ROOMS, STARTER_OUTFITS, DEFAULT_APPEARANCE, cpuLook, letterGreeting, type Appearance, type FlightBeat, type FlightLine } from '@tudobem/shared';
 import { h } from './dom';
 import { ambience } from '../ambience';
 import { speak, stopSpeaking } from '../audio';
@@ -17,13 +17,17 @@ import { composeLook } from '../render/pixel/composeLook';
 import { lookForAppearance, lookForNpc, type Look } from '../render/pixel/looks';
 import type { FlightSfx } from '../audio/flightSfx';
 import {
+  BACK_ROW_RISE,
   cabinLayout,
+  cabinRows,
   drawCabin,
   drawCabinLight,
   drawCloudLayer,
   drawCloudSea,
+  drawCup,
   drawLand,
   drawMoon,
+  drawNewspaper,
   drawPlane,
   drawPuffs,
   drawSeatBack,
@@ -73,7 +77,15 @@ function composeSheet(assets: CharAssets, look: Look): Sheet {
 }
 
 /** The sheet rows (manifest `sheet.anims`): idle 0-3, walk 4-7, sit 8-11 (S W E N), then the emotes facing S. */
-const ROW = { idleS: 0, idleW: 1, walkW: 5, walkE: 6, sitS: 8, oi: 12, rir: 14 } as const;
+const ROW = { idleS: 0, idleW: 1, walkW: 5, walkE: 6, sitS: 8, sitW: 9, sitE: 10, rir: 14 } as const;
+
+/**
+ * The other passengers: Praça neighbours' authored looks (varied bodies, skin, hair and clothes), without hats, bags or carts. Each seat
+ * gets one, and a small idle of its own: breathing, a look toward the window and back, a doze, a newspaper, a coffee. Nobody waves.
+ */
+const CROWD = ['Helena', 'Daniel', 'Beatriz', 'Mateus', 'Camila', 'Paulo', 'Larissa', 'André', 'Renata', 'Diego', 'Fernanda', 'Igor', 'Gabriela', 'Thiago'] as const;
+type Idle = 'breathe' | 'look' | 'doze' | 'read' | 'coffee';
+const IDLES: readonly Idle[] = ['breathe', 'read', 'look', 'coffee', 'breathe', 'doze', 'look'];
 
 function drawFrame(ctx: CanvasRenderingContext2D, s: Sheet | null, row: number, col: number, footX: number, footY: number, flip = false) {
   if (!s) return;
@@ -125,7 +137,7 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     sign: false,
     /** Lia in the aisle: x in art px from her mark (positive: still coming in from the right), and what she is doing */
     liaOff: 160,
-    liaPose: 'walk' as 'walk' | 'idle' | 'oi' | 'rir' | 'walkOut',
+    liaPose: 'walk' as 'walk' | 'idle' | 'rir' | 'walkOut',
     liaPoseT: 0,
     hop: 0,
     starsAlpha: 1,
@@ -145,12 +157,17 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
   let me: Sheet | null = null;
   let lia: Sheet | null = null;
   let sleeper: Sheet | null = null;
+  let crowd: Sheet[] = [];
   const liaDef = ROOMS.desembarque.npcs.find((n) => n.id === 'comissaria');
   void sharedCharAssets()
     .then((assets) => {
       me = composeSheet(assets, lookForAppearance(opts.appearance, { hat: null }));
       lia = composeSheet(assets, lookForNpc('comissaria', liaDef?.appearance));
       sleeper = composeSheet(assets, lookForAppearance({ ...DEFAULT_APPEARANCE, ...STARTER_OUTFITS[0]!.set, skin: 4, hair: 'cacheado', hairColor: 0, topColor: 1, face: 'maduro', extra: 'oculos' }));
+      crowd = CROWD.map((name) => {
+        const { garb: _garb, ...a } = cpuLook(name).appearance;
+        return composeSheet(assets, lookForAppearance({ ...a, idle: 'solto' }, { hat: null }));
+      });
     })
     .catch(() => {
       /* the scene still plays: the seats are just empty */
@@ -336,12 +353,45 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     }
   }
 
+  /** One passenger in a seat, with their own small idle (`seed` picks the look, the idle and its timing). Props only in the front row. */
+  function passenger(x: number, seatY: number, seed: number, t: number, front: boolean) {
+    const sheet = crowd.length ? crowd[seed % crowd.length]! : null;
+    const idle = IDLES[seed % IDLES.length]!;
+    const ph = (seed * 2.37) % 9;
+    let row: number = ROW.sitS;
+    let dy = Math.sin(t * 1.3 + ph) > 0.75 ? 1 : 0;
+    // a look toward the windows and back, a couple of seconds every nine or so
+    if (idle === 'look' && (t + ph) % 9 < 2) row = seed % 2 ? ROW.sitW : ROW.sitE;
+    if (idle === 'doze') dy = 1 + (Math.sin(t * 0.9 + ph) > 0.4 ? 1 : 0);
+    drawFrame(ctx, sheet, row, 0, x, seatY + 2 + dy);
+    if (!front) return;
+    drawSeatFront(ctx, x, seatY);
+    if (idle === 'read') drawNewspaper(ctx, x, seatY - 13, t, ph);
+    else if (idle === 'coffee') {
+      const sip = (t + ph) % 6;
+      drawCup(ctx, x + 5, seatY - 6, sip < 1.4 ? Math.sin((sip / 1.4) * Math.PI) : 0);
+    }
+  }
+
   function renderCabin(t: number) {
     const L = cabinLayout(W, H);
     drawCabin(ctx, W, H, L, { t, phase: S.phase, scroll: S.scroll, stars, clouds: windowClouds, sign: S.sign, shake: S.shake });
-    // the row: a sleeping neighbour across the aisle side, the player by the window
-    drawSeatBack(ctx, L.mySeat, L.seatY);
-    drawSeatBack(ctx, L.nextSeat, L.seatY);
+    // a full plane: the row behind first (only heads and headrests show over the player's row), then the player's row across the cabin
+    const rows = cabinRows(L, W);
+    const backY = L.seatY - BACK_ROW_RISE;
+    // only what rises above the front row's seat backs is seen of the row behind (no slivers between the seats)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, L.seatY - 21);
+    ctx.clip();
+    for (const x of rows.back) drawSeatBack(ctx, x, backY);
+    rows.back.forEach((x, i) => passenger(x, backY, i * 5 + 3, t, false));
+    ctx.restore();
+    for (const x of rows.front) drawSeatBack(ctx, x, L.seatY);
+    rows.front.forEach((x, i) => {
+      if (x !== L.mySeat && x !== L.nextSeat) passenger(x, L.seatY, i * 3 + 1, t, true);
+    });
+    // the player by the window, a sleeping neighbour beside them
     const breathe = Math.sin(t * 1.4) > 0.6 ? 1 : 0;
     drawFrame(ctx, sleeper, ROW.sitS, 0, L.nextSeat, L.seatY + 2 + breathe);
     drawFrame(ctx, me, ROW.sitS, 0, L.mySeat, L.seatY + 2 - Math.round(S.hop));
@@ -360,12 +410,12 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     } else if (S.liaPose === 'walkOut') {
       row = ROW.walkE;
       col = Math.floor(t * 10) % 6;
-    } else if (S.liaPose === 'oi' || S.liaPose === 'rir') {
+    } else if (S.liaPose === 'rir') {
+      // a warm smile (the laugh emote), never a wave
       const k = (performance.now() - S.liaPoseT) / 1000;
-      const frames = S.liaPose === 'oi' ? 6 : 4;
-      if (k < (frames / 8) * 2) {
-        row = S.liaPose === 'oi' ? ROW.oi : ROW.rir;
-        col = Math.floor(k * 8) % frames;
+      if (k < 1) {
+        row = ROW.rir;
+        col = Math.floor(k * 8) % 4;
       } else S.liaPose = 'idle';
     } else {
       // turned to the player, a little to her right
@@ -578,7 +628,7 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     void tween('hop', 1, 80).then(() => tween('hop', 0, 120));
     await wait(500);
     choices.classList.remove('is-on');
-    S.liaPose = 'oi';
+    S.liaPose = 'rir';
     S.liaPoseT = performance.now();
     await say('lia', FLIGHT_SEATBELT.done);
   }
@@ -592,7 +642,8 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     }
     if (b.kind === 'lia') {
       if (b.mood === 'wave' || b.mood === 'laugh') {
-        S.liaPose = b.mood === 'wave' ? 'oi' : 'rir';
+        // a "wave" line gets the smile too: no waving in the cutscene
+        S.liaPose = 'rir';
         S.liaPoseT = performance.now();
       }
       return say('lia', b.line);
@@ -671,7 +722,7 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     });
     await beat(FLIGHT_CABIN[0]!);
     await walkIn;
-    S.liaPose = 'oi';
+    S.liaPose = 'rir';
     S.liaPoseT = performance.now();
     for (const b of FLIGHT_CABIN.slice(1)) {
       if (b.kind === 'lia' && b.mood === 'wave') void tween('phase', 1, 6500, linear);
