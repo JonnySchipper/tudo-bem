@@ -340,7 +340,7 @@ describe('dealing and checking exercises', () => {
 describe('progress path, hunts and the word mission', () => {
   it('one unit per area in arrival order, nodes done by strength, the checkpoint last', () => {
     const empty = escolaPath(freshEscola(), []);
-    expect(empty.map((u) => u.id)).toEqual(['chegada', 'praca', 'rua', 'padaria', 'feira', 'kitnet', 'academia', 'escola']);
+    expect(empty.map((u) => u.id)).toEqual(['chegada', 'praca', 'rua', 'padaria', 'feira', 'kitnet', 'academia', 'escola', 'petshop']);
     expect(empty[0]!.nodes).toEqual(['current', 'locked', 'locked', 'locked', 'locked']);
     const chegada = DIARY_WORDS.filter((w) => w.area === 'chegada').map((w) => w.id);
     const full = escolaPath(withBoxes(chegada, Object.fromEntries(chegada.map((id) => [id, ESCOLA_MAX_BOX]))), chegada)[0]!;

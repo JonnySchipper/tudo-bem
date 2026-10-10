@@ -230,10 +230,10 @@
       "file": "dito-0ae28789ae.mp3"
     },
     {
-      "id": "dito-b5458a09ba",
+      "id": "dito-cc637189ee",
       "voice": "dito",
-      "text": "Cuidado, ele lambe o nariz de todo mundo!",
-      "file": "dito-b5458a09ba.mp3"
+      "text": "Olha esse focinho molhado! Ele quer te dar um beijo.",
+      "file": "dito-cc637189ee.mp3"
     },
     {
       "id": "dito-04e8075d09",
@@ -10194,6 +10194,216 @@
       "voice": "ui",
       "text": "aula",
       "file": "ui-b1fb0f86c0.mp3"
+    },
+    {
+      "id": "ui-73c6e05db1",
+      "voice": "ui",
+      "text": "cachorro",
+      "file": "ui-73c6e05db1.mp3"
+    },
+    {
+      "id": "ui-d38411da31",
+      "voice": "ui",
+      "text": "gatinho",
+      "file": "ui-d38411da31.mp3"
+    },
+    {
+      "id": "ui-7fbeac6a4d",
+      "voice": "ui",
+      "text": "cercadinho",
+      "file": "ui-7fbeac6a4d.mp3"
+    },
+    {
+      "id": "ui-fb8d0510fd",
+      "voice": "ui",
+      "text": "arranhador",
+      "file": "ui-fb8d0510fd.mp3"
+    },
+    {
+      "id": "ui-5d1ae87970",
+      "voice": "ui",
+      "text": "aquário",
+      "file": "ui-5d1ae87970.mp3"
+    },
+    {
+      "id": "ui-45620bd627",
+      "voice": "ui",
+      "text": "peixe",
+      "file": "ui-45620bd627.mp3"
+    },
+    {
+      "id": "ui-c6e0cbe275",
+      "voice": "ui",
+      "text": "caminha",
+      "file": "ui-c6e0cbe275.mp3"
+    },
+    {
+      "id": "ui-ea0d0050f5",
+      "voice": "ui",
+      "text": "brinquedo",
+      "file": "ui-ea0d0050f5.mp3"
+    },
+    {
+      "id": "ui-32dd6d8184",
+      "voice": "ui",
+      "text": "bolinha",
+      "file": "ui-32dd6d8184.mp3"
+    },
+    {
+      "id": "ui-90e6fbc643",
+      "voice": "ui",
+      "text": "ossinho",
+      "file": "ui-90e6fbc643.mp3"
+    },
+    {
+      "id": "ui-9db68f816e",
+      "voice": "ui",
+      "text": "pelúcia",
+      "file": "ui-9db68f816e.mp3"
+    },
+    {
+      "id": "ui-19f0026a8e",
+      "voice": "ui",
+      "text": "prateleira de ração",
+      "file": "ui-19f0026a8e.mp3"
+    },
+    {
+      "id": "ui-31b5505973",
+      "voice": "ui",
+      "text": "banheira",
+      "file": "ui-31b5505973.mp3"
+    },
+    {
+      "id": "ui-1f1641a84e",
+      "voice": "ui",
+      "text": "secador",
+      "file": "ui-1f1641a84e.mp3"
+    },
+    {
+      "id": "ui-73a3c6318f",
+      "voice": "ui",
+      "text": "toalhinha",
+      "file": "ui-73a3c6318f.mp3"
+    },
+    {
+      "id": "ui-67c38611ca",
+      "voice": "ui",
+      "text": "pata",
+      "file": "ui-67c38611ca.mp3"
+    },
+    {
+      "id": "ui-26e871ef0d",
+      "voice": "ui",
+      "text": "pet shop",
+      "file": "ui-26e871ef0d.mp3"
+    },
+    {
+      "id": "ui-24f1d1a770",
+      "voice": "ui",
+      "text": "adoção",
+      "file": "ui-24f1d1a770.mp3"
+    },
+    {
+      "id": "ui-c1120f3fca",
+      "voice": "ui",
+      "text": "raça",
+      "file": "ui-c1120f3fca.mp3"
+    },
+    {
+      "id": "ui-7df77ed06b",
+      "voice": "ui",
+      "text": "veterinário",
+      "file": "ui-7df77ed06b.mp3"
+    },
+    {
+      "id": "ui-dde43bdd44",
+      "voice": "ui",
+      "text": "banho e tosa",
+      "file": "ui-dde43bdd44.mp3"
+    },
+    {
+      "id": "ui-e9061247ff",
+      "voice": "ui",
+      "text": "petisco",
+      "file": "ui-e9061247ff.mp3"
+    },
+    {
+      "id": "ui-6bfab2822a",
+      "voice": "ui",
+      "text": "bichinho",
+      "file": "ui-6bfab2822a.mp3"
+    },
+    {
+      "id": "ui-21a871b144",
+      "voice": "ui",
+      "text": "lar",
+      "file": "ui-21a871b144.mp3"
+    },
+    {
+      "id": "ui-1bd2cea844",
+      "voice": "ui",
+      "text": "escolher",
+      "file": "ui-1bd2cea844.mp3"
+    },
+    {
+      "id": "ui-21cb0d6ff6",
+      "voice": "ui",
+      "text": "cheiroso",
+      "file": "ui-21cb0d6ff6.mp3"
+    },
+    {
+      "id": "ui-50b2b46740",
+      "voice": "ui",
+      "text": "filhote",
+      "file": "ui-50b2b46740.mp3"
+    },
+    {
+      "id": "ui-d86a934ca7",
+      "voice": "ui",
+      "text": "orelha",
+      "file": "ui-d86a934ca7.mp3"
+    },
+    {
+      "id": "ui-f2b968ebe0",
+      "voice": "ui",
+      "text": "vira-lata",
+      "file": "ui-f2b968ebe0.mp3"
+    },
+    {
+      "id": "ui-b4ca94a4c7",
+      "voice": "ui",
+      "text": "rabo",
+      "file": "ui-b4ca94a4c7.mp3"
+    },
+    {
+      "id": "ui-eb8fa3b8e8",
+      "voice": "ui",
+      "text": "carinho",
+      "file": "ui-eb8fa3b8e8.mp3"
+    },
+    {
+      "id": "ui-c7d84c98a7",
+      "voice": "ui",
+      "text": "focinho",
+      "file": "ui-c7d84c98a7.mp3"
+    },
+    {
+      "id": "ui-609a0bb482",
+      "voice": "ui",
+      "text": "ronronar",
+      "file": "ui-609a0bb482.mp3"
+    },
+    {
+      "id": "ui-88b179a2f6",
+      "voice": "ui",
+      "text": "bigode",
+      "file": "ui-88b179a2f6.mp3"
+    },
+    {
+      "id": "ui-0ed918d7b8",
+      "voice": "ui",
+      "text": "brincar",
+      "file": "ui-0ed918d7b8.mp3"
     },
     {
       "id": "lucia-70aae4b72b",

@@ -42,6 +42,11 @@
    "id": "escola",
    "pt": "Escola",
    "en": "School"
+  },
+  {
+   "id": "petshop",
+   "pt": "Pet Shop",
+   "en": "Pet shop"
   }
  ],
  "words": [
@@ -6698,7 +6703,43 @@
    "origin": "existing",
    "needsBr": true,
    "seed": true
-  }
+  },
+  { "id": "diary.petshop.cachorro", "pt": "cachorro", "en": "dog", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "cercadinho" }, "origin": "added", "needsBr": true, "note": "the dog pen with today's dogs in it" },
+  { "id": "diary.petshop.gatinho", "pt": "gatinho", "en": "kitten", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "gatil" }, "origin": "added", "needsBr": true, "note": "the cat pen; gato alone is taken" },
+  { "id": "diary.petshop.cercadinho", "pt": "cercadinho", "en": "pen (for puppies)", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "d_cercadinho" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.arranhador", "pt": "arranhador", "en": "scratching post", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "arranhador" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.aquario", "pt": "aquário", "en": "aquarium", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "aquario" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.peixe", "pt": "peixe", "en": "fish", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "d_peixe" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.caminha", "pt": "caminha", "en": "pet bed", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "caminha_1" }, "also": ["caminha_2"], "origin": "added", "needsBr": true, "note": "little bed; cama is the kitnet's" },
+  { "id": "diary.petshop.brinquedo", "pt": "brinquedo", "en": "toy", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "cesto_brinquedos" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.bolinha", "pt": "bolinha", "en": "little ball", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "d_bolinha" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.ossinho", "pt": "ossinho", "en": "little bone (toy)", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "d_ossinho" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.pelucia", "pt": "pelúcia", "en": "plush toy", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "d_pelucia" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.prateleira_racao", "pt": "prateleira de ração", "en": "pet-food shelf", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "prateleira_racao_1" }, "also": ["prateleira_racao_2", "prateleira_racao_3"], "origin": "added", "needsBr": true, "note": "prateleira and ração alone are taken" },
+  { "id": "diary.petshop.banheira", "pt": "banheira", "en": "bathtub", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "banheira" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.secador", "pt": "secador", "en": "hair dryer", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "secador" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.toalhinha", "pt": "toalhinha", "en": "little towel", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "toalha" }, "origin": "added", "needsBr": true, "note": "toalha is the kitnet's" },
+  { "id": "diary.petshop.pata", "pt": "pata", "en": "paw", "area": "petshop", "source": "camera", "anchor": { "kind": "object", "id": "d_pata" }, "origin": "added", "needsBr": true, "note": "the paw print on the floor by the door" },
+  { "id": "diary.petshop.pet_shop", "pt": "pet shop", "en": "pet shop", "area": "petshop", "source": "reading", "anchor": { "kind": "sign", "id": "petshop_letreiro" }, "origin": "added", "needsBr": true, "note": "Brazilians say pet shop (also petshop)" },
+  { "id": "diary.petshop.adocao", "pt": "adoção", "en": "adoption", "area": "petshop", "source": "reading", "anchor": { "kind": "sign", "id": "petshop_adocao" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.raca", "pt": "raça", "en": "breed", "area": "petshop", "source": "reading", "anchor": { "kind": "sign", "id": "petshop_racas" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.veterinario", "pt": "veterinário", "en": "vet", "area": "petshop", "source": "reading", "anchor": { "kind": "sign", "id": "petshop_vet" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.banho_e_tosa", "pt": "banho e tosa", "en": "bath and grooming", "area": "petshop", "source": "reading", "anchor": { "kind": "sign", "id": "petshop_banho_tosa" }, "origin": "added", "needsBr": true, "note": "the fixed phrase every pet shop prints" },
+  { "id": "diary.petshop.petisco", "pt": "petisco", "en": "treat (for a pet)", "area": "petshop", "source": "reading", "anchor": { "kind": "sign", "id": "petshop_lojinha" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.bichinho", "pt": "bichinho", "en": "little animal", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.oi" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.lar", "pt": "lar", "en": "home", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.bichos" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.escolher", "pt": "escolher", "en": "to choose", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.adotar" }, "match": "escolhe", "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.cheiroso", "pt": "cheiroso", "en": "nice-smelling", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.tosa" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.filhote", "pt": "filhote", "en": "puppy / kitten", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.idle0" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.orelha", "pt": "orelha", "en": "ear", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.idle1" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.senta", "pt": "senta", "en": "sit! (to a dog)", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.idle2" }, "origin": "added", "needsBr": true, "note": "also a command your own pet obeys in the chat" },
+  { "id": "diary.petshop.vira_lata", "pt": "vira-lata", "en": "mutt", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.idle3" }, "origin": "added", "needsBr": true },
+  { "id": "diary.petshop.rabo", "pt": "rabo", "en": "tail", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.pen_dog_1" }, "origin": "added", "needsBr": true, "note": "earned by petting a dog" },
+  { "id": "diary.petshop.carinho", "pt": "carinho", "en": "affection, a pat", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.pen_dog_2" }, "origin": "added", "needsBr": true, "note": "earned by petting a dog" },
+  { "id": "diary.petshop.focinho", "pt": "focinho", "en": "snout", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.pen_dog_3" }, "origin": "added", "needsBr": true, "note": "earned by petting a dog; nariz is the airplane's" },
+  { "id": "diary.petshop.ronronar", "pt": "ronronar", "en": "to purr", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.pen_cat_1" }, "match": "ronronando", "origin": "added", "needsBr": true, "note": "earned by petting a cat" },
+  { "id": "diary.petshop.bigode", "pt": "bigode", "en": "whiskers", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.pen_cat_2" }, "origin": "added", "needsBr": true, "note": "earned by petting a cat; also a man's moustache" },
+  { "id": "diary.petshop.brincar", "pt": "brincar", "en": "to play", "area": "petshop", "source": "conversation", "anchor": { "kind": "line", "id": "dito.pen_cat_3" }, "match": "brinca", "origin": "added", "needsBr": true, "note": "earned by petting a cat" }
  ],
  "film": {
   "price": 4,

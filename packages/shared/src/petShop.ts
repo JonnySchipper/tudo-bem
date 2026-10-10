@@ -371,7 +371,8 @@ export type PetshopLineId = keyof typeof PETSHOP_LINES;
 export const PEN_LINES: Record<string, { pt: string; en: string }> = {
   pen_dog_1: { pt: 'Olha o rabo abanando! Ele gostou de você.', en: 'Look at the tail wagging! He liked you.' },
   pen_dog_2: { pt: 'Essa aqui adora carinho na barriga.', en: 'This one loves a belly rub.' },
-  pen_dog_3: { pt: 'Cuidado, ele lambe o nariz de todo mundo!', en: 'Careful, he licks everyone’s nose!' },
+  // "nariz" is the airplane's nose in the Chegada chapter: the dog teaches its focinho
+  pen_dog_3: { pt: 'Olha esse focinho molhado! Ele quer te dar um beijo.', en: 'Look at that wet snout! He wants to give you a kiss.' },
   pen_cat_1: { pt: 'Tá ouvindo? Ele tá ronronando.', en: 'Hear that? He’s purring.' },
   pen_cat_2: { pt: 'Olha o bigode dela, todo arrepiado.', en: 'Look at her whiskers, all bristled.' },
   pen_cat_3: { pt: 'Esse gato brinca com tudo. Até com o rabo!', en: 'This cat plays with everything. Even its tail!' },

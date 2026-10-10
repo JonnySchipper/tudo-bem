@@ -6,14 +6,17 @@
  *   `<npc>.closed`    the same vendor's line when the stall is shut
  *   `carlos.viagem`   the baker's to-go line (Seu Carlos' "Café ou suco?" bate-papo, papos.ts)
  *   `julia.chegada_*` the arrival card, Júlia speaking
+ *   `dito.pen_*`      Seu Dito's line when you pet an animal in a pen (petShop.ts PEN_LINES): earned by the carinho itself, never by a
+ *                     `diary line` message
  * The server checks the player is next to the speaker. Lines said to nobody in particular (the ambient bubbles) teach nothing.
  */
 import { ARRIVAL_LINES } from './arrival.js';
 import { VENDORS } from './feira.js';
 import { NPC_TALK } from './npcTalk.js';
+import { PEN_LINES } from './petShop.js';
 import { npcDefById } from './rooms.js';
 
-export type DiaryLineKind = 'talk' | 'idle' | 'greet' | 'closed' | 'counter' | 'arrival';
+export type DiaryLineKind = 'talk' | 'idle' | 'greet' | 'closed' | 'counter' | 'arrival' | 'pen';
 
 export interface DiaryLine {
   id: string;
@@ -39,6 +42,8 @@ export function diaryLine(id: string): DiaryLine | undefined {
   if (arrival) return { id, npc, kind: 'arrival', pt: arrival.pt };
   const counter = COUNTER_LINES[id];
   if (counter) return { id, npc, kind: 'counter', pt: counter };
+  const pen = npc === 'dito' ? PEN_LINES[rest] : undefined;
+  if (pen) return { id, npc, kind: 'pen', pt: pen.pt };
   const idle = /^idle(\d+)$/.exec(rest);
   if (idle) {
     const line = npcDefById(npc)?.idleLines[Number(idle[1])];

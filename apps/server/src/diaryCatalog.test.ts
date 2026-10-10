@@ -1,6 +1,6 @@
 /**
- * Every one of the 496 catalog words has a real way to be earned, and the way matches its source: a player who does only what the word's
- * row says (stand near the object and shoot it, read the sign, hear the line, win the game) ends with all 496 in the diary, each earned
+ * Every one of the 532 catalog words has a real way to be earned, and the way matches its source: a player who does only what the word's
+ * row says (stand near the object and shoot it, read the sign, hear the line, win the game) ends with all 532 in the diary, each earned
  * from its own source and none twice.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -12,12 +12,15 @@ import {
   GAME_DAY_MS,
   HOTSPOT_READ_RANGE,
   MS_PER_GAME_MINUTE,
+  PET_PENS,
   PHOTO_RANGE,
   ROOMS,
   buildGrid,
   diaryDayFor,
   diaryLine,
   furnitureById,
+  gameDay,
+  penLineKey,
   hotspotById,
   isWalkable,
   photoSpotById,
@@ -73,7 +76,7 @@ const have = (c: Client) => new Set(c.s.profile!.diary ?? []);
 describe('every catalog word can be earned from its own source', () => {
   beforeEach(() => setGameTime(10));
 
-  it('earns all 496, and each only the way its row says', async () => {
+  it('earns all 532, and each only the way its row says', async () => {
     const world = new World(
       new ProfileStore(null),
       { safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student: new InMemoryStudentModel(), moderation: new MemoryModerationQueue() },
@@ -150,6 +153,22 @@ describe('every catalog word can be earned from its own source', () => {
         expect(have(a).has(w.id), `conversation: ${w.pt}`).toBe(true);
         continue;
       }
+      if (info.kind === 'pen') {
+        // Seu Dito's pen line: asking for it teaches nothing; petting the animal on the day that line comes up does
+        const species = w.anchor.id.includes('_dog_') ? 'dog' : 'cat';
+        const pen = PET_PENS.find((p) => p.species === species)!;
+        const day = [0, 1, 2, 3, 4, 5].find((d) => penLineKey(species, gameDay(d * GAME_DAY_MS + 10 * 60 * MS_PER_GAME_MINUTE - CLOCK_OFFSET_MS), 0) === w.anchor.id.slice('dito.'.length))!;
+        setGameTime(10, day);
+        room = null;
+        await goRoom('petshop');
+        const at = ROOMS.petshop.props.find((p) => p.id === pen.id)!.interact!;
+        await walk(at.x, at.y);
+        await a.send({ t: 'diary', action: 'line', anchor: w.anchor.id });
+        expect(have(a).has(w.id), `pen line asked for: ${w.pt}`).toBe(false);
+        await a.send({ t: 'pet', action: 'carinho', penId: pen.id, slot: 0 });
+        expect(have(a).has(w.id), `conversation: ${w.pt} (${w.anchor.id}) by petting`).toBe(true);
+        continue;
+      }
       const home = (Object.keys(ROOMS) as RoomId[]).find((r) => ROOMS[r].npcs.some((n) => n.id === info.npc || (COUNTER_STAND_INS[info.npc] ?? []).includes(n.id)));
       const night = info.npc === 'graca';
       if (night) setGameTime(22);
@@ -184,8 +203,8 @@ describe('every catalog word can be earned from its own source', () => {
     for (const w of DIARY_WORDS.filter((x) => x.source === 'game')) expect(have(a).has(w.id), `game: ${w.pt}`).toBe(true);
 
     // all of them, once each
-    expect(a.s.profile!.diary).toHaveLength(496);
-    expect(new Set(a.s.profile!.diary).size).toBe(496);
+    expect(a.s.profile!.diary).toHaveLength(532);
+    expect(new Set(a.s.profile!.diary).size).toBe(532);
     expect(DIARY_WORDS.every((w) => have(a).has(w.id))).toBe(true);
   }, 120_000);
 });

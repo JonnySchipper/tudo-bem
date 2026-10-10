@@ -13,6 +13,10 @@ describe('where a conversation word is heard', () => {
     expect(diaryLine('julia.ajuda')).toMatchObject({ kind: 'talk', npc: 'julia' });
     expect(diaryLine('julia.idle0')).toMatchObject({ kind: 'idle', pt: 'Oi! Precisa de ajuda? Fala comigo!' });
     expect(diaryLine('tia_lu.greet')?.pt).toMatch(/freguês/);
+    // Seu Dito's pen lines (#234): a family of their own, earned by petting
+    expect(diaryLine('dito.pen_cat_1')).toMatchObject({ kind: 'pen', npc: 'dito', pt: 'Tá ouvindo? Ele tá ronronando.' });
+    expect(diaryLine('dito.pen_dog_9')).toBeUndefined();
+    expect(diaryLine('carlos.pen_dog_1')).toBeUndefined();
     expect(diaryLine('tia_lu.closed')?.pt).toMatch(/amanhã/);
     expect(diaryLine('carlos.viagem')).toMatchObject({ kind: 'counter', pt: COUNTER_LINES['carlos.viagem'] });
     expect(diaryLine('julia.chegada_camera')).toMatchObject({ kind: 'arrival', pt: ARRIVAL_CARD.camera.pt });
@@ -82,6 +86,6 @@ describe('what the camera and the readers can reach', () => {
 
   it('teaches nothing from objects that are not in the catalog', () => {
     expect(wordsForPhoto('sebe_n_0')).toEqual([]);
-    expect(DIARY_WORDS.filter((w) => w.source === 'camera' && w.origin === 'added').length).toBe(301);
+    expect(DIARY_WORDS.filter((w) => w.source === 'camera' && w.origin === 'added').length).toBe(317);
   });
 });

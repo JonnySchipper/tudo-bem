@@ -393,7 +393,7 @@ export interface UnitView {
 }
 
 /** Areas in the order a new arrival meets them. */
-export const UNIT_ORDER = ['chegada', 'praca', 'rua', 'padaria', 'feira', 'kitnet', 'academia', 'escola'] as const;
+export const UNIT_ORDER = ['chegada', 'praca', 'rua', 'padaria', 'feira', 'kitnet', 'academia', 'escola', 'petshop'] as const;
 
 export function escolaPath(st: EscolaState, diary: readonly string[] | undefined): UnitView[] {
   const held = new Set(normalizeDiary(diary));
@@ -441,6 +441,7 @@ export const AREA_IN: Record<string, Bilingual> = {
   kitnet: { pt: 'na kitnet', en: 'in the studio apartment' },
   academia: { pt: 'na academia', en: 'at the gym' },
   escola: { pt: 'na escola', en: 'at the school' },
+  petshop: { pt: 'no pet shop', en: 'at the pet shop' },
 };
 
 const GAME_HINT: Record<string, Bilingual> = {
@@ -466,6 +467,8 @@ function huntHint(area: string, missing: readonly DiaryWord[]): Bilingual {
   if (source === 'camera') return { pt: `Tire foto das coisas ${where.pt}.`, en: `Take photos of things ${where.en}.` };
   if (source === 'reading') return { pt: `Leia as placas ${where.pt}.`, en: `Read the signs ${where.en}.` };
   if (source === 'conversation') {
+    // the pet shop's pen words come from petting the animals (Seu Dito says the line)
+    if (list.every((w) => diaryLine(w.anchor.id)?.kind === 'pen')) return { pt: 'Faça carinho nos bichinhos do pet shop.', en: 'Pet the animals at the pet shop.' };
     const names = [...new Set(list.map(speakerOf).filter((n): n is string => !!n))].slice(0, 2);
     if (names.length) return { pt: `Converse com ${names.join(' e ')}.`, en: `Talk to ${names.join(' and ')}.` };
     return { pt: `Converse com o pessoal ${where.pt}.`, en: `Talk to people ${where.en}.` };
