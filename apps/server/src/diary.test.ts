@@ -129,10 +129,10 @@ describe('arrival, camera, diary and the escola', () => {
     ]);
     expect(card[0]!.words.map((w) => w.progress)).toEqual([
       // the fifth conversation word, bem-vindo, is the comissária's in the arrivals hall
-      '0/14 câmera · 0/6 leitura · 1/5 conversa',
-      '0/14 câmera · 0/6 leitura · 2/5 conversa',
-      '0/14 câmera · 0/6 leitura · 3/5 conversa',
-      '0/14 câmera · 0/6 leitura · 4/5 conversa',
+      '0/20 câmera · 0/6 leitura · 1/5 conversa',
+      '0/20 câmera · 0/6 leitura · 2/5 conversa',
+      '0/20 câmera · 0/6 leitura · 3/5 conversa',
+      '0/20 câmera · 0/6 leitura · 4/5 conversa',
     ]);
     await a.send({ t: 'arrival', action: 'finish' });
     expect(a.all('notice').filter((n) => n.pt.includes('câmera'))).toHaveLength(1);
@@ -337,7 +337,11 @@ describe('arrival, camera, diary and the escola', () => {
     await walkTo(a, 6, 11);
     await a.send({ t: 'diary', action: 'photo', anchors: ['hall_asa', 'hall_turbina', 'hall_ponte'] });
     const plane = photoMsgs(a).at(-1)!;
-    expect(plane.ok && plane.words?.map((w) => w.pt)).toEqual(['asa', 'turbina', 'ponte']);
+    // the engine is a turbina and a motor (one photo teaches both)
+    expect(plane.ok && plane.words?.map((w) => w.pt)).toEqual(['asa', 'turbina', 'motor', 'ponte']);
+    // and any other part of the plane teaches its own word: the tail, the nose, a window, the door, a wheel, the body
+    await a.send({ t: 'diary', action: 'photo', anchors: ['hall_cauda', 'hall_nariz', 'hall_janela', 'hall_porta', 'hall_roda', 'hall_fuselagem'] });
+    expect(photoMsgs(a).at(-1)!.words?.map((w) => w.pt)).toEqual(['cauda', 'nariz', 'janela', 'porta', 'roda', 'fuselagem']);
     expect(a.s.profile?.film).toBe(film);
   });
 

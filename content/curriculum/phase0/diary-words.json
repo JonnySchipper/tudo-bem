@@ -160,6 +160,9 @@
     "kind": "object",
     "id": "hall_asa"
    },
+   "also": [
+    "hall_asa_longe"
+   ],
    "origin": "added",
    "needsBr": true
   },
@@ -226,6 +229,91 @@
    "anchor": {
     "kind": "object",
     "id": "hall_turbina"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.motor",
+   "pt": "motor",
+   "en": "engine",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_turbina"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the everyday word; turbina is the jet engine itself. One photo of the engine teaches both"
+  },
+  {
+   "id": "diary.chegada.cauda",
+   "pt": "cauda",
+   "en": "tail (of a plane)",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_cauda"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the tail fin with the flag of Brazil, and the little wings at the back"
+  },
+  {
+   "id": "diary.chegada.nariz",
+   "pt": "nariz",
+   "en": "nose (of a plane)",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_nariz"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "o nariz do avião; people also say o bico"
+  },
+  {
+   "id": "diary.chegada.porta",
+   "pt": "porta",
+   "en": "door",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_porta"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the plane's front door, where the jet bridge meets it"
+  },
+  {
+   "id": "diary.chegada.roda",
+   "pt": "roda",
+   "en": "wheel",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_roda"
+   },
+   "also": [
+    "hall_roda_frente"
+   ],
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.fuselagem",
+   "pt": "fuselagem",
+   "en": "fuselage (the plane's body)",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_fuselagem"
    },
    "origin": "added",
    "needsBr": true
@@ -4873,6 +4961,9 @@
     "kind": "object",
     "id": "janela_rua"
    },
+   "also": [
+    "hall_janela"
+   ],
    "origin": "existing",
    "needsBr": true
   },
