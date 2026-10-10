@@ -27,6 +27,9 @@ import type { Weather } from './weather.js';
 import type { FeiraBoardRow, FeiraCartAdminGame, FeiraCartMode, FeiraCartSchedule, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
 import type { BoardRow } from './leaderboards.js';
 import type { PraiaMode } from './praia.js';
+import type { WaterId } from './pesca.js';
+import type { FishId } from './fish.js';
+import type { PescaEvent, PescaOutcome, PescaRoll } from './pescaSim.js';
 import type { AdminTestSnapshot } from './adminTestes.js';
 import type { AdminBannedRow, ModerationRow, ReportReason } from './moderation.js';
 
@@ -152,6 +155,16 @@ export type ClientMsg =
   | { t: 'admin'; action: 'feiraCartSet'; game: string; mode: FeiraCartMode; schedule?: FeiraCartSchedule | null }
   /** The Praia: open / preview / closed, and the party boat on or off (either field may be left out). */
   | { t: 'admin'; action: 'praiaSet'; mode?: PraiaMode; partyBoat?: boolean }
+  /**
+   * Fishing (PRAIA-PLAN.md 2.4, 7.1). `open` a spot, `cast` from it (how far: 0..1), send the `result` as taps and holds (never a fish or
+   * a size), `quit`; at Jô's: `tray` (what she would pay) and `sell` (one species, or everything).
+   */
+  | { t: 'pesca'; action: 'open'; spotId: string }
+  | { t: 'pesca'; action: 'cast'; spotId: string; power: number }
+  | { t: 'pesca'; action: 'result'; seq: number; events: PescaEvent[] }
+  | { t: 'pesca'; action: 'quit' }
+  | { t: 'pesca'; action: 'tray' }
+  | { t: 'pesca'; action: 'sell'; fish?: FishId }
   /** Subscriber list for the Assinaturas section. */
   | { t: 'admin'; action: 'subscribers' }
   /** Dev/test subscription (no payment). Admin socket only. */
@@ -654,4 +667,22 @@ export type ServerMsg =
   | { t: 'feiraGame'; phase: 'cart'; closed: boolean; game: FeiraGameId | null }
   | { t: 'feiraGame'; phase: 'crown'; id: string | null }
   /** The Praia's admin switch (PRAIA-PLAN.md 1.2): sent on sign-in and broadcast on change. `allowed`: may this player go to the beach now. */
-  | { t: 'praia'; phase: 'mode'; mode: PraiaMode; partyBoat: boolean; allowed: boolean };
+  | { t: 'praia'; phase: 'mode'; mode: PraiaMode; partyBoat: boolean; allowed: boolean }
+  /** A spot opened: which water, and whether you may cast here now (a boat's water needs its trip). */
+  | { t: 'pesca'; phase: 'spot'; spotId: string; water: WaterId; canCast: boolean; reason?: Bilingual }
+  /** The cast is on: the seed the client rolls the same fish from (`pinned`: a test roll), and everything the roll depends on. */
+  | { t: 'pesca'; phase: 'cast'; seq: number; seed: number; water: WaterId; weather: Weather; minute: number; power: number; firstCatches: number; pinned?: PescaRoll }
+  /** What the server judged: the outcome, a first of a species, a new record, the words it taught and a line from Dona Neide. */
+  | { t: 'pesca'; phase: 'result'; seq: number; outcome: PescaOutcome; newSpecies: boolean; record: boolean; words: Bilingual[]; line?: Bilingual & { speaker: NpcId } }
+  /** Jô's tray: the fish in your bucket and what she pays for each, and how much more RV she can pay you today. */
+  | { t: 'pesca'; phase: 'tray'; fish: PescaTrayRow[]; capLeft: number }
+  | { t: 'pesca'; phase: 'sold'; rv: number; coins: number; fish: PescaTrayRow[]; capLeft: number };
+
+/** One species in the bucket, as Jô's tray shows it. */
+export interface PescaTrayRow {
+  id: FishId;
+  pt: string;
+  en: string;
+  n: number;
+  price: number;
+}

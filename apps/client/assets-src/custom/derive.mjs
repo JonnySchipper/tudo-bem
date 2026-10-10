@@ -97,4 +97,5 @@ export const IMAGES = {
   pets: petsMod.petStrips,
   bubbleSkins: uiMod.bubbleSkins,
   praiaIcons: praiaMod.praiaIconParts,
+  pescaStage: praiaMod.pescaStageParts,
 };

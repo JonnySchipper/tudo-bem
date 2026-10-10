@@ -226,6 +226,8 @@ export interface PrivateProfile {
   hasCamera?: boolean;
   /** Language-diary word ids earned once. */
   diary?: string[];
+  /** Fishing at the Praia (PRAIA-PLAN.md 8.1). Missing means "never fished"; `normalizePesca` on load. */
+  pesca?: import('./pescaProgress.js').PescaProgress;
   /** Escola: per-word strength (spaced repetition), XP, streak, daily goal and the earned nameplate tier. Defaulted on load. */
   escola?: import('./escola.js').EscolaState;
   /** Film rolls left in the camera. Júlia sells more. */

@@ -10,6 +10,7 @@
     {"key": "praia/mureta", "kind": "derive", "fn": "praia"}
   ],
   "images": [
-    {"fn": "praiaIcons"}
+    {"fn": "praiaIcons"},
+    {"fn": "pescaStage"}
   ]
 }

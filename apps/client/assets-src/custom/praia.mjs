@@ -1081,6 +1081,110 @@ const SNACK_ART = {
   },
 };
 
+// ------------------------------------------------------------------ the fishing stage (PRAIA-PLAN.md 2.1): 320 x 180 backdrops, the rod
+// and the bobber. Flat bands of the palette, the water in the lower 60%, the foreground of the place you fish from (the shore, the reeds,
+// the rowboat's gunwale, the fishing boat's rail, the deep-sea boat's stern, the party deck). The stage draws the line and the fish over.
+const SKY = ['#a6d4e4', '#bfe3ee', '#d6eef5'];
+function fundoBase(img, horizon, seaTop = horizon) {
+  for (let y = 0; y < horizon; y++) for (let x = 0; x < img.w; x++) put(img, x, y, SKY[Math.min(2, Math.floor((y / horizon) * 3))]);
+  // a few flat clouds
+  for (const [cx, cy, w] of [[60, 18, 34], [200, 30, 46], [270, 12, 22]]) {
+    rect(img, cx - w / 2, cy, w, 3, '#f2faf6');
+    rect(img, cx - w / 2 + 4, cy - 2, w - 10, 2, '#f2faf6');
+  }
+  const bands = [SEA.hi, SEA.base, SEA.lo, SEA.deep];
+  for (let y = seaTop; y < img.h; y++) {
+    const t = (y - seaTop) / Math.max(1, img.h - seaTop);
+    for (let x = 0; x < img.w; x++) put(img, x, y, bands[Math.min(3, Math.floor(t * 4))]);
+  }
+  // ripple dashes, longer toward the viewer
+  for (let y = seaTop + 2; y < img.h; y += 3) {
+    const len = 3 + Math.floor(((y - seaTop) / (img.h - seaTop)) * 8);
+    for (let x = (y * 7) % 13; x < img.w; x += len * 3 + 5) for (let i = 0; i < len; i++) if (h2(x, y, 3) < 0.7) put(img, x + i, y, SEA.hi2);
+  }
+}
+function fundo(water) {
+  const img = blank(320, 180);
+  if (water === 'praia') {
+    fundoBase(img, 70);
+    // the sand at your feet, the shore's foam, the pier on the right
+    for (let y = 140; y < 180; y++) for (let x = 0; x < 320; x++) put(img, x, y, y < 144 ? SEA.foam : h2(x, y, 4) < 0.1 ? SAND.lo : SAND.base);
+    for (let x = 0; x < 320; x++) put(img, x, 139 + Math.round(Math.sin(x / 9)), SEA.foam2);
+    rect(img, 250, 92, 70, 6, WOOD[2]);
+    rect(img, 250, 92, 70, 1, WOOD[3]);
+    for (const x of [256, 276, 296, 316]) rect(img, x, 98, 3, 42, WOOD[0]);
+  } else if (water === 'lagoa') {
+    fundoBase(img, 60);
+    // the far bank: a dune line and a jerivá; reeds in the foreground
+    for (let y = 52; y < 62; y++) for (let x = 0; x < 320; x++) if (y > 56 + Math.sin(x / 20) * 3) put(img, x, y, C.g3);
+    rect(img, 230, 22, 2, 34, C.w4);
+    for (const [dx, dy] of [[-8, 0], [8, 0], [-5, -3], [5, -3], [0, -4]]) rect(img, 231 + dx - 3, 20 + dy, 7, 2, C.g2);
+    for (let x = 0; x < 320; x += 6) for (let y = 150 - Math.floor(h2(x, 1, 2) * 30); y < 180; y++) put(img, x + (y % 3 === 0 ? 1 : 0), y, y < 156 ? C.g1 : C.g2);
+    for (const x of [18, 64, 300]) rect(img, x, 140, 3, 8, C.w4);
+  } else if (water === 'remo') {
+    fundoBase(img, 64);
+    // the beach small behind, the rowboat's gunwale and an oar in front
+    rect(img, 0, 58, 320, 6, SAND.base);
+    for (const x of [40, 90, 150]) rect(img, x, 50, 2, 8, C.g2);
+    for (let y = 150; y < 180; y++) for (let x = 0; x < 320; x++) put(img, x, y, y < 154 ? C.white : y < 160 ? '#3a8f63' : '#2b7552');
+    for (let i = 0; i < 120; i++) put(img, 180 + i, 150 - Math.round(i * 0.35), C.w2);
+    rect(img, 296, 104, 24, 8, C.w3);
+  } else if (water === 'pesca') {
+    fundoBase(img, 56);
+    rect(img, 0, 54, 320, 2, C.g3); // the coast as a line
+    // the deck rail and a heap of nets
+    rect(img, 0, 146, 320, 34, DECK.base);
+    for (let y = 146; y < 180; y += 4) rect(img, 0, y, 320, 1, DECK.gap);
+    rect(img, 0, 132, 320, 3, C.white);
+    for (let x = 6; x < 320; x += 28) rect(img, x, 132, 3, 16, C.white);
+    for (let y = 150; y < 176; y++) for (let x = 20; x < 90; x++) if ((x + y) % 3 === 0 && (x - 55) ** 2 / 1200 + (y - 170) ** 2 / 400 < 1) put(img, x, y, '#4f8a63');
+  } else if (water === 'alto_mar') {
+    fundoBase(img, 80);
+    // only sea and sky: a big swell, the stern and two rod holders
+    for (let x = 0; x < 320; x++) for (let y = 80; y < 80 + 6 + Math.round(Math.sin(x / 30) * 5); y++) put(img, x, y, SEA.hi);
+    rect(img, 0, 156, 320, 24, C.white);
+    rect(img, 0, 156, 320, 2, C.lav3);
+    rect(img, 0, 170, 320, 3, NAVYB[1]);
+    for (const x of [40, 270]) { rect(img, x, 140, 4, 16, C.slate); for (let i = 0; i < 40; i++) put(img, x + 2 - Math.round(i * 0.4), 140 - i, C.lav3); }
+  } else {
+    // the party deck at sunset
+    for (let y = 0; y < 70; y++) for (let x = 0; x < 320; x++) put(img, x, y, ['#f2b84a', '#f2a050', '#e88a5a', '#d87a6a'][Math.min(3, Math.floor(y / 18))]);
+    rect(img, 140, 52, 40, 8, '#ffe08a');
+    for (let y = 70; y < 180; y++) for (let x = 0; x < 320; x++) put(img, x, y, [SEA.hi, SEA.base, SEA.lo, SEA.deep][Math.min(3, Math.floor((y - 70) / 28))]);
+    for (let y = 72; y < 130; y += 3) for (let x = 150; x < 170; x++) if (h2(x, y, 5) < 0.4) put(img, x, y, '#f8d890');
+    rect(img, 0, 150, 320, 30, DECK.base);
+    for (let y = 150; y < 180; y += 4) rect(img, 0, y, 320, 1, DECK.gap);
+    rect(img, 0, 138, 320, 2, C.white);
+    for (let i = 0; i < 40; i++) { const x = i * 8 + 4, y = 8 + Math.round(Math.abs(i - 20) * 0.6); rect(img, x, y, 3, 3, [C.r2, C.y2, C.g2, C.b1, C.p1][i % 5]); }
+  }
+  return img;
+}
+function vara() {
+  // the rod, butt at the bottom right, tip up to the left (the stage rotates nothing: it draws the bend as the line)
+  const img = blank(64, 96);
+  for (let i = 0; i < 90; i++) {
+    const x = 60 - Math.round(i * 0.55), y = 94 - i;
+    put(img, x, y, i < 20 ? NAVY : i < 24 ? C.y2 : C.w2);
+    if (i < 18) put(img, x + 1, y, '#2a2a3c');
+  }
+  rect(img, 52, 70, 8, 8, C.slate2); rect(img, 53, 71, 6, 6, C.mist); // the reel
+  return img;
+}
+function boiaImg() {
+  const img = blank(8, 12);
+  solid(img, elp(4, 4, 3, 3.5), RED, { rimShade: 1 });
+  solid(img, (x, y) => elp(4, 4, 3, 3.5)(x, y) && y > 4.5, WHITE, { rimShade: 1, outline: false });
+  rect(img, 3, 8, 2, 3, C.w4);
+  return img;
+}
+
+/** pesca/fundo_<water>, pesca/vara, pesca/boia (DOM images the stage canvas draws). */
+export async function pescaStageParts() {
+  const parts = ['praia', 'lagoa', 'remo', 'pesca', 'alto_mar', 'festa'].map((w) => ({ key: `pesca/fundo_${w}`, img: fundo(w) }));
+  parts.push({ key: 'pesca/vara', img: vara() }, { key: 'pesca/boia', img: boiaImg() });
+  return parts;
+}
+
 /** icons/peixe_<id>, icons/<junk>, icons/<snack> as standalone DOM images. */
 export async function praiaIconParts() {
   const parts = [];

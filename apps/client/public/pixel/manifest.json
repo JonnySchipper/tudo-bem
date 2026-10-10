@@ -27197,6 +27197,46 @@
    "file": "icons/sabugo.png",
    "w": 16,
    "h": 16
+  },
+  "pesca/fundo_praia": {
+   "file": "pesca/fundo_praia.png",
+   "w": 320,
+   "h": 180
+  },
+  "pesca/fundo_lagoa": {
+   "file": "pesca/fundo_lagoa.png",
+   "w": 320,
+   "h": 180
+  },
+  "pesca/fundo_remo": {
+   "file": "pesca/fundo_remo.png",
+   "w": 320,
+   "h": 180
+  },
+  "pesca/fundo_pesca": {
+   "file": "pesca/fundo_pesca.png",
+   "w": 320,
+   "h": 180
+  },
+  "pesca/fundo_alto_mar": {
+   "file": "pesca/fundo_alto_mar.png",
+   "w": 320,
+   "h": 180
+  },
+  "pesca/fundo_festa": {
+   "file": "pesca/fundo_festa.png",
+   "w": 320,
+   "h": 180
+  },
+  "pesca/vara": {
+   "file": "pesca/vara.png",
+   "w": 64,
+   "h": 96
+  },
+  "pesca/boia": {
+   "file": "pesca/boia.png",
+   "w": 8,
+   "h": 12
   }
  },
  "chars": {

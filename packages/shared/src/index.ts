@@ -75,3 +75,6 @@ export * from './praia.js';
 export * from './pesca.js';
 export * from './fish.js';
 export * from './pescaWords.js';
+export * from './pescaSim.js';
+export * from './pescaProgress.js';
+export * from './pescaLines.js';

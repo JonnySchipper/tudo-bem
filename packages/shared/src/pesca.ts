@@ -17,3 +17,6 @@ export const SOLO_TIERS: readonly BoatTier[] = ['remo', 'pesca', 'alto_mar'];
 
 /** A free water needs nothing; a boat's water needs that tier's trip. */
 export const isFreeWater = (w: WaterId): boolean => w === 'praia' || w === 'lagoa';
+
+/** The shipped defaults of the Praia's economy (server tunables, `gameConfig.ts`; the client always reads the live numbers from the server). */
+export const PRAIA_PRICES = { remo: 15, pesca: 40, alto_mar: 90, festa: 150, saleCap: 60, tripMinutes: 12, partyMinutes: 15, partyCap: 6 } as const;

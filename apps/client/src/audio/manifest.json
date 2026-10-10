@@ -10876,6 +10876,192 @@
       "file": "comissaria-407de93fcb.mp3"
     },
     {
+      "id": "ui-28ca548710",
+      "voice": "ui",
+      "text": "Segura… solta!",
+      "file": "ui-28ca548710.mp3"
+    },
+    {
+      "id": "ui-a4d6b6315b",
+      "voice": "ui",
+      "text": "Ih, enrolou!",
+      "file": "ui-a4d6b6315b.mp3"
+    },
+    {
+      "id": "ui-9f924906c5",
+      "voice": "ui",
+      "text": "Fisgou!",
+      "file": "ui-9f924906c5.mp3"
+    },
+    {
+      "id": "ui-b74a60e06c",
+      "voice": "ui",
+      "text": "Cedo demais!",
+      "file": "ui-b74a60e06c.mp3"
+    },
+    {
+      "id": "ui-0c2e6633fc",
+      "voice": "ui",
+      "text": "Escapou…",
+      "file": "ui-0c2e6633fc.mp3"
+    },
+    {
+      "id": "ui-e5ddbf15d5",
+      "voice": "ui",
+      "text": "Arrebentou a linha!",
+      "file": "ui-e5ddbf15d5.mp3"
+    },
+    {
+      "id": "ui-00a8f436ca",
+      "voice": "ui",
+      "text": "Pegou!",
+      "file": "ui-00a8f436ca.mp3"
+    },
+    {
+      "id": "ui-f2fb215d3c",
+      "voice": "ui",
+      "text": "Ih, um baiacu!",
+      "file": "ui-f2fb215d3c.mp3"
+    },
+    {
+      "id": "ui-319823923f",
+      "voice": "ui",
+      "text": "Volta pro mar, baiacu!",
+      "file": "ui-319823923f.mp3"
+    },
+    {
+      "id": "ui-551c6a5047",
+      "voice": "ui",
+      "text": "Novo!",
+      "file": "ui-551c6a5047.mp3"
+    },
+    {
+      "id": "ui-e969aa378c",
+      "voice": "ui",
+      "text": "Recorde!",
+      "file": "ui-e969aa378c.mp3"
+    },
+    {
+      "id": "ui-05e5b3fdc0",
+      "voice": "ui",
+      "text": "Ele corre! Solta!",
+      "file": "ui-05e5b3fdc0.mp3"
+    },
+    {
+      "id": "ui-57abea4907",
+      "voice": "ui",
+      "text": "Puxa!",
+      "file": "ui-57abea4907.mp3"
+    },
+    {
+      "id": "ui-2e7524268f",
+      "voice": "ui",
+      "text": "Boa pescaria!",
+      "file": "ui-2e7524268f.mp3"
+    },
+    {
+      "id": "ui-479bb632aa",
+      "voice": "ui",
+      "text": "pequeno",
+      "file": "ui-479bb632aa.mp3"
+    },
+    {
+      "id": "ui-9fdcaae5c6",
+      "voice": "ui",
+      "text": "médio",
+      "file": "ui-9fdcaae5c6.mp3"
+    },
+    {
+      "id": "ui-35272bf81d",
+      "voice": "ui",
+      "text": "grande",
+      "file": "ui-35272bf81d.mp3"
+    },
+    {
+      "id": "ui-af8f99ddbf",
+      "voice": "ui",
+      "text": "enorme",
+      "file": "ui-af8f99ddbf.mp3"
+    },
+    {
+      "id": "ui-4828eb2f85",
+      "voice": "ui",
+      "text": "um chinelo",
+      "file": "ui-4828eb2f85.mp3"
+    },
+    {
+      "id": "ui-528af9e86e",
+      "voice": "ui",
+      "text": "uma lata",
+      "file": "ui-528af9e86e.mp3"
+    },
+    {
+      "id": "ui-035044285f",
+      "voice": "ui",
+      "text": "uma alga",
+      "file": "ui-035044285f.mp3"
+    },
+    {
+      "id": "ui-2c3e6ea153",
+      "voice": "ui",
+      "text": "uma garrafa com mensagem",
+      "file": "ui-2c3e6ea153.mp3"
+    },
+    {
+      "id": "neide-a1d5441aeb",
+      "voice": "neide",
+      "text": "Arrebentou. Da próxima, solta quando ele correr.",
+      "file": "neide-a1d5441aeb.mp3"
+    },
+    {
+      "id": "neide-6bed860c78",
+      "voice": "neide",
+      "text": "Olha isso! Esse vai pro recorde.",
+      "file": "neide-6bed860c78.mp3"
+    },
+    {
+      "id": "neide-6158153e76",
+      "voice": "neide",
+      "text": "Baiacu não se come, se devolve.",
+      "file": "neide-6158153e76.mp3"
+    },
+    {
+      "id": "jo-67b7b0b24a",
+      "voice": "jo",
+      "text": "Peixe bom! Toma aqui.",
+      "file": "jo-67b7b0b24a.mp3"
+    },
+    {
+      "id": "jo-377622a02b",
+      "voice": "jo",
+      "text": "Hoje já comprei o que dava. Amanhã tem mais.",
+      "file": "jo-377622a02b.mp3"
+    },
+    {
+      "id": "jo-df2252a51e",
+      "voice": "jo",
+      "text": "Balde vazio, meu bem. Vai pescar!",
+      "file": "jo-df2252a51e.mp3"
+    },
+    {
+      "id": "bento-f5c4de2fd6",
+      "voice": "bento",
+      "text": "Tá alugado. Volta antes da maré virar!",
+      "file": "bento-f5c4de2fd6.mp3"
+    },
+    {
+      "id": "bento-795510f1d7",
+      "voice": "bento",
+      "text": "RV insuficiente, viu? Pesca na praia e vende pra Jô.",
+      "file": "bento-795510f1d7.mp3"
+    },
+    {
+      "id": "bento-cbde591800",
+      "voice": "bento",
+      "text": "O barco voltou. Como foi lá fora?",
+      "file": "bento-cbde591800.mp3"
+    },
+    {
       "id": "nanda-6c6d85bb9e",
       "voice": "nanda",
       "text": "Esse boné verde fica legal!",

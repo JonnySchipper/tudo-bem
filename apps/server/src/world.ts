@@ -157,6 +157,8 @@ import {
   praiaAllows,
   PRAIA_CLOSED,
   PRAIA_DEFAULT,
+  weatherAt,
+  type FishId,
   type PraiaConfig,
 } from '@tudobem/shared';
 import type { ChatSafetyCtx, ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
@@ -178,6 +180,7 @@ import { FeiraCounter } from './feira.js';
 import { FeiraGamesEngine, FeiraGamesStore, type FeiraGameRun } from './feiraGames.js';
 import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 import { PraiaStore, memoryPraia } from './praiaStore.js';
+import { PescaEngine, type PescaCastRun } from './pesca.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
@@ -218,6 +221,8 @@ export interface WorldOptions {
   feiraCart?: FeiraCartStore;
   /** The Praia's open / preview / closed switch. Omitted: an in-memory store, open. */
   praia?: PraiaStore;
+  /** TB_TEST_PESCA: every cast rolls the short pinned fish (pescaSim.pinnedRoll), so an e2e can land one in seconds. */
+  pescaPin?: boolean;
   /** Bout intro length in ms (default: 4.2 s, 0.5 s in hint mode). Env `TB_TEST_BOUT_INTRO_MS`. */
   boutIntroMs?: number;
   /** Bout pause scale (default 1, 0.35 in hint mode). Env `TB_TEST_BOUT_PACE`: shots want the real pauses with the hints on. */
@@ -302,6 +307,10 @@ export interface Session {
   mg?: CorreriaRun;
   /** Feira cart game in progress (apps/server/src/feiraGames.ts). Separate from Correria so the two never share a slot. */
   feiraGame?: FeiraGameRun;
+  /** The cast out at the Praia (pesca.ts): one at a time per session. */
+  pesca?: PescaCastRun;
+  /** When this session last cast (the 2 s spacing), and the spot it has open. */
+  pescaSpot?: { spotId: string; lastCastAt: number };
   /** Treino no tatame: the bout in progress (apps/server/src/bout.ts). */
   bout?: BoutSession;
   chatTimes: number[];
@@ -396,6 +405,8 @@ export class World {
   private readonly layouts: LayoutStore;
   /** The Praia's admin switch (PRAIA-PLAN.md 1.2). */
   readonly praia: PraiaStore;
+  /** Fishing at the Praia (pesca.ts). */
+  private readonly pescaEngine: PescaEngine;
   private readonly githubToken?: string;
   private readonly githubFetch?: typeof fetch;
 
@@ -504,6 +515,23 @@ export class World {
       now: () => this.now(),
       day: () => gameDay(this.clockNow()),
       onWord: (s, word) => this.escola.onWord(s, word),
+    });
+    this.pescaEngine = new PescaEngine({
+      now: () => this.now(),
+      rng: () => this.rng(),
+      save: (p) => this.store.save(p.id),
+      pushProfile: (s) => this.pushProfile(s as Session),
+      err: (s, code, pt, en) => this.err(s as Session, code, pt, en),
+      tileOf: (s) => this.currentTile(s as Session).tile,
+      reward: (s, rv, reason) => this.reward(s as Session, rv, reason),
+      teach: (s, words) => this.diary.teachPesca(s as Session, words),
+      weather: () => this.weatherPin ?? weatherAt(this.clockNow()),
+      minute: () => gameMinutes(this.clockNow()),
+      day: (p) => this.capDate(todaySaoPaulo(), p),
+      saleCap: () => this.config.get('pescaSaleCapRv'),
+      pinned: opts.pescaPin ?? readEnv('TB_TEST_PESCA') === '1',
+      aboardParty: (s) => this.aboardParty(s as Session),
+      onPartyCatch: (s, fish) => this.onPartyCatch(s as Session, fish),
     });
     this.escola = new EscolaTracker({
       store,
@@ -708,6 +736,8 @@ export class World {
         return this.buy(s, msg.kind, msg.itemId);
       case 'snack':
         return this.buySnack(s, msg.itemId);
+      case 'pesca':
+        return this.pescaEngine.handle(s, msg);
       case 'padaria':
         return this.buyCounter(s, msg.itemId);
       case 'carry':
@@ -1619,6 +1649,18 @@ export class World {
     return this.adminFeiraCart(s);
   }
 
+  /** Aboard a party boat trip right now (the `festa` water). Step E fills this in. */
+  private aboardParty(s: Session): boolean {
+    void s;
+    return false;
+  }
+
+  /** A catch aboard the party boat, shared with everyone aboard. Step E fills this in. */
+  private onPartyCatch(s: Session, fish: FishId): void {
+    void s;
+    void fish;
+  }
+
   /** May this session's player be on the beach now (open, or preview with a subscriber's early access)? */
   private praiaOpenFor(s: Session): boolean {
     return praiaAllows(this.praia.config(), s.profile?.subscription, this.now());
@@ -1826,6 +1868,8 @@ export class World {
     this.correria.clear(s);
     if (s.bout) this.bouts.clear(s);
     s.scene = undefined;
+    // a line out on the water does not follow you to another room
+    this.pescaEngine.dropCast(s);
     if (!inst) return;
     inst.members.delete(s.id);
     s.instance = undefined;
