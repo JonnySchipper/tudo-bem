@@ -95,7 +95,6 @@ export default defineConfig({
     proxy: {
       '/ws': { target: SERVER, ws: true },
       '/healthz': { target: SERVER },
-      '/api/conversa': { target: SERVER },
       '/api/auth': { target: SERVER },
       '/api/config': { target: SERVER },
       '/api/feedback': { target: SERVER },

@@ -254,7 +254,7 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_sabonete', room: 'padaria', x: 9, y: 7, ox: -4, art: 'diary/sabonete' },
   { id: 'd_detergente', room: 'padaria', x: 9, y: 7, ox: 4, art: 'diary/detergente' },
   { id: 'd_esponja', room: 'padaria', x: 9, y: 6, ox: -4, art: 'diary/esponja' },
-  { id: 's_desconto', room: 'padaria', x: 6, y: 2, sign: { pt: "DESCONTO", en: "Discount" } }, // on the vitrine
+  { id: 's_desconto', room: 'padaria', x: 7, y: 2, sign: { pt: "DESCONTO", en: "Discount" } }, // on the estufa (the vitrine next to it starts the counter game)
   { id: 's_wifi', room: 'padaria', x: 1, y: 0, w: 2, up: 2, sign: { pt: "WIFI", en: "Wifi" } }, // on the wall by the entrance
   { id: 's_promocao', room: 'padaria', x: 5, y: 0, w: 2, up: 2, sign: { pt: "PROMOÇÃO", en: "Special offer" } }, // taped to the window
   { id: 'd_fogao', room: 'kitnet', x: 0, y: 0, ox: -4, art: 'diary/fogao' },

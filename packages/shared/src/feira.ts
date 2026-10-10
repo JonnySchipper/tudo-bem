@@ -257,36 +257,36 @@ export const OFF_DUTY: Record<StallVendorId, OffDutyTalk> = {
       { pt: 'Ai, que bom descansar um pouquinho!', en: 'Oh, it’s so nice to rest a little!' },
       { pt: 'Acordei às quatro hoje. Tô cansada!', en: 'I got up at four today. I’m tired!' },
       { pt: 'Meus netos vêm jantar lá em casa hoje.', en: 'My grandkids are coming over for dinner tonight.' },
-      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the feira early tomorrow!' },
+      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the market early tomorrow!' },
     ],
-    buy: { pt: 'Agora não, a feira já fechou! Amanhã tem, das seis à uma da tarde.', en: 'Not now, the feira has closed! It’s on tomorrow, from six to one in the afternoon.' },
+    buy: { pt: 'Agora não, a feira já fechou! Amanhã tem, das seis à uma da tarde.', en: 'Not now, the market has closed! It’s on tomorrow, from six to one in the afternoon.' },
   },
   ze: {
     lines: [
-      { pt: 'Opa! Hoje a feira foi boa.', en: 'Hey! The feira went well today.' },
+      { pt: 'Opa! Hoje a feira foi boa.', en: 'Hey! The market went well today.' },
       { pt: 'Agora é hora de descansar as pernas.', en: 'Now it’s time to rest my legs.' },
       { pt: 'Mais tarde tem jogo de futebol na TV.', en: 'There’s a football game on TV later.' },
-      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the feira early tomorrow!' },
+      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the market early tomorrow!' },
     ],
-    buy: { pt: 'Hoje não dá mais. Amanhã tem feira, das seis à uma da tarde!', en: 'Not today anymore. There’s a feira tomorrow, from six to one in the afternoon!' },
+    buy: { pt: 'Hoje não dá mais. Amanhã tem feira, das seis à uma da tarde!', en: 'Not today anymore. There’s a market tomorrow, from six to one in the afternoon!' },
   },
   chico: {
     lines: [
       { pt: 'Hoje vendi tudo! Que dia!', en: 'I sold everything today! What a day!' },
       { pt: 'Tô com cheiro de pastel até agora!', en: 'I still smell like pastel!' },
       { pt: 'Agora eu quero um café e uma soneca.', en: 'Now I want a coffee and a nap.' },
-      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the feira early tomorrow!' },
+      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the market early tomorrow!' },
     ],
-    buy: { pt: 'Pastel só amanhã! A feira abre às seis e vai até a uma.', en: 'Pastel only tomorrow! The feira opens at six and goes until one.' },
+    buy: { pt: 'Pastel só amanhã! A feira abre às seis e vai até a uma.', en: 'Pastel only tomorrow! The market opens at six and goes until one.' },
   },
   rosa: {
     lines: [
-      { pt: 'Que bom te ver fora da feira!', en: 'How nice to see you away from the feira!' },
+      { pt: 'Que bom te ver fora da feira!', en: 'How nice to see you away from the market!' },
       { pt: 'Agora vou cuidar das minhas plantas.', en: 'Now I’m going to look after my plants.' },
       { pt: 'Minha neta adora flores, igual a mim.', en: 'My granddaughter loves flowers, just like me.' },
-      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the feira early tomorrow!' },
+      { pt: 'Amanhã cedo tô na feira!', en: 'I’ll be at the market early tomorrow!' },
     ],
-    buy: { pt: 'As flores ficam pra amanhã. A feira é das seis à uma da tarde!', en: 'The flowers will have to wait for tomorrow. The feira is from six to one in the afternoon!' },
+    buy: { pt: 'As flores ficam pra amanhã. A feira é das seis à uma da tarde!', en: 'The flowers will have to wait for tomorrow. The market is from six to one in the afternoon!' },
   },
 };
 

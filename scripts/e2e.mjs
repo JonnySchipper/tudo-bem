@@ -177,11 +177,13 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
   await page.fill('#avatar-name', name);
   const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
   assert(labels.includes('Visual inicial'), `visual inicial preset (${labels.join(' | ')})`);
-  assert(labels.includes('Corpo') && labels.includes('Rosto') && labels.includes('Cabelo'), `body, face and hair stay (${labels.join(' | ')})`);
-  for (const gone of ['Detalhe', 'Blusa', 'Cor da blusa', 'Parte de baixo', 'Tênis']) {
+  assert(labels.includes('Corpo') && labels.includes('Rosto') && labels.includes('Cabelo') && labels.includes('Detalhe'), `body, face, hair and detail (${labels.join(' | ')})`);
+  // Clothing is two whole starter outfits (tee + jeans, blouse + skirt), not separate blouse / bottom / shoe pickers.
+  for (const gone of ['Blusa', 'Cor da blusa', 'Parte de baixo', 'Tênis']) {
     assert(!labels.includes(gone), `create no longer asks for ${gone}`);
   }
-  assert((await page.$$('[data-outfit]')).length === 1 && (await page.$('[data-outfit="visual_inicial"]')), 'one Visual inicial clothing preset');
+  const outfits = await page.$$eval('[data-outfit]', (els) => els.map((e) => e.getAttribute('data-outfit')));
+  assert(outfits.includes('visual_inicial') && outfits.includes('visual_saia') && outfits.length === 2, `two starter outfits (${outfits.join(', ')})`);
   const label = { ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' }[pronoun];
   await page.click(`button:has-text("${label}")`);
   assert(!(await page.$('#confirm-18')), 'the avatar creator asks no age question');
@@ -250,7 +252,7 @@ async function main() {
   assert(!(await page.$('#checklist')), 'the old checklist is gone');
   assert(((await page.textContent('#recado-tracker')) ?? '').includes('Bem-vindo à Vila Ipê'), 'the tracker shows the welcome chain');
   assert(start.appearance.top === 'camiseta' && start.appearance.bottom === 'calca' && start.appearance.shoes === 0, 'starter outfit is tee + jeans');
-  assert(start.appearance.extra === 'nenhum', 'create does not pick glasses/beard/earrings');
+  assert(start.appearance.extra === 'nenhum', 'ele keeps the default extra (none); ela would pick earrings');
   assert(/Música/.test((await page.textContent('#btn-music')) ?? ''), 'room music toggle on the praça bar');
   assert(/Voz/.test((await page.textContent('#btn-sound')) ?? ''), 'voice toggle on the praça bar');
 
@@ -490,15 +492,16 @@ async function main() {
     if (size.width < 500) assert(m.share <= 0.35, `the counter strip stays under 35% of a phone (${(m.share * 100).toFixed(0)}%)`);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
+  // A new counter only has café and pão (the grill and pão na chapa open later on the ladder). Those two taps have to land on screen again.
   await waitFor(
     page,
     () => {
-      const g = document.querySelector('#cr-grill-0');
-      const item = document.querySelector('#cr-item-pao_na_chapa');
-      if (!g || !item) return false;
-      const gr = g.getBoundingClientRect();
+      const machine = document.querySelector('#cr-machine');
+      const item = document.querySelector('#cr-item-pao');
+      if (!machine || !item || machine.style.display === 'none' || item.style.display === 'none') return false;
+      const mr = machine.getBoundingClientRect();
       const ir = item.getBoundingClientRect();
-      return gr.width > 8 && ir.width > 8 && gr.bottom > 0 && gr.top < window.innerHeight;
+      return mr.width > 8 && ir.width > 8 && mr.bottom > 0 && mr.top < window.innerHeight && ir.bottom > 0 && ir.top < window.innerHeight;
     },
     null,
     5000,

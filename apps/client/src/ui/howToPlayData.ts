@@ -1,12 +1,12 @@
 /**
  * The first-time cards, in English (the player may have no Portuguese yet). Two kinds:
  * - `game`: how to play a minigame, with the controls on a computer and on a phone.
- * - `place`: how a panel or an activity works (the Diário, Recados, the Cartela, a Conversa, the camera, ...): what it is for and the rules
+ * - `place`: how a panel or an activity works (the Diário, Favores, the Cartela, a bate-papo, the camera, ...): what it is for and the rules
  *   a new player would otherwise only learn by bumping into them.
  * The game's own Portuguese name sits in the title. `selector` is the root element: it is in the page only while the thing is open
  * (ui/howToPlay.ts watches for it). Pure data, tested.
  */
-import { CARTELA_REWARD, CONVERSA_MAX_PLAYER_MSGS, CONVERSA_RV, ECONOMY, FILM, MISSION_REWARD, RECADO_DAY_BONUS_RV, RECADO_MAX_ACTIVE, RECADOS_PER_DAY } from '@tudobem/shared';
+import { CARTELA_REWARD, ECONOMY, FILM, MISSION_REWARD, RECADO_DAY_BONUS_RV, RECADO_MAX_ACTIVE, RECADOS_PER_DAY } from '@tudobem/shared';
 
 export interface HowToPlay {
   id: string;
@@ -25,22 +25,8 @@ export interface HowToPlay {
   quietIn?: readonly string[];
 }
 
+// (Correria no Balcão has no card: it teaches by doing, one coach mark per new action, ui/correriaPracticeLogic.ts)
 export const HOW_TO_PLAY: readonly HowToPlay[] = [
-  {
-    id: 'correria',
-    selector: '#correria:not(.cr-practice)',
-    pt: 'Correria no Balcão',
-    en: 'Rush at the bakery counter',
-    goal: 'Customers order in Portuguese. Make what they ask for and serve it before they run out of patience.',
-    steps: [
-      'Listen to (or read) the order on the ticket.',
-      'Grab items from the shelves, use the griddle (chapa), the juicer and the coffee machine.',
-      'Pick the coffee options the customer asked for, then serve.',
-      'When they ask “Quanto é?”, choose the right price.',
-    ],
-    desktop: 'Click the counter to grab and make things. Enter serves, C clears the tray, R repeats the order.',
-    phone: 'Tap the counter to grab and make things, then tap Entregar to serve.',
-  },
   {
     id: 'tapioca',
     selector: '#tapioca-root',
@@ -48,13 +34,13 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     en: 'Tapioca stand',
     goal: 'Make tapiocas with the filling each customer asks for. The clock starts after the 3-2-1.',
     steps: [
-      'Hold a pan to sieve the batter onto it. Let go when the white disc reaches the rim.',
-      'Tap to flip it while the ring around the pan is in its green part.',
-      'Add the filling they asked for, then tap to fold it.',
-      'Drag the tapioca to the customer (or tap them).',
+      'Hold a pan to sift goma (tapioca flour) onto it. Let go when the white disc reaches the rim.',
+      'It cooks slowly, so start another pan meanwhile. Tap to flip it when the ring around the pan is green.',
+      'Drag the filling they asked for onto it, then tap to fold it.',
+      'Drag the tapioca to the customer. Botched one? Drag it into the lixeira (bin) to clear the pan.',
     ],
-    desktop: 'Hold the mouse button on a pan to spread. Click to flip and fold. Drag fillings and tapiocas, or click them.',
-    phone: 'Hold a pan to spread. Tap to flip and fold. Drag fillings and tapiocas, or tap them.',
+    desktop: 'Hold the mouse button on a pan to spread. Click to flip and fold. Drag fillings and tapiocas.',
+    phone: 'Hold a pan to spread. Tap to flip and fold. Drag fillings and tapiocas with your finger.',
   },
   {
     id: 'pastel',
@@ -63,13 +49,13 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     en: 'Pastel stand',
     goal: 'Fold, fry and serve pastéis with the fillings customers ask for. The clock starts after the 3-2-1.',
     steps: [
-      'Tap the dough, then the fillings (two for a combo), then the fork to crimp it.',
-      'Drag it into the oil. Watch the bar: pull it out in the green, when it is golden.',
-      'It goes onto the rack. Drag it to the customer (or tap them).',
-      'Left too long it burns and catches fire. Tap the fire to put it out.',
+      'Drag the dough onto the board, then drag the fillings onto it (two for a combo).',
+      'Drag the fork onto it to crimp it, then drag it into the oil.',
+      'Watch the bar. When it is golden (green), drag it out onto the rack, then drag it to the customer.',
+      'Left too long it burns and catches fire. Tap the fire to put it out. Drag anything that went wrong into the bin.',
     ],
-    desktop: 'Click the dough, fillings, fork and oil, or drag them. Drag a pastel from the rack to a customer.',
-    phone: 'Tap the dough, fillings, fork and oil, or drag them. Drag a pastel from the rack to a customer.',
+    desktop: 'Drag everything with the mouse. Click only to put out a fire.',
+    phone: 'Drag everything with your finger. Tap only to put out a fire.',
   },
   {
     id: 'caldo',
@@ -106,7 +92,7 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     selector: '.backdrop[data-modal="escola"]',
     pt: 'Escola',
     en: 'School practice',
-    goal: 'Short lessons with the words from your Diário. Practice keeps them strong.',
+    goal: 'Short lessons with the words from your diary (Diário). Practice keeps them strong.',
     steps: ['Pick an answer, type the word, build the sentence or match the pairs.', 'Check, then go on to the next one.'],
     desktop: 'Click, or press 1-4 to choose. Enter checks and moves on. Esc closes.',
     phone: 'Tap your answer, then Check and Next.',
@@ -126,10 +112,10 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     selector: '#dialogue-box[data-dialogue="feira"]',
     pt: 'Feira',
     en: 'Buying at the market',
-    goal: 'Ask the price, say how much you want, and pay with the right coins and notes.',
-    steps: ['Ask “Quanto custa?” with a chip, or type it.', 'Choose how many.', 'Tap coins and notes into the tray, then Pagar. Check your change!'],
+    goal: 'Ask the price, listen to it in Portuguese, say how much you want, and pay. No math: Pagar hands over the exact price.',
+    steps: ['Ask “Quanto custa?” (how much is it?) with a chip, or type it.', 'Listen to the price in words, then choose how many.', 'Tap Pagar (pay): it pays the exact price.'],
     desktop: 'Click chips or type, number keys pick chips. Esc closes.',
-    phone: 'Tap chips or type, then tap the money and Pagar.',
+    phone: 'Tap chips or type, then tap Pagar.',
   },
   {
     id: 'petshop',
@@ -154,43 +140,43 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     en: 'Ordering at the bakery counter',
     goal: 'Order from the baker in Portuguese. Each reply is what you would say at a real padaria.',
     steps: [
-      'Each chip is an order, like “Me vê um pão na chapa”, with its price in RV.',
-      'Pick one: you pay, and it goes into your bag (Recados → Mochila). Errands sometimes ask you to bring one to a neighbour.',
-      'Conversa opens a short chat with the baker in Portuguese, graded at the end.',
-      'The bakery game, Correria no Balcão, is at the order rail next to the counter.',
+      'Each chip is an order, like “Me vê um pão na chapa”, with its price in reais virtuais (RV), the game’s play money.',
+      'Pick one: you pay, and it goes into your bag (Favores → Mochila). Favors sometimes ask you to bring one to a neighbour.',
+      'Bater papo (have a chat) opens a bate-papo with the baker: a short ready-made chat. It is never graded.',
+      'The bakery game, Correria no Balcão, starts at the display case (vitrine) next to the counter.',
     ],
     desktop: 'Click a chip or press its number. Esc closes.',
     phone: 'Tap a chip.',
   },
   {
-    id: 'conversa',
+    id: 'papo',
     kind: 'place',
-    selector: '#dialogue-box[data-dialogue="conversa"]',
-    pt: 'Conversa',
-    en: 'A real chat in Portuguese',
-    goal: 'A short chat with the baker. Write in Portuguese; at the end you get a friendly grade.',
+    selector: '#dialogue-box[data-dialogue^="papo-"]',
+    pt: 'Bate-papo',
+    en: 'A chat with a neighbour',
+    goal: 'A short ready-made chat in Portuguese. There is no grade and no wrong answer: pick any reply and see where it goes.',
     steps: [
-      'The Goal line under the name says what to talk about.',
-      'Type your answer in Portuguese, or tap a suggested reply. Short and simple is fine.',
-      `You have up to ${CONVERSA_MAX_PLAYER_MSGS} messages. Then the bill (A conta) shows your grade.`,
-      `A good grade pays up to ${CONVERSA_RV.pass} RV. One Conversa per neighbour per day. Only you see it.`,
+      'Start one with Bater papo (have a chat) at the padaria counter, or “Vamos bater um papo?” (shall we chat?) when you greet Nanda, Júlia or Professora Bia.',
+      'Read the line (English under it), then tap a reply. Every reply leads on.',
+      'Each neighbour has a few. At 4 ♥ they tell you their own story.',
+      'Finishing one is a talk: it grows the friendship ♥, and in the Praça it gives the cartela’s Bate-papo stamp.',
     ],
-    desktop: 'Type and press Enter, or click a reply.',
-    phone: 'Type and tap Enviar, or tap a reply.',
+    desktop: 'Click a reply or press its number. Esc closes.',
+    phone: 'Tap a reply.',
   },
   {
     id: 'recados',
     kind: 'place',
     selector: '.backdrop[data-modal="recados"]',
-    pt: 'Recados',
-    en: 'Errands, your bag and your friends',
-    goal: 'Neighbours ask you for small favours (recados). Doing them pays RV and makes friends.',
+    pt: 'Favores',
+    en: 'Favors, your bag and your friends',
+    goal: 'Neighbours ask you for small favors (favores). Doing them pays reais virtuais (RV), the game’s play money, and makes friends.',
     steps: [
-      'A gold ! over a neighbour: they have an errand for you. Talk to them (Pode deixar! = yes), or press Aceitar here.',
-      `Carry up to ${RECADO_MAX_ACTIVE}. The Recados list at the top shows the next step and where (📍); a green ? marks who the step is with.`,
+      'A gold ! over a neighbour: they have a favor to ask. Talk to them (Pode deixar! = you got it / leave it to me), or press Aceitar here.',
+      `Carry up to ${RECADO_MAX_ACTIVE}. The Favores list at the top shows the next step and where (📍); a green ? marks who the step is with.`,
       'Steps: talk to someone, read a sign, buy something and hand it over.',
-      `${RECADOS_PER_DAY} errands in one day: Vizinho do dia, +${RECADO_DAY_BONUS_RV} RV.`,
-      'Hearts ♥ grow when you talk and help. At 2 ♥ they use your name, at 4 ♥ there is a new Conversa topic, at 6 ♥ a gift for your kitnet.',
+      `${RECADOS_PER_DAY} favors in one day: Vizinho do dia (neighbour of the day), +${RECADO_DAY_BONUS_RV} RV.`,
+      'Hearts ♥ grow when you talk and help. At 2 ♥ they use your name, at 4 ♥ they tell you their own story (a bate-papo), at 6 ♥ a gift for your kitnet.',
       `Bem-vindo à Vila Ipê is Júlia’s welcome list. Finish its 8 steps for a ${ECONOMY.tutorialBonus} RV bonus.`,
     ],
   },
@@ -216,9 +202,9 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     en: 'Neighbourhood stamp card',
     goal: `Do different things around the Vila to collect stamps. Seven stamps fill the card and pay ${CARTELA_REWARD} RV.`,
     steps: [
-      'Each activity gives one stamp a day: a jiu-jitsu roll at the Academia, a shift of Correria no Balcão at the Padaria, a visit to the Feira, and a Conversa in the Praça.',
+      'Each activity gives one stamp a day: a jiu-jitsu roll at the Academia, a shift of Correria no Balcão at the Padaria, a visit to the Feira (street market), and a bate-papo (chat) in the Praça (square).',
       'So you can earn up to 4 stamps a day (Hoje means today). The day changes at midnight, New York time.',
-      'The Conversa stamp only counts a Conversa held in the Praça: Seu Carlos sits on a bench there in the late evening (from 22:00 on the game clock).',
+      'The Bate-papo stamp counts a bate-papo finished in the Praça: with Nanda or Júlia, or Seu Carlos on his bench in the late evening (from 22:00 on the game clock).',
       'A full card pays out and a fresh card starts. Nothing is lost if you skip a day.',
     ],
   },
@@ -242,12 +228,12 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     quietIn: ['aeroporto'],
     pt: 'Câmera',
     en: 'Camera',
-    goal: 'Photograph things to collect their words for your Diário.',
+    goal: 'Photograph things to collect their words for your diary (Diário).',
     steps: [
       'Aim at something and click: that is the photo. The camera closes after each photo.',
-      'Each new thing inside the frame becomes a new word in your Diário.',
+      'Each new thing inside the frame becomes a new word in your diary.',
       'Each photo uses one film (filme). How many you have left is on the banner. Photos at the airport are free.',
-      `Out of film? Buy a roll of ${FILM.pack} from Júlia in the Praça for ${FILM.price} RV.`,
+      `Out of film? Buy a roll of ${FILM.pack} from Júlia in the Praça (the square) for ${FILM.price} RV.`,
     ],
     desktop: 'Move the mouse to aim, click to take the photo. Click Câmera again to put it away.',
     phone: 'Tap the thing you want to photograph.',
@@ -290,7 +276,7 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
       'There is one cart game each day (tapioca, pastel or caldo de cana). Play it at the cart next to this board.',
       'The top 3 for today are shown live.',
       'At midnight (New York time), 1st, 2nd and 3rd place each win a gold, silver or bronze medal to keep.',
-      'Your medals are on the first page of your Diário.',
+      'Your medals are on the first page of your diary (Diário).',
     ],
   },
 ];

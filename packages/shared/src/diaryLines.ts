@@ -4,7 +4,7 @@
  *   `<npc>.idle<N>`   the Nth line from the NPC's own list (rooms.ts idleLines), said to the player who chose to talk to them
  *   `<npc>.greet`     a feira vendor's opening line at the stall (feira.ts)
  *   `<npc>.closed`    the same vendor's line when the stall is shut
- *   `carlos.viagem`   the counter line when an order goes to-go (conversa.ts)
+ *   `carlos.viagem`   the baker's to-go line (Seu Carlos' "Café ou suco?" bate-papo, papos.ts)
  *   `julia.chegada_*` the arrival card, Júlia speaking
  * The server checks the player is next to the speaker. Lines said to nobody in particular (the ambient bubbles) teach nothing.
  */
@@ -22,7 +22,7 @@ export interface DiaryLine {
   pt: string;
 }
 
-/** The to-go answer at the counter. conversa.ts holds the same string (a test keeps them equal). */
+/** The baker's to-go answer. A bate-papo node says it under this anchor (papos.ts reads it from here). */
 export const COUNTER_LINES: Record<string, string> = {
   'carlos.viagem': 'Pra viagem, então. Tá na mão. Volte sempre!',
 };

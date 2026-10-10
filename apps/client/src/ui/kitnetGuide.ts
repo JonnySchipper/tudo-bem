@@ -243,8 +243,8 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
       h(
         'div',
         { class: 'kg-broke' },
-        h('span', { lang: 'pt-BR' }, `Você tem ${p.coins} RV e o mais barato custa ${c.price}. Ganhe RV com os recados!`),
-        en(`You have ${p.coins} RV and the cheapest piece costs ${c.price}. Earn RV doing errands (Recados)!`),
+        h('span', { lang: 'pt-BR' }, `Você tem ${p.coins} RV e o mais barato custa ${c.price}. Ganhe RV com os favores!`),
+        en(`You have ${p.coins} RV and the cheapest piece costs ${c.price}. Earn RV doing favors (Favores)!`),
       ),
     ];
   }

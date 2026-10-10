@@ -88,7 +88,7 @@ describe('in-memory pruning', () => {
 
 describe('boot integrations line', () => {
   it('says on/off only', () => {
-    const line = formatIntegrations({ ai: true, googleAuth: false, billing: false, admin: true, githubToken: true });
-    expect(line).toBe('[boot] integrations ai=on google_auth=off billing=off admin=on github_token=on');
+    const line = formatIntegrations({ googleAuth: false, billing: false, admin: true, githubToken: true });
+    expect(line).toBe('[boot] integrations google_auth=off billing=off admin=on github_token=on');
   });
 });

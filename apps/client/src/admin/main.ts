@@ -856,7 +856,7 @@ async function viewWorld(): Promise<Node[]> {
     ),
     card(
       'Rooms and layouts',
-      h('p', { class: 'small muted' }, 'Design mode opens in the game: it asks for the admin password there too. A saved layout is an override in the database; reset puts the room back to the layout in the code for everyone.'),
+      h('p', { class: 'small muted' }, 'Design mode is the level editor, in the game, signed in with this same admin session. Drafts are private; a publish is an override in the database (audited, revertable); reset puts the room back to the layout in the code for everyone.'),
       table(
         ['Room', 'Layout', ''],
         (d.rooms as Json[]).map((r) => [

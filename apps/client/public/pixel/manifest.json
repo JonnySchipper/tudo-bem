@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 1024,
-   "h": 1984,
-   "frames": 1181
+   "h": 2048,
+   "frames": 1196
   },
   "bjj": {
    "image": "atlas/bjj.png",
@@ -2800,7 +2800,22 @@
      "aero/esteira/11",
      "aero/esteira/12",
      "aero/esteira/13",
-     "aero/esteira/14"
+     "aero/esteira/14",
+     "aero/esteira/15",
+     "aero/esteira/16",
+     "aero/esteira/17",
+     "aero/esteira/18",
+     "aero/esteira/19",
+     "aero/esteira/20",
+     "aero/esteira/21",
+     "aero/esteira/22",
+     "aero/esteira/23",
+     "aero/esteira/24",
+     "aero/esteira/25",
+     "aero/esteira/26",
+     "aero/esteira/27",
+     "aero/esteira/28",
+     "aero/esteira/29"
     ],
     "fps": 6
    },

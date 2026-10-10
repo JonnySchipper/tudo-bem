@@ -51,7 +51,7 @@ describe('Caderno de palavras on the server', () => {
     const a = await client(makeWorld());
     expect(a.s.profile!.caderno).toEqual({});
     expect(a.s.profile!.cadernoPaid).toEqual([]);
-    expect(a.s.profile!.npcMemory).toEqual({});
+    expect(a.s.profile!.papos).toEqual([]);
   });
 
   it('seen: the Carlos scene view marks the cards in his line, and each new line as it arrives', async () => {
@@ -250,8 +250,8 @@ describe('Caderno de palavras on the server', () => {
     const world = makeWorld(new ProfileStore(adapter));
 
     const expected: Record<string, unknown>[] = [
-      { caderno: {}, cadernoPaid: [], npcMemory: {} },
-      { caderno: { 'lex.padaria.pao': { seen: 3, heard: 0, used: 0, firstAt: 0 } }, cadernoPaid: ['padaria'], npcMemory: { carlos: 'Pediu um pão.' } },
+      { caderno: {}, cadernoPaid: [], papos: [] },
+      { caderno: { 'lex.padaria.pao': { seen: 3, heard: 0, used: 0, firstAt: 0 } }, cadernoPaid: ['padaria'], papos: [] },
     ];
     for (const [i, token] of ['tok-cad-old', 'tok-cad-messy'].entries()) {
       const inbox: ServerMsg[] = [];
@@ -260,6 +260,8 @@ describe('Caderno de palavras on the server', () => {
       const welcome = inbox.find((m) => m.t === 'welcome') as Extract<ServerMsg, { t: 'welcome' }>;
       expect(welcome.profile.coins).toBe(42);
       expect(welcome.profile).toMatchObject(expected[i]!);
+      // the old Conversa memory (removed in #229) is dropped on load
+      expect('npcMemory' in welcome.profile).toBe(false);
       // it still plays: a heard message works on the defaulted profile
       await world.handle(s, { t: 'join', room: 'praca' });
       await world.handle(s, { t: 'heard', cardIds: ['lex.padaria.bolo'] });

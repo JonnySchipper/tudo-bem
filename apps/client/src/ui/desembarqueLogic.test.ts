@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DESEMBARQUE_EXIT, DESEMBARQUE_HOST, HOTSPOTS, ROOMS, buildGrid, isWalkable, snacksAt, wordForLine, wordForSign } from '@tudobem/shared';
-import { DESEMB_STEPS, RV_EXPLAINER, desembDone, drankWater, firstRoom, nextDesembStep } from './desembarqueLogic';
+import { DESEMB_STEPS, RV_EXPLAINER, desembDone, desembGateHint, desembLeft, drankWater, firstRoom, nextDesembStep } from './desembarqueLogic';
 
 const room = ROOMS.desembarque;
 
@@ -88,5 +88,17 @@ describe('the guided tutorial', () => {
     expect(text).toContain('earn');
     expect(text).toContain('never bought');
     expect(text).not.toMatch(/\bbuy rv\b|purchase|\$\d/);
+  });
+
+  it('keeps the doors to the airport shut until every step before them is done, with a short PT + EN hint naming what is left', () => {
+    const none = desembGateHint(new Set());
+    expect(none?.pt).toBe(`Calma! Faltam ${DESEMB_STEPS.length - 1} passos antes do aeroporto.`);
+    expect(none?.en).toContain('Next: walk around.');
+    const allButMap = new Set(DESEMB_STEPS.filter((s) => s.id !== 'mapa' && s.id !== 'porta').map((s) => s.id));
+    expect(desembLeft(allButMap).map((s) => s.id)).toEqual(['mapa']);
+    expect(desembGateHint(allButMap)).toEqual({ pt: 'Quase lá! Só falta um passo: o mapa.', en: 'Almost there! One step left before the airport: open the map.' });
+    // the door itself is not something to do before the door
+    expect(desembGateHint(new Set(DESEMB_STEPS.filter((s) => s.id !== 'porta').map((s) => s.id)))).toBeNull();
+    for (const h of [none!, desembGateHint(allButMap)!]) expect(h.pt.length + h.en.length).toBeLessThan(160);
   });
 });

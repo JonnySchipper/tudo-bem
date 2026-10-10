@@ -42,7 +42,7 @@ describe('wayfinding: every room says where its doors go', () => {
 describe('how to play', () => {
   it('covers every minigame, with a goal, steps and controls for a computer and a phone', () => {
     const games = HOW_TO_PLAY.filter((g) => (g.kind ?? 'game') === 'game');
-    expect(games.map((g) => g.id)).toEqual(['correria', 'tapioca', 'pastel', 'caldo', 'bout', 'escola', 'damas', 'feira']);
+    expect(games.map((g) => g.id)).toEqual(['tapioca', 'pastel', 'caldo', 'bout', 'escola', 'damas', 'feira']);
     for (const g of games) {
       expect(g.selector.length, g.id).toBeGreaterThan(3);
       expect(g.goal.length, g.id).toBeGreaterThan(10);
@@ -54,7 +54,7 @@ describe('how to play', () => {
 
   it('explains every panel and activity a new player meets without a guided tutorial', () => {
     const places = HOW_TO_PLAY.filter((g) => g.kind === 'place');
-    expect(places.map((g) => g.id)).toEqual(['petshop', 'balcao','conversa', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira']);
+    expect(places.map((g) => g.id)).toEqual(['petshop', 'balcao', 'papo', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira']);
     for (const g of places) {
       expect(g.selector.length, g.id).toBeGreaterThan(3);
       expect(g.goal.length, g.id).toBeGreaterThan(10);
@@ -65,8 +65,9 @@ describe('how to play', () => {
     expect(new Set(HOW_TO_PLAY.map((g) => g.id)).size).toBe(HOW_TO_PLAY.length);
   });
 
-  it('keeps the first-time card off the bakery practice order (it has its own coach)', () => {
-    expect(HOW_TO_PLAY.find((g) => g.id === 'correria')!.selector).toContain(':not(.cr-practice)');
+  it('has no card for the bakery game: it teaches by doing (one coach mark per new action), and no card mentions "Quanto é?" there', () => {
+    expect(HOW_TO_PLAY.find((g) => g.id === 'correria')).toBeUndefined();
+    expect(HOW_TO_PLAY.find((g) => g.id === 'balcao')!.steps.join(' ')).toMatch(/vitrine/);
   });
 
   it('never makes the jiu-jitsu roll a quiz', () => {

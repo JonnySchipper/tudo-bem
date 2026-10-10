@@ -1440,3 +1440,10 @@ html {
   margin: 16px 0 0;
   font-size: 0.9em;
 }
+
+/* "Preços em reais virtuais (RV)": the one line a shop shows above its first price */
+.rv-price-note {
+  margin: 2px 0 8px;
+  font-size: 0.85em;
+  opacity: 0.85;
+}

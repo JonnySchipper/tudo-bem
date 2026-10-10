@@ -1,15 +1,15 @@
 /**
- * Pure view-model of the "Correria no Balcão" overlay (no DOM, no Phaser): what the order mirror, the tray chips, the HUD, the "Quanto é?"
- * card and the end card say, and which sounds and cues a server event causes. `ui/correria.ts` only draws what these return.
+ * Pure view-model of the "Correria no Balcão" overlay (no DOM, no Phaser): what the order line, the tray chips, the HUD and the end card
+ * say, and which sounds and cues a server event causes. `ui/correria.ts` only draws what these return.
  */
 import {
+  EXTRA_QUENTE,
+  HOT_MOD,
   LEVELS,
   UNLOCKS,
   mgItemById,
-  mgModById,
+  modWords,
   moneyLabel,
-  moneyPt,
-  numberPt,
   replayPatiencePips,
   type Bilingual,
   type CEvent,
@@ -23,7 +23,7 @@ import type { CorreriaSfx } from '../audio/correriaSfx';
 /** English glosses are locked on at Verde, otherwise the learner's own preference. */
 export const glossOn = (level: number, pref: boolean): boolean => !!LEVELS[Math.min(LEVELS.length - 1, Math.max(0, level))]?.glossLocked || pref;
 
-export const frontOf = (snap: CorreriaSnap): CustomerView | undefined => snap.customers.find((c) => c.state === 'front' || c.state === 'asking');
+export const frontOf = (snap: CorreriaSnap): CustomerView | undefined => snap.customers.find((c) => c.state === 'front');
 
 export interface TrayChip {
   id: string;
@@ -46,12 +46,12 @@ export function trayChips(tray: readonly string[]): TrayChip[] {
   return out;
 }
 
-/** The mods on the tray: the ones tapped (coffee) plus the bag / plate. */
+/** The mods on the tray: an extra-hot pour (🔥 extra quente) plus the bag / plate. */
 export function modChips(snap: Pick<CorreriaSnap, 'mods' | 'pack'>): Bilingual[] {
   const ids = [...snap.mods, ...(snap.pack === 'bag' ? ['pra_viagem'] : snap.pack === 'plate' ? ['pra_comer_aqui'] : [])];
   return ids.flatMap((id) => {
-    const m = mgModById(id);
-    return m ? [{ pt: m.pt, en: m.en }] : [];
+    const m = modWords(id);
+    return m ? [{ pt: id === HOT_MOD ? `🔥 ${m.pt}` : m.pt, en: m.en }] : [];
   });
 }
 
@@ -66,6 +66,8 @@ export interface OrderMirror {
   canReplay: boolean;
   /** Next replay patience cost in pips, or 0 when further taps are ignored. */
   replayPips: number;
+  /** The coffee is wanted extra quente: a 🔥 tag on the ticket (written orders only; a listening order keeps it in the voice). */
+  hot: Bilingual | null;
 }
 
 export function orderMirror(c: CustomerView | undefined, level: number): OrderMirror | null {
@@ -82,6 +84,7 @@ export function orderMirror(c: CustomerView | undefined, level: number): OrderMi
     follow: c.follow,
     canReplay: c.mode === 'listening' && c.state === 'front',
     replayPips: nextPips ?? 0,
+    hot: c.hot && !hidden ? { pt: `🔥 ${EXTRA_QUENTE.pt}`, en: EXTRA_QUENTE.en } : null,
   };
 }
 
@@ -114,27 +117,6 @@ export function hud(snap: CorreriaSnap): Hud {
   };
 }
 
-export interface AskCard {
-  title: Bilingual;
-  items: { pt: string; qty: number; price: string }[];
-  type: 'choice' | 'type';
-  options: { value: number; pt: string; label: string }[];
-  /** seconds left */
-  secs: number;
-}
-
-export function askCard(c: CustomerView, ageMs: number): AskCard | null {
-  const a = c.ask;
-  if (!a) return null;
-  return {
-    title: { pt: 'Quanto é?', en: 'How much is it?' },
-    items: a.items.map((i) => ({ pt: mgItemById(i.itemId)?.card.form ?? i.itemId, qty: i.qty, price: moneyLabel(i.price * 100) })),
-    type: a.type,
-    options: a.options.map((n) => ({ value: n, pt: moneyPt(n * 100), label: moneyLabel(n * 100) })),
-    secs: Math.max(0, Math.ceil((a.ms - ageMs) / 1000)),
-  };
-}
-
 /** The sound and the one-line toast a server event causes. */
 export function cueFor(e: CEvent): { sfx?: CorreriaSfx; toast?: Bilingual & { tone: 'good' | 'bad' | 'info' } } {
   switch (e.k) {
@@ -153,7 +135,7 @@ export function cueFor(e: CEvent): { sfx?: CorreriaSfx; toast?: Bilingual & { to
     case 'pour_start':
       return { sfx: 'glug' };
     case 'pour_ok':
-      return { sfx: 'ready' };
+      return e.hot ? { sfx: 'ready', toast: { pt: `🔥 Café ${EXTRA_QUENTE.pt}!`, en: 'Extra-hot coffee!', tone: 'good' } } : { sfx: 'ready' };
     case 'pour_bad':
       return { sfx: 'nope', toast: e.why === 'short' ? { pt: 'Faltou café!', en: 'Not enough coffee!', tone: 'info' } : { pt: 'Derramou!', en: 'Spilled!', tone: 'bad' } };
     case 'juice_drop':
@@ -179,10 +161,6 @@ export function cueFor(e: CEvent): { sfx?: CorreriaSfx; toast?: Bilingual & { to
       return { sfx: 'sigh', toast: { ...e.line, tone: 'info' } };
     case 'leave':
       return { sfx: 'nope', toast: { ...e.line, tone: 'bad' } };
-    case 'ask_result':
-      return { sfx: e.ok ? 'cash' : 'nope', toast: { ...e.line, tone: e.ok ? 'good' : 'info' } };
-    case 'ask':
-      return { sfx: 'tick' as CorreriaSfx };
     case 'arrive':
       return { sfx: 'chime' };
     case 'wave':
@@ -212,7 +190,6 @@ export function endModel(end: CorreriaEnd, carlos: Bilingual): EndModel {
     { label: { pt: 'Melhor combo', en: 'Best combo' }, value: `x${end.bestCombo}` },
     { label: { pt: 'Gorjetas', en: 'Tips' }, value: moneyLabel(end.tips * 100) },
   ];
-  if (end.askTotal) rows.push({ label: { pt: '“Quanto é?” certos', en: '“How much?” right' }, value: `${end.askRight}/${end.askTotal}` });
   return {
     big: end.coins > 0 ? `+${end.coins} RV` : '0 RV',
     stars: '★'.repeat(end.stars) + '☆'.repeat(3 - end.stars),
@@ -271,6 +248,3 @@ export function ladderEnd(l: MenuLadderView | undefined): { fresh: Bilingual | n
 
 /** What the baker says, spoken, for a cheer event. */
 export const cheerLine = (e: Extract<CEvent, { k: 'cheer' }>): Bilingual => e.line;
-
-/** "doze reais" for the spoken total. */
-export const sayTotal = (n: number): string => `${numberPt(n)} reais`;

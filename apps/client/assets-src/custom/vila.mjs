@@ -241,7 +241,7 @@ function pontoOnibus() {
   return img;
 }
 
-// ------------------------------------------------------------------ "FEIRA LIVRE" banner over the feira lot (5x1 tiles, 80 x 30)
+// ------------------------------------------------------------------ "FEIRA DE RUA" banner over the feira lot (5x1 tiles, 80 x 30)
 function emBreve() {
   const w = 80, h = 30;
   const img = blank(w, h);
@@ -264,7 +264,7 @@ function emBreve() {
   }
   rect(img, 5, 6, w - 10, 1, K.brandMustard);
   rect(img, 5, 15, w - 10, 1, K.brandMustard);
-  drawText5(img, Math.floor((w - width5('FEIRA LIVRE')) / 2), 8, 'FEIRA LIVRE', K.brandCream, { shadow: K.te5 });
+  drawText5(img, Math.floor((w - width5('FEIRA DE RUA')) / 2), 8, 'FEIRA DE RUA', K.brandCream, { shadow: K.te5 });
   outlineAround(img);
   return img;
 }

@@ -1,68 +1,83 @@
 import { describe, expect, it } from 'vitest';
-import { JUICE, practiceShift, shiftAct, shiftAdvance, shiftSnapshot, POUR, type CAct, type CEvent } from '@tudobem/shared';
-import { PRACTICE_STEPS, practiceAfter, practiceAllows, practiceNeeded, practicePaid, practiceRetry, practiceTargets, type PracticeStepId } from './correriaPracticeLogic';
+import { POUR, practiceShift, shiftAct, shiftAdvance, shiftSnapshot, type CEvent } from '@tudobem/shared';
+import { COACH_KEY, coachDone, coachMark, practiceNeeded, readCoach } from './correriaPracticeLogic';
 
-describe('the first-time practice order', () => {
-  it('six steps in teaching order: read, coffee, pão francês, juicer, serve, paid', () => {
-    expect(PRACTICE_STEPS.map((s) => s.id)).toEqual(['read', 'cafe', 'pao', 'suco', 'serve', 'paid']);
-    for (const s of PRACTICE_STEPS.filter((x) => x.id !== 'paid')) expect(s.body.pt && s.body.en).toBeTruthy();
+/** Play the practice order (a coffee and a pão francês) with the coach marks, the way a brand-new player would: tap what the mark points at. */
+function playThrough() {
+  const sh = practiceShift(7);
+  const seen = new Set<string>();
+  const marks: string[] = [];
+  const learn = (ev: CEvent[]) => ev.forEach((e) => coachDone(e).forEach((k) => seen.add(k)));
+  const now = () => coachMark(shiftSnapshot(sh), seen, false);
+  for (let step = 0; step < 10; step++) {
+    const m = now();
+    if (!m) break;
+    marks.push(`${m.key}@${m.target}`);
+    if (m.target === 'cr-machine') {
+      learn(shiftAct(sh, { a: 'pour_start', item: 'cafe' }));
+      // during the pour: the green hint
+      const during = coachMark(shiftSnapshot(sh), seen, true);
+      marks.push(`${during?.key}@${during?.target}`);
+      shiftAdvance(sh, POUR.fullMs * 0.85);
+      learn(shiftAct(sh, { a: 'pour_end' }));
+    } else if (m.target.startsWith('cr-item-')) learn(shiftAct(sh, { a: 'grab', item: m.target.slice(8) }));
+    else if (m.target === 'cr-serve') learn(shiftAct(sh, { a: 'serve' }));
+  }
+  return { sh, seen, marks };
+}
+
+describe('the coach marks (teach by doing)', () => {
+  it('a brand-new player gets one short hint per new action, in order, and the practice ends served', () => {
+    const { sh, seen, marks } = playThrough();
+    expect(marks).toEqual(['cafe@cr-machine', 'agora@cr-machine', 'item:pao@cr-item-pao', 'serve@cr-serve']);
+    expect(sh.stats.served).toBe(1);
+    expect(sh.stats.perfect).toBe(1);
+    expect([...seen].sort()).toEqual(['agora', 'cafe', 'item:pao', 'serve']);
   });
 
-  it('each step lets only its own taps through', () => {
-    const acts: CAct[] = [{ a: 'grab', item: 'pao' }, { a: 'pour_start', item: 'cafe' }, { a: 'pour_end' }, { a: 'juice_drop' }, { a: 'juice_take' }, { a: 'serve' }, { a: 'clear' }];
-    const ok = (step: PracticeStepId) => acts.filter((a) => practiceAllows(step, a)).map((a) => a.a);
-    expect(ok('read')).toEqual([]);
-    expect(ok('cafe')).toEqual(['pour_start', 'pour_end']);
-    expect(ok('pao')).toEqual(['grab']);
-    expect(ok('suco')).toEqual(['juice_drop', 'juice_take']);
-    expect(ok('serve')).toEqual(['serve']);
-    expect(ok('paid')).toEqual([]);
-    expect(practiceAllows('pao', { a: 'grab', item: 'agua' })).toBe(false);
+  it('every hint is short (one line on a phone)', () => {
+    const { marks } = playThrough();
+    expect(marks.length).toBeGreaterThan(0);
+    const sh = practiceShift(3);
+    const m = coachMark(shiftSnapshot(sh), new Set(), false)!;
+    expect(m.pt.split(/\s+/).length).toBeLessThanOrEqual(8);
   });
 
-  it('walks the whole practice shift through the real rules and never loses the customer', () => {
-    const sh = practiceShift(150);
-    let step: PracticeStepId = 'cafe';
-    const run = (a: CAct): CEvent[] => {
-      expect(practiceAllows(step, a)).toBe(true);
-      const ev = shiftAct(sh, a);
-      step = practiceAfter(step, ev);
-      return ev;
-    };
-    // a pour stopped too early is a retry, not a step forward
-    run({ a: 'pour_start', item: 'cafe' });
-    shiftAdvance(sh, 300);
-    expect(practiceRetry(run({ a: 'pour_end' }))?.en).toMatch(/early/);
-    expect(step).toBe('cafe');
-    run({ a: 'pour_start', item: 'cafe' });
-    shiftAdvance(sh, POUR.fullMs * 0.85);
-    run({ a: 'pour_end' });
-    expect(step).toBe('pao');
-    run({ a: 'grab', item: 'pao' });
-    expect(step).toBe('suco');
-    expect(practiceTargets(step, shiftSnapshot(sh))).toEqual(['cr-juicer']);
-    while ((sh.juice?.fill ?? 0) < JUICE.goodMin) {
-      run({ a: 'juice_drop' });
-      shiftAdvance(sh, JUICE.cycleMs);
-    }
-    expect(practiceTargets(step, shiftSnapshot(sh))).toEqual(['cr-juice-glass']);
-    run({ a: 'juice_take' });
-    expect(step).toBe('serve');
-    const ev = run({ a: 'serve' });
-    expect(step).toBe('paid');
-    const served = ev.find((e) => e.k === 'serve');
-    expect(served && served.k === 'serve' && served.outcome).toBe('perfeito');
-    expect(sh.stats.left).toBe(0);
+  it('once learnt, a hint never comes back (the next customer gets none for the same actions)', () => {
+    const sh = practiceShift(9);
+    const seen = new Set(['cafe', 'agora', 'item:pao', 'serve']);
+    expect(coachMark(shiftSnapshot(sh), seen, false)).toBeNull();
+    expect(coachMark(shiftSnapshot(sh), seen, true)).toBeNull();
   });
 
-  it('the pay line names the order total and says practice pays no RV', () => {
-    const line = practicePaid(2, 17);
-    expect(line.pt).toContain('R$');
-    expect(line.en).toMatch(/\+17 points/);
-    expect(line.en).toMatch(/no RV/);
+  it('an extra-quente order points at the red, at the machine, until a hot pour lands', () => {
+    const snap = shiftSnapshot(practiceShift(5));
+    const f = snap.customers[0]!;
+    f.hot = true;
+    f.want = { items: ['cafe'], mods: ['bem_quente'] };
+    const seen = new Set(['cafe', 'agora']);
+    expect(coachMark(snap, seen, false)).toMatchObject({ key: 'hot', target: 'cr-machine' });
+    expect(coachMark(snap, seen, true)?.pt).toMatch(/vermelho/);
+    expect(coachDone({ k: 'pour_ok', item: 'cafe', fill: 1.2, hot: true })).toContain('hot');
+    expect(coachDone({ k: 'pour_ok', item: 'cafe', fill: 0.9, hot: false })).not.toContain('hot');
   });
 
-  it('shows once: not after it was done or skipped, nor for a player who already played a shift', () => {
+  it('a listening order first points at the replay button', () => {
+    const snap = shiftSnapshot(practiceShift(5));
+    snap.customers[0]!.mode = 'listening';
+    snap.customers[0]!.want = null;
+    expect(coachMark(snap, new Set(), false)).toMatchObject({ key: 'listen', target: 'cr-replay' });
+  });
+
+  it('the learnt list survives a bad save', () => {
+    expect(COACH_KEY).toMatch(/^tb_cr_coach/);
+    expect([...readCoach('["cafe","serve"]')]).toEqual(['cafe', 'serve']);
+    expect(readCoach('nope').size).toBe(0);
+    expect(readCoach(null).size).toBe(0);
+    expect(readCoach('{"a":1}').size).toBe(0);
+  });
+
+  it('the practice opens once: before the first shift, never after one', () => {
     expect(practiceNeeded(null, false)).toBe(true);
     expect(practiceNeeded('1', false)).toBe(false);
     expect(practiceNeeded(null, true)).toBe(false);

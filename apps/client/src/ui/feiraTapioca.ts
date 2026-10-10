@@ -5,15 +5,17 @@
  * ones the server will score; this view only reports each order's quality and time.
  *
  * Behind the cart: a steel chapa with up to three tapioqueiras (one to start, a second after 3 serves, a third
- * after 6), the goma tub on the left and four filling bowls on the right.
+ * after 6), the goma tub and the lixeira on the left and four filling bowls on the right.
  *
- *   1. Hold a pan: the sieve shakes goma onto it and the white disc grows. Let go when it reaches the rim
- *      (short leaves holes, too long runs over the edge).
- *   2. It sets: wet, then white, then the edges go lacy and gold. Tap to flip inside the ring's green arc
- *      (early tears it, late sticks).
- *   3. Drag a filling onto it (or tap a bowl), tap to fold it, then drag it to the customer (or tap them).
+ *   1. Hold a pan: the sieve shakes goma (tapioca flour) onto it and the white disc grows. Let go when it reaches
+ *      the rim (short leaves holes, too long runs over the edge).
+ *   2. It sets slowly: wet, then white, then the edges go lacy and gold. Start another pan meanwhile. Tap to flip
+ *      inside the ring's green arc (early tears it, late sticks).
+ *   3. Drag a filling onto it, tap to fold it, then drag it to the customer. Nothing jumps there on a tap.
+ *   4. Botched one? Drag it from the pan into the lixeira to clear the pan.
  *
- * A bad spread or flip only caps that order at soft. Nothing ends the run early.
+ * A bad spread or flip only caps that order at soft. Nothing ends the run early. The keyboard keeps a shortcut
+ * for every drag (Enter on a bowl picks it, Enter on a pan or a customer uses it).
  *
  * needs_br: true (order lines, pops, labels, end card).
  */
@@ -65,8 +67,12 @@ export interface TapiocaHooks {
 
 /** needs_br: true */
 const HINT = {
-  hold: { pt: 'Segura pra espalhar a goma.', en: 'Hold to spread the batter.' },
+  hold: { pt: 'Segura pra espalhar a goma.', en: 'Hold to sift the goma (tapioca flour).' },
   pick: { pt: 'Escolhe o recheio.', en: 'Pick a filling.' },
+  drag: { pt: 'Arrasta o recheio até a tapioca.', en: 'Drag the filling onto the tapioca.' },
+  serve: { pt: 'Arrasta a tapioca até o freguês.', en: 'Drag the tapioca to the customer.' },
+  bin: { pt: 'Arrasta uma tapioca pra lixeira.', en: 'Drag a tapioca into the bin.' },
+  trash: { pt: 'Pro lixo. Panela limpa!', en: 'Into the bin. Clean pan!' },
   none: { pt: 'Nenhuma tapioca pronta.', en: 'No tapioca is ready.' },
   locked: { pt: 'Essa panela abre depois.', en: 'This pan opens later.' },
 };
@@ -206,6 +212,36 @@ function carrySprite(f: TapiocaFilling, flip: FlipVerdict = 'perfect'): HTMLCanv
   });
 }
 
+/** An unfolded disc of goma lifted off the pan (what you drag to the lixeira when it went wrong). */
+function discSprite(r: number, burnt: boolean): HTMLCanvasElement {
+  const d = r * 2;
+  return paint(`tp-disc-${r}-${burnt}`, d, d, (x, y) => {
+    if (!inDisc(x, y, r, r, r)) return null;
+    if (!inDisc(x, y, r, r, r - 1.4)) return burnt ? '#6b4c2c' : '#e2b340';
+    if (burnt && (x * 3 + y * 5) % 7 === 0) return '#8a5a2c';
+    return (x * 7 + y * 13) % 17 === 0 ? '#f0d090' : '#fffdf8';
+  });
+}
+
+/** The lixeira: a red pedal bin with a lid, for a botched tapioca. */
+function binSprite(open: boolean): HTMLCanvasElement {
+  return paint(`tp-bin-${open}`, 20, 24, (x, y) => {
+    // the lid: flat on the can, or tipped up while something is held over it
+    if (open ? y <= 3 && x >= 2 + y && x <= 9 + y : y >= 3 && y <= 5) {
+      if (!open && (x < 1 || x > 18)) return null;
+      return y === (open ? 0 : 3) ? '#f07a6a' : C.redLo;
+    }
+    if (!open && y === 2 && x >= 8 && x <= 11) return C.steelMid;
+    if (y < 6) return null;
+    const inset = Math.floor((y - 6) / 9);
+    if (x < 2 + inset || x > 17 - inset) return null;
+    if (y === 23) return C.steelLo;
+    if (y === 6) return '#7a1a1a';
+    if ((x - inset) % 5 === 0 && y > 8 && y < 21) return C.redLo;
+    return x < 6 ? '#f0605a' : x > 14 - inset ? C.redLo : C.red;
+  });
+}
+
 // ---------------------------------------------------------------- the view
 
 export class TapiocaView {
@@ -217,10 +253,13 @@ export class TapiocaView {
   private r = 19;
   private bowls: { f: TapiocaFilling; x: number; y: number }[] = [];
   private tub = { x: 0, y: 0 };
+  private bin = { x: 0, y: 0 };
   private chapa = { x: 0, y: 0, w: 0, h: 0 };
   private top: HTMLCanvasElement | null = null;
   private topKey = '';
   private steamAt = 0;
+  /** performance.now when the lixeira last took something (the lid claps) */
+  private binAt = 0;
 
   constructor(
     seed: number,
@@ -234,6 +273,7 @@ export class TapiocaView {
       durationMs: TAPIOCA_DURATION_MS,
       palette: { awningA: '#d8432f', awningB: '#fffdf6', plaque: '#c0392b' },
       icons: (o) => [carrySprite(o.filling), bowlSprite(o.filling, true)],
+      dragHint: HINT.serve,
       layout: (L) => this.layout(L),
       update: (dt, t) => this.update(dt, t),
       draw: (g, t, now) => this.draw(g, t, now),
@@ -275,6 +315,8 @@ export class TapiocaView {
       this.tub = { x: 26, y: rowY };
       const bw = (W - 56) / 4;
       this.bowls = TAPIOCA_FILLINGS.map((f, i) => ({ f, x: Math.round(56 + bw * i + bw / 2 - 4), y: rowY + 4 }));
+      // the lixeira sits on the counter under the bowls, away from the pans
+      this.bin = { x: Math.round(W / 2), y: rowY + 50 };
     } else {
       const cw = gap * 3 + 14;
       this.chapa = { x: Math.round(W / 2 - cw / 2), y: work.y + 8, w: cw, h: r * 2 + 30 };
@@ -283,7 +325,9 @@ export class TapiocaView {
         p.x = Math.round(W / 2 + (i - 1) * gap);
         p.y = cy;
       });
-      this.tub = { x: Math.round(this.chapa.x / 2), y: cy - 2 };
+      // the goma tub over the lixeira, left of the chapa
+      this.tub = { x: Math.round(this.chapa.x / 2), y: cy - 16 };
+      this.bin = { x: Math.round(this.chapa.x / 2), y: cy + 24 };
       const right = this.chapa.x + this.chapa.w;
       const colW = (W - right) / 2;
       this.bowls = TAPIOCA_FILLINGS.map((f, i) => ({
@@ -352,18 +396,31 @@ export class TapiocaView {
       return;
     }
     if (p.phase === 'flipped') {
-      if (!this.selected) {
-        this.stage.pop(HINT.pick);
-        return;
-      }
-      this.fill(i, this.selected);
+      // a pointer drags the filling here; the keyboard uses the bowl it picked
+      if (keyboard && this.selected) this.fill(i, this.selected);
+      else this.stage.pop(keyboard ? HINT.pick : HINT.drag);
       return;
     }
     if (p.phase === 'filled') {
       p.phase = 'folded';
       p.animAt = performance.now();
       this.stage.sfx('paper');
+      return;
     }
+    if (p.phase === 'folded' && !keyboard) this.stage.pop(HINT.serve);
+  }
+
+  /** A pan's tapioca went into the lixeira: the pan is clean and empty again. */
+  private trash(i: number): boolean {
+    const p = this.pans[i];
+    if (!p || p.phase === 'empty' || p.phase === 'spreading') return false;
+    Object.assign(p, newPan(), { x: p.x, y: p.y });
+    this.stage.dropLabel(`tp-${i}`);
+    this.stage.pop(HINT.trash);
+    this.stage.sfx('bin');
+    this.binAt = performance.now();
+    this.stage.burst(this.bin.x, this.bin.y - 10, 6, ['#fffdf8', '#e2b340', C.steelMid], { up: 16, spread: 10, life: 0.4 });
+    return true;
   }
 
   private panUp(i: number) {
@@ -410,9 +467,9 @@ export class TapiocaView {
     return true;
   }
 
-  private tapBowl(f: TapiocaFilling) {
+  /** Enter on a bowl: the keyboard's stand-in for picking it up. A pointer drags it instead. */
+  private keyBowl(f: TapiocaFilling) {
     if (this.stage.over) return;
-    // a pan waiting for a filling takes the bowl you tap
     const waiting = this.pans.findIndex((p, i) => i < this.open() && p.phase === 'flipped');
     if (waiting >= 0) {
       this.selected = f;
@@ -501,8 +558,11 @@ export class TapiocaView {
       if (i >= open) this.drawLocked(g, p);
       else this.drawPan(g, p, i, t, now);
     });
-    // goma tub and bowls
+    // goma tub, the lixeira (its lid tips up while you carry a tapioca, and claps when it takes one) and the bowls
     blit(g, tubSprite(), this.tub.x, this.tub.y, true);
+    const carrying = st.drag?.payload.kind === 'tapioca';
+    const clap = now - this.binAt < 160;
+    blit(g, binSprite(carrying || clap), this.bin.x, this.bin.y, true);
     for (const b of this.bowls) {
       const on = this.selected === b.f;
       if (on) {
@@ -578,7 +638,7 @@ export class TapiocaView {
       const k = Math.min(1, since / 180);
       const lift = Math.round(Math.sin(k * Math.PI) * 3);
       blit(g, f, p.x, p.y - lift + 3, true);
-      this.stage.label(`tp-${i}`, p.x, p.y + r + 4, 'Pronta!', 'Ready! Serve it', 'fst-label-go');
+      this.stage.label(`tp-${i}`, p.x, p.y + r + 4, 'Pronta!', 'Drag it to them', 'fst-label-go');
       return;
     }
     let sy = 1;
@@ -600,7 +660,7 @@ export class TapiocaView {
       }
       this.stage.label(`tp-${i}`, p.x, p.y + r + 4, 'Dobra', 'Tap to fold', 'fst-label-go');
     } else {
-      this.stage.label(`tp-${i}`, p.x, p.y + r + 4, 'Recheio', 'Add a filling', '');
+      this.stage.label(`tp-${i}`, p.x, p.y + r + 4, 'Recheio', 'Drag a filling here', '');
     }
   }
 
@@ -707,25 +767,41 @@ export class TapiocaView {
     const open = this.open();
     this.pans.forEach((p, i) => {
       const lab = i >= open ? 'Panela fechada · Locked pan'
-        : p.phase === 'empty' ? 'Espalhar a goma (segure) · Spread the batter (hold)'
+        : p.phase === 'empty' ? 'Espalhar a goma (segure) · Sift the goma (hold)'
           : p.phase === 'cooking' || p.phase === 'spreading' ? 'Virar · Flip'
             : p.phase === 'flipped' ? 'Pôr o recheio · Add the filling'
               : p.phase === 'filled' ? 'Dobrar · Fold'
                 : 'Tapioca pronta · Ready tapioca';
       if (i >= open) st.dropLabel(`tp-${i}`);
       else if (p.phase === 'empty') st.label(`tp-${i}`, p.x, p.y + r + 4, 'Segura', 'Hold to spread', '');
+      // only an empty pan is held (to spread); everything after that is a tap, so a press can turn into a drag
+      const holds = p.phase === 'empty' || p.phase === 'spreading';
+      const lifts = !holds && i < open;
       st.hit({
         id: `tapioca-pan-${i}`,
         label: lab,
         rect: { x: p.x - r - 2, y: p.y - r - 2, w: r * 2 + 4, h: r * 2 + 4 },
         round: true,
-        press: (down) => (down ? this.panDown(i) : this.panUp(i)),
-        tap: () => this.panDown(i, true),
-        drag: () => (p.phase === 'folded' && p.filling ? { kind: 'tapioca', sprite: carrySprite(p.filling, p.flip ?? 'perfect'), data: i } : null),
+        press: holds ? (down) => (down ? this.panDown(i) : this.panUp(i)) : undefined,
+        tap: () => this.panDown(i),
+        key: () => this.panDown(i, true),
+        // a ready one goes to a customer; anything on the pan can go to the lixeira
+        drag: () => (!lifts ? null
+          : p.phase === 'folded' && p.filling ? { kind: 'tapioca', sprite: carrySprite(p.filling, p.flip ?? 'perfect'), data: i }
+            : { kind: 'tapioca', sprite: discSprite(Math.max(4, Math.round((r - 3) * Math.sqrt(Math.min(1, p.coverage)))), p.flip === 'late'), data: i }),
         drop: (d) => d.kind === 'filling' && this.fill(i, d.data as TapiocaFilling),
         accepts: (d) => d.kind === 'filling' && p.phase === 'flipped',
       });
     });
+    st.hit({
+      id: 'tapioca-bin',
+      label: 'Lixeira · Bin',
+      rect: { x: this.bin.x - 12, y: this.bin.y - 13, w: 24, h: 26 },
+      tap: () => st.pop(HINT.bin),
+      drop: (d) => d.kind === 'tapioca' && this.trash(d.data as number),
+      accepts: (d) => d.kind === 'tapioca',
+    });
+    st.label('tp-bin', this.bin.x, this.bin.y + 13, 'Lixeira', 'Bin', '');
     for (const b of this.bowls) {
       const lab = TAPIOCA_FILLING_LABEL[b.f];
       st.hit({
@@ -733,11 +809,12 @@ export class TapiocaView {
         label: `${lab.pt} · ${lab.en}`,
         rect: { x: b.x - 15, y: b.y - 11, w: 30, h: 24 },
         round: true,
-        tap: () => this.tapBowl(b.f),
-        drag: () => ({ kind: 'filling', sprite: bowlSprite(b.f), data: b.f }),
+        tap: () => st.pop(HINT.drag),
+        key: () => this.keyBowl(b.f),
+        drag: () => ({ kind: 'filling', sprite: bowlSprite(b.f, true), data: b.f }),
       });
       st.label(`tpb-${b.f}`, b.x, b.y + 11, lab.pt, lab.en, this.selected === b.f ? 'fst-label-go' : '');
     }
-    st.label('tp-tub', this.tub.x, this.tub.y + 14, 'Goma', 'Batter', '');
+    st.label('tp-tub', this.tub.x, this.tub.y + 14, 'Goma', 'Tapioca flour', '');
   }
 }

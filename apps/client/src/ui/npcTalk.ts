@@ -12,6 +12,7 @@ import { showDialogueBox, type BoxChip } from './dialogue';
 import { showJulia, closeDialogue } from './panels';
 import { rememberJuliaMet } from './juliaMet';
 import { expressionForScore } from './pixelArt';
+import { hasPapo } from './papo';
 
 export interface TalkHooks {
   /** Tell the server (`{ t: 'talk', npc }`); optional now that the caller sends it when the NPC is first spoken to. */
@@ -29,6 +30,8 @@ export interface TalkHooks {
   juliaAlreadyMet?: boolean;
   /** Professora Bia's "Quero, sim!": open the mat queue. */
   openMat?: () => void;
+  /** "Vamos bater um papo?": start this NPC's bate-papo (ui/papo.ts). */
+  papo?: () => void;
 }
 
 const SPEAKER: Record<string, { name: string; role: string }> = {
@@ -58,7 +61,11 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
     // the clip is the nameless line: the player's name stays on screen, never in the voice (one clip serves every player)
     speak(spokenNameless(node.line.pt, { pronoun: p?.pronoun, minute: ctx.minute }), { speaker: npcId });
     const chips: BoxChip[] = node.chips.map((c) => ({ pt: fillTalk(c.pt, ctx), en: fillTalk(c.en, ctx) }));
+    // the first beat also offers a bate-papo (a pre-made, ungraded conversation), when this NPC has one
+    const papo = answered === 0 && hooks.papo && hasPapo(npcId) ? hooks.papo : null;
+    if (papo) chips.push({ pt: 'Vamos bater um papo?', en: 'Shall we have a chat?' });
     const choose = (i: number) => {
+      if (papo && i === node.chips.length) return papo();
       const c = node.chips[i];
       if (!c) return;
       answered++;
@@ -89,7 +96,7 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
         npcId === 'nanda'
           ? h('button', { class: 'primary', id: 'btn-ver-chapeus', onclick: () => (closeDialogue(), hooks.openShop()) }, bi('Ver chapéus', 'See the hats'))
           : npcId === 'julia' && hooks.buyFilm
-            ? h('button', { class: 'primary', id: 'btn-comprar-filme', onclick: () => hooks.buyFilm?.() }, bi(`Filme · ${FILM.price} RV`, `Film · ${FILM.price} RV`))
+            ? h('button', { class: 'primary', id: 'btn-comprar-filme', onclick: () => hooks.buyFilm?.() }, bi(`Filme · ${FILM.price} RV`, `Film · ${FILM.price} reais virtuais (RV)`))
             : undefined,
       onChip: choose,
       onClose: closeDialogue,

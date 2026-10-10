@@ -77,8 +77,9 @@ export const CARTELA_COPY = {
 export const CARTELA_ACTIVITY: Record<CartelaActivity, Bilingual> = {
   tatame: { pt: 'Treino no tatame', en: 'Mat practice' },
   balcao: { pt: 'Turno na padaria', en: 'Bakery counter shift' },
-  feira: { pt: 'Feira livre', en: 'Street market' },
-  conversa: { pt: 'Conversa na praça', en: 'Chat in the square' },
+  feira: { pt: 'Feira de rua', en: 'Street market' },
+  // the id stays `conversa` (saved stamps); a bate-papo talked through in the praça earns it
+  conversa: { pt: 'Bate-papo na praça', en: 'A chat in the square (praça)' },
 };
 
 export function stampNotice(activity: CartelaActivity, stamps: number, paid: boolean): Bilingual {
