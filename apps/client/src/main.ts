@@ -826,7 +826,6 @@ function updateGuides() {
   if (errand && !renderer.guides.some((g) => Math.abs(g.x - errand.x) + Math.abs(g.y - errand.y) <= 3)) add(errand);
 }
 
-/** Where the first active recado's current step points: its NPC or sign in this room, else the way out toward their room. Nothing while they are at home. */
 /** Before the player has met Júlia: the one arrow, on her when she is in the room, else on the door toward the Praça. */
 function juliaGuide(room: RoomId): Guide | null {
   const julia = guideAt('npc', 'julia', 120, 'Júlia · sua guia', 'Júlia · your guide: talk to her');
@@ -841,6 +840,7 @@ function juliaGuide(room: RoomId): Guide | null {
   return { x: portal.doorAt?.x ?? portal.x, y: portal.doorAt?.y ?? portal.y, lift: 60, label: `Júlia: ${to.name}`, en: `Júlia: ${to.gloss}` };
 }
 
+/** Where the first active recado's current step points: its NPC or sign in this room, else the way out toward their room. Nothing while they are at home. */
 function recadoGuide(): Guide | null {
   const r = game.room;
   const f = recadoFocus(game.board, clock.minutes());
