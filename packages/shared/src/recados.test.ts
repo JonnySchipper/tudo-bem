@@ -33,6 +33,7 @@ import {
   stepWhere,
   takeFromBag,
   whereLine,
+  withheldByBond,
   type RecadoDef,
   type RecadoEvent,
   type RecadoFlag,
@@ -324,6 +325,24 @@ describe('RECADO_FLAGS (feature gating in the offer logic)', () => {
     const pool = new Set(Array.from({ length: 60 }, (_, i) => offerFor({}, day, mulberry32(i), RECADOS, 15)).flat());
     expect([...pool].sort()).toEqual(['carlos_cafe_pra_nanda', 'graca_pao_pra_julia', 'julia_cumprimento_certo', 'nanda_coxinha', 'nanda_um_oi_pro_carlos', 'tia_lu_banana_pra_nanda']);
     expect(offerFor({}, day, mulberry32(1))).toHaveLength(3);
+  });
+});
+
+describe('withheldByBond', () => {
+  const pool = (giver: 'carlos' | 'nanda', id: string, minBond: number, requires?: RecadoFlag): RecadoDef => ({ ...RECADOS[0]!, id, giver, minBond, ...(requires ? { requires } : {}) });
+  const defs = [pool('carlos', 'c0', 0), pool('carlos', 'c30', 30), pool('nanda', 'n50', 50), pool('nanda', 'nf', 10, 'feira')];
+
+  it('lists what the bond filter holds back: under the giver minBond, flag on, not skipped', () => {
+    expect(withheldByBond({}, [], defs).map((d) => d.id)).toEqual(['c30', 'n50', 'nf']);
+    expect(withheldByBond({ carlos: 30, nanda: 10 }, [], defs).map((d) => d.id)).toEqual(['n50']);
+    expect(withheldByBond({}, ['c30'], defs).map((d) => d.id)).toEqual(['n50', 'nf']);
+    expect(withheldByBond({}, [], defs, { ...RECADO_FLAGS, feira: false }).map((d) => d.id)).toEqual(['c30', 'n50']);
+  });
+
+  it('is exactly what offerFor never offers for that bond', () => {
+    const bond = { carlos: 12 };
+    const offered = new Set(Array.from({ length: 60 }, (_, i) => offerFor({ bond }, 1, mulberry32(i), RECADOS, 30)).flat());
+    for (const d of withheldByBond(bond)) expect(offered.has(d.id)).toBe(false);
   });
 });
 

@@ -256,6 +256,19 @@ export function offerFor(
   return out;
 }
 
+/**
+ * The recados the bond filter of `offerFor` holds back right now: playable (flag on), not in `skip` (finished today, active), but the giver's
+ * friendship is still under `minBond`. The Favores panel shows them greyed ("Fale mais com …"); the offer itself is unchanged.
+ */
+export function withheldByBond(
+  bond: BondMap | undefined,
+  skip: readonly string[] = [],
+  defs: readonly RecadoDef[] = RECADOS,
+  flags: Readonly<Record<RecadoFlag, boolean>> = RECADO_FLAGS,
+): RecadoDef[] {
+  return defs.filter((d) => recadoEnabled(d, flags) && (bond?.[d.giver] ?? 0) < d.minBond && !skip.includes(d.id));
+}
+
 /** Roll the day over: same state if it is still `day`, otherwise a fresh offer (active recados carry over). Never mutates. */
 export function rollRecadoDay(
   profile: { bond?: BondMap; recados?: RecadoState },

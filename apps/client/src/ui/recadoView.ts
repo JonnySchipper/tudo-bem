@@ -17,6 +17,7 @@ import {
   stepNpc,
   stepWhere,
   whereLine,
+  withheldByBond,
   type Bilingual,
   type BondMap,
   type NpcId,
@@ -26,6 +27,7 @@ import {
   type RecadoOfferView,
   type RoomId,
 } from '@tudobem/shared';
+import { atLeast, type Stage } from './disclosure';
 
 /** The board the server sends (`{ t: 'recados' }`). */
 export interface RecadoBoard {
@@ -92,17 +94,17 @@ export function giverWhere(giver: NpcId, minute: number | undefined): Bilingual 
 }
 
 /**
- * Welcome chain first (while it lasts), then the active recados in the order they were accepted, then (while there is room to take one)
- * today's offers, so a neighbour's errand is on screen before the player ever talks to them; max 3 entries. `minute` adds the where-lines.
+ * While Júlia's welcome chain lasts the tracker is one row, the next step: the errand in hand, else the chain's next step. After it, the
+ * active recados in the order they were accepted, then (while there is room to take one, and once Júlia has been met) today's offers, so a
+ * neighbour's errand is on screen before the player ever talks to them; max 3 entries. `minute` adds the where-lines.
  */
-export function trackerEntries(board: RecadoBoard | null, p: PrivateProfile | null | undefined, minute?: number): TrackerEntry[] {
+export function trackerEntries(board: RecadoBoard | null, p: PrivateProfile | null | undefined, minute: number | undefined, metJulia: boolean): TrackerEntry[] {
   const out: TrackerEntry[] = [];
   if (p && tutorialPending(p)) out.push(tutorialEntry(p));
-  for (const a of board?.active ?? []) {
-    if (out.length >= TRACKER_MAX) break;
-    out.push({ key: a.id, kind: 'recado', giver: a.giver, title: a.title, step: a.hint, progress: `${Math.min(a.step + 1, a.steps)}/${a.steps}`, done: a.step, total: a.steps, where: activeWhere(a, minute) });
-  }
-  if ((board?.active.length ?? 0) < RECADO_MAX_ACTIVE) {
+  const active = (board?.active ?? []).map((a): TrackerEntry => ({ key: a.id, kind: 'recado', giver: a.giver, title: a.title, step: a.hint, progress: `${Math.min(a.step + 1, a.steps)}/${a.steps}`, done: a.step, total: a.steps, where: activeWhere(a, minute) }));
+  if (out.length) return active.length ? active.slice(0, 1) : out;
+  out.push(...active.slice(0, TRACKER_MAX));
+  if (metJulia && (board?.active.length ?? 0) < RECADO_MAX_ACTIVE) {
     for (const o of board?.offered ?? []) {
       if (out.length >= TRACKER_MAX) break;
       const who = npcName(o.giver);
@@ -123,12 +125,12 @@ export type NpcMarker = 'offer' | 'step';
 
 /**
  * The marker over each NPC's head. A current step wins over an offer. A step with Seu Carlos marks Dona Graça too (she works the same counter).
- * Offers only while there is room to take one, and not the ones turned down with "Agora não" this session.
+ * Offers only once Júlia has been met, while there is room to take one, and not the ones turned down with "Agora não" this session.
  */
-export function npcMarkers(board: RecadoBoard | null, declined: ReadonlySet<string> = new Set()): Map<NpcId, NpcMarker> {
+export function npcMarkers(board: RecadoBoard | null, declined: ReadonlySet<string>, metJulia: boolean): Map<NpcId, NpcMarker> {
   const out = new Map<NpcId, NpcMarker>();
   if (!board) return out;
-  if (board.active.length < RECADO_MAX_ACTIVE) for (const o of board.offered) if (!declined.has(o.id)) out.set(o.giver, 'offer');
+  if (metJulia && board.active.length < RECADO_MAX_ACTIVE) for (const o of board.offered) if (!declined.has(o.id)) out.set(o.giver, 'offer');
   for (const a of board.active) {
     const step = recadoById(a.id)?.steps[a.step];
     const npc = step ? stepNpc(step) : null;
@@ -175,6 +177,9 @@ export function dayProgress(board: RecadoBoard | null): DayProgress {
   const done = Math.min(RECADOS_PER_DAY, board?.done.length ?? 0);
   return { done, goal: RECADOS_PER_DAY, paid: !!board?.bonus, rv: RECADO_DAY_BONUS_RV };
 }
+
+/** The tracker head's ★★☆ wait for a regular (S3) with a recado done today. */
+export const dayStarsShown = (stage: Stage, board: RecadoBoard | null): boolean => atLeast(stage, 'S3') && (board?.done.length ?? 0) >= 1;
 
 // ---------------------------------------------------------------- hearts
 
@@ -282,13 +287,67 @@ export interface FriendView {
 /** The neighbours the journal lists hearts for. */
 export const JOURNAL_FRIENDS: readonly NpcId[] = ['carlos', 'graca', 'nanda', 'julia', 'prof', 'tia_lu', 'ze', 'chico', 'rosa'];
 
+/** A recado the giver holds back until the friendship grows (`minBond`): the panel shows it greyed, "Fale mais com …". */
+export interface WithheldView {
+  id: string;
+  giver: NpcId;
+  name: string;
+  title: Bilingual;
+}
+
 export interface JournalView {
   tutorial: { entry: TrackerEntry; steps: { id: string; pt: string; en: string; done: boolean }[] } | null;
   active: (RecadoActiveView & { reward: RecadoDef["reward"] })[];
   offered: RecadoOfferView[];
+  /** one per giver (the nearest to unlock), givers with an offer today left out */
+  withheld: WithheldView[];
   done: RecadoDef[];
   bag: BagItemView[];
   friends: FriendView[];
+}
+
+/** One held-back recado per giver, the one nearest to unlock; a giver with an offer on today's list already has something to say. */
+export function withheldView(board: RecadoBoard | null, bond: BondMap | undefined): WithheldView[] {
+  const skip = [...(board?.done ?? []), ...(board?.active ?? []).map((a) => a.id)];
+  const offering = new Set((board?.offered ?? []).map((o) => o.giver));
+  const best = new Map<NpcId, RecadoDef>();
+  for (const d of withheldByBond(bond, skip)) {
+    if (offering.has(d.giver)) continue;
+    const cur = best.get(d.giver);
+    if (!cur || d.minBond < cur.minBond) best.set(d.giver, d);
+  }
+  return [...best.values()].map((d) => ({ id: d.id, giver: d.giver, name: npcName(d.giver), title: d.title }));
+}
+
+/** Which parts of the Favores panel show: each waits until it has something in it (SIMPLIFICATION-REVIEW §3). */
+export interface JournalSections {
+  /** the Vizinho do dia banner: a regular */
+  day: boolean;
+  /** Em andamento */
+  active: boolean;
+  /** Hoje na vila */
+  today: boolean;
+  /** the held-back recados inside Hoje na vila: a resident */
+  withheld: boolean;
+  /** Bem-vindo à Vila Ipê, until the chain is done */
+  welcome: boolean;
+  /** Mochila: something in the bag */
+  bag: boolean;
+  /** Amizades: someone likes you (1 ♥) */
+  friends: boolean;
+}
+
+export function journalSections(j: JournalView, stage: Stage): JournalSections {
+  const withheld = atLeast(stage, 'S2') && j.withheld.length > 0;
+  return {
+    day: atLeast(stage, 'S3'),
+    active: j.active.length > 0,
+    today: j.offered.length > 0 || j.done.length > 0 || withheld,
+    withheld,
+    welcome: !!j.tutorial,
+    bag: j.bag.length > 0,
+    friends: j.friends.some((f) => f.hearts.hearts >= 1),
+  };
 }
 
 export function journalView(board: RecadoBoard | null, p: PrivateProfile | null | undefined): JournalView {
@@ -300,6 +359,7 @@ export function journalView(board: RecadoBoard | null, p: PrivateProfile | null 
       return d ? [{ ...a, reward: d.reward }] : [];
     }),
     offered: board?.offered ?? [],
+    withheld: withheldView(board, p?.bond),
     done: (board?.done ?? []).flatMap((id) => defOf(id) ?? []),
     bag: bagView(p?.bag),
     friends: JOURNAL_FRIENDS.map((npc) => ({ npc, name: npcName(npc), points: p?.bond?.[npc] ?? 0, hearts: heartsView(p?.bond?.[npc]) })),
