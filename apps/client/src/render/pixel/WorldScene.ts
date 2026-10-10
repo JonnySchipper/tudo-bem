@@ -931,7 +931,8 @@ export class WorldScene extends Phaser.Scene {
     }
     const a = propAnchor(p);
     const flat = p.kind === 'tatame';
-    const depth = flat ? DEPTH.groundDecal + 10 : propDepth(p, a.wy);
+    // `z`: design mode's bring forward / send back, in world px of draw order
+    const depth = (flat ? DEPTH.groundDecal + 10 : propDepth(p, a.wy)) + (p.z ?? 0);
     const foot = footprintRect(p);
     let visual: Rect = foot;
     const artKey = propArtKey(p);
@@ -950,6 +951,7 @@ export class WorldScene extends Phaser.Scene {
       }
     } else if (artKey && d) {
       const main = this.sprite(artKey, a.wx, a.wy, depth, !scenery);
+      if (p.flip) main?.setFlipX(true);
       const mainShadow = this.lastShadow;
       const feiraEntry = !scenery && p.kind === 'feira' ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
       if (feiraEntry && mainShadow) feiraEntry.open.push(mainShadow as unknown as Phaser.GameObjects.GameObject);
@@ -1546,6 +1548,11 @@ export class WorldScene extends Phaser.Scene {
     f = this.withDialogue(f, self ? { x: self.wx, y: self.wy - avatarPx(10) } : focus, ins, k, dt);
     f = this.withBout(f, ins, k, dt);
     f = this.withCounter(f, ins, k, dt);
+    // design mode's zoom buttons: whole steps of the CSS zoom, so pixels stay square
+    if (game.designMode && game.designZoom) {
+      const unit = Math.max(1, Math.round(k));
+      f = { ...f, zoom: Math.max(unit, f.zoom + game.designZoom * unit) };
+    }
     const target = { cx: f.cx, cy: f.cy };
     this.cam.zoom = f.zoom;
     setAvatarZoom(f.zoom);
