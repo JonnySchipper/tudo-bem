@@ -1,11 +1,11 @@
 /**
- * Pet Shop do Seu Dito: the panel (#234, docs/PET-STORE-PLAN.md §3.4). Three tabs: Adotar (today's animals in the pens, the breed catalog,
- * the meet view with Fazer carinho / Adotar, and one inline Apoiar card for non-subscribers), Meus pets (take one out, rename, collar and toy,
- * the commands cheat sheet) and Lojinha (collars, toys, beds and food for earned RV). The rules are the server's; the view model is
+ * Pet Shop do Seu Dito: the panel (#234, docs/PET-STORE-PLAN.md §3.4). Two tabs, a third once a pet is owned: Adotar (today's animals in the
+ * pens, the breed catalog, the meet view with Fazer carinho / Adotar, or Seu Dito's one gate line for a non-subscriber), Meus pets (take one
+ * out, rename, collar and toy once owned) and Lojinha (collars, toys, beds and food for earned RV). The command cheat sheet is the "?" card
+ * (howToPlayData.ts, `petshop`). The rules are the server's; the view model is
  * petShopLogic.ts. needs_br: every Portuguese string.
  */
 import { PETSHOP_LINES, gameDay, hasPerkAccess, ownedPetLook, type PetLook, type PetSpecies } from '@tudobem/shared';
-import { fetchPublicConfig } from '../auth/config';
 import { clock } from '../gameClock';
 import { game } from '../state';
 import { speak } from '../audio';
@@ -24,15 +24,9 @@ export interface PetShopActions {
   rename: (petId: string, name: string) => void;
   buy: (itemId: string) => void;
   equip: (petId: string, slot: 'collar' | 'toy', itemId: string | null) => void;
-  /** The Apoiar panel (the gate card's button). */
-  support: () => void;
 }
 
 let actions: PetShopActions | null = null;
-/** "Só olhar" closes the Apoiar card for the session. */
-let gateDismissed = false;
-/** Seu Dito's gate line is spoken once per panel opening. */
-let gateSpoken = false;
 
 export function bindPetShop(a: PetShopActions): void {
   actions = a;
@@ -56,10 +50,8 @@ interface Meet {
   pen?: { penId: string; slot: number };
 }
 
-/** Open the panel (the counter opens the Lojinha, a pen or Seu Dito's "Quero ver!" Adotar, the Apoiar link Meus pets). */
-export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
-  const cfg = await fetchPublicConfig();
-  gateSpoken = false;
+/** Open the panel (the counter opens the Lojinha once a pet is owned, a pen or Seu Dito's "Quero ver!" Adotar, the Meus pets link Meus pets). */
+export function openPetShop(tab: PetShopTab = 'adotar'): void {
   let current: PetShopTab = tab;
   let meet: Meet | null = null;
   const petted = new Set<string>();
@@ -74,43 +66,19 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
       petItems: p?.petItems ?? [],
       coins: p?.coins ?? 0,
       access: hasPerkAccess(p?.subscription, Date.now()),
-      billingReady: cfg.billingReady,
       day: gameDay(clock.now()),
-      gateDismissed,
     });
   };
 
+  const TAB_LABEL: Record<PetShopTab, [string, string]> = { adotar: ['Adotar', 'Adopt'], meus: ['Meus pets', 'My pets'], lojinha: ['Lojinha', 'Little shop'] };
   const tabButton = (id: PetShopTab, pt: string, enText: string) =>
     h('button', { type: 'button', class: `petshop-tab${current === id ? ' on' : ''}`, 'data-tab': id, role: 'tab', 'aria-selected': String(current === id), onclick: () => ((current = id), (meet = null), paint()) }, bi(pt, enText));
-
-  const gateCard = (v: PetShopView) => {
-    if (!v.gate) return null;
-    if (!gateSpoken) {
-      gateSpoken = true;
-      ditoSays('gate');
-    }
-    return h(
-      'div',
-      { class: 'petshop-gate', id: 'petshop-gate' },
-      h('h3', null, 'Adoção é pra apoiadores', en('Adoption is for supporters', true)),
-      h('p', null, PETSHOP_LINES.gate.pt, en(PETSHOP_LINES.gate.en, true)),
-      h('p', { class: 'petshop-gate-perks' }, 'Apoiadores adotam até 6 bichinhos, levam um pra passear e o resto fica em casa, na kitnet.', en('Supporters adopt up to 6 pets, take one for walks and the rest stay at home in the kitnet.', true)),
-      h(
-        'div',
-        { class: 'petshop-gate-actions' },
-        v.gate.soon
-          ? h('span', { class: 'support-soon', id: 'petshop-gate-soon' }, 'Em breve', en('Coming soon', true))
-          : h('button', { type: 'button', class: 'primary', id: 'petshop-gate-support', onclick: () => (closeModal(), actions?.support()) }, bi('Apoiar a Vila', 'Support the Vila')),
-        h('button', { type: 'button', class: 'ghost', id: 'petshop-gate-close', onclick: () => ((gateDismissed = true), paint()) }, bi('Só olhar', 'Just looking')),
-      ),
-    );
-  };
 
   // each animal on its pen's floor: the dogs on the cercadinho's planks, the cats on the gatil's sage cushion
   const litterCard = (c: LitterCard) =>
     h(
       'button',
-      { type: 'button', class: `item-card petshop-animal ${c.species}${c.br ? ' br' : ''}`, 'data-pen': c.penId, 'data-slot': String(c.slot), 'data-breed': c.breed, onclick: () => ((meet = { ...c, pen: { penId: c.penId, slot: c.slot } }), ditoSays('adopt_pick'), paint()) },
+      { type: 'button', class: `item-card petshop-animal ${c.species}${c.br ? ' br' : ''}`, 'data-pen': c.penId, 'data-slot': String(c.slot), 'data-breed': c.breed, onclick: () => ((meet = { ...c, pen: { penId: c.penId, slot: c.slot } }), ditoSays(view().gate ? 'gate' : 'adopt_pick'), paint()) },
       h('div', { class: 'petshop-animal-pen' }, petCanvas(c.look, { scale: 4, frames: [12, 13], fps: 2 })),
       h('div', { class: 'name' }, c.pt),
       en(`${c.en} · ${c.coatPt}`),
@@ -149,7 +117,6 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
         h('div', { class: 'stall-shelf-title' }, h('b', null, 'Na loja hoje'), en('In the shop today', true)),
         h('div', { class: 'grid-items' }, ...v.litter.map(litterCard)),
       ),
-      gateCard(v),
       h(
         'section',
         { class: 'stall-shelf petshop-catalog', 'data-shelf': 'catalog' },
@@ -167,9 +134,10 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
   };
 
   const meetView = (v: PetShopView, m: Meet) => {
+    const line = v.gate ? PETSHOP_LINES.gate : PETSHOP_LINES.adopt_pick;
     const key = m.pen ? `${m.pen.penId}:${m.pen.slot}` : '';
     const hearts = h('div', { class: 'petshop-hearts', 'aria-hidden': 'true' });
-    const adoptBtn = v.access
+    const adoptBtn = !v.gate
       ? h(
           'button',
           {
@@ -194,7 +162,8 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
         { class: 'petshop-meet', id: 'petshop-meet', 'data-breed': m.breed, 'data-coat': m.coat },
         h('div', { class: `petshop-stage ${m.species}` }, petCanvas(m.look, { scale: 6, frames: [0, 1, 2, 3], fps: 8 }), petCanvas(m.look, { scale: 6, frames: [4, 5, 6, 7], fps: 8 }), hearts),
         h('h3', null, m.pt, en(`${m.en} · ${m.coatPt} (${m.coatEn})`, true)),
-        h('p', { class: 'petshop-says' }, `Seu Dito: “${PETSHOP_LINES.adopt_pick.pt}”`, en(PETSHOP_LINES.adopt_pick.en, true)),
+        // a supporter hears "good choice"; everyone else gets the one gate line (adoption waits, petting is free)
+        h('p', { class: 'petshop-says', id: 'petshop-says' }, `Seu Dito: “${line.pt}”`, en(line.en, true)),
         v.full ? h('p', { class: 'petshop-note', id: 'petshop-full' }, PETSHOP_LINES.adopt_full.pt, en(PETSHOP_LINES.adopt_full.en, true)) : null,
         h(
           'div',
@@ -220,7 +189,6 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
             : null,
           adoptBtn,
         ),
-        v.access ? null : gateCard(v),
       ),
     ];
   };
@@ -247,7 +215,9 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
         { class: 'petshop-pet-actions' },
         r.active
           ? h('button', { type: 'button', 'data-act': 'home', onclick: () => (ditoSays('switch_home'), actions?.setActive(null)) }, bi('Em casa', 'At home'))
-          : h('button', { type: 'button', class: 'primary', 'data-act': 'take', disabled: !r.canTake, onclick: () => (ditoSays('switch_out'), actions?.setActive(r.id)) }, bi('Levar', 'Take along')),
+          : r.canTake
+            ? h('button', { type: 'button', class: 'primary', 'data-act': 'take', onclick: () => (ditoSays('switch_out'), actions?.setActive(r.id)) }, bi('Levar', 'Take along'))
+            : null,
         h('button', { type: 'button', 'data-act': 'rename', onclick: () => openPetName(r.species, { current: r.name ?? '', onSave: (name) => actions?.rename(r.id, name), savedName: () => game.profile?.pets?.find((q) => q.id === r.id)?.name }) }, bi('Renomear', 'Rename')),
         select('collar'),
         select('toy'),
@@ -259,17 +229,6 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
     v.pets.length
       ? h('div', { class: 'petshop-pets', id: 'petshop-pets' }, ...v.pets.map((r) => petRow(v, r)))
       : h('p', { class: 'petshop-empty', id: 'petshop-empty' }, 'Nenhum pet ainda. Os bichinhos estão esperando no Pet Shop do Seu Dito.', en('No pets yet. The animals are waiting at Seu Dito’s pet shop.', true)),
-    v.lapsed ? h('p', { class: 'petshop-note', id: 'petshop-lapsed' }, 'Seus pets estão em casa, na kitnet. Pra passear com eles, apoie a Vila de novo.', en('Your pets are at home in the kitnet. To walk them again, support the Vila again.', true)) : null,
-    h(
-      'section',
-      { class: 'petshop-commands', id: 'petshop-commands' },
-      h('h3', null, 'Comandos', en('Commands: say them in the chat; the line goes out as you typed it', true)),
-      h(
-        'ul',
-        null,
-        ...v.commands.map((c) => h('li', null, h('button', { type: 'button', class: 'ghost', 'aria-label': `Ouvir ${c.pt}`, onclick: () => speak(c.pt, { speaker: 'ui', force: true }) }, '🔊'), h('b', null, c.pt), en(c.en, true))),
-      ),
-    ),
   ];
 
   const lojinha = (v: PetShopView) =>
@@ -303,6 +262,7 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
 
   const paint = () => {
     const v = view();
+    current = v.tab;
     const body = current === 'adotar' ? adotar(v) : current === 'meus' ? meus(v) : [lojinha(v)];
     root.replaceChildren(
       h('button', { class: 'close ghost', onclick: () => closeModal(), 'aria-label': 'Fechar (Close)' }, '✕'),
@@ -312,7 +272,7 @@ export async function openPetShop(tab: PetShopTab = 'adotar'): Promise<void> {
         npcPortrait('dito', current === 'adotar' ? 'feliz' : 'neutro', 'petshop-portrait'),
         h('div', { class: 'petshop-head-title' }, h('h2', { id: 'petshop-title' }, 'Pet Shop do Seu Dito'), en('Seu Dito’s pet shop')),
       ),
-      h('div', { class: 'petshop-tabs', role: 'tablist' }, tabButton('adotar', 'Adotar', 'Adopt'), tabButton('meus', 'Meus pets', 'My pets'), tabButton('lojinha', 'Lojinha', 'Little shop')),
+      h('div', { class: 'petshop-tabs', role: 'tablist' }, ...v.tabs.map((t) => tabButton(t, TAB_LABEL[t][0], TAB_LABEL[t][1]))),
       h('div', { class: 'petshop-body', 'data-tab': current }, ...[body].flat().filter((n): n is HTMLElement => n != null)),
     );
   };
@@ -357,5 +317,5 @@ export function openHomePetCard(petId: string): void {
 export function petAdopted(): void {
   ditoSays('adopt_done');
   closeModal();
-  void openPetShop('meus');
+  openPetShop('meus');
 }

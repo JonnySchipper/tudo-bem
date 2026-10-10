@@ -1,9 +1,8 @@
 /**
- * The pet shop panel's view model (#234): what the Adotar, Meus pets and Lojinha tabs show, from the profile, the clock and the shop's litter.
+ * The pet shop panel's view model (#234): what the Adotar and Meus pets tabs (and the Lojinha once a pet is owned) show, from the profile, the clock and the shop's litter.
  * Pure (no DOM): tested in petShopLogic.test.ts. needs_br: every Portuguese string.
  */
 import {
-  PET_COMMANDS,
   PET_ITEMS,
   PET_PENS,
   breedById,
@@ -20,6 +19,11 @@ import {
 } from '@tudobem/shared';
 
 export type PetShopTab = 'adotar' | 'meus' | 'lojinha';
+
+/** The tabs a profile sees: Adotar and Meus pets always, the Lojinha only once it owns a pet (collars, toys and beds are for a pet). */
+export function petShopTabs(petCount: number): PetShopTab[] {
+  return petCount > 0 ? ['adotar', 'meus', 'lojinha'] : ['adotar', 'meus'];
+}
 
 export interface LitterCard {
   penId: string;
@@ -78,19 +82,18 @@ export interface ShopItemCard {
 }
 
 export interface PetShopView {
+  /** The tab shown: the one asked for, or Adotar when it is not offered yet (the counter before a first pet). */
   tab: PetShopTab;
+  tabs: PetShopTab[];
   coins: number;
   access: boolean;
   litter: LitterCard[];
   catalog: CatalogGroup[];
-  /** The inline Apoiar card under the pens (never a modal): only without access, `soon` when checkout is not open. */
-  gate: { soon: boolean } | null;
+  /** Without access the meet view carries Seu Dito's one gate line instead of an Adotar button (no card, no button, no checkout). */
+  gate: boolean;
   pets: MyPetRow[];
   full: boolean;
-  /** Pets kept at home after a subscription ended. */
-  lapsed: boolean;
   items: ShopItemCard[];
-  commands: readonly { pt: string; en: string }[];
 }
 
 export interface PetShopInput {
@@ -100,11 +103,8 @@ export interface PetShopInput {
   petItems: string[];
   coins: number;
   access: boolean;
-  billingReady: boolean;
   /** Any integer that changes once a game day (gameDay of the shared clock). */
   day: number;
-  /** "Só olhar": the gate card closed for this session. */
-  gateDismissed?: boolean;
 }
 
 export function litterCards(day: number): LitterCard[] {
@@ -149,18 +149,18 @@ export function petShopView(i: PetShopInput): PetShopView {
     const owned = !isPetFurniture(it) && i.petItems.includes(it.id);
     return { id: it.id, kind: it.kind, pt: it.pt, en: it.en, price: it.price, owned, short: owned ? 0 : Math.max(0, it.price - i.coins) };
   });
+  const tabs = petShopTabs(i.pets.length);
   return {
-    tab: i.tab,
+    tab: tabs.includes(i.tab) ? i.tab : 'adotar',
+    tabs,
     coins: i.coins,
     access: i.access,
     litter: litterCards(i.day),
     catalog: catalogGroups(),
-    gate: i.access || i.gateDismissed ? null : { soon: !i.billingReady },
+    gate: !i.access,
     pets,
     full: i.pets.length >= 6,
-    lapsed: !i.access && i.pets.length > 0,
     items,
-    commands: PET_COMMANDS,
   };
 }
 

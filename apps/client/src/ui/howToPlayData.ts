@@ -6,7 +6,7 @@
  * The game's own Portuguese name sits in the title. `selector` is the root element: it is in the page only while the thing is open
  * (ui/howToPlay.ts watches for it). Pure data, tested.
  */
-import { CARTELA_REWARD, ECONOMY, FILM, MISSION_REWARD, RECADO_DAY_BONUS_RV, RECADO_MAX_ACTIVE, RECADOS_PER_DAY } from '@tudobem/shared';
+import { CARTELA_REWARD, PET_COMMANDS, ECONOMY, FILM, MISSION_REWARD, RECADO_DAY_BONUS_RV, RECADO_MAX_ACTIVE, RECADOS_PER_DAY } from '@tudobem/shared';
 
 export interface HowToPlay {
   id: string;
@@ -125,14 +125,9 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     selector: '.backdrop[data-modal="petshop"]',
     pt: 'Pet Shop do Seu Dito',
     en: 'Seu Dito’s pet shop',
-    goal: 'Meet the animals, learn their words, and (as a supporter) adopt one.',
-    steps: [
-      'Pet an animal in a pen (Fazer carinho): Seu Dito tells you about it, and that line goes in your Diário.',
-      'Read the signs on the walls and photograph the things in the shop: every word here is free.',
-      'Talk to Seu Dito at the counter.',
-      'The Lojinha sells collars, toys, beds and food bowls for RV you earned in the Vila.',
-      'Supporters can adopt a dog or a cat, name it and take it for a walk. The others wait at home in your kitnet.',
-    ],
+    goal: 'Say these in the chat when your pet is out with you; the line goes out as you typed it.',
+    steps: PET_COMMANDS.map((c) => `${c.pt} (${c.en})`),
+    autoOpen: false,
   },
   {
     id: 'balcao',

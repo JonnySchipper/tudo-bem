@@ -3,6 +3,7 @@ import {
   CRESTS,
   PADARIA_SIZE_NAMES,
   CARTELA_GOAL,
+  CHAT_HINTS,
   classifyChat,
   MAX_CHAT_LEN,
   MISSION_COPY,
@@ -361,7 +362,8 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       hint.textContent = `${input.value.length}/${MAX_CHAT_LEN}`;
       hint.className = 'hint';
     } else {
-      hint.textContent = v.action === 'warn' ? 'Vai com aviso · Sends with a warning' : v.action === 'escalate' ? 'Vai pra revisão · Goes to review' : 'Não pode · Not allowed';
+      const line = v.action === 'warn' ? CHAT_HINTS.warn : CHAT_HINTS.block;
+      hint.textContent = `${line.pt} · ${line.en}`;
       hint.className = 'hint warn';
       hint.title = v.note?.en ?? '';
     }

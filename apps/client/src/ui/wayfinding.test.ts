@@ -77,7 +77,13 @@ describe('how to play', () => {
     expect(pesca.selector).toBe('#pesca-root');
     expect(pesca.goal).toMatch(/Segura pra lançar, solta\. Fisgou\? Toca\. Segura pra puxar, solta quando ele corre\./);
     expect([pesca.goal, ...pesca.steps].join(' ')).not.toMatch(/\d/);
-    for (const g of HOW_TO_PLAY) if (g.id !== 'pesca') expect(g.autoOpen, g.id).toBeUndefined();
+    for (const g of HOW_TO_PLAY) if (g.id !== 'pesca' && g.id !== 'petshop') expect(g.autoOpen, g.id).toBeUndefined();
+  });
+
+  it('the pet shop card is only the "?" command sheet: five short lines, never opens by itself', () => {
+    const shop = HOW_TO_PLAY.find((g) => g.id === 'petshop')!;
+    expect(shop.autoOpen).toBe(false);
+    expect(shop.steps).toEqual(['senta (sit)', 'deita (lie down)', 'vem (come)', 'busca (fetch)', 'brinca (play)']);
   });
 
   it('never makes the jiu-jitsu roll a quiz', () => {

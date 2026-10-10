@@ -34,6 +34,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [V. Diário: the sticker album (client)](#v-diario) (39)
 - [W. Bate-papos and the #229 wording sweep](#w-papos) (24)
 - [X. Praia: the beach, fishing, boats and the party boat](#x-praia) (33)
+- [Z. Chat hints](#z-chat-hints) (2)
 
 ## A. Time of day, weekdays and weather
 
@@ -849,7 +850,7 @@ The pet shop on Rua dos Ipês (leste): Seu Dito (Benedito Alves, 62, from a sít
 | 619 | Olha o bigode dela, todo arrepiado. | Look at her whiskers, all bristled. | pen_cat_2 | teaches bigode | |
 | 620 | Esse gato brinca com tudo. Até com o rabo! | This cat plays with everything. Even its tail! | pen_cat_3 | teaches brincar | |
 | 621 | Esse aqui? Boa escolha. Agora é só dar um nome. · Parabéns! Agora faz parte da família. · Seis já é uma matilha! Deixa um em casa primeiro. | (adoption lines) | `PETSHOP_LINES` | spoken from the panel | |
-| 622 | Adoção é pra quem apoia a Vila. Mas carinho é de graça, viu? | Adoption is for those who support the Vila. But petting is free, okay? | `PETSHOP_LINES.gate` | the one upsell line; spoken once per panel opening | |
+| 622 | Adoção é pra quem apoia a Vila. Mas carinho é de graça, viu? | Adoption is for those who support the Vila. But petting is free, okay? | `PETSHOP_LINES.gate` | the only supporter copy left in the panel: shown and spoken in the meet view of a non-supporter, instead of the "good choice" line | |
 | 623 | Prontinho. Seu bichinho vai adorar. · Faltam uns reais virtuais ainda. Volta depois, sem pressa. · Vai passear? Leva a guia! · Deixa em casa que eu sei que ele fica bem. | (shop and switch lines) | `PETSHOP_LINES` | | |
 | 624 | PET SHOP · Do Seu Dito | | `hotspots.ts` petshop_letreiro | facade sign; teaches pet shop | |
 | 625 | ADOÇÃO · Adote um amigo | Adoption · Adopt a friend | petshop_adocao | teaches adoção | |
@@ -862,15 +863,25 @@ The pet shop on Rua dos Ipês (leste): Seu Dito (Benedito Alves, 62, from a sít
 | 632 | Faça carinho nos bichinhos do pet shop. | Pet the animals at the pet shop. | `escola.ts` huntHint | hint when only pen words are missing | |
 | 633 | The 38 breed names (Vira-lata caramelo, Fila brasileiro, Terrier brasileiro (Fox Paulistinha), Gato vira-lata (SRD), Frajola, Gata escaminha…) and their coat names | | `petBreeds.ts` | each breed's `pt`, each coat's `pt` | |
 | 634 | Coleira vermelha · azul · verde · rosa · Bandana do Brasil · Bolinha · Ratinho de pano · Ossinho · Pelúcia · Caminha xadrez · Caminha azul · Cesta de vime · Saco de ração + pote | (lojinha items) | `PET_ITEMS` | | |
-| 635 | Adotar · Meus pets · Lojinha · Na loja hoje · Catálogo de raças · Fazer carinho · Levar · Em casa · Renomear · Comprar · Apoiar a Vila · Só olhar · Em breve · Sem nome · Passeando | (panel) | `ui/petShop.ts` | | |
-| 636 | Adoção é pra apoiadores · Apoiadores adotam até 6 bichinhos, levam um pra passear e o resto fica em casa, na kitnet. | Adoption is for supporters… | `ui/petShop.ts` gate card | | |
-| 637 | Nenhum pet ainda. Os bichinhos estão esperando no Pet Shop do Seu Dito. · Seus pets estão em casa, na kitnet. Pra passear com eles, apoie a Vila de novo. | No pets yet… · Your pets are at home… | `ui/petShop.ts` Meus pets | | |
+| 635 | Adotar · Meus pets · Lojinha · Na loja hoje · Catálogo de raças · Fazer carinho · Levar · Em casa · Renomear · Comprar · Sem nome · Passeando | (panel) | `ui/petShop.ts` | | |
+| 636 | Adoção é pra apoiadores · Apoiadores adotam até 6 bichinhos, levam um pra passear e o resto fica em casa, na kitnet. | Adoption is for supporters… | removed: the inline Apoiar card left the panel (SIMPLIFICATION-REVIEW C4) | | |
+| 637 | Nenhum pet ainda. Os bichinhos estão esperando no Pet Shop do Seu Dito. | No pets yet… | `ui/petShop.ts` Meus pets (the lapsed-pets note left the panel; the kitnet card keeps its own) | | |
 | 638 | Caminhas e o saco de ração vão pra sua kitnet. Coleiras e brinquedos você põe no bichinho em Meus pets. | Beds and the food bag go to your kitnet… | `ui/petShop.ts` Lojinha | | |
-| 639 | Comandos: senta · deita · vem · busca · brinca | sit · lie down · come · fetch · play | `PET_COMMANDS` | spoken (ui) | |
+| 639 | Comandos: senta · deita · vem · busca · brinca | sit · lie down · come · fetch · play | `PET_COMMANDS` | now the five lines of the Pet Shop "?" card (`howToPlayData.ts`), no longer in Meus pets | |
 | 640 | {nome} quer passear? · Seu bichinho · Fechar | Does {name} want a walk? | `ui/petShop.ts` kitnet card | | |
 | 641 | Mais raças no Pet Shop do Seu Dito, na Rua dos Ipês. · Meus pets ({n}) | More breeds at Seu Dito's pet shop… | `ui/support.ts` | Apoiar panel | |
 | 642 | A lojinha fica no Pet Shop do Seu Dito. · Chegue mais perto do balcão. · Chegue mais perto do cercadinho. · Você já tem esse. · Esse item não serve pra esse bichinho. · Adote um no Pet Shop do Seu Dito. | (server errors) | `apps/server/src/petShop.ts`, `world.ts` | | |
 
+## Z. Chat hints
+
+<a id="z-chat-hints"></a>
+The hint under the chat input while typing (`packages/shared/src/safety.ts` `CHAT_HINTS`, shown by `ui/hud.ts`). It replaces "Vai com aviso", "Vai pra revisão" and "Não pode"; the moderation wording is gone from the player's path. An escalated message (held, queued, unchanged) shows the same line as a block, and `ESCALATE_NOTE` and the `ethnic_review` note now read as it does.
+
+| # | PT | EN | Where | Notes | BR |
+|---|---|---|---|---|---|
+| 643 | Vai, mas com cuidado | It sends, but go easy | `CHAT_HINTS.warn` | message goes out; was "Vai com aviso" | |
+| 644 | Essa não dá, tenta de outro jeito | Not that one, try another way | `CHAT_HINTS.block` | block and escalate; was "Não pode" / "Vai pra revisão"; also `ESCALATE_NOTE` | |
+
 ## Totals
 
-642 numbered strings in sections A to Q, S, T, U, V, W, X and Y, plus 9 proposed-card entries.
+644 numbered strings in sections A to Q, S, T, U, V, W, X, Y and Z, plus 9 proposed-card entries.
