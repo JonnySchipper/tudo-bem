@@ -11,7 +11,10 @@ import { PAN_ROUTE, introZoom, mapOffset, panCenter } from './introCamera';
 
 const root = path.resolve(__dirname, '../../public/pixel');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')) as Manifest;
-const atlas = JSON.parse(fs.readFileSync(path.join(root, manifest.atlases.outdoor.data), 'utf8')) as { frames: Record<string, unknown> };
+// every atlas the world loads up front (the pet shop's pieces have their own, #234)
+const atlases = Object.fromEntries(
+  Object.entries(manifest.atlases).filter(([, a]) => !a.lazy).map(([name, a]) => [name, JSON.parse(fs.readFileSync(path.join(root, a.data), 'utf8')) as { frames: Record<string, unknown> }]),
+);
 const rua = ROOMS.rua;
 const praca = ROOMS.praca;
 const leste = ROOMS.rua_leste;
@@ -42,7 +45,7 @@ describe('intro snapshot of Vila Ipê (the rua above the praça, split into area
     expect(plan.ops.filter((o) => o.kind === 'tile').length).toBeGreaterThan(own);
     for (const o of plan.ops) {
       if (o.kind === 'tile') expect(o.idx).toBeLessThan(manifest.terrain.count);
-      else expect(atlas.frames[o.frame], o.frame).toBeDefined();
+      else expect(atlases[o.atlas]?.frames[o.frame], o.frame).toBeDefined();
     }
   });
 

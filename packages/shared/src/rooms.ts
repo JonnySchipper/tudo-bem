@@ -881,7 +881,7 @@ const DITO: NpcDef = {
   y: 1,
   dir: 'SW',
   interact: { x: 2, y: 3 },
-  appearance: { body: 'forte', skin: 6, hair: 'raspado', hairColor: 4, top: 'camisa', topColor: 3, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'barba', idle: 'bracos' },
+  appearance: { body: 'forte', skin: 6, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 3, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'barba', idle: 'bracos' },
   hat: null,
   // each one is a diary line anchor (`dito.idle0..3`)
   idleLines: [
@@ -892,11 +892,12 @@ const DITO: NpcDef = {
   ],
 };
 
+// the four pieces fill the north wall edge to edge (poster 40 px, chart 62, vet plaque 48, banho e tosa 40), centred on these spans
 const PETSHOP_WALLS: WallDecor[] = [
-  { kind: 'poster', wall: 'right', from: -1, to: 1, text: 'ADOÇÃO' },
-  { kind: 'quadro_racas', wall: 'right', from: 1, to: 5 },
-  { kind: 'placa', wall: 'right', from: 5, to: 8, text: 'VETERINÁRIO' },
-  { kind: 'placa', wall: 'right', from: 9, to: 12, text: 'BANHO E TOSA' },
+  { kind: 'poster', wall: 'right', from: -0.75, to: 1.5, text: 'ADOÇÃO' },
+  { kind: 'quadro_racas', wall: 'right', from: 1.75, to: 5.75 },
+  { kind: 'placa', wall: 'right', from: 5.75, to: 9, text: 'VETERINÁRIO' },
+  { kind: 'placa', wall: 'right', from: 9.25, to: 12, text: 'BANHO E TOSA' },
 ];
 
 const petshop: RoomDef = {

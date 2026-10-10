@@ -10,6 +10,7 @@ import { FEIRA } from './diary/feira.mjs';
 import { KITNET } from './diary/kitnet.mjs';
 import { ACADEMIA } from './diary/academia.mjs';
 import { ESCOLA } from './diary/escola.mjs';
+import { PETSHOP } from './diary/petshop.mjs';
 
 export const PAL = {
   k: '#3a3a50', d: '#565972', g: '#8b8bab', l: '#c6bdd5', i: '#ebe4f2', w: '#f8f8f8',
@@ -20,7 +21,7 @@ export const PAL = {
   p: '#e07070', P: '#b95d72', v: '#8a6bbf', V: '#5e4a96', s: '#f0c8a0', S: '#c98f6a',
 };
 
-export const ITEMS = { ...PRACA, ...RUA, ...PADARIA, ...FEIRA, ...KITNET, ...ACADEMIA, ...ESCOLA };
+export const ITEMS = { ...PRACA, ...RUA, ...PADARIA, ...FEIRA, ...KITNET, ...ACADEMIA, ...ESCOLA, ...PETSHOP };
 
 /** One sprite from its grid: 1 px of padding all round for the navy outline. Anchor is the bottom centre of the art. */
 export function diaryItem({ id }) {

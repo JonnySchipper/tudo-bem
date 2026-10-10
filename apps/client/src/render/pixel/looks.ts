@@ -240,7 +240,7 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
   },
   // Seu Dito (pet shop, #234): grey buzz cut and beard, sp-green shirt, khaki trousers, a mustard shop apron, arms crossed.
   dito: {
-    appearance: base({ body: 'forte', skin: 6, hair: 'raspado', hairColor: 4, top: 'camisa', topColor: 3, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'barba', idle: 'bracos' }),
+    appearance: base({ body: 'forte', skin: 6, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 3, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'barba', idle: 'bracos' }),
     apron: '#d9a62e',
   },
   // The airport (arrival tutorial). Célia at the information desk: bun, the airport's teal uniform shirt with a yellow scarf knot (the

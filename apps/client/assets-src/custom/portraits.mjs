@@ -13,7 +13,7 @@ import { FRAME_W, FRAME_H, CANON_COLS, CANON_ROWS, CANON_ANIMS } from '../../../
 import { BLINK_FRAME } from './chars.mjs';
 
 export const EXPRESSIONS = ['neutro', 'feliz', 'surpreso', 'pensativo'];
-export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa', 'lucia', 'celia', 'agente'];
+export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa', 'lucia', 'celia', 'agente', 'dito'];
 
 const SIZE = 64;
 const S = 3;
@@ -121,7 +121,6 @@ export async function portraitParts(ctx = {}) {
   const layers = await charLayers(ctx.charLayers);
   const src = { sheetW: SHEET_W, sheetH: SHEET_H, geometry: { frameW: FRAME_W, frameH: FRAME_H, cols: CANON_COLS, rows: CANON_ROWS }, layer: (k) => layers.get(k) };
   const parts = [];
-  for (const id of NPCS) parts.push(...(await npcParts(K, src, id)));
-  if (!ctx.charLayers) cache = parts;
+  for (const id of NPCS) parts.push(...(await npcParts(K, src, id)));  if (!ctx.charLayers) cache = parts;
   return parts;
 }

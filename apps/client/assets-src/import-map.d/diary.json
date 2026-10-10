@@ -305,6 +305,12 @@
     {"key":"diary/patio","kind":"custom","custom":"diaryItem","args":{"id":"patio"},"footprint":[1,1],"shadow":"fx/shadow_16"},
     {"key":"diary/sign_silencio","kind":"custom","custom":"diarySign","args":{"text":"SILÊNCIO","style":"red"},"footprint":[3,1]},
     {"key":"diary/sign_biblioteca","kind":"custom","custom":"diarySign","args":{"text":"BIBLIOTECA","style":"blue"},"footprint":[3,1]},
-    {"key":"diary/sign_chamada","kind":"custom","custom":"diarySign","args":{"text":"CHAMADA","style":"white"},"footprint":[2,1]}
+    {"key":"diary/sign_chamada","kind":"custom","custom":"diarySign","args":{"text":"CHAMADA","style":"white"},"footprint":[2,1]},
+    {"key":"diary/cercadinho","kind":"custom","custom":"diaryItem","args":{"id":"cercadinho"},"footprint":[1,1],"shadow":"fx/shadow_10"},
+    {"key":"diary/peixe","kind":"custom","custom":"diaryItem","args":{"id":"peixe"},"footprint":[1,1]},
+    {"key":"diary/bolinha","kind":"custom","custom":"diaryItem","args":{"id":"bolinha"},"footprint":[1,1],"shadow":"fx/shadow_10"},
+    {"key":"diary/ossinho","kind":"custom","custom":"diaryItem","args":{"id":"ossinho"},"footprint":[1,1],"shadow":"fx/shadow_10"},
+    {"key":"diary/pelucia","kind":"custom","custom":"diaryItem","args":{"id":"pelucia"},"footprint":[1,1],"shadow":"fx/shadow_10"},
+    {"key":"diary/pata","kind":"custom","custom":"diaryItem","args":{"id":"pata"},"footprint":[1,1]}
   ]
 }
