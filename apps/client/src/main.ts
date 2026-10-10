@@ -472,8 +472,8 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
     // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help)
     openNpcTalk(npc, {
       // Seu Dito's "Quero ver a lojinha" / "Quero ver!" open the pet shop panel; everyone else's shop is Nanda's hats
-      openShop: npc === 'dito' ? () => void openPetShop('lojinha') : openShop,
-      openAdopt: npc === 'dito' ? () => void openPetShop('adotar') : undefined,
+      openShop: npc === 'dito' ? () => openPetShop('lojinha') : openShop,
+      openAdopt: npc === 'dito' ? () => openPetShop('adotar') : undefined,
       onLine: (anchor) => sendLine(anchor),
       buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
       openMat: () => openBout(),
@@ -643,9 +643,9 @@ function propAction(action: string, propId?: string) {
     game.pendingFeiraOpen = open;
     net.send({ t: 'feiraGame', action: 'board', open });
   } else if (action === 'petshop_counter') {
-    void openPetShop('lojinha');
+    openPetShop('lojinha');
   } else if (action === 'petshop_pen') {
-    void openPetShop('adotar');
+    openPetShop('adotar');
   } else if (action === 'padaria_counter') {
     const own = game.room?.padaria;
     if (own) openHouseCounter(own);
@@ -1375,7 +1375,7 @@ function openSupportPanel() {
     setPet: (pet) => net.send({ t: 'perk', action: 'pet', pet }),
     setBubble: (style) => net.send({ t: 'perk', action: 'bubble', style }),
     renamePet: (pet) => openPetName(pet),
-    openPets: () => void openPetShop('meus'),
+    openPets: () => openPetShop('meus'),
     takePet: (petId) => net.send({ t: 'pet', action: 'active', petId }),
   });
 }
@@ -1393,7 +1393,6 @@ function startGame() {
     rename: (petId, name) => net.send({ t: 'pet', action: 'rename', petId, name }),
     buy: (itemId) => net.send({ t: 'pet', action: 'buy', itemId }),
     equip: (petId, slot, itemId) => net.send({ t: 'pet', action: 'equip', petId, slot, itemId }),
-    support: openSupportPanel,
   });
   window.dispatchEvent(new Event('tb:game-start'));
   document.addEventListener('visibilitychange', () => {

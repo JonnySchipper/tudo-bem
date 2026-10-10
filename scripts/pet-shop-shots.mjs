@@ -6,7 +6,7 @@
  *   BASE_URL=http://127.0.0.1:5173 pnpm shots:pet-shop   # or use one that is already running
  *
  * Solo build (the world runs in the page). A free player first: the facade by day and at night, the interior with the day's animals, the
- * Adotar tab with the Apoiar card, a carinho and Seu Dito's line, the Diário's Pet Shop chapter. Then the test subscription (the rolltest
+ * Adotar tab, a carinho and Seu Dito's line, the Diário's Pet Shop chapter. Then the test subscription (the rolltest
  * session, as subscriber-perk-shots.mjs does): the meet view, the name dialog, the adoption, Meus pets, the Lojinha, a collar and a toy,
  * the pet following on the street, and the kitnet with the others resting (one on a caminha). It throws when a step does not happen.
  */
@@ -131,11 +131,12 @@ try {
     await shot(page, `03-interior-${vp.tag}`);
     await page.evaluate(() => window.__tb.interact({ prop: 'cercadinho' }));
     await page.waitForSelector('#petshop-panel', { timeout: 12_000 });
-    if (!(await page.$('#petshop-gate'))) throw new Error('a free player sees the Apoiar card');
+    if (await page.$('#petshop-gate')) throw new Error('the panel has no Apoiar card');
     await shot(page, `04-adotar-free-${vp.tag}`);
     await page.click('.petshop-animal[data-pen="cercadinho"][data-slot="0"]');
     await page.waitForSelector('#petshop-meet', { timeout: 6_000 });
     if (await page.$('#petshop-adopt')) throw new Error('no Adotar button without a subscription');
+    if (await page.$('.petshop-tab[data-tab="lojinha"]')) throw new Error('no Lojinha tab before a first pet');
     const words0 = await page.evaluate(() => (window.__tb.game.profile?.diary ?? []).length);
     await page.click('#petshop-carinho');
     await page.waitForFunction((n) => (window.__tb.game.profile?.diary ?? []).length > n, words0, { timeout: 8_000 });
@@ -147,8 +148,7 @@ try {
     await grant(page);
     await page.evaluate(() => window.__tb.interact({ prop: 'cercadinho' }));
     await page.waitForSelector('#petshop-panel', { timeout: 12_000 });
-    if (await page.$('#petshop-gate')) throw new Error('a subscriber does not see the Apoiar card');
-    await shot(page, `06-adotar-subscriber-${vp.tag}`);
+        await shot(page, `06-adotar-subscriber-${vp.tag}`);
     await page.click('.petshop-swatch[data-breed="vira_lata_caramelo"]');
     await page.waitForSelector('#petshop-meet', { timeout: 6_000 });
     await shot(page, `07-meet-${vp.tag}`);
