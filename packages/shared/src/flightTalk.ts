@@ -60,7 +60,7 @@ export const JULIA_LETTER = {
 /** The caption over the plane in the night sky. */
 export const FLIGHT_CAPTION = { pt: 'Em algum lugar sobre o Atlântico…', en: 'Somewhere over the Atlantic…' } as const;
 
-/** The cabin, from Lia's first "Oi!" to the seatbelt sign. */
+/** The cabin, from Lia's first "Oi!" to the seatbelt sign: three questions, short enough not to keep a player from the game. */
 export const FLIGHT_CABIN: readonly FlightBeat[] = [
   { kind: 'think', en: 'Ten hours in. The cabin lights are low, and you’re far too excited to sleep.' },
   {
@@ -69,14 +69,6 @@ export const FLIGHT_CABIN: readonly FlightBeat[] = [
     replies: [
       { pt: 'Tudo bem!', en: 'All good!', react: { pt: 'Muito bem! Você já fala português!', en: 'Very good! You already speak Portuguese!' } },
       { pt: 'Hã…?', en: 'Huh…?', react: { pt: 'Tudo bem, tudo bem!', en: 'It’s OK, it’s OK! “Tudo bem” means “all good”: you ask it, and you answer it.' } },
-    ],
-  },
-  {
-    kind: 'ask',
-    line: { pt: 'É a sua primeira vez no Brasil?', en: 'Is it your first time in Brazil?' },
-    replies: [
-      { pt: 'Sim!', en: 'Yes!', react: { pt: 'Que legal! Você vai amar.', en: 'How cool! You’re going to love it.' } },
-      { pt: 'Primeira vez!', en: 'First time!', react: { pt: 'Que legal! Você vai amar.', en: 'How cool! You’re going to love it.' } },
     ],
   },
   {

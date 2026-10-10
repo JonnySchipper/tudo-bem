@@ -1,15 +1,15 @@
 /**
- * The airport tutorial: where every new arrival starts (`ROOMS.aeroporto`). A checklist card (it takes the recado tracker's place while you
- * are in the airport) walks the player through everything the game asks of them, one step at a time, with a guide arrow in the world or a
- * pulse on the HUD button the step needs: walk, read a sign, Célia at the information desk (she hands over the camera, the cartela and
- * Júlia's note), a first photo, the Diário, the passport check, a seat, a wave, a pão de queijo, and the bus to the Vila.
+ * The airport tutorial: the second room of every new arrival (`ROOMS.aeroporto`, after the arrivals hall). A checklist card (it takes the
+ * recado tracker's place while you are in the airport) walks the player through what is new here, one step at a time, with a guide arrow
+ * in the world or a pulse on the HUD button the step needs: Célia at the information desk (she hands over the camera and Júlia's note),
+ * a first photo of the plane if the player wants one, and the bus to the Vila. Agente Paulo still checks passports for anyone who talks
+ * to him; it is not a step.
  *
- * Steps are derived from what the server already knows (the profile's tutorial flags, the arrival, the diary) where it can; the few that
- * are only client-side (the Diário opened, the passport check, the snack, the bus) are remembered per profile in localStorage.
- * Needs_br: every Portuguese line here.
+ * Steps are derived from what the server already knows (the arrival, the diary) where it can; the bus is only client-side and is
+ * remembered per profile in localStorage. Needs_br: every Portuguese line here.
  */
-import { AGENTE_LINES, CARTELA_COPY, CARTELA_GOAL, CARTELA_REWARD, CELIA_LINES, FILM, ARRIVAL_CARD, agenteAsk, celiaWelcome, greetingFor } from '@tudobem/shared';
-import { AIRPORT_NEXT, AIRPORT_STEPS, airportDone, nextAirportStep, passportChips, thanksFor, type AirportFlags, type AirportGuide, type AirportStepId } from './airportTutorialLogic';
+import { AGENTE_LINES, CELIA_LINES, FILM, ARRIVAL_CARD, agenteAsk, celiaWelcome, greetingFor } from '@tudobem/shared';
+import { AIRPORT_STEPS, airportDone, nextAirportStep, passportChips, thanksFor, type AirportFlags, type AirportGuide, type AirportStepId } from './airportTutorialLogic';
 import { game } from '../state';
 import { clock } from '../gameClock';
 import { speak } from '../audio';
@@ -45,7 +45,7 @@ function currentFlags(): AirportFlags {
   return flags;
 }
 
-/** A client-side step happened (the Diário opened, the passport stamped, a snack bought at the café, the bus taken). */
+/** A client-side step happened (the bus taken). */
 export function markAirportStep(id: keyof AirportFlags): void {
   const f = currentFlags();
   if (f[id]) return;
@@ -121,12 +121,7 @@ export function mountAirportTutorial(onStep?: () => void): { refresh: () => void
     el.classList.toggle('collapsed', folded);
     head.setAttribute('aria-expanded', String(!folded));
     const n = AIRPORT_STEPS.indexOf(next) + 1;
-    head.replaceChildren(
-      h('span', { class: 'aero-tut-plane', 'aria-hidden': 'true' }, '✈'),
-      h('b', null, 'Next steps'),
-      h('small', null, `${done.size}/${AIRPORT_STEPS.length}`),
-      h('span', { class: 'rtrack-caret', 'aria-hidden': 'true' }),
-    );
+    head.replaceChildren(h('span', { class: 'aero-tut-plane', 'aria-hidden': 'true' }, '✈'), h('b', null, 'Next steps'), h('span', { class: 'rtrack-caret', 'aria-hidden': 'true' }));
     // English first (what to do, and how), the Portuguese of the step beside it
     now.replaceChildren(
       h('span', { class: 'aero-tut-n' }, String(n)),
@@ -143,36 +138,9 @@ export function mountAirportTutorial(onStep?: () => void): { refresh: () => void
   refreshPanel = render;
   game.on('profile', render);
   game.on('room', render);
-  // the "what next" card belongs to the airport: leaving it (doors, bus, a skip) takes the card along
-  game.on('room', () => {
-    if (!inAirport()) document.getElementById('aero-next')?.remove();
-  });
   game.on('hud', render);
-  // a snack from the café is in your hand (the server puts it on your avatar)
-  game.on('avatars', () => {
-    const c = game.self?.pub.carry;
-    if (inAirport() && (c === 'pao_de_queijo' || c === 'cafezinho')) markAirportStep('lanche');
-  });
   render();
   return { refresh: render };
-}
-
-/** Out of the arrivals hall: a short card with where to go next (the checklist and the arrow carry on from there). */
-export function showAirportNext(): void {
-  document.getElementById('aero-next')?.remove();
-  // it is shown a beat after the hall's doors: by then the player may already have gone on
-  if (!inAirport()) return;
-  const ok = h('button', { type: 'button', class: 'primary', id: 'aero-next-ok', onclick: () => card.remove() }, 'Let’s go!', h('span', { class: 'en' }, ' · Vamos!'));
-  const card = h(
-    'div',
-    { class: 'tb-note aero-next', id: 'aero-next', role: 'dialog', 'aria-label': AIRPORT_NEXT.title },
-    h('h3', null, AIRPORT_NEXT.title),
-    h('p', { class: 'tb-note-small', lang: 'pt-BR' }, AIRPORT_NEXT.pt),
-    ...AIRPORT_NEXT.goals.map((g, i) => h('div', { class: 'aero-next-goal' }, h('b', null, String(i + 1)), h('span', null, g))),
-    h('div', { class: 'tb-note-foot' }, ok),
-  );
-  ui().append(card);
-  ok.focus({ preventScroll: true });
 }
 
 // ---------------------------------------------------------------- Célia: the hand-over
@@ -190,13 +158,6 @@ function gifts(): HTMLElement {
         h('span', { class: 'gift-art' }, h('i', { class: 'cam-body' }, h('i', { class: 'cam-lens' }), h('i', { class: 'cam-flash' }))),
         h('b', null, 'Câmera', en(' Camera')),
         h('small', null, `${FILM.starter} filmes`, en(` ${FILM.starter} films`)),
-      ),
-      h(
-        'div',
-        { class: 'arrival-gift gift-cartela', id: 'arrival-gift-cartela' },
-        h('span', { class: 'gift-art' }, h('i', { class: 'mini-card' }, ...Array.from({ length: CARTELA_GOAL }, () => h('i')))),
-        h('b', null, CARTELA_COPY.title.pt, en(` ${CARTELA_COPY.title.en}`)),
-        h('small', null, `Completa 7 e ganha +${CARTELA_REWARD} RV`, en(` Complete 7 and earn +${CARTELA_REWARD} RV`)),
       ),
     ),
     // Júlia's note: her four lines, in her hand
@@ -217,12 +178,9 @@ function gifts(): HTMLElement {
   );
 }
 
-/** Lift the two gifts out of the box and fly them to their HUD buttons (the camera button shows once the profile says `hasCamera`). */
+/** Lift the camera out of the box and fly it to its HUD button (the camera button shows once the profile says `hasCamera`). */
 function handOver() {
-  const pairs: [string, string][] = [
-    ['arrival-gift-camera', 'btn-camera'],
-    ['arrival-gift-cartela', 'cartela-pill'],
-  ];
+  const pairs: [string, string][] = [['arrival-gift-camera', 'btn-camera']];
   pairs.forEach(([from, to], i) => {
     const src = document.querySelector<HTMLElement>(`#${from} .gift-art`);
     if (!src) return;
@@ -277,7 +235,6 @@ export function openCelia(hooks: StaffHooks): void {
       [
         { pt: 'Como tiro uma foto?', en: 'How do I take a photo?' },
         { pt: 'Onde fica o ônibus?', en: 'Where is the bus?' },
-        { pt: 'O que é a cartela?', en: 'What is the stamp card?' },
         { pt: 'Tchau!', en: 'Bye!' },
       ],
       (i) => {
@@ -305,7 +262,6 @@ export function openAgente(hooks: StaffHooks): void {
       AGENTE_LINES.stamped,
       [thanksFor(game.profile?.pronoun)],
       () => {
-        markAirportStep('passaporte');
         closeDialogue();
         hooks.say('agente', AGENTE_LINES.next);
       },

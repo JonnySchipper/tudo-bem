@@ -1,4 +1,3 @@
-import { CARTELA_GOAL, CARTELA_REWARD } from './cartela.js';
 import type { Greeting } from './clock.js';
 import type { Bilingual } from './types.js';
 
@@ -19,10 +18,6 @@ export const CELIA_LINES = {
   answers: [
     { pt: 'Clica em Câmera, mira e clica de novo. A palavra do que aparece vai pro diário.', en: 'Click Camera, aim, and click again. The word for what’s in the picture goes into your diary.' },
     { pt: 'Lá fora, depois das portas. O 875 vai direto pra Vila Ipê.', en: 'Outside, past the doors. The 875 goes straight to Vila Ipê.' },
-    {
-      pt: `Cada coisa nova que você faz no bairro vale um carimbo. Com ${CARTELA_GOAL}, você ganha ${CARTELA_REWARD} RV!`,
-      en: `Every new thing you do in the neighborhood is worth a stamp. With ${CARTELA_GOAL}, you win ${CARTELA_REWARD} RV!`,
-    },
   ],
 } as const satisfies Record<string, Bilingual | readonly Bilingual[]>;
 

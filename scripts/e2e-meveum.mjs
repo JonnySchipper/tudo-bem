@@ -99,7 +99,7 @@ async function signUp(page, name) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   // Multiplayer is account-only; the session survives the restarts below (the SQLite file lives in DATA_DIR).
   await page.click('#intro-tab-register');
   await page.fill('#intro-email', `${name.toLowerCase()}+${Date.now().toString(36)}@exemplo.com`);

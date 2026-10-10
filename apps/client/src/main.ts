@@ -28,7 +28,6 @@ import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
 import {
   DEFAULT_APPEARANCE,
-  DESEMBARQUE_EXIT,
   MISSION_COPY,
   ROOMS,
   TUTORIAL_STEPS,
@@ -120,9 +119,9 @@ import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
-import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia, showAirportNext } from './ui/airportTutorial';
+import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
 import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
-import { desembGateHint, desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
+import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
 import { firstRoom } from './ui/desembarqueLogic';
 import { designLinkRoom, watchDesignLink } from './ui/designLink';
 import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
@@ -310,29 +309,11 @@ function propOnInteractTile(): PropDef | undefined {
   return room.props.find((p) => p.action && p.interact && p.interact.x === cur.tile.x && p.interact.y === cur.tile.y);
 }
 
-/**
- * The arrivals hall's doors to the airport stay shut until every tutorial step before them is done: trying them shows what is left
- * (PT + EN) and returns true. Any other door is never shut.
- */
-let gateToastAt = -1e9;
-function gateShut(portalId: string): boolean {
-  if (portalId !== DESEMBARQUE_EXIT) return false;
-  const hint = desembGateHint();
-  if (!hint) return false;
-  // one hint per beat: a double click or a held key does not stack toasts
-  if (performance.now() - gateToastAt > 1500) {
-    gateToastAt = performance.now();
-    toast('info', `🔒 ${hint.pt}`, hint.en);
-  }
-  return true;
-}
-
 function runPending() {
   const p = game.pending;
   game.pending = null;
   if (!p) return;
   if (p.kind === 'portal') {
-    if (gateShut(p.portalId)) return;
     const to = game.roomDef?.portals.find((q) => q.id === p.portalId)?.to;
     // an owner at Seu Carlos's door picks: their own padaria or his (the facade is shared; the owned shop has no door of its own)
     if (to === 'padaria' && game.profile?.padaria) chooseBakery(game.profile.padaria, () => net.send({ t: 'portal', portalId: p.portalId }));
@@ -1059,7 +1040,7 @@ net.on((m: ServerMsg) => {
       const keepMg = !!correriaUi?.open && game.room?.room === m.room;
       // off the airport bus: the tutorial's last step is done, and the Vila says hello
       const offTheBus = game.room?.room === 'aeroporto' && m.room === 'rua_leste';
-      // out of the arrivals hall's doors: its last step, and the airport's "what next"
+      // out of the arrivals hall's doors: its last step (the server marks the hall done)
       const outOfHall = game.room?.room === 'desembarque' && m.room === 'aeroporto';
       // a new room state (a join, a reconnect) ends any bout: the server dropped it too
       boutUi?.destroy();
@@ -1093,7 +1074,6 @@ net.on((m: ServerMsg) => {
       if (outOfHall) {
         markDesembStep('porta');
         net.send({ t: 'arrival', action: 'landed' });
-        if (game.profile?.arrivalIntroDone === false) setTimeout(showAirportNext, 700);
       } else showRoomIntro(m.room, doorTagsFor(ROOMS[m.room]), game.profile?.id);
       if (offTheBus) {
         markAirportStep('onibus');
@@ -1339,8 +1319,8 @@ net.on((m: ServerMsg) => {
       break;
     case 'tutorial': {
       const s = TUTORIAL_STEPS.find((x) => x.id === m.step);
-      // in the airport the checklist ticks these itself (in its own words: "Ande pelo terminal", not "pela praça")
-      const ticked = (inAirport() || inDesembarque()) && (m.step === 'andar' || m.step === 'sentar' || m.step === 'acenar');
+      // in the hall and the airport their own card ticks walking and saying hi (in its own words: not "pela praça"), so no second toast
+      const ticked = (inAirport() || inDesembarque()) && (m.step === 'andar' || m.step === 'sentar' || m.step === 'acenar' || m.step === 'conversar');
       if (s && !ticked) toast('reward', `✓ ${s.pt}`, s.en);
       updateGuides();
       break;
@@ -1407,7 +1387,6 @@ function startGame() {
       net.send({ t: 'carry', action });
     },
     openMap: () => {
-      markDesembStep('mapa');
       openMap((room) => {
         // the intro (arrivals hall, then the airport until Célia's hand-over) has no way out by map: finish it, or skip it in the hall
         if (game.profile && firstRoom(game.profile) !== null && (inDesembarque() || inAirport())) {
@@ -1419,10 +1398,7 @@ function startGame() {
     },
     openCredits,
     openSupport: openSupportPanel,
-    openCaderno: () => {
-      markDesembStep('diario');
-      openDiario();
-    },
+    openCaderno: () => openDiario(),
     openGuide: () => {
       closeModal();
       closeDialogue();
@@ -1571,7 +1547,6 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       return [t.pt, `${t.en} — click to read`];
     }
     case 'portal':
-      if (hit.portal.id === DESEMBARQUE_EXIT && desembGateHint()) return [`🔒 ${hit.portal.label.pt}`, 'Locked until the tutorial steps are done'];
       return [hit.portal.label.pt, hit.portal.label.en];
     case 'avatar': {
       const a = game.avatars.get(hit.id);
@@ -1660,10 +1635,6 @@ function handleClickInner(hit: Hit | null) {
       break;
     case 'portal': {
       const tile = { x: hit.portal.x, y: hit.portal.y };
-      if (gateShut(hit.portal.id)) {
-        markTap('refused', { tile });
-        break;
-      }
       markTap('target', { tile });
       walkTo(tile, { kind: 'portal', portalId: hit.portal.id, tile });
       break;

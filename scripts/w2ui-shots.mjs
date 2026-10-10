@@ -134,7 +134,7 @@ async function boot(page, vp, { name = 'Jonny', shots = false, enter = true } = 
   await sleep(3500);
   if (shots) await snap(page, vp, 'ui_title_hero');
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await sleep(1800);
   if (shots) await snap(page, vp, 'ui_signin_card');
   await page.click('#intro-tab-register');

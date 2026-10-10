@@ -59,7 +59,7 @@ async function boot(page) {
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await sleep(1500);
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await sleep(800);
   await page.click('#intro-tab-register');
   await page.fill('#intro-email', `v3+${Date.now().toString(36)}@exemplo.com`);

@@ -34,7 +34,7 @@ describe('where a conversation word is heard', () => {
     expect(ARRIVAL_CARD.kicker.pt).toBe('Aeroporto');
     expect(ARRIVAL_CARD.title.pt).toBe('Você chegou ao Brasil');
     expect(ARRIVAL_CARD.landed.pt).toBe('O avião acabou de pousar. Júlia te espera na praça.');
-    expect(ARRIVAL_CARD.camera.pt).toBe('Toma a câmera e a cartela do bairro.');
+    expect(ARRIVAL_CARD.camera.pt).toBe('Toma a câmera.');
     expect(ARRIVAL_CARD.diary.pt).toBe('Fotografe o que você vê e as palavras ficam no diário.');
     const signs = ['arrival.kicker', 'hall_s_desembarque', 'hall_s_bagagem', 'hall_s_alfandega', 'hall_s_embarque', 'hall_s_terminal'];
     for (const id of signs) expect(HOTSPOTS.find((h) => h.id === id)?.room, id).toBe('aeroporto');

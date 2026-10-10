@@ -15,6 +15,7 @@ import { WordQueue, cardMs, momentsOfShot, type QueuedWord, type WordMoment } fr
 import { flyWord } from './wordFlight';
 import { miniBook, revealJournal, wantsReveal } from './journalReveal';
 import { canPhotoFind, playPhotoFind } from './photoFind';
+import { oneWordCard } from './airportTutorialLogic';
 import { cameraFrameAt, clientRectToCanvas } from './viewfinder';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -274,8 +275,10 @@ export function showPhoto(m: ShotMsg) {
     pending = null;
   }
   const words = m.ok ? (m.words?.length ? m.words : [m]) : [];
+  // the plane at the gate is one thing: a shot of its parts gives one card with all their words (no burst: that shows one word)
+  const oneCard = m.ok && words.length > 1 && game.room?.room === 'aeroporto';
   // a new word keeps the print's caption a secret: the word bursts out of the picture and is written there (ui/photoFind.ts)
-  const finding = m.ok && canPhotoFind(print);
+  const finding = m.ok && !oneCard && canPhotoFind(print);
   if (print) {
     print.classList.remove('developing');
     if (finding) print.classList.add('charged');
@@ -292,7 +295,7 @@ export function showPhoto(m: ShotMsg) {
   }
   if (m.ok) {
     // every word the shot taught, in order; the print flies into the Diário when the last of them has been shown
-    queue.push(momentsOfShot(words, print ?? undefined));
+    queue.push(oneCard ? [{ ...oneWordCard(words), index: 1, total: 1, ...(print ? { print } : {}) }] : momentsOfShot(words, print ?? undefined));
     pump();
     return;
   }

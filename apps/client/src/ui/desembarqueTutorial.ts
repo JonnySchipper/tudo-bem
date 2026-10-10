@@ -3,16 +3,16 @@
  * Portuguese beside it: a card in the tracker's corner says what to do and how (on a computer or a phone), an arrow in the world or a
  * pulse on the HUD button shows where, and the step waits until the player has done it. Skip from the card; replay from Ajustes → Tutorial.
  *
- * The steps live in `desembarqueLogic.ts` (pure). The page reports what happened through `markDesembStep` (main.ts: a walk, a talk, the
- * Diário, a sign, a chat line or a wave, the map, the door); this file watches the hand (the water), the RV balance and the Fala button.
- * Progress is per profile in localStorage; the server only keeps `desembarqueDone` (so the next login goes on to the airport).
+ * The steps live in `desembarqueLogic.ts` (pure). The page reports what happened through `markDesembStep` (main.ts: a walk, a talk, a
+ * sign, a chat line or a wave, the door). The door is never locked. Progress is per profile in localStorage; the server only keeps
+ * `desembarqueDone`, set when the player walks out of the door (so the next login goes on to the airport).
  */
 import { game } from '../state';
 import { ambience } from '../ambience';
 import { h, ui } from './dom';
 import { toast } from './hud';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
-import { DESEMB_STEPS, RV_EXPLAINER, desembDone, desembGateHint as gateHint, drankWater, nextDesembStep, type DesembFlags, type DesembGuide, type DesembStepId } from './desembarqueLogic';
+import { DESEMB_STEPS, desembDone, nextDesembStep, type DesembFlags, type DesembGuide, type DesembStepId } from './desembarqueLogic';
 
 export { DESEMB_STEPS } from './desembarqueLogic';
 
@@ -70,51 +70,7 @@ export function desembGuide(): DesembGuide | null {
   return nextDesembStep(desembDone(currentFlags()))?.guide ?? null;
 }
 
-/**
- * The doors to the airport are shut while a step is left: the hint to show (PT + EN), or null when they are open. Only in the hall, and
- * only for an account still in it (a returning player who replays the tutorial from Ajustes is never locked in).
- */
-export function desembGateHint(): { pt: string; en: string } | null {
-  if (!inDesembarque() || game.profile?.desembarqueDone !== false) return null;
-  return gateHint(desembDone(currentFlags()));
-}
-
 const phone = () => window.matchMedia(COMPACT_QUERY).matches || window.matchMedia('(pointer: coarse)').matches;
-
-// ---------------------------------------------------------------- the RV note (the money step; the balance answers a click anywhere)
-
-export function openRvNote(): void {
-  document.getElementById('rv-note')?.remove();
-  const close = () => note.remove();
-  const ok = h('button', { type: 'button', class: 'primary', id: 'rv-note-ok', onclick: close }, 'Entendi!', h('span', { class: 'en' }, ' · Got it'));
-  const note = h(
-    'div',
-    { class: 'tb-note', id: 'rv-note', role: 'dialog', 'aria-label': RV_EXPLAINER.title.en },
-    h('h3', null, RV_EXPLAINER.title.en),
-    h('ul', null, ...RV_EXPLAINER.lines.map((l) => h('li', null, l.en, h('span', { lang: 'pt-BR' }, l.pt)))),
-    h('p', { class: 'tb-note-small' }, RV_EXPLAINER.note.en),
-    h('div', { class: 'tb-note-foot' }, ok),
-  );
-  ui().append(note);
-  ok.focus({ preventScroll: true });
-  markDesembStep('dinheiro');
-}
-
-function wireRvBalance() {
-  const rv = document.getElementById('hud-rv');
-  if (!rv || rv.dataset.wired) return;
-  rv.dataset.wired = '1';
-  rv.setAttribute('role', 'button');
-  rv.setAttribute('tabindex', '0');
-  rv.setAttribute('aria-label', 'Reais virtuais (RV): what they are and how to earn them');
-  rv.addEventListener('click', openRvNote);
-  rv.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      openRvNote();
-    }
-  });
-}
 
 // ---------------------------------------------------------------- skip
 
@@ -183,7 +139,6 @@ export function mountDesembTutorial(hooks: DesembHooks): { refresh: () => void }
   };
 
   const render = () => {
-    wireRvBalance();
     const here = inDesembarque() && !!game.profile;
     document.body.classList.toggle('in-desembarque', here);
     const done = desembDone(currentFlags());
@@ -232,21 +187,6 @@ export function mountDesembTutorial(hooks: DesembHooks): { refresh: () => void }
   game.on('profile', render);
   game.on('room', render);
   game.on('hud', render);
-  // the hand: the water picked up, then drunk
-  let carried: string | null = null;
-  game.on('avatars', () => {
-    const c = game.self?.pub.carry ?? null;
-    if (c === carried) return;
-    if (inDesembarque()) {
-      if (c === 'agua') markDesembStep('pegar');
-      if (drankWater(carried, c)) markDesembStep('beber');
-    }
-    carried = c;
-  });
-  // the Fala chip (feedback) opens its own form: opening it is the step
-  document.addEventListener('click', (e) => {
-    if ((e.target as Element | null)?.closest?.('#btn-feedback')) markDesembStep('fala');
-  });
   window.matchMedia(COMPACT_QUERY).addEventListener('change', render);
   render();
   return { refresh: render };

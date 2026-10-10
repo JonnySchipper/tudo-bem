@@ -139,7 +139,7 @@ async function toSignInCard(page) {
   } catch {
     // The beat already opened the sign-in card.
   }
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
 }
 
 /** Guest path (“Explorar como visitante”): shipped by the intro, so it must reach the world. */
@@ -211,14 +211,12 @@ async function main() {
   await page.waitForSelector('#intro-enter', { timeout: 12_000 });
   assert(!(await page.$('#avatar-name')) && !(await room(page)) && !(await page.$('#birth-month')), 'intro first: no DOB, no creator, no world');
   if (!SOLO) {
-    // Multiplayer is account-only: the guest CTA steers to Criar conta instead of entering the world.
+    // Multiplayer is account-only: no guest door on the sign-in card, and no game nouns (Fase 0, RV, kitnet) before the game.
     await toSignInCard(page);
-    await page.click('#intro-guest');
-    await page.waitForSelector('.intro-feedback:has-text("crie sua conta")', { timeout: 5000 });
-    await sleep(600);
-    assert(!(await page.$('#avatar-name')) && !(await room(page)), 'guest does not enter multiplayer');
-    assert(await page.isVisible('#intro-18'), 'guest CTA switches to Criar conta');
-    log('guest CTA → Criar conta (no multiplayer without an account)');
+    assert(!(await page.$('#intro-guest')), 'no guest CTA in multiplayer');
+    const card = await page.textContent('.intro-panel');
+    assert(!/Fase 0|kitnet|\bRV\b/.test(card ?? ''), 'the sign-in card names no game nouns');
+    log('sign-in card: no guest CTA, no game nouns');
   }
 
   // 1. Account (email + password, optional 18+ tick) → avatar creation. Solo builds enter as guests.

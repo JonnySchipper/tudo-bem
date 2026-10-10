@@ -34,11 +34,12 @@ async function enter(page) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
-  await page.click('#intro-guest');
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
+  // the server build has no guest door (multiplayer is account-only): Criar conta instead
+  await page.click((await page.$('#intro-guest')) ? '#intro-guest' : '#intro-tab-register');
   await sleep(600);
   if (await page.isVisible('#intro-18')) {
-    // the server build: guests do not enter multiplayer (the CTA switches to Criar conta), so make a throwaway account
+    // the server build: a throwaway account
     await page.fill('#intro-email', `pipoca+${Date.now().toString(36)}@exemplo.com`);
     await page.fill('#intro-password', 'pao-de-queijo-2026');
     await page.check('#intro-18');

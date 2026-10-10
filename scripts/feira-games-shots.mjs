@@ -44,7 +44,7 @@ async function enter(page) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   // A multiplayer server no longer lets a guest into the world (main, the sign-in gate). Solo still does.
   if (BASE.includes('solo')) {
     await page.click('#intro-guest');

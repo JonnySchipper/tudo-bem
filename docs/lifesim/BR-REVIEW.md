@@ -619,7 +619,7 @@ Visual pass on the arrival, camera, diary, escola and cartela. Everything else o
 
 | # | PT | EN | Where | Note | OK? |
 |---|---|---|---|---|---|
-| 463 | Toma a câmera e a cartela do bairro. | Here, take the camera and the neighborhood stamp card. | `apps/client/src/ui/arrival.ts` | **New, needs a Brazilian read.** Júlia's line in the plane intro. It replaces "A cartela de carimbos ainda não chegou. Quando ela existir, eu te entrego aqui." and drops "Enquanto isso," from the next line, because the cartela is on this build now. | |
+| 463 | Toma a câmera. | Here, take the camera. | `packages/shared/src/arrival.ts` | **Trimmed, needs a Brazilian read.** Júlia's note at the airport (Célia's hand-over). Was "Toma a câmera e a cartela do bairro."; the cartela is no longer handed over at the airport. | |
 | 464 | De novo | Again | `apps/client/src/ui/escola.ts` | Existing label from the tatame rematch, reused for "practice another word" after a right answer at the escola. Check it still fits there. | |
 | 465 | Hoje: 1/4 | Today: 1/4 | `apps/client/src/ui/cartela.ts` | Trimmed from "Hoje: 1/4 hoje", which repeated the word. | |
 | 466 | peça preta · peça branca | black piece · white piece | `apps/client/src/ui/checkers.ts` | **New, needs a Brazilian read.** Screen-reader labels of the damas pieces (not shown on screen). | |

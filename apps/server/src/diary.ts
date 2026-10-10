@@ -20,7 +20,6 @@ import {
   furnitureById,
   grantDiaryWord,
   handCamera,
-  handCartela,
   hotspotDistance,
   normalizeDiary,
   normalizeFilm,
@@ -81,7 +80,7 @@ function photoAnchors(msg: { anchor?: string; anchors?: string[] }): string[] {
 export class DiaryTracker {
   constructor(private readonly d: DiaryDeps) {}
 
-  /** The arrival, once: Célia at the airport's information desk hands over the camera, the cartela do bairro and Júlia's note (its words go into the diary). */
+  /** The arrival, once: Célia at the airport's information desk hands over the camera and Júlia's note (its words go into the diary). */
   finishArrival(s: Session) {
     const p = s.profile;
     if (!p) return;
@@ -90,7 +89,6 @@ export class DiaryTracker {
       return;
     }
     const first = p.arrivalIntroDone !== true;
-    const cartela = handCartela();
     p.arrivalIntroDone = true;
     p.diary = p.diary ?? [];
     // the same hand-over the catch-up popup uses, so a new arrival and a resident get the same camera and starter roll
@@ -99,15 +97,12 @@ export class DiaryTracker {
     this.d.pushProfile(s);
     if (!first) return;
     this.cardWords(s);
-    // needs_br: true
-    const waiting = cartela.given ? ' e a cartela do bairro' : '';
+    // needs_br: true. The camera only: the cartela is introduced later, in the Vila.
     s.send({
       t: 'notice',
       level: 'info',
-      pt: `Célia te entrega o pacote da Júlia: a câmera, ${FILM.starter} filmes${waiting}.`,
-      en: cartela.given
-        ? `Célia hands you Júlia’s package: the camera, ${FILM.starter} shots of film and the neighborhood stamp card.`
-        : `Célia hands you Júlia’s package: the camera and ${FILM.starter} shots of film.`,
+      pt: `Célia te entrega o pacote da Júlia: a câmera, ${FILM.starter} filmes.`,
+      en: `Célia hands you Júlia’s package: the camera and ${FILM.starter} shots of film.`,
     });
   }
 
