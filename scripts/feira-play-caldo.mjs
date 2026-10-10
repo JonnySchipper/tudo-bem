@@ -45,7 +45,7 @@ async function crank(page, untilLine = true) {
 }
 
 export async function play(page, { shot, mclick, log }) {
-  await startRun(page, '#caldo-root');
+  await startRun(page, '#caldo-root', () => shot('caldo-howto'));
   await shot('caldo-start');
   // cane, but no cup yet: it runs on the counter
   await mclick('#caldo-cane');
