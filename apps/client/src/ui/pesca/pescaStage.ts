@@ -6,6 +6,9 @@
 import { FISH, JUNK, PESCA_STAGE, SIZE_WORDS, isFishId, runAt, type Bilingual, type PescaOutcome, type ServerMsg, type WaterId } from '@tudobem/shared';
 import { imageUrl } from '../../render/pixel/manifest';
 import { speak } from '../../audio';
+import { ambience } from '../../ambience';
+import { PESCA_LOOP_MS, type PescaSfx } from '../../audio/pescaSfx';
+import { game } from '../../state';
 import { h, bi } from '../dom';
 import { foodIcon } from '../pixelArt';
 import { PescaPlay, type PescaCue } from './pescaPlay';
@@ -54,6 +57,9 @@ export class PescaStage {
   private splash: { x: number; y: number; t: number }[] = [];
   private open = true;
   private showingCard = false;
+  /** the last ratchet click while the line is held, and whether the creak already sounded for this climb past the red */
+  private reelAt = 0;
+  private creaked = false;
 
   constructor(
     readonly water: WaterId,
@@ -119,6 +125,7 @@ export class PescaStage {
     this.cues(r.cues);
     if (r.castPower !== null) {
       this.label.hidden = true;
+      this.sfx('cast');
       this.hooks.cast(r.castPower);
     }
   }
@@ -128,6 +135,12 @@ export class PescaStage {
     this.play.onCast(m, performance.now());
     const b = this.bobber();
     this.splash.push({ x: b.x, y: b.y, t: performance.now() });
+    this.sfx('plop');
+  }
+
+  /** One of the fishing sounds (audio/pescaSfx.ts), when sound is on. */
+  private sfx(kind: PescaSfx) {
+    if (game.sound) ambience.sfx(kind);
   }
 
   /** The cast was refused (too soon, busy): aim again. */
@@ -146,22 +159,38 @@ export class PescaStage {
       if (c === 'tangle') {
         this.say(PESCA_STAGE.enrolou);
         this.shakeIt(6);
-      } else if (c === 'nibble') this.dip = 3;
-      else if (c === 'bite') {
+        this.sfx('tangle');
+      } else if (c === 'nibble') {
+        this.dip = 3;
+        this.sfx('nibble');
+      } else if (c === 'bite') {
         this.dip = 10;
         this.say(PESCA_STAGE.fisgou);
+        this.sfx('fisgou');
         navigator.vibrate?.(40);
-      } else if (c === 'hooked') this.dip = 0;
-      else if (c === 'early') this.say(PESCA_STAGE.cedo);
-      else if (c === 'late') this.say(PESCA_STAGE.escapou);
-      else if (c === 'run_soon') this.dip = 4;
-      else if (c === 'snapped') {
+      } else if (c === 'hooked') {
+        this.dip = 0;
+        this.creaked = false;
+      } else if (c === 'early') {
+        this.say(PESCA_STAGE.cedo);
+        this.sfx('miss');
+      } else if (c === 'late') {
+        this.say(PESCA_STAGE.escapou);
+        this.sfx('miss');
+      } else if (c === 'run_soon') {
+        this.dip = 4;
+        this.sfx('tug');
+      } else if (c === 'snapped') {
         this.say(PESCA_STAGE.arrebentou);
         this.shakeIt(10);
-      } else if (c === 'escaped') this.say(PESCA_STAGE.escapou);
-      else if (c === 'landed') {
+        this.sfx('snap');
+      } else if (c === 'escaped') {
+        this.say(PESCA_STAGE.escapou);
+        this.sfx('miss');
+      } else if (c === 'landed') {
         const b = this.bobber();
         this.splash.push({ x: b.x, y: b.y, t: performance.now() });
+        this.sfx('leap');
       }
     }
   }
@@ -195,9 +224,12 @@ export class PescaStage {
         record ? h('div', { class: 'pesca-card-new' }, bi(PESCA_STAGE.recorde.pt, PESCA_STAGE.recorde.en)) : null,
       );
       this.say(PESCA_STAGE.pegou);
+      this.sfx(o.trophy ? 'trophy' : 'catch');
+      if (o.trophy) this.shakeIt(8);
     } else if (o.kind === 'junk') {
       const j = JUNK[o.junk];
       speak(j.pt, { speaker: 'ui' });
+      this.sfx('junk');
       body.push(foodIcon(o.junk === 'garrafa' ? 'garrafa_mensagem' : o.junk, 6, j.pt, 'pesca-card-fish'), h('div', { class: 'pesca-card-name' }, j.pt), h('div', { class: 'pesca-card-en' }, j.en));
       // the party boat's bottle: the message inside, read aloud once the card lands
       if (bottle) {
@@ -207,6 +239,7 @@ export class PescaStage {
     } else if (o.kind === 'released') {
       body.push(foodIcon('peixe_baiacu', 6, 'baiacu', 'pesca-card-fish pesca-puff'), h('div', { class: 'pesca-card-name' }, PESCA_STAGE.baiacu.pt), h('div', { class: 'pesca-card-en' }, PESCA_STAGE.devolve.pt, ' ', h('span', { class: 'en' }, PESCA_STAGE.devolve.en)));
       this.say(PESCA_STAGE.baiacu);
+      this.sfx('puff');
     } else {
       // nothing on the hook: the next cast is right away
       this.play.reset();
@@ -234,9 +267,23 @@ export class PescaStage {
     const { cues, done } = this.play.tick(now);
     this.cues(cues);
     if (done) this.hooks.result(this.play.seq, this.play.events);
+    this.fightSounds(now);
     this.draw(now);
     this.raf = requestAnimationFrame(this.frame);
   };
+
+  /** The ratchet while the line is held, and one creak each time the tension climbs into the red. */
+  private fightSounds(now: number) {
+    const play = this.play;
+    if (play.phase !== 'fight') return;
+    if (play.holding && now - this.reelAt >= PESCA_LOOP_MS.reel) {
+      this.reelAt = now;
+      this.sfx('reel');
+    }
+    const hot = play.fight.tension > 0.7;
+    if (hot && !this.creaked) this.sfx('creak');
+    this.creaked = hot;
+  }
 
   private draw(now: number) {
     const c = this.ctx;

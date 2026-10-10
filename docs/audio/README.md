@@ -46,7 +46,7 @@ The whole process (the musical rules every piece follows, and the steps from a b
 node scripts/audio-lab.mjs calibrate      # after changing any arrangement, instrument or stinger: re-measure → calibration.json
 node scripts/audio-lab.mjs levels         # what the player hears: every bed, Praça phrase and stinger, through the master
 node scripts/audio-lab.mjs stems intro    # the balance inside one arrangement, voice by voice
-node scripts/audio-lab.mjs sfx            # the bout's sound effects, to sit them against the bout music
+node scripts/audio-lab.mjs sfx            # the bout's sound effects, to sit them against the bout music (fishing: audio/pescaSfx.ts, PESCA_TRIM_DB)
 node scripts/audio-lab.mjs mp3            # these listening copies (needs ffmpeg)
 node scripts/audio-lab.mjs mp3 docs/audio feira   # just one of them
 ```
