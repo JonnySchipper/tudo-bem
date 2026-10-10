@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { BELT_LADDER, MUTE_MAX_MINUTES, ROOM_IDS, ROOMS, hasPerkAccess, normalizeBjj, normalizeDiary } from '@tudobem/shared';
+import { BELT_LADDER, MUTE_MAX_MINUTES, ROOM_IDS, ROOMS, hasPerkAccess, normalizeBjj, normalizeDiary, speciesCaught } from '@tudobem/shared';
 import { AdminLoginGuard, type AdminAuthConfig } from './adminAuth.js';
 import { clientIp, originAllowed, readJson, type CookieSecure } from './auth.js';
 import { ADMIN_SESSION_IDLE_MS, AdminSessions, adminCookie, adminCookieOf, type AdminSession } from './adminSession.js';
@@ -30,9 +30,11 @@ import {
   mute,
   playerDetail,
   playerRows,
+  praiaView,
   rename,
   resetIntro,
   resetLayout,
+  resetPesca,
   resetProgress,
   restore,
   setBelt,
@@ -40,6 +42,7 @@ import {
   setFeiraCart,
   setFounder,
   setItem,
+  setPraiaMode,
   signOutAll,
   subscriptions,
   triageFeedback,
@@ -220,7 +223,7 @@ export function createAdminApi(deps: AdminApiDeps) {
     if (what === 'profiles') {
       const now = ctx.world.now();
       return toCsv(
-        ['profile_id', 'name', 'account_id', 'email', 'created_at', 'last_seen', 'rv', 'belt', 'stripes', 'wins', 'diary_words', 'nameplate', 'founder', 'sub_status', 'sub_provider', 'sub_active', 'banned', 'muted_until', 'test_user'],
+        ['profile_id', 'name', 'account_id', 'email', 'created_at', 'last_seen', 'rv', 'belt', 'stripes', 'wins', 'diary_words', 'nameplate', 'founder', 'sub_status', 'sub_provider', 'sub_active', 'banned', 'muted_until', 'test_user', 'fish_species'],
         ctx.store.all().map((p) => {
           const bjj = normalizeBjj(p.bjj);
           return [
@@ -243,6 +246,7 @@ export function createAdminApi(deps: AdminApiDeps) {
             p.banned ? iso(p.banned.at) : '',
             (p.mutedUntil ?? 0) > now ? iso(p.mutedUntil) : '',
             p.testUser ? 'yes' : 'no',
+            speciesCaught(p.pesca).length,
           ];
         }),
       );
@@ -275,6 +279,7 @@ export function createAdminApi(deps: AdminApiDeps) {
     '/api/admin/feedback': (_q, res, url) => send(res, 200, feedbackList(ctx, { status: url.searchParams.get('status'), search: url.searchParams.get('q'), category: url.searchParams.get('category') })),
     '/api/admin/world': (_q, res) =>
       send(res, 200, { ...worldView(ctx), rooms: ROOM_IDS.filter((id) => id !== 'andar').map((id) => ({ id, name: ROOMS[id].name, designUrl: `/?design=${id}` })) }),
+    '/api/admin/praia': (_q, res) => send(res, 200, praiaView(ctx)),
     '/api/admin/config': (_q, res) => send(res, 200, { ok: true, values: ctx.config.list(), locked: LOCKED_TUNABLES }),
     '/api/admin/data/backups': (_q, res) => send(res, 200, { ok: true, backups: listBackups(backupDir()).map((b) => ({ name: path.basename(b.path), bytes: b.size, at: b.mtimeMs })) }),
     '/api/admin/data/backup-file': (_q, res, url, actor) => {
@@ -337,6 +342,8 @@ export function createAdminApi(deps: AdminApiDeps) {
     '/api/admin/feedback/triage': op(triageFeedback),
     '/api/admin/world/layout-reset': op(resetLayout),
     '/api/admin/world/feira-cart': op(setFeiraCart),
+    '/api/admin/praia/mode': op(setPraiaMode),
+    '/api/admin/player/reset-pesca': op(resetPesca),
     '/api/admin/config': op(setConfig),
     '/api/admin/audit/restore': op(restore),
     '/api/admin/design/draft': op(saveDraft),

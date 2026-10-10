@@ -10,7 +10,7 @@ import type { NpcActivity } from './schedules.js';
 import type { RecadoState } from './recados.js';
 
 /** Left in the hand after you finish a snack or a drink. Not edible. */
-export type EmptyCarryId = 'coco_vazio' | 'saquinho_vazio' | 'copinho_vazio' | 'copo_vazio';
+export type EmptyCarryId = 'coco_vazio' | 'saquinho_vazio' | 'copinho_vazio' | 'copo_vazio' | 'palito_vazio' | 'palito_picole' | 'sabugo';
 /**
  * In hand this session: a praça snack, a padaria order, or the empty it leaves.
  * Hats, birds, and outfits are never carry ids.
@@ -54,7 +54,7 @@ export type Nameplate = 'verde' | 'amarelo' | 'azul' | 'roxo' | 'dourado';
 /** Screen-facing: S = toward camera. SE = moving +x, SW = +y, NE = -y, NW = -x. */
 export type Dir = 'SE' | 'SW' | 'NE' | 'NW';
 
-export type RoomId = 'praca' | 'rua' | 'rua_leste' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola' | 'andar' | 'aeroporto' | 'desembarque';
+export type RoomId = 'praca' | 'rua' | 'rua_leste' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola' | 'andar' | 'aeroporto' | 'desembarque' | 'praia' | 'barco_festa';
 
 export type EmoteKind = 'oi' | 'dancar' | 'rir' | 'valeu' | 'desculpa';
 
@@ -226,6 +226,8 @@ export interface PrivateProfile {
   hasCamera?: boolean;
   /** Language-diary word ids earned once. */
   diary?: string[];
+  /** Fishing at the Praia (PRAIA-PLAN.md 8.1). Missing means "never fished"; `normalizePesca` on load. */
+  pesca?: import('./pescaProgress.js').PescaProgress;
   /** Escola: per-word strength (spaced repetition), XP, streak, daily goal and the earned nameplate tier. Defaulted on load. */
   escola?: import('./escola.js').EscolaState;
   /** Film rolls left in the camera. Júlia sells more. */

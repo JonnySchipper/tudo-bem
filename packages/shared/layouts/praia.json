@@ -1,0 +1,1252 @@
+{
+  "room": "praia",
+  "objects": [
+    {
+      "id": "mureta",
+      "kind": "cenario",
+      "x": 0,
+      "y": 0,
+      "w": 40,
+      "h": 2,
+      "blocks": true,
+      "art": "praia/mureta"
+    },
+    {
+      "id": "ponto",
+      "kind": "ponto_onibus",
+      "x": 2,
+      "y": 2,
+      "w": 3,
+      "blocks": true,
+      "label": {
+        "pt": "Ponto de ônibus",
+        "en": "Bus stop"
+      }
+    },
+    {
+      "id": "lampada_1",
+      "kind": "poste",
+      "x": 8,
+      "y": 2,
+      "blocks": true,
+      "art": "props/lamp_old",
+      "lightAtNight": true
+    },
+    {
+      "id": "lampada_2",
+      "kind": "poste",
+      "x": 16,
+      "y": 2,
+      "blocks": true,
+      "art": "props/lamp_old",
+      "lightAtNight": true
+    },
+    {
+      "id": "lampada_3",
+      "kind": "poste",
+      "x": 24,
+      "y": 2,
+      "blocks": true,
+      "art": "props/lamp_old",
+      "lightAtNight": true
+    },
+    {
+      "id": "lampada_4",
+      "kind": "poste",
+      "x": 33,
+      "y": 2,
+      "blocks": true,
+      "art": "props/lamp_old",
+      "lightAtNight": true
+    },
+    {
+      "id": "lixeira_1",
+      "kind": "lixeira",
+      "x": 11,
+      "y": 2,
+      "blocks": true
+    },
+    {
+      "id": "lixeira_2",
+      "kind": "lixeira",
+      "x": 31,
+      "y": 2,
+      "blocks": true
+    },
+    {
+      "id": "placa_jeriva",
+      "kind": "cenario",
+      "x": 18,
+      "y": 2,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Praia do Jerivá",
+        "en": "Jerivá Beach (sign)"
+      },
+      "art": "praia/placa_jeriva"
+    },
+    {
+      "id": "bici_1",
+      "kind": "cenario",
+      "x": 13,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "props/bicicletario"
+    },
+    {
+      "id": "banco_1",
+      "kind": "banco",
+      "x": 14,
+      "y": 2,
+      "w": 2,
+      "blocks": false,
+      "seat": "SW"
+    },
+    {
+      "id": "banco_2",
+      "kind": "banco",
+      "x": 21,
+      "y": 2,
+      "w": 2,
+      "blocks": false,
+      "seat": "SW"
+    },
+    {
+      "id": "banco_3",
+      "kind": "banco",
+      "x": 9,
+      "y": 2,
+      "w": 2,
+      "blocks": false,
+      "seat": "SW"
+    },
+    {
+      "id": "cerca_oeste",
+      "kind": "cerca",
+      "x": 0,
+      "y": 2,
+      "w": 1,
+      "h": 17,
+      "blocks": true,
+      "art": "cerca_jardim"
+    },
+    {
+      "id": "costao",
+      "kind": "pedras",
+      "x": 34,
+      "y": 2,
+      "w": 6,
+      "h": 17,
+      "blocks": true,
+      "label": {
+        "pt": "Costão",
+        "en": "Rocky headland"
+      },
+      "art": "praia/costao"
+    },
+    {
+      "id": "jeriva_1",
+      "kind": "arvore",
+      "x": 1,
+      "y": 7,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "jeriva_2",
+      "kind": "arvore",
+      "x": 12,
+      "y": 5,
+      "blocks": true,
+      "art": "props/jeriva_b"
+    },
+    {
+      "id": "jeriva_3",
+      "kind": "arvore",
+      "x": 17,
+      "y": 5,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "jeriva_4",
+      "kind": "arvore",
+      "x": 24,
+      "y": 5,
+      "blocks": true,
+      "art": "props/jeriva_b"
+    },
+    {
+      "id": "jeriva_5",
+      "kind": "arvore",
+      "x": 32,
+      "y": 6,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "restinga_1",
+      "kind": "sebe",
+      "x": 14,
+      "y": 6,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "restinga_2",
+      "kind": "sebe",
+      "x": 22,
+      "y": 6,
+      "w": 1,
+      "blocks": true,
+      "art": "props/bush_flower"
+    },
+    {
+      "id": "restinga_3",
+      "kind": "sebe",
+      "x": 31,
+      "y": 5,
+      "w": 1,
+      "blocks": true,
+      "art": "props/bush_flower"
+    },
+    {
+      "id": "cerca_duna_1",
+      "kind": "cerca",
+      "x": 13,
+      "y": 5,
+      "w": 2,
+      "h": 1,
+      "blocks": true,
+      "art": "cerca_jardim"
+    },
+    {
+      "id": "cerca_duna_2",
+      "kind": "cerca",
+      "x": 18,
+      "y": 5,
+      "w": 2,
+      "h": 1,
+      "blocks": true,
+      "art": "cerca_jardim"
+    },
+    {
+      "id": "barraca_jo",
+      "kind": "quiosque_praia",
+      "x": 6,
+      "y": 5,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "action": "street_snack",
+      "interact": {
+        "x": 6,
+        "y": 6
+      },
+      "label": {
+        "pt": "Barraca da Jô",
+        "en": "Jô’s kiosk"
+      },
+      "art": "praia/quiosque_coco",
+      "lightAtNight": true
+    },
+    {
+      "id": "placa_jo",
+      "kind": "cenario",
+      "x": 5,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Barraca da Jô",
+        "en": "Jô’s kiosk (menu board)"
+      },
+      "art": "praia/placa_jo"
+    },
+    {
+      "id": "arara_praia",
+      "kind": "cenario",
+      "x": 9,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "action": "beach_shop",
+      "interact": {
+        "x": 9,
+        "y": 6
+      },
+      "label": {
+        "pt": "Chapéus de praia",
+        "en": "Beach hats"
+      },
+      "art": "praia/arara_chapeus"
+    },
+    {
+      "id": "compro_peixe",
+      "kind": "cenario",
+      "x": 10,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "action": "fish_sell",
+      "interact": {
+        "x": 10,
+        "y": 6
+      },
+      "label": {
+        "pt": "Compro peixe",
+        "en": "I buy fish"
+      },
+      "art": "praia/placa_compro_peixe"
+    },
+    {
+      "id": "carrinho_coco_jo",
+      "kind": "cenario",
+      "x": 2,
+      "y": 6,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "art": "props/carrinho_coco"
+    },
+    {
+      "id": "posto_salva_vidas",
+      "kind": "posto_salva_vidas",
+      "x": 20,
+      "y": 5,
+      "w": 2,
+      "h": 2,
+      "blocks": true,
+      "label": {
+        "pt": "Posto de salva-vidas",
+        "en": "Lifeguard tower"
+      },
+      "art": "praia/posto_salva_vidas",
+      "lightAtNight": true
+    },
+    {
+      "id": "placa_proibido",
+      "kind": "cenario",
+      "x": 19,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Proibido pescar aqui",
+        "en": "No fishing here (sign)"
+      },
+      "art": "praia/placa_proibido"
+    },
+    {
+      "id": "galpao_barcos",
+      "kind": "galpao_barcos",
+      "x": 26,
+      "y": 4,
+      "w": 4,
+      "h": 3,
+      "blocks": true,
+      "action": "boat_rental",
+      "interact": {
+        "x": 27,
+        "y": 7
+      },
+      "label": {
+        "pt": "Barcos do Bento",
+        "en": "Bento’s boats"
+      },
+      "art": "praia/galpao_barcos",
+      "lightAtNight": true
+    },
+    {
+      "id": "placa_aluguel",
+      "kind": "cenario",
+      "x": 25,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Barcos do Bento: aluguel",
+        "en": "Bento’s boats: rental (sign)"
+      },
+      "art": "praia/placa_aluguel"
+    },
+    {
+      "id": "canoa",
+      "kind": "canoa",
+      "x": 30,
+      "y": 8,
+      "w": 2,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/canoa"
+    },
+    {
+      "id": "rede_secando",
+      "kind": "cenario",
+      "x": 31,
+      "y": 10,
+      "w": 2,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/rede_secando"
+    },
+    {
+      "id": "pedras_lagoa_1",
+      "kind": "pedras",
+      "x": 2,
+      "y": 8,
+      "w": 2,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/pedras_b"
+    },
+    {
+      "id": "pedras_lagoa_2",
+      "kind": "pedras",
+      "x": 5,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/pedras_a"
+    },
+    {
+      "id": "taboa_1",
+      "kind": "sebe",
+      "x": 1,
+      "y": 10,
+      "w": 1,
+      "blocks": true,
+      "art": "praia/taboa"
+    },
+    {
+      "id": "taboa_2",
+      "kind": "sebe",
+      "x": 6,
+      "y": 9,
+      "w": 1,
+      "blocks": true,
+      "art": "praia/taboa"
+    },
+    {
+      "id": "pesca_lagoa",
+      "kind": "pesca_spot",
+      "x": 4,
+      "y": 12,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 4,
+        "y": 12
+      },
+      "label": {
+        "pt": "Pesca na lagoa",
+        "en": "Fishing at the lagoon"
+      },
+      "art": "praia/pesca_stake",
+      "water": "lagoa"
+    },
+    {
+      "id": "guarda_sol_1",
+      "kind": "guarda_sol",
+      "x": 9,
+      "y": 9,
+      "blocks": true,
+      "art": "praia/guarda_sol_a"
+    },
+    {
+      "id": "toalha_1",
+      "kind": "cenario",
+      "x": 10,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "decals/toalha_azul"
+    },
+    {
+      "id": "cadeira_1",
+      "kind": "cadeira_praia",
+      "x": 8,
+      "y": 9,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia"
+    },
+    {
+      "id": "guarda_sol_2",
+      "kind": "guarda_sol",
+      "x": 14,
+      "y": 8,
+      "blocks": true,
+      "art": "praia/guarda_sol_b"
+    },
+    {
+      "id": "toalha_2",
+      "kind": "cenario",
+      "x": 15,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "decals/toalha_amarela"
+    },
+    {
+      "id": "cadeira_2",
+      "kind": "cadeira_praia",
+      "x": 13,
+      "y": 8,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia_b"
+    },
+    {
+      "id": "guarda_sol_3",
+      "kind": "guarda_sol",
+      "x": 19,
+      "y": 10,
+      "blocks": true,
+      "art": "praia/guarda_sol_c"
+    },
+    {
+      "id": "toalha_3",
+      "kind": "cenario",
+      "x": 20,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "decals/toalha_azul"
+    },
+    {
+      "id": "cadeira_3",
+      "kind": "cadeira_praia",
+      "x": 18,
+      "y": 10,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia"
+    },
+    {
+      "id": "guarda_sol_4",
+      "kind": "guarda_sol",
+      "x": 12,
+      "y": 13,
+      "blocks": true,
+      "art": "praia/guarda_sol_c"
+    },
+    {
+      "id": "toalha_4",
+      "kind": "cenario",
+      "x": 13,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "decals/toalha_amarela"
+    },
+    {
+      "id": "cadeira_4",
+      "kind": "cadeira_praia",
+      "x": 11,
+      "y": 13,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia_b"
+    },
+    {
+      "id": "guarda_sol_5",
+      "kind": "guarda_sol",
+      "x": 17,
+      "y": 15,
+      "blocks": true,
+      "art": "praia/guarda_sol_a"
+    },
+    {
+      "id": "toalha_5",
+      "kind": "cenario",
+      "x": 18,
+      "y": 15,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "decals/toalha_azul"
+    },
+    {
+      "id": "cadeira_5",
+      "kind": "cadeira_praia",
+      "x": 16,
+      "y": 15,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia"
+    },
+    {
+      "id": "guarda_sol_6",
+      "kind": "guarda_sol",
+      "x": 22,
+      "y": 13,
+      "blocks": true,
+      "art": "praia/guarda_sol_b"
+    },
+    {
+      "id": "toalha_6",
+      "kind": "cenario",
+      "x": 23,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "decals/toalha_amarela"
+    },
+    {
+      "id": "cadeira_6",
+      "kind": "cadeira_praia",
+      "x": 21,
+      "y": 13,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia_b"
+    },
+    {
+      "id": "guarda_sol_7",
+      "kind": "guarda_sol",
+      "x": 8,
+      "y": 15,
+      "blocks": true,
+      "art": "praia/guarda_sol_b"
+    },
+    {
+      "id": "toalha_7",
+      "kind": "cenario",
+      "x": 9,
+      "y": 15,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "decals/toalha_azul"
+    },
+    {
+      "id": "cadeira_7",
+      "kind": "cadeira_praia",
+      "x": 7,
+      "y": 15,
+      "blocks": false,
+      "seat": "SW",
+      "art": "praia/cadeira_praia"
+    },
+    {
+      "id": "castelo_1",
+      "kind": "cenario",
+      "x": 15,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/castelo_areia"
+    },
+    {
+      "id": "castelo_2",
+      "kind": "cenario",
+      "x": 6,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/castelo_areia"
+    },
+    {
+      "id": "concha_1",
+      "kind": "cenario",
+      "x": 11,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
+      "id": "concha_2",
+      "kind": "cenario",
+      "x": 20,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "concha_3",
+      "kind": "cenario",
+      "x": 5,
+      "y": 14,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
+      "id": "concha_4",
+      "kind": "cenario",
+      "x": 24,
+      "y": 9,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "concha_5",
+      "kind": "cenario",
+      "x": 13,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
+      "id": "concha_6",
+      "kind": "cenario",
+      "x": 21,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "concha_7",
+      "kind": "cenario",
+      "x": 26,
+      "y": 16,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
+      "id": "concha_8",
+      "kind": "cenario",
+      "x": 3,
+      "y": 16,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "concha_9",
+      "kind": "cenario",
+      "x": 10,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "concha_10",
+      "kind": "cenario",
+      "x": 24,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
+      "id": "concha_11",
+      "kind": "cenario",
+      "x": 18,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "concha_12",
+      "kind": "cenario",
+      "x": 15,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
+      "id": "pegadas_1",
+      "kind": "cenario",
+      "x": 4,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_2",
+      "kind": "cenario",
+      "x": 12,
+      "y": 10,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_3",
+      "kind": "cenario",
+      "x": 16,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_4",
+      "kind": "cenario",
+      "x": 20,
+      "y": 15,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_5",
+      "kind": "cenario",
+      "x": 25,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_6",
+      "kind": "cenario",
+      "x": 7,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_7",
+      "kind": "cenario",
+      "x": 10,
+      "y": 16,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "pegadas_8",
+      "kind": "cenario",
+      "x": 23,
+      "y": 16,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "madeira_mar_1",
+      "kind": "cenario",
+      "x": 23,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/madeira_mar"
+    },
+    {
+      "id": "madeira_mar_2",
+      "kind": "cenario",
+      "x": 2,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/madeira_mar"
+    },
+    {
+      "id": "concha_13",
+      "kind": "cenario",
+      "x": 32,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_b"
+    },
+    {
+      "id": "pegadas_9",
+      "kind": "cenario",
+      "x": 31,
+      "y": 14,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pegadas"
+    },
+    {
+      "id": "concha_14",
+      "kind": "cenario",
+      "x": 30,
+      "y": 16,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/concha_a"
+    },
+    {
+      "id": "banco_neide",
+      "kind": "banco",
+      "x": 25,
+      "y": 12,
+      "w": 2,
+      "blocks": false,
+      "seat": "SW"
+    },
+    {
+      "id": "balde_neide",
+      "kind": "cenario",
+      "x": 27,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/balde"
+    },
+    {
+      "id": "vara_neide",
+      "kind": "cenario",
+      "x": 24,
+      "y": 11,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "praia/vara_apoiada"
+    },
+    {
+      "id": "pesca_praia_1",
+      "kind": "pesca_spot",
+      "x": 10,
+      "y": 18,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 10,
+        "y": 18
+      },
+      "label": {
+        "pt": "Pesca na praia",
+        "en": "Fishing from the beach"
+      },
+      "art": "praia/pesca_stake",
+      "water": "praia"
+    },
+    {
+      "id": "pesca_praia_2",
+      "kind": "pesca_spot",
+      "x": 16,
+      "y": 18,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 16,
+        "y": 18
+      },
+      "label": {
+        "pt": "Pesca na praia",
+        "en": "Fishing from the beach"
+      },
+      "art": "praia/pesca_stake",
+      "water": "praia"
+    },
+    {
+      "id": "placa_perigo",
+      "kind": "cenario",
+      "x": 33,
+      "y": 17,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Perigo: correnteza",
+        "en": "Danger: rip current (sign)"
+      },
+      "art": "praia/placa_perigo"
+    },
+    {
+      "id": "placa_pier",
+      "kind": "cenario",
+      "x": 27,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Píer",
+        "en": "Pier (sign)"
+      },
+      "art": "praia/placa_pier"
+    },
+    {
+      "id": "pier_poste_w19",
+      "kind": "cenario",
+      "x": 28,
+      "y": 19,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pier_poste",
+      "ox": -7
+    },
+    {
+      "id": "pier_poste_e19",
+      "kind": "cenario",
+      "x": 29,
+      "y": 19,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pier_poste",
+      "ox": 7
+    },
+    {
+      "id": "pier_poste_w22",
+      "kind": "cenario",
+      "x": 28,
+      "y": 22,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pier_poste",
+      "ox": -7
+    },
+    {
+      "id": "pier_poste_e22",
+      "kind": "cenario",
+      "x": 29,
+      "y": 22,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pier_poste",
+      "ox": 7
+    },
+    {
+      "id": "pier_poste_w25",
+      "kind": "cenario",
+      "x": 28,
+      "y": 25,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pier_poste",
+      "ox": -7
+    },
+    {
+      "id": "pier_poste_e25",
+      "kind": "cenario",
+      "x": 29,
+      "y": 25,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pier_poste",
+      "ox": 7
+    },
+    {
+      "id": "pier_lampada_1",
+      "kind": "cenario",
+      "x": 28,
+      "y": 18,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pier_lampada",
+      "lightAtNight": true,
+      "ox": -7
+    },
+    {
+      "id": "pier_lampada_2",
+      "kind": "cenario",
+      "x": 28,
+      "y": 24,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pier_lampada",
+      "lightAtNight": true,
+      "ox": -7
+    },
+    {
+      "id": "pier_fim",
+      "kind": "cenario",
+      "x": 28,
+      "y": 25,
+      "w": 2,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/pier_fim"
+    },
+    {
+      "id": "barco_remo",
+      "kind": "barco",
+      "x": 30,
+      "y": 19,
+      "w": 2,
+      "h": 1,
+      "blocks": false,
+      "label": {
+        "pt": "Barquinho a remo",
+        "en": "Little rowboat"
+      },
+      "art": "praia/barco_remo"
+    },
+    {
+      "id": "pesca_remo",
+      "kind": "pesca_spot",
+      "x": 31,
+      "y": 19,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 30,
+        "y": 19
+      },
+      "label": {
+        "pt": "Pescar do barquinho",
+        "en": "Fish from the rowboat"
+      },
+      "art": "praia/pesca_bollard",
+      "water": "remo"
+    },
+    {
+      "id": "barco_pesca",
+      "kind": "barco",
+      "x": 30,
+      "y": 21,
+      "w": 3,
+      "h": 2,
+      "blocks": false,
+      "label": {
+        "pt": "Barco de pesca",
+        "en": "Fishing boat"
+      },
+      "art": "praia/barco_pesca"
+    },
+    {
+      "id": "pesca_barco",
+      "kind": "pesca_spot",
+      "x": 31,
+      "y": 22,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 30,
+        "y": 22
+      },
+      "label": {
+        "pt": "Pescar do barco de pesca",
+        "en": "Fish from the fishing boat"
+      },
+      "art": "praia/pesca_bollard",
+      "water": "pesca"
+    },
+    {
+      "id": "barco_alto_mar",
+      "kind": "barco",
+      "x": 30,
+      "y": 24,
+      "w": 4,
+      "h": 2,
+      "blocks": false,
+      "label": {
+        "pt": "Barco de alto-mar",
+        "en": "Deep-sea boat"
+      },
+      "art": "praia/barco_alto_mar"
+    },
+    {
+      "id": "pesca_alto_mar",
+      "kind": "pesca_spot",
+      "x": 32,
+      "y": 25,
+      "blocks": false,
+      "action": "pesca",
+      "interact": {
+        "x": 30,
+        "y": 25
+      },
+      "label": {
+        "pt": "Pescar do alto-mar",
+        "en": "Fish from the deep-sea boat"
+      },
+      "art": "praia/pesca_bollard",
+      "water": "alto_mar"
+    },
+    {
+      "id": "barco_festa",
+      "kind": "barco",
+      "x": 23,
+      "y": 22,
+      "w": 5,
+      "h": 3,
+      "blocks": false,
+      "action": "party_boat",
+      "interact": {
+        "x": 28,
+        "y": 23
+      },
+      "label": {
+        "pt": "Barco de festa",
+        "en": "Party boat"
+      },
+      "art": "praia/barco_festa",
+      "lightAtNight": true
+    },
+    {
+      "id": "gaivota_1",
+      "kind": "cenario",
+      "x": 35,
+      "y": 16,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/gaivota",
+      "ox": 3,
+      "z": 40
+    },
+    {
+      "id": "gaivota_2",
+      "kind": "cenario",
+      "x": 37,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/gaivota",
+      "ox": -4,
+      "z": 90
+    }
+  ]
+}

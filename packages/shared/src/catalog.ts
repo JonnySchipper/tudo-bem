@@ -4,7 +4,7 @@ export interface HatDef {
   en: string;
   price: number;
   /** Render recipe key + palette, interpreted by the client renderer. */
-  shape: 'bone' | 'palha' | 'gorro' | 'viseira' | 'boina' | 'sol' | 'bucket' | 'capacete' | 'panama' | 'flores' | 'chef' | 'cartola';
+  shape: 'bone' | 'palha' | 'gorro' | 'viseira' | 'boina' | 'sol' | 'bucket' | 'capacete' | 'panama' | 'flores' | 'chef' | 'cartola' | 'capitao';
   color: string;
   accent: string;
 }
@@ -24,6 +24,13 @@ export const HATS: HatDef[] = [
   { id: 'cartola', pt: 'Cartola de Carnaval', en: 'Carnival top hat', price: 60, shape: 'cartola', color: '#6a45a0', accent: '#e8b634' },
 ];
 
+/** Jô's beach rack at the Praia (PRAIA-PLAN.md 7.3): sold only there. needs_br: true */
+export const HATS_PRAIA: HatDef[] = [
+  { id: 'chapeu_pescador', pt: 'Chapéu de pescador', en: 'Fisherman’s bucket hat', price: 20, shape: 'bucket', color: '#c9b98a', accent: '#5a7a8a' },
+  { id: 'viseira', pt: 'Viseira de praia', en: 'Beach visor', price: 12, shape: 'viseira', color: '#f4ede2', accent: '#3fa9a0' },
+  { id: 'bone_surf', pt: 'Boné de surfe', en: 'Surf cap', price: 15, shape: 'bone', color: '#3fa9a0', accent: '#e5572f' },
+];
+
 export interface FurnitureDef {
   id: string;
   pt: string;
@@ -31,7 +38,7 @@ export interface FurnitureDef {
   price: number;
   /** Seat furniture can be sat on. */
   seat: boolean;
-  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro' | 'rede' | 'filtro' | 'banner';
+  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro' | 'rede' | 'filtro' | 'banner' | 'praia';
   color: string;
   /** Walk-through items (rugs, the founders banner) do not block tiles. */
   walkable?: boolean;
@@ -66,6 +73,14 @@ export const FURNITURE: FurnitureDef[] = [
     walkable: true,
     earned: true,
   },
+  // the Praia (PRAIA-PLAN.md 7.3): two beach things sold at the atelier, five earned at sea and never priced. needs_br: true
+  { id: 'cadeira_praia', pt: 'Cadeira de praia', en: 'Beach chair', price: 12, seat: true, kind: 'praia', color: '#3d56d2' },
+  { id: 'concha_pequena', pt: 'Conchinha', en: 'Little seashell', price: 8, seat: false, kind: 'praia', color: '#e6cdb0' },
+  { id: 'concha_grande', pt: 'Concha gigante', en: 'Giant seashell', price: 0, seat: false, kind: 'praia', color: '#eab6a8', earned: true },
+  { id: 'rede_pesca_parede', pt: 'Rede de pesca', en: 'Fishing net', price: 0, seat: false, kind: 'praia', color: '#4f8a63', earned: true },
+  { id: 'garrafa_mensagem', pt: 'Garrafa com mensagem', en: 'Message in a bottle', price: 0, seat: false, kind: 'praia', color: '#3f8a5c', earned: true },
+  { id: 'boia_parede', pt: 'Boia salva-vidas', en: 'Life ring', price: 0, seat: false, kind: 'praia', color: '#d93232', earned: true },
+  { id: 'prancha', pt: 'Prancha de surfe', en: 'Surfboard', price: 0, seat: false, kind: 'praia', color: '#4280dd', earned: true },
 ];
 
 /** Every new kitnet comes with one free chair so the first placement is instant. */
@@ -79,6 +94,8 @@ export const STARTER_HATS: string[] = [];
  */
 export const EARNED_HATS: HatDef[] = [
   { id: 'chapeu_padeiro_casa', pt: 'Chapéu de dono da padaria', en: 'Bakery owner’s hat', price: 0, shape: 'chef', color: '#ffffff', accent: '#e0ae3c' },
+  // the party boat (PRAIA-PLAN.md 5.5): everyone who sails a trip with company earns it once; never sold, not on any rack
+  { id: 'chapeu_capitao', pt: 'Chapéu de capitão', en: 'Captain’s cap', price: 0, shape: 'capitao', color: '#f6f6f2', accent: '#2a3a60' },
 ];
 
 /**
@@ -90,9 +107,11 @@ export const RETIRED_HATS: HatDef[] = [
 ];
 
 /** Every hat a profile can wear (the stall, the earned ones, and retired stall hats someone may already own). */
-export const ALL_HATS: HatDef[] = [...HATS, ...EARNED_HATS, ...RETIRED_HATS];
+export const ALL_HATS: HatDef[] = [...HATS, ...HATS_PRAIA, ...EARNED_HATS, ...RETIRED_HATS];
 
 export const hatById = (id: string | null | undefined): HatDef | undefined => ALL_HATS.find((h) => h.id === id);
 /** Only the stall sells hats; earned and retired hats are not in the shop. */
 export const isStallHat = (id: string): boolean => HATS.some((h) => h.id === id);
+/** Jô's beach rack sells these, at the Praia only. */
+export const isPraiaHat = (id: string): boolean => HATS_PRAIA.some((h) => h.id === id);
 export const furnitureById = (id: string): FurnitureDef | undefined => FURNITURE.find((f) => f.id === id);

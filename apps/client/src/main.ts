@@ -109,6 +109,10 @@ import { openNpcTalk } from './ui/npcTalk';
 import { profileMetJulia } from './ui/juliaMet';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty } from './ui/feira';
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
+import { askTray, bindPesca, onPescaMsg, onPescaRefused, openCaderneta, openPescaSpot } from './ui/pesca';
+import { askBarcos, bindBarco, onBarcoMsg, returnBarco } from './ui/pesca/barcoMenu';
+import { aboardMyParty, bindParty, createParty, hostingParty, inviteToBoat, onAboardCatch, onPartyMsg, onPartyRoomChanged, sendAshore } from './ui/pesca/party';
+import './styles/pesca.css';
 import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
@@ -468,6 +472,13 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
       openMat: () => openBout(),
       papo: () => void openPapo(npc, papoHooks),
       juliaAlreadyMet: npc === 'julia' ? juliaMet : undefined,
+      praia: (what) => {
+        if (what === 'snacks') openStreetSnack('barraca_jo', (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
+        else if (what === 'rack') openBeachRack();
+        else if (what === 'sell') praiaAction('fish_sell');
+        else if (what === 'rental') praiaAction('boat_rental');
+        else praiaAction('caderneta');
+      },
     });
   }
 }
@@ -600,6 +611,8 @@ function propAction(action: string, propId?: string) {
   else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
   else if (action === 'street_snack' && propId) openStreetSnack(propId, (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
+  else if (action === 'beach_shop') openBeachRack();
+  else if (action === 'pesca' || action === 'fish_sell' || action === 'boat_rental' || action === 'party_boat') praiaAction(action, propId);
   else if (action === 'checkers') openCheckers();
   else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
@@ -689,6 +702,26 @@ function openShop() {
     closed ? { closedNote: { pt: 'Nanda volta às 8h', en: 'Nanda is back at 8 am' } } : {},
   );
 }
+
+/** Jô's beach rack at the Praia: her three sun hats (sold only there). Open at every hour (D12). */
+function openBeachRack() {
+  closeDialogue();
+  openHatShop('shop', { buy: (id) => net.send({ t: 'buy', kind: 'hat', itemId: id }), equip: (id) => net.send({ t: 'equipHat', hatId: id }) }, { stall: 'jo' });
+}
+
+/** The Praia's fishing, the fish tray, Bento's boats and the party boat. */
+function praiaAction(action: 'pesca' | 'fish_sell' | 'boat_rental' | 'party_boat' | 'caderneta', propId?: string) {
+  closeDialogue();
+  if (action === 'pesca' && propId) openPescaSpot(propId);
+  else if (action === 'fish_sell') askTray();
+  else if (action === 'caderneta') openCaderneta();
+  // the party boat's gangway on the pier: Bento's menu (his boats are moored there), whose festa chip starts a trip
+  else if (action === 'boat_rental' || action === 'party_boat') askBarcos();
+}
+
+bindPesca((m) => net.send(m), () => returnBarco());
+bindBarco({ send: (m) => net.send(m), party: () => createParty() });
+bindParty((m) => net.send(m));
 
 function startMinigame() {
   closeDialogue();
@@ -940,7 +973,7 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque';
+      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque' || last === 'praia';
       // a new arrival starts in the arrivals hall (the guided tutorial), then the airport until Célia's hand-over; everybody else comes
       // back where they were, or to the praça
       // the dashboard's design link (`/?design=<room>`) wins over both, once the player has arrived
@@ -964,6 +997,7 @@ net.on((m: ServerMsg) => {
     case 'error':
       if (m.code === 'far' || m.code === 'photo' || m.code === 'film' || m.code === 'camera') dropPendingPrint();
       if (m.code === 'feira_closed') closeFeiraGame();
+      if (m.code === 'pesca_busy' || m.code === 'pesca' || m.code === 'far') onPescaRefused();
       if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
       else if (m.code === 'petName' && showPetNameError(m.pt, m.en)) {
         /* the naming dialog shows the note */
@@ -975,6 +1009,21 @@ net.on((m: ServerMsg) => {
       break;
     case 'feiraGame':
       onFeiraGameMsg(m);
+      break;
+    case 'pesca':
+      if (m.phase === 'aboard') onAboardCatch(m);
+      else onPescaMsg(m);
+      break;
+    case 'barco':
+      onBarcoMsg(m);
+      break;
+    case 'party':
+      onPartyMsg(m);
+      break;
+    case 'praia':
+      // the admin switch: the map shows the beach as a teaser again while it is closed to this player
+      game.praia = { mode: m.mode, partyBoat: m.partyBoat, allowed: m.allowed };
+      game.emit('praia');
       break;
     case 'photos':
       game.photos = m.photos;
@@ -1020,7 +1069,8 @@ net.on((m: ServerMsg) => {
       game.placing = null;
       game.selectedFurniture = null;
       game.npcBubbles.clear();
-      if (m.room !== 'andar' && (m.room !== 'kitnet' || m.ownerId === game.profile?.id)) sessionStorage.setItem(LAST_ROOM_KEY, m.room);
+      // a party deck is never remembered: a reconnect lands back at the beach
+      if (m.room !== 'andar' && (m.room !== 'kitnet' || m.ownerId === game.profile?.id)) sessionStorage.setItem(LAST_ROOM_KEY, m.room === 'barco_festa' ? 'praia' : m.room);
       ambience.setRoom(m.room);
       updateGuides();
       game.emit('room');
@@ -1063,6 +1113,7 @@ net.on((m: ServerMsg) => {
       syncAcademyFloor();
       syncPadariaFloor();
       maybeAskPetName();
+      onPartyRoomChanged();
       break;
     }
     case 'academy':
@@ -1357,6 +1408,7 @@ function startGame() {
         hop: (room, instanceId, ownerId) => joinRoom(room, instanceId ?? undefined, ownerId),
         refresh: () => net.send({ t: 'friends' }),
         unblock: (id) => net.send({ t: 'block', action: 'unblock', targetId: id }),
+        boat: { hosting: hostingParty, invite: inviteToBoat },
       }),
     openWardrobe: () => openHatShop('wardrobe', { buy: () => {}, equip: (id) => net.send({ t: 'equipHat', hatId: id }) }),
     toggleDecor: () => {
@@ -1535,6 +1587,7 @@ function handleClickInner(hit: Hit | null) {
           report: (id, reason) => net.send({ t: 'report', targetId: id, reason }),
           block: (id, on) => net.send({ t: 'block', action: on ? 'block' : 'unblock', targetId: id }),
           wave: () => net.send({ t: 'emote', kind: 'oi' }),
+          ...(aboardMyParty(a.pub.id) ? { ashore: (id: string) => sendAshore(id) } : {}),
         });
       break;
     }

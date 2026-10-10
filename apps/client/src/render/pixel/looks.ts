@@ -251,6 +251,21 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
   comissaria: {
     appearance: base({ body: 'medio', skin: 2, hair: 'coque', hairColor: 2, top: 'camisa', topColor: 7, bottom: 'saia', bottomColor: 10, shoes: 1, face: 'doce', extra: 'brincos', idle: 'bracos' }),
   },
+  // The Praia (PRAIA-PLAN.md 6). Seu Bento (boats): broad, beard, a faded blue shirt, a weathered olive fisherman's bucket (never the
+  // captain's cap: that one stays the players'). Dona Neide (the mentor): grey bun, glasses, a sand bucket hat, no apron (she is not Graça).
+  // Jô (the kiosk): braids, a mustard tank top, shorts and a terracotta visor.
+  bento: {
+    appearance: base({ body: 'forte', skin: 4, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 6, bottom: 'calca', bottomColor: 1, shoes: 2, face: 'maduro', extra: 'barba', idle: 'bracos' }),
+    hat: { layer: 'hat_balde', color: '#6f6a3e', accent: '#3e3a26' },
+  },
+  neide: {
+    appearance: base({ body: 'medio', skin: 6, hair: 'coque', hairColor: 5, top: 'camiseta', topColor: 9, bottom: 'calca', bottomColor: 3, shoes: 0, face: 'maduro', extra: 'oculos', idle: 'solto' }),
+    hat: { layer: 'hat_balde', color: '#d8c79a', accent: '#8a5a3a' },
+  },
+  jo: {
+    appearance: base({ body: 'medio', skin: 6, hair: 'trancas', hairColor: 0, top: 'regata', topColor: 4, bottom: 'bermuda', bottomColor: 8, shoes: 3, face: 'marcante', extra: 'brincos', idle: 'cintura' }),
+    hat: { layer: 'hat_viseira_azul', color: '#c45c26', accent: '#f4ede2' },
+  },
 };
 
 /**

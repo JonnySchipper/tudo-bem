@@ -15,6 +15,9 @@
     "tia_lu": { "voice": "pt-BR-FranciscaNeural", "rate": "-4%", "pitch": "-5Hz", "about": "Tia Lu, feira: warm and a little loud" },
     "rosa": { "voice": "pt-BR-FranciscaNeural", "rate": "-8%", "pitch": "+5Hz", "about": "Dona Rosa, flores: soft" },
     "ze": { "voice": "pt-BR-AntonioNeural", "rate": "+6%", "pitch": "+4Hz", "about": "Seu Zé, hortaliças: quick and chatty" },
-    "chico": { "voice": "pt-BR-AntonioNeural", "rate": "-6%", "pitch": "-6Hz", "about": "Seu Chico, pastel: deep and easygoing" }
+    "chico": { "voice": "pt-BR-AntonioNeural", "rate": "-6%", "pitch": "-6Hz", "about": "Seu Chico, pastel: deep and easygoing" },
+    "bento": { "voice": "pt-BR-AntonioNeural", "rate": "-2%", "pitch": "-9Hz", "about": "Seu Bento, aluguel de barcos: calm, a little gravelly, the sea in his voice" },
+    "neide": { "voice": "pt-BR-FranciscaNeural", "rate": "-7%", "pitch": "-6Hz", "about": "Dona Neide, pescadora: slow, warm, sure of herself" },
+    "jo": { "voice": "pt-BR-FranciscaNeural", "rate": "+9%", "pitch": "+2Hz", "about": "Jô, the beach kiosk: quick, sunny, calls everyone 'meu bem'" }
   }
 }

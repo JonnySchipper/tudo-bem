@@ -122,6 +122,52 @@ export function buildFlatTiles(fills, extraVariants = []) {
   return tiles.concat(extraVariants);
 }
 
+/** The sea's edge: foam, a paler water lip, and the wet band it leaves on whatever it meets. */
+export const SHORE_STYLE = { foam: '#f2faf6', foam2: '#d2efe6', lip: '#6cc5b8', wet: [110, 84, 46] };
+/** Foam thickness (px) along an edge, by the pixel's position along it: a slow wobble that repeats every tile, so neighbours meet. */
+const SHORE_WOBBLE = [1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1];
+
+/**
+ * `shore` terrains (the Praia's sea and lagoa): cut along the 8x8 quadrants like `flush` (so no hole opens where the water meets the pier's
+ * deck or a boat), every water pixel opaque. Where the water ends inside the tile: a 1-2 px foam line, a softer foam pixel and a paler lip;
+ * on the empty side a semi-transparent wet band (dark on the sand; the deck, drawn over it, hides it). Mask 15 is the untouched fill.
+ */
+export function buildShoreTiles(fills, style = SHORE_STYLE) {
+  const tiles = [];
+  const inShape = (mask, x, y) => quadrantFilled(mask, Math.min(15, Math.max(0, x)), Math.min(15, Math.max(0, y)));
+  const STEPS = [[0, -1, 'N'], [0, 1, 'S'], [-1, 0, 'W'], [1, 0, 'E']];
+  for (const fill of fills) {
+    for (let mask = 0; mask < 16; mask++) {
+      const t = blank(16, 16);
+      if (mask !== 0) {
+        for (let y = 0; y < 16; y++) {
+          for (let x = 0; x < 16; x++) {
+            const i = (y * 16 + x) * 4;
+            if (quadrantFilled(mask, x, y)) {
+              let d = 99, face = 'N';
+              if (mask !== 15) {
+                for (const [dx, dy, f] of STEPS) for (let s = 1; s <= 4; s++) if (!inShape(mask, x + dx * s, y + dy * s)) { if (s < d) { d = s; face = f; } break; }
+                if (d > 1 && [[1, 1], [1, -1], [-1, 1], [-1, -1]].some(([dx, dy]) => !inShape(mask, x + dx, y + dy))) d = 1;
+              }
+              const w = face === 'N' || face === 'S' ? SHORE_WOBBLE[x] : SHORE_WOBBLE[y];
+              const hex = d <= w ? style.foam : d === w + 1 ? style.foam2 : d === w + 2 ? style.lip : null;
+              if (hex) setPx(t, x, y, hexPx(hex));
+              else { t.data[i] = fill.data[i]; t.data[i + 1] = fill.data[i + 1]; t.data[i + 2] = fill.data[i + 2]; t.data[i + 3] = 255; }
+            } else {
+              let d = 99;
+              for (const [dx, dy] of STEPS) for (let s = 1; s <= 3; s++) if (inShape(mask, x + dx * s, y + dy * s)) { d = Math.min(d, s); break; }
+              const a = d === 1 ? 76 : d === 2 ? 44 : d === 3 ? 20 : 0;
+              if (a) setPx(t, x, y, [style.wet[0], style.wet[1], style.wet[2], a]);
+            }
+          }
+        }
+      }
+      tiles.push(t);
+    }
+  }
+  return tiles;
+}
+
 /**
  * `flush` terrains (art track 3: interior floors, brick pavers): the tile is the fill cut along the 8x8 quadrants of the mask, no chamfer,
  * no curb, no shadow, so two flush terrains that meet (or a flush terrain and the slab under it) join exactly on the world tile edge.

@@ -20,9 +20,13 @@ export interface ZoneMix {
   rain: number;
   /** a radio behind a window of the houses */
   radio: number;
+  /** the Praia: the waves breaking on the shore (louder toward the pier end) */
+  waves: number;
+  /** the Praia: gulls on the costão, by day */
+  gulls: number;
 }
 
-export const SILENT_MIX: ZoneMix = { traffic: 0, fountain: 0, birds: 0, crickets: 0, rain: 0, radio: 0 };
+export const SILENT_MIX: ZoneMix = { traffic: 0, fountain: 0, birds: 0, crickets: 0, rain: 0, radio: 0, waves: 0, gulls: 0 };
 
 export interface ZoneEnv {
   /** listener, world px */
@@ -86,6 +90,15 @@ export function zoneMix(z: AudioZones, e: ZoneEnv): ZoneMix {
   const fountain = falloff(Math.hypot(e.x - z.fountain.x, e.y - z.fountain.y), 44, 200);
   let radio = 0;
   for (const r of z.radios) radio = Math.max(radio, falloff(Math.hypot(e.x - r.x, e.y - r.y), 26, 150));
+  // the sea is heard across the whole beach (a floor of 0.35 even up on the calçadão), fuller near the shore and at the pier end
+  let waves = 0;
+  for (const w of z.waves ?? []) {
+    const shore = falloff(distToStreet(e.x, e.y, w), 32, 320);
+    const loud = w.loud ? falloff(Math.hypot(e.x - w.loud.x, e.y - w.loud.y), 24, 220) : 0;
+    waves = Math.max(waves, 0.35 + 0.5 * shore + 0.15 * loud);
+  }
+  let gulls = 0;
+  for (const g of z.gulls ?? []) gulls = Math.max(gulls, falloff(Math.hypot(e.x - g.x, e.y - g.y), 60, 360));
   return {
     traffic: clamp01(street * trafficPresence(e.minute) * (1 + 0.2 * clamp01(e.rain))),
     fountain: fountain * (1 - clamp01(e.rain) * 0.3),
@@ -93,6 +106,8 @@ export function zoneMix(z: AudioZones, e: ZoneEnv): ZoneMix {
     crickets: (1 - day) * dry,
     rain: clamp01(e.rain),
     radio: radioOn(e.minute) ? radio * (1 - clamp01(e.rain) * 0.6) : 0,
+    waves: clamp01(waves),
+    gulls: gulls * day * dry,
   };
 }
 
@@ -123,6 +138,10 @@ export const FOOTSTEPS: Record<FloorKind, FootstepSound> = {
   tatame: { freq: 420, q: 0.7, filter: 'lowpass', dur: 0.08, gain: 0.04, thump: 90 },
   // the airport's polished stone: a bright, short click
   granilite: { freq: 3200, q: 1.7, filter: 'bandpass', dur: 0.04, gain: 0.046, thump: 0 },
+  // the Praia: a soft crunch in the sand, a hollow tap on the pier's planks (nobody walks on water; the entry keeps the record full)
+  areia: { freq: 650, q: 0.5, filter: 'lowpass', dur: 0.1, gain: 0.036, thump: 0 },
+  agua: { freq: 500, q: 0.5, filter: 'lowpass', dur: 0.08, gain: 0.02, thump: 0 },
+  deque: { freq: 600, q: 1.3, filter: 'bandpass', dur: 0.07, gain: 0.05, thump: 150 },
 };
 
 /** Playback-rate / filter multiplier for one step: 1 ± 5%. `r` is a 0..1 random. */

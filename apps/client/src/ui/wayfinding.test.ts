@@ -54,7 +54,7 @@ describe('how to play', () => {
 
   it('explains every panel and activity a new player meets without a guided tutorial', () => {
     const places = HOW_TO_PLAY.filter((g) => g.kind === 'place');
-    expect(places.map((g) => g.id)).toEqual(['balcao', 'papo', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira']);
+    expect(places.map((g) => g.id)).toEqual(['balcao', 'papo', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira', 'pesca']);
     for (const g of places) {
       expect(g.selector.length, g.id).toBeGreaterThan(3);
       expect(g.goal.length, g.id).toBeGreaterThan(10);
@@ -68,6 +68,16 @@ describe('how to play', () => {
   it('has no card for the bakery game: it teaches by doing (one coach mark per new action), and no card mentions "Quanto é?" there', () => {
     expect(HOW_TO_PLAY.find((g) => g.id === 'correria')).toBeUndefined();
     expect(HOW_TO_PLAY.find((g) => g.id === 'balcao')!.steps.join(' ')).toMatch(/vitrine/);
+  });
+
+  it('fishing has only the "?" card: it never opens by itself, and it carries the three beats in Portuguese with no digits', () => {
+    const pesca = HOW_TO_PLAY.find((g) => g.id === 'pesca')!;
+    expect(pesca.kind).toBe('place');
+    expect(pesca.autoOpen).toBe(false);
+    expect(pesca.selector).toBe('#pesca-root');
+    expect(pesca.goal).toMatch(/Segura pra lançar, solta\. Fisgou\? Toca\. Segura pra puxar, solta quando ele corre\./);
+    expect([pesca.goal, ...pesca.steps].join(' ')).not.toMatch(/\d/);
+    for (const g of HOW_TO_PLAY) if (g.id !== 'pesca') expect(g.autoOpen, g.id).toBeUndefined();
   });
 
   it('never makes the jiu-jitsu roll a quiz', () => {

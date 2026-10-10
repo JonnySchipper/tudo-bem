@@ -6,12 +6,12 @@
  * (the how-to-play page, the kiosk badge) still shows the shipped default, so `playerCopy` warns the admin.
  * Browser-safe: solo mode runs World in the page.
  */
-import { BELT_LADDER, CADERNO_GROUP_RV, DEFAULT_ROOM_CAP, ECONOMY, IDLE_KICK_MS, MISSION_REWARD } from '@tudobem/shared';
+import { BELT_LADDER, CADERNO_GROUP_RV, DEFAULT_ROOM_CAP, ECONOMY, IDLE_KICK_MS, MISSION_REWARD, PRAIA_PRICES } from '@tudobem/shared';
 import { ADMIN_MONEY_MAX } from './adminAuth.js';
 
 export interface TunableDef {
   key: string;
-  group: 'Economy' | 'Timers' | 'World' | 'Admin';
+  group: 'Economy' | 'Timers' | 'World' | 'Admin' | 'Praia';
   label: string;
   help: string;
   default: number;
@@ -32,6 +32,15 @@ export const TUNABLES = [
   { key: 'idleKickMinutes', group: 'Timers', label: 'Idle kick', help: 'No real input for this long and the seat is freed. The warning comes a minute before.', default: IDLE_KICK_MS / 60_000, min: 2, max: 120, unit: 'min' },
   { key: 'roomCap', group: 'World', label: 'Room cap', help: 'Players per room instance before a new instance opens. 16 is the most the client draws.', default: DEFAULT_ROOM_CAP, min: 1, max: DEFAULT_ROOM_CAP, unit: 'players' },
   { key: 'adminGrantMax', group: 'Admin', label: 'Largest single RV grant', help: 'Cap on one admin give/take, in the dashboard and the in-game admin panel.', default: ADMIN_MONEY_MAX, min: 1, max: 5000, unit: 'RV' },
+  // the Praia (PRAIA-PLAN.md 8.5). The rental menu reads the prices from the server, so an override is safe.
+  { key: 'boatRemoRv', group: 'Praia', label: 'Rowboat rental', help: 'One trip on the barquinho a remo.', default: PRAIA_PRICES.remo, min: 1, max: 500, unit: 'RV' },
+  { key: 'boatPescaRv', group: 'Praia', label: 'Fishing boat rental', help: 'One trip on the barco de pesca.', default: PRAIA_PRICES.pesca, min: 1, max: 500, unit: 'RV' },
+  { key: 'boatAltoMarRv', group: 'Praia', label: 'Deep-sea boat rental', help: 'One trip on the barco de alto-mar.', default: PRAIA_PRICES.alto_mar, min: 1, max: 500, unit: 'RV' },
+  { key: 'boatFestaRv', group: 'Praia', label: 'Party boat', help: 'Paid once by the host of a party boat trip; guests pay nothing.', default: PRAIA_PRICES.festa, min: 1, max: 500, unit: 'RV' },
+  { key: 'pescaSaleCapRv', group: 'Praia', label: 'Fish sales cap', help: 'Most RV a player gets selling fish to Jô in one day (São Paulo day).', default: PRAIA_PRICES.saleCap, min: 0, max: 500, unit: 'RV' },
+  { key: 'tripMinutes', group: 'Praia', label: 'Boat trip length', help: 'Real minutes a rented boat stays yours (it also ends when you leave the beach).', default: PRAIA_PRICES.tripMinutes, min: 2, max: 60, unit: 'min' },
+  { key: 'partyTripMinutes', group: 'Praia', label: 'Party boat trip length', help: 'Real minutes a party boat trip lasts.', default: PRAIA_PRICES.partyMinutes, min: 5, max: 60, unit: 'min' },
+  { key: 'partyBoatCap', group: 'Praia', label: 'Party boat cap', help: 'People aboard a party boat, the host included.', default: PRAIA_PRICES.partyCap, min: 2, max: 16, unit: 'players' },
 ] as const satisfies readonly TunableDef[];
 
 export type TunableKey = (typeof TUNABLES)[number]['key'];

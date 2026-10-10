@@ -19,7 +19,8 @@ import { loadImportMap } from './lib/pixel/importmap.mjs';
 import { recolorRamp } from '../apps/client/assets-src/custom/kit.mjs';
 import { FLOORS } from '../apps/client/assets-src/custom/floors.mjs';
 import { packAtlas } from './lib/pixel/pack.mjs';
-import { buildSlabTiles, buildFlatTiles, buildFlushTiles } from './lib/pixel/terrain-gen.mjs';
+import { buildSlabTiles, buildFlatTiles, buildFlushTiles, buildShoreTiles } from './lib/pixel/terrain-gen.mjs';
+import { areia } from '../apps/client/assets-src/custom/praia.mjs';
 import { splitTree, swayFrames } from './lib/pixel/tree.mjs';
 import { castShadow } from './lib/pixel/shadow.mjs';
 import { CANON_ANIMS, CANON_COLS, CANON_ROWS, FRAME_W, FRAME_H } from './lib/pixel/chars.mjs';
@@ -86,13 +87,17 @@ const manifest = { version: 1, tile: 16, atlases: {}, terrain: {}, sprites: {}, 
 const atlasItems = { outdoor: [] };
 const sprites = manifest.sprites;
 
+/** The world atlas a sprite packs into: the beach pieces have their own (the outdoor atlas is at the 1024 x 2048 texture cap). */
+const worldAtlas = (name) => (name.startsWith('praia/') ? 'praia' : 'outdoor');
+
 function addFrame(atlas, name, img) {
-  (atlasItems[atlas] ??= []).push({ name, img });
+  const a = atlas === 'outdoor' ? worldAtlas(name) : atlas;
+  (atlasItems[a] ??= []).push({ name, img });
 }
 
 function baseEntry(def, img, anchor) {
   return {
-    atlas: 'outdoor',
+    atlas: worldAtlas(def.key),
     frame: def.key,
     w: img.w,
     h: img.h,
@@ -282,19 +287,20 @@ for (const [name, items] of Object.entries(atlasItems)) {
       const s = blank(16 * phasesX, 16 * phasesY);
       fills.forEach((f, p) => paste(s, f, (p % phasesX) * 16, Math.floor(p / phasesX) * 16));
       await savePng(s, path.join(CUSTOM_PNG, def.custom + '_fill.png'));
-    } else if (def.kind === 'flush') {
-      // interior floors and pavers: exact quadrant cuts of a fill (custom generator in custom/floors.mjs, phases x,y)
+    } else if (def.kind === 'flush' || def.kind === 'shore') {
+      // interior floors and pavers: exact quadrant cuts of a fill (custom generator in custom/floors.mjs, phases x,y); the sea is cut the
+      // same way with a foam line on every edge and a wet band on the far side (`shore`)
       const gen = FLOORS[def.custom];
-      if (!gen) throw new Error(`import-map: unknown flush floor '${def.custom}'`);
+      if (!gen) throw new Error(`import-map: unknown ${def.kind} floor '${def.custom}'`);
       const fills = gen.fn(gen.needsPack ? await sheet(def.sheet) : undefined);
-      tiles.push(...buildFlushTiles(fills, { rim: def.rim ?? null }));
-      layers[ch] = { name: def.name, edge: 'flush', first, phases: gen.phasesX, phasesY: gen.phasesY, variants: 1, tiles: 16 * fills.length };
+      tiles.push(...(def.kind === 'shore' ? buildShoreTiles(fills) : buildFlushTiles(fills, { rim: def.rim ?? null })));
+      layers[ch] = { name: def.name, edge: def.kind, first, phases: gen.phasesX, phasesY: gen.phasesY, variants: 1, tiles: 16 * fills.length };
       const s = blank(16 * gen.phasesX, 16 * gen.phasesY);
       fills.forEach((f, p) => paste(s, f, (p % gen.phasesX) * 16, Math.floor(p / gen.phasesX) * 16));
       await savePng(s, path.join(CUSTOM_PNG, `floor_${def.custom}_fill.png`));
     } else {
       // flat underlay: a custom generator (asphalt) or tiles cropped from a pack sheet (grass)
-      const FLAT_CUSTOM = { asfalto, paralelepipedo };
+      const FLAT_CUSTOM = { asfalto, paralelepipedo, areia };
       const src = def.custom ? null : await sheet(def.sheet);
       const fills = def.custom ? FLAT_CUSTOM[def.custom]() : def.tiles.map(([x, y]) => crop(src, x, y, 16, 16));
       const seen = new Map();

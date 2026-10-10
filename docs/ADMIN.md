@@ -19,11 +19,11 @@ Every `/api/admin/*` route checks the cookie on the server (`apps/server/src/adm
 |---|---|
 | Overview | See who is online and in which room instance, account and profile totals, sign-ups per day, subscribers and comps, Jev status, uptime, version, disk, database size and the last backup. |
 | Players | Search by name, email or id. Sort and filter (online, subscribers, banned, muted, founder, no avatar, test). Click a row for the player page. |
-| Player page | See the account, sessions, profile (summary plus raw JSON), kitnet, academy and padaria, moderation history, feedback and billing events. Give or take RV (with a reason), grant or remove hats, furniture, birds, bag items and the gi, set belt and stripes, reset tutorial, desembarque, arrival intro or flight in, mute, kick, ban, rename, set the founder flag, sign out all sessions, reset progress, and delete the account. |
+| Player page | See the account, sessions, profile (summary plus raw JSON), kitnet, academy and padaria, fishing (species, catches, record, bucket, sales today, rentals, the boat out now, party trips), moderation history, feedback and billing events. Give or take RV (with a reason), grant or remove hats, furniture, birds, bag items and the gi (the captain's cap and the earned beach furniture are in the lists), set belt and stripes, reset tutorial, desembarque, arrival intro or flight in, mute, kick, ban, rename, set the founder flag, sign out all sessions, **reset pesca** (support: clears the fishing log, bucket, rentals and trip; diary words and earned items stay), reset progress, and delete the account. |
 | Subscriptions | See Lemon Squeezy subscribers and the webhook event history. Grant or revoke a **comp**. |
 | Moderation | See `moderation.jsonl` and reports, filtered by kind or text. See who is muted or banned now. Mute or ban from any row. |
 | Feedback | Mark each in-game note new, seen or done, and add a note. |
-| World & areas | Switch feira carts off, on or rotation. Set the room cap. Open each room in design mode (the level editor, see [DESIGN-MODE.md](DESIGN-MODE.md)). Reset a room's layout override. |
+| World & areas | The **Praia** card: the beach's mode (open for everyone, preview for subscribers' early access only, closed: the map shows "Em breve" and everyone on the beach rides the bus back) and the party boat on or off (off brings every trip back to the pier). Live numbers: players on the beach, boats out per tier, people aboard party boats; today's rentals per tier, catches per species, RV Jô paid and bottles found (server memory, restart with it). Routes `GET /api/admin/praia` and `POST /api/admin/praia/mode`, audited as `world.praia`. Switch feira carts off, on or rotation. Set the room cap. Open each room in design mode (the level editor, see [DESIGN-MODE.md](DESIGN-MODE.md)). Reset a room's layout override. |
 | Game variables | Edit the values below. |
 | Data | Make a backup now, list and download backups, and export accounts or profiles as CSV. |
 | Audit log | See every admin change. Look at a snapshot, and restore a reset or a delete. |
@@ -42,6 +42,7 @@ Screenshots of every section are in [`screenshots/admin/`](screenshots/admin/). 
 - **No money.** A comp gives supporter perks (pets, bubbles) for 1 to 366 days. It is marked COMP everywhere, gives no founder badge or banner, and never touches Lemon Squeezy or a live paid subscription. Do not put Lemon Squeezy test keys on prod.
 - **RV grants** are capped by `adminGrantMax` (500 by default). They are an admin tool and they are logged. Players still only earn RV by playing.
 - **Feira carts** stay off by default.
+- **The Praia** ships `open` with the party boat on. Preview never gates learning: it is only an early-access window. The in-game admin door has the same switch (`praiaSet`).
 
 ## Game variables
 
@@ -58,12 +59,20 @@ Every value is read by the server through `apps/server/src/gameConfig.ts`. Overr
 | `idleKickMinutes` | 15 min | 2–120 | idle kick (overrides `IDLE_KICK_SECONDS`) |
 | `roomCap` | 16 | 1–16 | players per instance (overrides `ROOM_CAP`) |
 | `adminGrantMax` | 500 RV | 1–5000 | largest single admin RV grant |
+| `boatRemoRv` | 15 RV | 1–500 | one rowboat trip (Bento's menu) |
+| `boatPescaRv` | 40 RV | 1–500 | one fishing boat trip |
+| `boatAltoMarRv` | 90 RV | 1–500 | one deep-sea boat trip |
+| `boatFestaRv` | 150 RV | 1–500 | one party boat trip, paid once by the host |
+| `pescaSaleCapRv` | 60 RV | 0–500 | most RV a player gets selling fish to Jô in one São Paulo day |
+| `tripMinutes` | 12 min | 2–60 | a rented boat's trip (it also ends on return or on leaving the beach) |
+| `partyTripMinutes` | 15 min | 5–60 | a party boat trip |
+| `partyBoatCap` | 6 | 2–16 | people aboard a party boat, the host included (pending invites count) |
 
 The how-to-play page and the kiosk badge still show the shipped number for the tutorial bonus, the mission reward and the caderno bonus. The page warns about this.
 
 **The stripe pace (5 / 10 / 20 / 40 / 80) is shown but locked.** Belts are worked out from total wins, so a new pace would re-rank every player at once and could take stripes away. The client also draws the stripe bar from its own copy of the pace. To change it, edit `packages/shared/src/academia.ts`.
 
-Shop prices are not on the page. The client shows prices from its own copy of the catalogs, so an override on the server would charge a different number than the one players see.
+Shop prices are not on the page. The client shows prices from its own copy of the catalogs, so an override on the server would charge a different number than the one players see. The boat prices are the exception: Bento's menu reads them from the server each time it opens, so an override is what players see and pay.
 
 ## Version on the overview
 

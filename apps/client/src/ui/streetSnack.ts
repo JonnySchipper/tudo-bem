@@ -7,10 +7,11 @@ import { foodIcon } from './pixelArt';
 const CALL: Record<string, { speaker: string; line: { pt: string; en: string } }> = {
   pipoqueiro: { speaker: 'Pipoqueiro', line: { pt: 'Pipoca quentinha! Salgada ou doce?', en: 'Hot popcorn! Salty or sweet?' } },
   lanchonete_aero: { speaker: 'Lanchonete', line: { pt: 'Pão de queijo quentinho! E um cafezinho?', en: 'Warm cheese bread! And a little coffee?' } },
+  barraca_jo: { speaker: 'Jô', line: { pt: 'Vai um coco, meu bem? Tem queijo coalho na brasa!', en: 'Coconut water, dear? There’s grilled cheese on a stick!' } },
 };
 
 /** The street carts get a menu board in their own colours; the airport café keeps plain chips. */
-const CART_LOOK: Record<string, string> = { pipoqueiro: 'pipoca', carrinho_coco: 'coco' };
+const CART_LOOK: Record<string, string> = { pipoqueiro: 'pipoca', carrinho_coco: 'coco', barraca_jo: 'coco' };
 
 interface Pick {
   icon: string;

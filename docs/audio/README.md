@@ -15,6 +15,7 @@ every place has its own level (see below).
 | `feira.mp3` | Feira Livre while it is open (06:00-13:00): "Baião da Feira", the theme's forró cousin in A mixolydian (sanfona, pife, zabumba, triângulo); it opens with the hook in one baião bar and its bridge is the theme's own A section changes |
 | `voo.mp3` | The flight in (the new-account cutscene, night cabin to the seatbelt sign): "Céu de Madrugada", a slow toada at 76 BPM (flute, felt-piano ripples, strings, star bells, no drums) that quotes the hook once, then sings its own tune over the theme's A changes and its bridge, under the engines' hum |
 | `praca-golden.mp3`, `praca-night.mp3` | Two of the phrases that drift over the Praça (golden hour, night) |
+| (shared bed) | The Praia and the party deck play the outdoor Praça bed for now (`ambience.ts` `target()`), with the synthesized `waves` zone (pink noise through a slow lowpass LFO, loud along the shore and at the pier end) and `gulls` zone (short filtered chirps on the costão by day) mixed up so the beach sounds like itself. A beach bed of its own ("Maré Mansa") and a festa arrangement for the deck are later work (PRAIA-PLAN.md §11), through `COMPOSING.md` |
 | `sting-*.mp3` | Recado done, daily mission, bout win, bout loss, `sting-pouso` (the plane touching down in Brazil: the whole hook on flute and vibes at 96 BPM, a strummed Dmaj9 and a surdo on the landing) |
 | `sting-diario` (no MP3 yet) | The journal reveal in the arrivals hall (a new player's first word): the hook's five pitches as a slow music box at 92 BPM over Dmaj9 → Gmaj9 → Dmaj9, answered by A F♯ E falling home to D. The arrivals hall (`desembarque`) itself plays the kitnet's quiet bed |
 
@@ -45,7 +46,7 @@ The whole process (the musical rules every piece follows, and the steps from a b
 node scripts/audio-lab.mjs calibrate      # after changing any arrangement, instrument or stinger: re-measure → calibration.json
 node scripts/audio-lab.mjs levels         # what the player hears: every bed, Praça phrase and stinger, through the master
 node scripts/audio-lab.mjs stems intro    # the balance inside one arrangement, voice by voice
-node scripts/audio-lab.mjs sfx            # the bout's sound effects, to sit them against the bout music
+node scripts/audio-lab.mjs sfx            # the bout's sound effects, to sit them against the bout music (fishing: audio/pescaSfx.ts, PESCA_TRIM_DB)
 node scripts/audio-lab.mjs mp3            # these listening copies (needs ffmpeg)
 node scripts/audio-lab.mjs mp3 docs/audio feira   # just one of them
 ```

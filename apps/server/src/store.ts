@@ -10,6 +10,7 @@ import {
   normalizeCadernoPaid,
   normalizeArrival,
   normalizeDiary,
+  normalizePesca,
   normalizeEscola,
   earnedTier,
   normalizeFilm,
@@ -315,6 +316,10 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   // the Conversa feature (and the NPC memory of it) was removed (#229): old saves drop the field
   delete (p as { npcMemory?: unknown }).npcMemory;
   p.feira = normalizeFeira(p.feira);
+  // the Praia's fishing (PRAIA-PLAN.md 8.1): missing stays missing ("never fished")
+  const pesca = normalizePesca(p.pesca);
+  if (pesca) p.pesca = pesca;
+  else delete p.pesca;
   const arrival = normalizeArrival(p);
   p.arrivalIntroDone = arrival.arrivalIntroDone;
   p.hasCamera = arrival.hasCamera;

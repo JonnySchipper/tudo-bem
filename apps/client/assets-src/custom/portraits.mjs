@@ -13,7 +13,7 @@ import { FRAME_W, FRAME_H, CANON_COLS, CANON_ROWS, CANON_ANIMS } from '../../../
 import { BLINK_FRAME } from './chars.mjs';
 
 export const EXPRESSIONS = ['neutro', 'feliz', 'surpreso', 'pensativo'];
-export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa', 'lucia', 'celia', 'agente'];
+export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa', 'lucia', 'celia', 'agente', 'bento', 'neide', 'jo'];
 
 const SIZE = 64;
 const S = 3;

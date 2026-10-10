@@ -42,6 +42,11 @@
    "id": "escola",
    "pt": "Escola",
    "en": "School"
+  },
+  {
+   "id": "praia",
+   "pt": "Praia",
+   "en": "Beach"
   }
  ],
  "words": [
@@ -6698,7 +6703,73 @@
    "origin": "existing",
    "needsBr": true,
    "seed": true
-  }
+  },
+  {"id": "diary.praia.bagre", "pt": "bagre", "en": "sea catfish", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.praia.bagre"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.sardinha", "pt": "sardinha", "en": "sardine", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.praia.sardinha"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.baiacu", "pt": "baiacu", "en": "pufferfish", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.praia.baiacu"}, "origin": "added", "needsBr": true, "note": "released, never kept or sold"},
+  {"id": "diary.praia.tainha", "pt": "tainha", "en": "mullet", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.remo.tainha"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.robalo", "pt": "robalo", "en": "snook", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.remo.robalo"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.corvina", "pt": "corvina", "en": "croaker", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.pesca.corvina"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.pargo", "pt": "pargo", "en": "red snapper", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.pesca.pargo"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.garoupa", "pt": "garoupa", "en": "grouper", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.pesca.garoupa"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.dourado", "pt": "dourado-do-mar", "en": "mahi-mahi", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.alto_mar.dourado"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.atum", "pt": "atum", "en": "tuna", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.alto_mar.atum"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.marlim", "pt": "marlim-azul", "en": "blue marlin", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.alto_mar.marlim"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.tilapia", "pt": "tilápia", "en": "tilapia", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.lagoa.tilapia"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.tambaqui", "pt": "tambaqui", "en": "tambaqui (an Amazon fish)", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.lagoa.tambaqui"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.tucunare", "pt": "tucunaré", "en": "peacock bass", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.lagoa.tucunare"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.anzol", "pt": "anzol", "en": "hook", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.praia.first_cast"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.isca", "pt": "isca", "en": "bait", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.praia.first_bite"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.vara", "pt": "vara", "en": "fishing rod", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.praia.first_catch"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.linha", "pt": "linha", "en": "fishing line", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.praia.first_snap"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.boia", "pt": "boia", "en": "bobber", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.praia.first_nibble"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.mare", "pt": "maré", "en": "tide", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.praia.tide_cast"}, "origin": "added", "needsBr": true, "note": "a cast at dawn (05:00-07:00) or dusk (17:00-19:00)"},
+  {"id": "diary.praia.lagoa", "pt": "lagoa", "en": "lagoon", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.lagoa.first_cast"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.agua_doce", "pt": "água doce", "en": "fresh water", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.lagoa.first_catch"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.margem", "pt": "margem", "en": "riverbank, shore of a lagoon", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.lagoa.board"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.canico", "pt": "caniço", "en": "cane rod", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.lagoa.first_trophy"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.remo", "pt": "remo", "en": "oar", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.remo.board"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.remar", "pt": "remar", "en": "to row", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.remo.first_cast"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.barquinho", "pt": "barquinho", "en": "little boat", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.remo.first_catch"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.colete", "pt": "colete", "en": "life vest", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.remo.first_snap"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.enseada", "pt": "enseada", "en": "cove", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.remo.trip_end"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.proa", "pt": "proa", "en": "bow (of a boat)", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.pesca.board"}, "origin": "added", "needsBr": true, "note": "replaces rede (net, the kitnet hammock) and mastro (the praça flagpole)"},
+  {"id": "diary.praia.conves", "pt": "convés", "en": "deck (of a boat)", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.pesca.first_catch"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.ancora", "pt": "âncora", "en": "anchor", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.pesca.first_snap"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.pescador", "pt": "pescador", "en": "fisherman", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.pesca.trip_end"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.mar_aberto", "pt": "mar aberto", "en": "open sea", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.pesca.first_cast"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.alto_mar", "pt": "alto-mar", "en": "the high seas", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.alto_mar.board"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.onda", "pt": "onda", "en": "wave", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.alto_mar.first_cast"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.profundo", "pt": "profundo", "en": "deep", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.alto_mar.first_catch"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.horizonte", "pt": "horizonte", "en": "horizon", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.alto_mar.sunset_aboard"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.bussola", "pt": "bússola", "en": "compass", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.alto_mar.trip_end"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.recorde", "pt": "recorde", "en": "record", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.alto_mar.first_trophy"}, "origin": "added", "needsBr": true, "note": "replaces troféu (taken by the academia)"},
+  {"id": "diary.praia.capitao", "pt": "capitão", "en": "captain", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.festa.host_board"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.tripulacao", "pt": "tripulação", "en": "crew", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.festa.guest_board"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.convidado", "pt": "convidado", "en": "guest", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.festa.accept_invite"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.festa", "pt": "festa", "en": "party", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.festa.music"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.por_do_sol", "pt": "pôr do sol", "en": "sunset", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.festa.sunset_aboard"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.garrafa_mensagem", "pt": "garrafa com mensagem", "en": "message in a bottle", "area": "praia", "source": "game", "anchor": {"kind": "game", "id": "pesca.festa.message_bottle"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.castelo", "pt": "castelo de areia", "en": "sandcastle", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "castelo_1"}, "also": ["castelo_2"], "origin": "added", "needsBr": true},
+  {"id": "diary.praia.concha", "pt": "concha", "en": "seashell", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "concha_1"}, "also": ["concha_2", "concha_3", "concha_4", "concha_5", "concha_6", "concha_7", "concha_8", "concha_9", "concha_10", "concha_11", "concha_12"], "origin": "added", "needsBr": true},
+  {"id": "diary.praia.canoa", "pt": "canoa", "en": "canoe", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "canoa"}, "origin": "added", "needsBr": true, "note": "a caiçara canoe"},
+  {"id": "diary.praia.gaivota", "pt": "gaivota", "en": "seagull", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "gaivota_1"}, "also": ["gaivota_2"], "origin": "added", "needsBr": true},
+  {"id": "diary.praia.salva_vidas", "pt": "salva-vidas", "en": "lifeguard", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "posto_salva_vidas"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.barco", "pt": "barco", "en": "boat", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "barco_pesca"}, "also": ["barco_alto_mar", "barco_festa"], "origin": "added", "needsBr": true},
+  {"id": "diary.praia.cadeira_praia", "pt": "cadeira de praia", "en": "beach chair", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "cadeira_1"}, "also": ["cadeira_2", "cadeira_3", "cadeira_4", "cadeira_5", "cadeira_6", "cadeira_7"], "origin": "added", "needsBr": true},
+  {"id": "diary.praia.pegadas", "pt": "pegadas", "en": "footprints", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "pegadas_1"}, "also": ["pegadas_2", "pegadas_3", "pegadas_4", "pegadas_5", "pegadas_6", "pegadas_7", "pegadas_8"], "origin": "added", "needsBr": true},
+  {"id": "diary.praia.costao", "pt": "costão", "en": "rocky headland", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "costao"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.rede_pesca", "pt": "rede de pesca", "en": "fishing net", "area": "praia", "source": "camera", "anchor": {"kind": "object", "id": "rede_secando"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.praia", "pt": "praia", "en": "beach", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "praia_letreiro"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.pier", "pt": "píer", "en": "pier", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "praia_pier"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.milho_verde", "pt": "milho verde", "en": "corn on the cob", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "praia_cardapio_jo"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.perigo", "pt": "perigo", "en": "danger", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "praia_perigo"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.proibido", "pt": "proibido", "en": "forbidden", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "praia_proibido"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.aluguel", "pt": "aluguel", "en": "rental", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "praia_aluguel"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.churrasco", "pt": "churrasco", "en": "barbecue", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "festa_placa"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.lancar", "pt": "lançar", "en": "to cast (a line)", "area": "praia", "source": "conversation", "anchor": {"kind": "line", "id": "neide.como"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.fisgar", "pt": "fisgar", "en": "to hook (a fish)", "area": "praia", "source": "conversation", "anchor": {"kind": "line", "id": "neide.como2"}, "match": "fisgou", "origin": "added", "needsBr": true},
+  {"id": "diary.praia.puxar", "pt": "puxar", "en": "to pull, to reel in", "area": "praia", "source": "conversation", "anchor": {"kind": "line", "id": "neide.como3"}, "match": "puxa", "origin": "added", "needsBr": true}
  ],
  "film": {
   "price": 4,
@@ -6757,6 +6828,35 @@
      "wordId": "diary.padaria.misto"
     }
    ]
-  }
+  },
+  {"id": "pesca.praia", "kind": "pesca", "room": "praia", "host": {"npc": "neide", "name": "Dona Neide"}, "rv": 0, "decoys": [], "grants": [
+   {"item": "bagre", "wordId": "diary.praia.bagre"}, {"item": "sardinha", "wordId": "diary.praia.sardinha"}, {"item": "baiacu", "wordId": "diary.praia.baiacu"},
+   {"item": "first_cast", "wordId": "diary.praia.anzol"}, {"item": "first_bite", "wordId": "diary.praia.isca"}, {"item": "first_catch", "wordId": "diary.praia.vara"},
+   {"item": "first_snap", "wordId": "diary.praia.linha"}, {"item": "first_nibble", "wordId": "diary.praia.boia"}, {"item": "tide_cast", "wordId": "diary.praia.mare"}
+  ]},
+  {"id": "pesca.lagoa", "kind": "pesca", "room": "praia", "host": {"npc": "neide", "name": "Dona Neide"}, "rv": 0, "decoys": [], "grants": [
+   {"item": "tilapia", "wordId": "diary.praia.tilapia"}, {"item": "tambaqui", "wordId": "diary.praia.tambaqui"}, {"item": "tucunare", "wordId": "diary.praia.tucunare"},
+   {"item": "first_cast", "wordId": "diary.praia.lagoa"}, {"item": "first_catch", "wordId": "diary.praia.agua_doce"}, {"item": "board", "wordId": "diary.praia.margem"},
+   {"item": "first_trophy", "wordId": "diary.praia.canico"}
+  ]},
+  {"id": "pesca.remo", "kind": "pesca", "room": "praia", "host": {"npc": "neide", "name": "Dona Neide"}, "rv": 0, "decoys": [], "grants": [
+   {"item": "tainha", "wordId": "diary.praia.tainha"}, {"item": "robalo", "wordId": "diary.praia.robalo"},
+   {"item": "board", "wordId": "diary.praia.remo"}, {"item": "first_cast", "wordId": "diary.praia.remar"}, {"item": "first_catch", "wordId": "diary.praia.barquinho"},
+   {"item": "first_snap", "wordId": "diary.praia.colete"}, {"item": "trip_end", "wordId": "diary.praia.enseada"}
+  ]},
+  {"id": "pesca.pesca", "kind": "pesca", "room": "praia", "host": {"npc": "neide", "name": "Dona Neide"}, "rv": 0, "decoys": [], "grants": [
+   {"item": "corvina", "wordId": "diary.praia.corvina"}, {"item": "pargo", "wordId": "diary.praia.pargo"}, {"item": "garoupa", "wordId": "diary.praia.garoupa"},
+   {"item": "board", "wordId": "diary.praia.proa"}, {"item": "first_cast", "wordId": "diary.praia.mar_aberto"}, {"item": "first_catch", "wordId": "diary.praia.conves"},
+   {"item": "first_snap", "wordId": "diary.praia.ancora"}, {"item": "trip_end", "wordId": "diary.praia.pescador"}
+  ]},
+  {"id": "pesca.alto_mar", "kind": "pesca", "room": "praia", "host": {"npc": "neide", "name": "Dona Neide"}, "rv": 0, "decoys": [], "grants": [
+   {"item": "dourado", "wordId": "diary.praia.dourado"}, {"item": "atum", "wordId": "diary.praia.atum"}, {"item": "marlim", "wordId": "diary.praia.marlim"},
+   {"item": "board", "wordId": "diary.praia.alto_mar"}, {"item": "first_cast", "wordId": "diary.praia.onda"}, {"item": "first_catch", "wordId": "diary.praia.profundo"},
+   {"item": "sunset_aboard", "wordId": "diary.praia.horizonte"}, {"item": "trip_end", "wordId": "diary.praia.bussola"}, {"item": "first_trophy", "wordId": "diary.praia.recorde"}
+  ]},
+  {"id": "pesca.festa", "kind": "pesca", "room": "barco_festa", "host": {"npc": "neide", "name": "Dona Neide"}, "rv": 0, "decoys": [], "grants": [
+   {"item": "host_board", "wordId": "diary.praia.capitao"}, {"item": "guest_board", "wordId": "diary.praia.tripulacao"}, {"item": "accept_invite", "wordId": "diary.praia.convidado"},
+   {"item": "music", "wordId": "diary.praia.festa"}, {"item": "sunset_aboard", "wordId": "diary.praia.por_do_sol"}, {"item": "message_bottle", "wordId": "diary.praia.garrafa_mensagem"}
+  ]}
  ]
 }

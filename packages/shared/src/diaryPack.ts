@@ -46,8 +46,8 @@ export interface DiaryWord {
 
 export interface DiaryGame {
   id: string;
-  /** practice: the escola practice screen. correria: a won shift of Correria no Balcão. */
-  kind?: 'practice' | 'correria';
+  /** practice: the escola practice screen. correria: a won shift of Correria no Balcão. pesca: fishing at the Praia (one per water). */
+  kind?: 'practice' | 'correria' | 'pesca';
   room: string;
   host: { npc: string; name: string };
   /** Virtual RV only. Beta does not charge real money. */

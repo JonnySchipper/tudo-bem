@@ -34,6 +34,7 @@ export const CHAPTER_STYLE: Record<string, { color: string; ink: string; emblem:
   kitnet: { color: '#d36b93', ink: '#7e2f4f', emblem: 'sofa' },
   academia: { color: '#7a4fb5', ink: '#432570', emblem: 'faixa' },
   escola: { color: '#2b5ba8', ink: '#16336a', emblem: 'lapis' },
+  praia: { color: '#3fa9a0', ink: '#1f5f5a', emblem: 'peixe' },
 };
 const FALLBACK_STYLE = { color: '#8b5e3c', ink: '#4a2e18', emblem: 'lapis' };
 export const chapterStyle = (id: string) => CHAPTER_STYLE[id] ?? FALLBACK_STYLE;

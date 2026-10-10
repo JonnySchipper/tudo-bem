@@ -337,6 +337,30 @@ export class DiaryTracker {
   }
 
   /**
+   * Fishing at the Praia (PRAIA-PLAN.md 4.3): the words a moment earned on a water, or a species' word on its first catch (`pescaWords.ts`).
+   * Each word once, announced like any game word. Returns the words actually taught.
+   */
+  teachPesca(s: Session, words: readonly (DiaryWord | undefined)[]): DiaryWord[] {
+    const p = s.profile;
+    if (!p) return [];
+    const out: DiaryWord[] = [];
+    for (const word of words) {
+      if (!word) continue;
+      const got = grantDiaryWord(p.diary, word.id, 'game');
+      if (!got.ok) continue;
+      p.diary = got.earned;
+      out.push(got.word);
+      this.announce(s, got.word, 'game');
+      this.d.onWord?.(s, got.word);
+    }
+    if (out.length) {
+      this.d.store.save(p.id);
+      this.d.pushProfile(s);
+    }
+    return out;
+  }
+
+  /**
    * A finished escola lesson: the practice game's own word (aula), once, when the game's chance allows. The client holds the card until the
    * lesson panel closes (a game word waits for the game to end). Returns the word taught, or null.
    */

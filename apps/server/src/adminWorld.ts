@@ -9,6 +9,7 @@ import {
   type FeiraCartAdminGame,
   type FeiraCartMode,
   type Nameplate,
+  type PraiaConfig,
   type PropDef,
   type RoomId,
   type SafetyVerdict,
@@ -17,6 +18,7 @@ import {
 import type { CloseReason, Instance, Session } from './world.js';
 import type { LayoutStore } from './layoutStore.js';
 import type { PublishResult } from './designGithub.js';
+import type { PraiaAdminView } from './praiaStats.js';
 
 export interface AdminWorldDeps {
   sessions: () => Iterable<Session>;
@@ -30,6 +32,10 @@ export interface AdminWorldDeps {
   classify: (text: string, nameplate: Nameplate) => Promise<SafetyVerdict>;
   feiraCartView: () => { day: string; featured: string | null; games: FeiraCartAdminGame[] };
   setFeiraCart: (game: string, mode: FeiraCartMode) => boolean;
+  /** The Praia card: the switch, live and today's numbers (PRAIA-PLAN.md 8.5). */
+  praiaView: () => PraiaAdminView;
+  /** Store the switch, tell every player, walk anyone it closes the beach to back to the Vila. */
+  setPraia: (patch: Partial<PraiaConfig>) => PraiaConfig;
   layoutOverrides: () => { room: RoomId; objects: number }[];
   revertLayout: (room: RoomId) => boolean;
   /** Design mode (designOps.ts): the saved layouts, drafts and history. */
@@ -68,6 +74,8 @@ export interface AdminWorldHost {
   classify(text: string, nameplate: Nameplate): Promise<SafetyVerdict>;
   feiraCartView: AdminWorldDeps['feiraCartView'];
   setFeiraCart: AdminWorldDeps['setFeiraCart'];
+  praiaView: AdminWorldDeps['praiaView'];
+  setPraia: AdminWorldDeps['setPraia'];
   layoutOverrides: AdminWorldDeps['layoutOverrides'];
   revertLayout: AdminWorldDeps['revertLayout'];
   layouts: AdminWorldDeps['layouts'];
@@ -129,6 +137,8 @@ export function adminWorldHost(d: AdminWorldDeps): AdminWorldHost {
     classify: d.classify,
     feiraCartView: d.feiraCartView,
     setFeiraCart: d.setFeiraCart,
+    praiaView: d.praiaView,
+    setPraia: d.setPraia,
     layoutOverrides: d.layoutOverrides,
     revertLayout: d.revertLayout,
     layouts: d.layouts,

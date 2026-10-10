@@ -110,7 +110,18 @@ function aeroporto(img) {
   rect(img, 2, 54, 60, 1, '#a9b6ca');
 }
 
-export const BACKGROUNDS = { padaria, feira, praca, escola, academia, aeroporto };
+/** the Praia: a pale sky, the sea's horizon with a glint row, and the sand */
+function praia(img) {
+  lit(img, 2, 2, 62, 62, '#bfe3ee', '#d6eef5', '#a6d4e4');
+  rect(img, 2, 36, 60, 12, '#3fa9a0');
+  rect(img, 2, 36, 60, 1, '#5bbdb1');
+  for (let x = 4; x < 62; x += 7) rect(img, x, 40 + (x % 2), 3, 1, '#8fd6c8');
+  rect(img, 2, 48, 60, 14, '#ebd9a8');
+  rect(img, 2, 48, 60, 1, '#f3e5bd');
+  for (let x = 3; x < 62; x += 9) put(img, x, 53 + (x % 3), '#d6bd86');
+}
+
+export const BACKGROUNDS = { padaria, feira, praca, escola, academia, aeroporto, praia };
 
 /** each feira vendor's tarp, as their stall has it (feira.mjs: frutas red, verduras green, pastel yellow, flores blue; cream between) */
 export const TARP = {

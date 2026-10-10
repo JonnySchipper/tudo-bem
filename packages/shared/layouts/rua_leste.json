@@ -143,9 +143,19 @@
     {
       "id": "lixeira_s2",
       "kind": "lixeira",
-      "x": 5,
+      "x": 11,
       "y": 12,
       "blocks": true
+    },
+    {
+      "id": "placa_praia",
+      "kind": "cenario",
+      "x": 5,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "praia/placa_praia"
     },
     {
       "id": "arv_n2",

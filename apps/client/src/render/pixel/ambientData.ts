@@ -48,6 +48,8 @@ export interface FlockDef {
   x: number;
   y: number;
   n: number;
+  /** pigeons by default; the Praia's flock is gulls (same flock, white and grey, longer wings) */
+  bird?: 'pombo' | 'gaivota';
 }
 
 export interface AudioZones {
@@ -57,6 +59,10 @@ export interface AudioZones {
   fountain: { x: number; y: number };
   /** where a radio plays behind a window, world px (the houses) */
   radios: { x: number; y: number }[];
+  /** the Praia: shore lines where the waves break (world px y with an x extent), loudest at `loud` (the pier end) */
+  waves?: { y: number; x0: number; x1: number; loud?: { x: number; y: number } }[];
+  /** the Praia: where the gulls sit and call by day (the costão), world px */
+  gulls?: { x: number; y: number }[];
 }
 
 export interface AmbientRoom {
@@ -123,6 +129,28 @@ export const AMBIENT: Record<string, AmbientRoom> = {
     streets: [],
     flocks: [{ id: 'feira_corredor', x: 16, y: 9, n: 3 }],
     audio: { streets: [], fountain: { x: -9999, y: -9999 }, radios: [] },
+  },
+  // Praia do Jerivá (40 x 28): the Avenida Beira-Mar behind the mureta (rows 0-1, one lane, cars only), gulls on the costão, the waves along
+  // the shore row (18) and loudest at the end of the pier (28, 25)
+  praia: {
+    streets: [{ id: 'beira_mar', lanes: [{ y: 26, dir: 'e' }], x0: -84, x1: 40 * T + 84, density: 0.6 }],
+    flocks: [
+      { id: 'costao', x: 36, y: 15, n: 4, bird: 'gaivota' },
+      { id: 'areia', x: 18, y: 16, n: 3, bird: 'gaivota' },
+    ],
+    audio: {
+      streets: [{ y: 1 * T, x0: 0, x1: 40 * T }],
+      fountain: { x: -9999, y: -9999 },
+      radios: [{ x: 7 * T, y: 4 * T }],
+      waves: [{ y: 19 * T, x0: 0, x1: 34 * T, loud: { x: 28.5 * T, y: 25 * T } }],
+      gulls: [{ x: 36 * T, y: 12 * T }],
+    },
+  },
+  // the party boat's deck: the sea all round it
+  barco_festa: {
+    streets: [],
+    flocks: [],
+    audio: { streets: [], fountain: { x: -9999, y: -9999 }, radios: [], waves: [{ y: 5 * T, x0: 0, x1: 16 * T, loud: { x: 8 * T, y: 5 * T } }] },
   },
 };
 

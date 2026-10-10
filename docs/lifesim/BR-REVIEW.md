@@ -33,6 +33,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [R. Proposed cards for the Curriculum team](#r-proposed-cards)
 - [V. Diário: the sticker album (client)](#v-diario) (39)
 - [W. Bate-papos and the #229 wording sweep](#w-papos) (24)
+- [X. Praia: the beach, fishing, boats and the party boat](#x-praia) (33)
 
 ## A. Time of day, weekdays and weather
 
@@ -780,6 +781,50 @@ The bate-papos replace the graded Conversa (sections D, E and P are gone from th
 | 573 | Faça uns favores pros vizinhos e jogue a “Correria no Balcão” na padaria. | Do favors for the neighbours… | `juliaTalk.ts` | Spoken; was "recados" | |
 | 574 | Preço · Pagar | Price · Pay | `ui/feira.ts` | One tap pays the exact price (no coin counting) | |
 
+## X. Praia: the beach, fishing, boats and the party boat (#239)
+
+<a id="x-praia"></a>
+Everything new the Praia says (PRAIA-PLAN.md §0: Brazilian Portuguese only, litoral paulista, never Rio). The plan called this section W;
+W was taken by the bate-papos, so it is X. Rows that list several strings are one family (a talk tree, a word list); answer by row and
+item. Spoken lines are baked (`pnpm tts`), so a wording change needs a re-bake.
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 575 | Praia · Praia do Jerivá | Beach · Jerivá Beach | `rooms.ts`, `hotspots.ts` | Invented place: a beach on the litoral paulista (Santos/Guarujá feel) | |
+| 576 | ÔNIBUS · Linha 875 · Centro · Aeroporto · Praia · Ônibus para a Praia · Ônibus para a Vila | BUS · Line 875… · Bus to the beach · Bus to the Vila | `hotspots.ts`, `rooms.ts` portals | The bus sign at both stops | |
+| 577 | A praia ainda não abriu. · A praia fechou por agora. O ônibus te trouxe de volta. | The beach is not open yet. · The beach has closed for now. The bus brought you back. | `praia.ts`, server `world.ts` | The admin switch | |
+| 578 | Prévia da Praia: entre antes de todo mundo quando uma prévia estiver aberta. | Beach preview: get in before everyone when a preview is open. | `ui/support.ts` | Supporter perk row | |
+| 579 | PRAIA DO JERIVÁ / Litoral paulista · PÍER / Barcos de aluguel na ponta · PERIGO / Correnteza forte. Não nade aqui. · PROIBIDO PESCAR AQUI / Pesque na beira do mar. · ALUGUEL DE BARCOS / Fale com o Seu Bento. | The signs | `hotspots.ts` | “Proibido pescar aqui” stands by the lifeguard: a joke | |
+| 580 | CHURRASCO · REFRI · MÚSICA | BARBECUE · SODA · MUSIC | `hotspots.ts` (party deck) | No alcohol anywhere (§0) | |
+| 581 | Seu Bento · Aluguel de barcos; idle: Barco bom é barco que volta. · Hoje o mar tá manso. · Quer ir mais longe? Aluga o de alto-mar. · A maré não dorme, e eu também não. | Boat rental; idle lines | `rooms.ts` | Spoken (bento) | |
+| 582 | Dona Neide · Pescadora; idle: Peixe grande gosta de quem tem paciência. · Segura firme, solta quando ele corre. · De manhãzinha o robalo tá acordado. · Chuva fina, peixe bobo. | Fisherwoman; idle lines | `rooms.ts` | Spoken (neide) | |
+| 583 | Jô · Barraca da praia; idle: Água de coco geladinha! · Queijo coalho na brasa, meu bem! · Compro peixe fresco! Traz pra cá! · Fechando a barraca, mas o gelo fica. | Beach kiosk; idle lines | `rooms.ts` | Spoken (jo); she calls everyone “meu bem” | |
+| 584 | {saudacao}! Eu sou o Bento. Esses barcos aí são todos meus. · Quanto custa alugar? · Qual é o melhor barco? · E o barco de festa? · O barquinho a remo é baratinho. Os outros custam mais. Quer ver? · Pra começar, o barquinho a remo. Pra peixe grande, o de alto-mar. · Esse é pra ir com os amigos. Música, churrasco e muita pescaria. · Quero ver os barcos. · Quero alugar um barco. · Tchau, Seu Bento! | Bento’s talk tree | `npcTalk.ts` bento | | |
+| 585 | {saudacao}, {nome}. Senta aí. Já pescou hoje? · Como é que pesca? · Segura pra lançar, e solta. · Quando a boia afunda, é Fisgou! Toca rápido. · Puxa segurando. Ele corre? Solta um pouco. · E depois? · Onde tem peixe grande? · Na lagoa tem tucunaré. No alto-mar tem marlim. Mas cada um no seu dia. · Minha caderneta de pesca · Tchau, Dona Neide! | Neide’s talk tree | `npcTalk.ts` neide | Teaches lançar, fisgar, puxar | |
+| 586 | {saudacao}, meu bem! Vai um coco? · Vou querer um lanche. · Quer comprar peixe? · Tem chapéu aí? · Só olhando, {obrigad}! · Quero sim! Mostra o balde. · Tá aqui! · Depois eu volto. | Jô’s talk tree | `npcTalk.ts` jo | | |
+| 587 | Tá alugado. Volta antes da maré virar! · RV insuficiente, viu? Pesca na praia e vende pra Jô. · O barco voltou. Como foi lá fora? | Bento at the shack | `pescaLines.ts` BENTO_LINES | Spoken (bento) | |
+| 588 | Arrebentou. Da próxima, solta quando ele correr. · Olha isso! Esse vai pro recorde. · Baiacu não se come, se devolve. | Neide’s one-time coaching | `pescaLines.ts` NEIDE_COACH | Spoken (neide) | |
+| 589 | Peixe bom! Toma aqui. · Hoje já comprei o que dava. Amanhã tem mais. · Balde vazio, meu bem. Vai pescar! · Compro peixe · Vender · Vender tudo · devolve | Jô buys fish | `pescaLines.ts` JO_SELL, `ui/pesca/index.ts` | Spoken (jo) | |
+| 590 | Segura… solta! · Ih, enrolou! · Fisgou! · Cedo demais! · Escapou… · Arrebentou a linha! · Pegou! · Ih, um baiacu! · Volta pro mar, baiacu! · Novo! · Recorde! · Ele corre! Solta! · Puxa! · Boa pescaria! · Toque pra lançar de novo | The fishing stage | `pescaLines.ts` PESCA_STAGE, `pescaStage.ts` | Spoken (ui); never a number on the stage | |
+| 591 | pequeno · médio · grande · enorme | small · medium · big · huge | `fish.ts` SIZE_WORDS | The size of a catch, as a word | |
+| 592 | um chinelo · uma lata · uma alga · uma garrafa com mensagem | a flip-flop · a can · some seaweed · a message in a bottle | `fish.ts` JUNK | Gag catches | |
+| 593 | bagre, sardinha, baiacu, tainha, robalo, corvina, pargo, garoupa, dourado-do-mar, atum, marlim-azul, tilápia, tambaqui, tucunaré | the 14 fish | `fish.ts`, `diary-words.json` | Species words; check the common names used in SP | |
+| 594 | anzol, isca, vara, linha, boia, maré · lagoa, água doce, margem, caniço · remo, remar, barquinho, colete, enseada · proa, convés, âncora, pescador, mar aberto · alto-mar, onda, profundo, horizonte, bússola, recorde · capitão, tripulação, convidado, festa, pôr do sol, garrafa com mensagem | The six per-water word lists | `diary-words.json` games `pesca.*` | Earned by fishing moments (§4.3) | |
+| 595 | castelo de areia, concha, canoa, gaivota, salva-vidas, barco, cadeira de praia, pegadas, costão, rede de pesca · praia, píer, milho verde, perigo, proibido, aluguel, churrasco · lançar, fisgar, puxar | Camera, reading and heard words | `diary-words.json` | | |
+| 596 | Praia · na praia · Pesque na praia · Pesque na lagoa · Pesque no barquinho a remo · Pesque no barco de pesca · Pesque no barco de alto-mar · Pesque no barco de festa · Pesque em: … | Diário chapter and Escola hints | `escola.ts`, `journalView.ts` | | |
+| 597 | Pesca na praia · Pesca na lagoa · Barquinho a remo · Barco de pesca · Barco de alto-mar · Barco de festa · Robalo e tainha · em breve | The waters and tiers | `ui/pesca/index.ts`, `pesca.ts` BOATS, `barcoMenu.ts` | Bento’s chips name the new fish in words | |
+| 598 | Qual barco vai ser hoje? · Seu barco está lá no píer. Quer devolver? · Devolver o barco · Agora não · O tempo do barco acabou. Ele voltou pro Bento. · Esse barco é de aluguel. Fale com o Seu Bento. · Você já está com um barco. Devolva antes. · Os barcos do Bento ficam no galpão. | Rentals | `barcoMenu.ts`, server `barco.ts`, `pesca.ts` | | |
+| 599 | Caderneta de pesca · Recorde: 42 cm · Pescado N vezes | Fishing log | `ui/pesca/index.ts`, `journalView.ts` | The record is the one number of the feature (§4.2) | |
+| 600 | Queijo coalho · Milho verde · Picolé · Chapéu de pescador · Viseira de praia · Boné de surfe · Cadeira de praia · Conchinha | Jô’s snacks, rack and kitnet items | `streetSnacks.ts`, `catalog.ts` | Sinks, priced in RV | |
+| 601 | Chapéu de capitão · Concha gigante · Rede de pesca · Garrafa com mensagem · Boia salva-vidas · Prancha de surfe | Earned items | `catalog.ts` | Never sold | |
+| 602 | Bora pro barco de festa? · {nome} te chamou pro barco de festa. · Aceitar · Agora não | The party invite | `pescaLines.ts` PARTY_LINES, `ui/pesca/party.ts` | Spoken (ui), the name is shown, not spoken | |
+| 603 | Barco de festa · N a bordo · quase acabando · Desembarcar · Encerrar a festa? Todo mundo volta pro píer. · Encerrar · Continuar a festa | The HUD pill and the host’s confirm | `ui/pesca/party.ts` | Time left as words, never a countdown | |
+| 604 | O barco voltou pro píer. · A bordo · Peixes · Palavras da festa · Você ganhou · Nenhum peixe dessa vez. A festa valeu mesmo assim! · {nome} pescou: {peixe}! | The trip card and the aboard toast | `ui/pesca/party.ts` | | |
+| 605 | Convidar pro barco · Desembarcar (profile card) · Você desembarcou no píer. | Friends panel, the host’s remove | `panels.ts`, server `partyBoat.ts` | Neutral notice to the guest only | |
+| 606 | Pescaria · Segura pra lançar, solta. Fisgou? Toca. Segura pra puxar, solta quando ele corre. | Fishing · Hold to cast, let go. Bite? Tap. Hold to reel, let go when it runs. | `howToPlayData.ts` pesca | The "?" card on the stage; it never opens by itself (the first cast teaches) | |
+| 606 | Convite enviado para {nome}. · {nome} não respondeu. · Só dá pra chamar amigos. · {nome} não está online. · {nome} já está a bordo. · {nome} já está em outro barco. · {nome} está ocupado agora. · Esse convite já passou. · Você já está num barco de festa. · Termine o que está fazendo primeiro. · Alugue o barco de festa primeiro. · O barco de festa ainda não está saindo. · O barco de festa sai do píer do Bento. · Esse barco é de outra turma. · O barco está lotado! | Party boat notices and errors | server `partyBoat.ts` | “ocupado” is masculine for every pronoun today | |
+| 607 | Quem lê isso, me manda um “oi” da praia! · Hoje o mar estava calmo e eu estava feliz. · Se você achou esta garrafa, faça um pedido. · Aprendi uma palavra nova hoje: saudade. · O pôr do sol daqui é o mais bonito do mundo. · Não esqueça o protetor solar! · Um dia eu volto pra essa praia. · Peixe grande gosta de gente paciente. · Boa sorte na pescaria, amigo! · Obrigado por ler até aqui. Tenha um bom dia! | The ten bottle messages | `pescaLines.ts` BOTTLE_MESSAGES | Spoken (ui); no names, no contact details | |
+
 ## Totals
 
-574 numbered strings in sections A to Q, S, T, U, V and W, plus 9 proposed-card entries.
+607 numbered strings in sections A to Q, S, T, U, V, W and X, plus 9 proposed-card entries.
