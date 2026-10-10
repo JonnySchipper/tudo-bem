@@ -1,12 +1,17 @@
 /**
- * The flight in: the cutscene a new account plays between the avatar creator and the arrivals hall (apps/client/src/ui/flightIntro.ts).
- * The backstory, in the player's own head (English: they have no Portuguese yet), Júlia's letter, and a chat with Comissária Lia (the
- * flight attendant who later welcomes them in the arrivals hall) on the night flight in, until the captain calls the descent.
+ * The flight in: the cutscene a new account plays between the name card and the arrivals hall (apps/client/src/ui/flightIntro.ts).
+ * The backstory, in the player's own head (English: they have no Portuguese yet), Júlia's letter, then Comissária Lia (the flight
+ * attendant who later welcomes them in the arrivals hall) walks the aisle calling the player's name: the player clicks the passenger
+ * they are (PASSENGER_LOOKS: that look becomes their avatar, changed any time later from the HUD's Visual), answers "Sou eu!", and
+ * the two chat on the night flight in, until the captain calls the descent.
  *
  * Lia speaks Portuguese (voiced: `flightSpokenLines` feeds `pnpm tts`), always with the English under it, and her questions have
  * replies the player can pick, Animal Crossing style. Nothing here is saved or taught: the first diary word stays Lia's "Bem-vindo"
  * in the arrivals hall. needs_br: every PT line.
  */
+
+import type { Appearance } from './types.js';
+import { STARTER_OUTFITS } from './constants.js';
 
 export interface FlightLine {
   pt: string;
@@ -100,6 +105,47 @@ export const FLIGHT_CABIN: readonly FlightBeat[] = [
   { kind: 'captain', line: { pt: 'Iniciamos a descida. Apertem os cintos, por favor.', en: 'We are beginning our descent. Please fasten your seatbelts.' } },
 ];
 
+const TEE = STARTER_OUTFITS[0]!.set;
+const SKIRT = STARTER_OUTFITS[1]!.set;
+
+/**
+ * The passengers Lia's call can find you among, left to right along the row. Only the free choices (body, skin, face, hair, an extra)
+ * and the two starter outfits, in a few colours: the same things the Visual editor offers, so picking one gives away nothing a shop sells.
+ * Adjacent seats differ in body, skin and hair.
+ */
+export const PASSENGER_LOOKS: readonly Appearance[] = [
+  { body: 'medio', skin: 1, hair: 'ondulado', hairColor: 4, face: 'suave', extra: 'sardas', idle: 'solto', ...TEE, topColor: 3 },
+  { body: 'forte', skin: 6, hair: 'raspado', hairColor: 0, face: 'marcante', extra: 'barba', idle: 'solto', ...TEE, topColor: 2 },
+  { body: 'esguio', skin: 3, hair: 'longo', hairColor: 2, face: 'doce', extra: 'brincos', idle: 'solto', ...SKIRT },
+  { body: 'medio', skin: 4, hair: 'cacheado', hairColor: 1, face: 'suave', extra: 'nenhum', idle: 'solto', ...TEE },
+  { body: 'esguio', skin: 7, hair: 'trancas', hairColor: 0, face: 'doce', extra: 'oculos', idle: 'solto', ...SKIRT, topColor: 1 },
+  { body: 'forte', skin: 0, hair: 'curto', hairColor: 3, face: 'maduro', extra: 'bigode', idle: 'solto', ...TEE, topColor: 0 },
+  { body: 'medio', skin: 5, hair: 'coque', hairColor: 6, face: 'marcante', extra: 'nenhum', idle: 'solto', ...SKIRT, topColor: 5 },
+];
+
+/** A random passenger look: what a new account wears until the player picks their seat on the plane (or if they skip the flight). */
+export const randomPassengerLook = (r = Math.random()): Appearance => ({ ...PASSENGER_LOOKS[Math.floor(r * PASSENGER_LOOKS.length) % PASSENGER_LOOKS.length]! });
+
+/** A line with the player's name on screen (`{nome}`) and a clip without it (`spoken`): one recording serves every player. */
+export interface NamedLine extends FlightLine {
+  spoken: string;
+}
+
+/** Lia walks the aisle calling the player's name, the player says which passenger they are, and she says hello. */
+export const FLIGHT_CALL = {
+  call: { pt: 'Com licença! {nome}? {nome}?', en: 'Excuse me! {nome}? {nome}?', spoken: 'Com licença!' },
+  where: { pt: '{nome}… cadê você?', en: '{nome}… where are you?', spoken: 'Cadê você?' },
+  /** The prompt over the row, in the player's head (not Lia's: she doesn't know yet). */
+  pick: { pt: 'Qual é você?', en: 'Which one is you? Click your seat.' },
+  /** What the player answers from the seat they picked. */
+  me: { pt: 'Sou eu!', en: 'It’s me!' },
+  met: { pt: 'Ah, é você! Muito prazer!', en: 'Oh, it’s you! Nice to meet you!' },
+} as const satisfies Record<string, FlightLine | NamedLine>;
+
+/** A named line with the player's name filled in (or dropped, when there is none). */
+export const withName = (text: string, name: string): string =>
+  name.trim() ? text.replace(/\{nome\}/g, name.trim()) : text.replace(/\s*\{nome\}[?…,]*/g, '').trim();
+
 /** Lia asks for the seatbelt; the player clicks it shut. */
 export const FLIGHT_SEATBELT = {
   ask: { pt: 'Aperte o cinto, por favor!', en: 'Fasten your seatbelt, please!' },
@@ -116,6 +162,7 @@ export const letterGreeting = (name: string): string => (name.trim() ? JULIA_LET
 /** Every Portuguese line said aloud in the cutscene, for `pnpm tts` (collectSpokenLines). */
 export function flightSpokenLines(): { speaker: 'comissaria' | 'comandante'; text: string }[] {
   const out: { speaker: 'comissaria' | 'comandante'; text: string }[] = [];
+  out.push({ speaker: 'comissaria', text: FLIGHT_CALL.call.spoken }, { speaker: 'comissaria', text: FLIGHT_CALL.where.spoken }, { speaker: 'comissaria', text: FLIGHT_CALL.met.pt });
   for (const b of FLIGHT_CABIN) {
     if (b.kind === 'lia' || b.kind === 'ask') out.push({ speaker: 'comissaria', text: b.line.pt });
     if (b.kind === 'ask') for (const r of b.replies) out.push({ speaker: 'comissaria', text: r.react.pt });

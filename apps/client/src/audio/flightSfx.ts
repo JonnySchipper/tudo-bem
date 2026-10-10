@@ -1,12 +1,13 @@
 /**
  * Synthesized sounds of the flight in (the new-account cutscene, ui/flightIntro.ts), in the same Web Audio style as correriaSfx.ts
  * (no samples): the typewriter blip of an unvoiced line, the cabin's two-tone seatbelt chime, the PA's click, the buckle, the landing
- * gear coming down, the tyres touching the runway, and the engines' roar as the plane brakes.
+ * gear coming down, the tyres touching the runway, and the engines' roar as the plane brakes. The seatbelt close-up adds the straps'
+ * swish as they swing in and a glittering run of bells when the latch clicks.
  */
 import { noise, tone } from './correriaSfx';
 
-export type FlightSfx = 'blip' | 'seatbelt' | 'pa' | 'buckle' | 'gear' | 'touchdown' | 'roar' | 'cloud' | 'pick';
-export const FLIGHT_SFX = ['blip', 'seatbelt', 'pa', 'buckle', 'gear', 'touchdown', 'roar', 'cloud', 'pick'] as const;
+export type FlightSfx = 'blip' | 'seatbelt' | 'pa' | 'buckle' | 'gear' | 'touchdown' | 'roar' | 'cloud' | 'pick' | 'swish' | 'sparkle';
+export const FLIGHT_SFX = ['blip', 'seatbelt', 'pa', 'buckle', 'gear', 'touchdown', 'roar', 'cloud', 'pick', 'swish', 'sparkle'] as const;
 
 export function playFlightSfx(ctx: AudioContext, dest: AudioNode, white: AudioBuffer, kind: FlightSfx): void {
   const now = ctx.currentTime;
@@ -40,6 +41,17 @@ export function playFlightSfx(ctx: AudioContext, dest: AudioNode, white: AudioBu
       noise(ctx, white, dest, now, 0.03, 'highpass', 5000, 5000, 0.08, 1, 0.001);
       tone(ctx, dest, now + 0.07, 2600, 1800, 0.04, 0.1, 'square');
       noise(ctx, white, dest, now + 0.07, 0.04, 'highpass', 4200, 4200, 0.1, 1, 0.001);
+      break;
+    case 'swish':
+      // the two straps swinging in toward the latch: a quick rising breath of air
+      noise(ctx, white, dest, now, 0.32, 'bandpass', 700, 3200, 0.06, 1.4, 0.12);
+      break;
+    case 'sparkle':
+      // the latch shut: a bright little run up a major chord, each bell left to ring and shimmer
+      [1568, 1976, 2349, 3136, 3951].forEach((f, i) => {
+        tone(ctx, dest, now + i * 0.055, f, f, 0.5 - i * 0.05, 0.035, 'sine');
+        tone(ctx, dest, now + i * 0.055, f * 2.01, f * 2.01, 0.2, 0.008, 'sine');
+      });
       break;
     case 'gear':
       // the wheels coming down under the floor: a hydraulic whine and a heavy clunk

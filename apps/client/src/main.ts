@@ -126,6 +126,7 @@ import { desembGateHint, desembGuide, inDesembarque, markDesembStep, mountDesemb
 import { firstRoom } from './ui/desembarqueLogic';
 import { designLinkRoom, watchDesignLink } from './ui/designLink';
 import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
+import { openLookEditor } from './ui/lookEditor';
 import { shouldPlayFlightIntro } from './ui/flightIntroLogic';
 import { thanksFor } from './ui/airportTutorialLogic';
 import { installHowToPlay } from './ui/howToPlay';
@@ -998,7 +999,8 @@ net.on((m: ServerMsg) => {
         // a brand-new account flies in first (the cutscene), and lands in the arrivals hall
         localStorage.setItem(seenKey, '1');
         renderer.hold?.(true);
-        void playFlightIntro({ name: m.profile.name, appearance: m.profile.appearance }).then(() => {
+        // the passenger the player clicks on the plane is who they are from now on
+        void playFlightIntro({ name: m.profile.name, appearance: m.profile.appearance, onPick: (appearance) => net.send({ t: 'updateAppearance', appearance }) }).then(() => {
           renderer.hold?.(false);
           joinRoom(firstRoom(game.profile ?? m.profile) ?? 'desembarque');
         });
@@ -1454,6 +1456,10 @@ function startGame() {
         boat: { hosting: hostingParty, invite: inviteToBoat },
       }),
     openWardrobe: () => openHatShop('wardrobe', { buy: () => {}, equip: (id) => net.send({ t: 'equipHat', hatId: id }) }),
+    openLook: () => {
+      const p = game.profile;
+      if (p) openLookEditor({ appearance: p.appearance, hat: p.hat, onSave: (appearance) => net.send({ t: 'updateAppearance', appearance }) });
+    },
     toggleDecor: () => {
       game.editMode = !game.editMode;
       game.placing = null;
