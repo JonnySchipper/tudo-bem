@@ -492,15 +492,16 @@ async function main() {
     if (size.width < 500) assert(m.share <= 0.35, `the counter strip stays under 35% of a phone (${(m.share * 100).toFixed(0)}%)`);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
+  // A new counter only has café and pão (the grill and pão na chapa open later on the ladder). Those two taps have to land on screen again.
   await waitFor(
     page,
     () => {
-      const g = document.querySelector('#cr-grill-0');
-      const item = document.querySelector('#cr-item-pao_na_chapa');
-      if (!g || !item) return false;
-      const gr = g.getBoundingClientRect();
+      const machine = document.querySelector('#cr-machine');
+      const item = document.querySelector('#cr-item-pao');
+      if (!machine || !item || machine.style.display === 'none' || item.style.display === 'none') return false;
+      const mr = machine.getBoundingClientRect();
       const ir = item.getBoundingClientRect();
-      return gr.width > 8 && ir.width > 8 && gr.bottom > 0 && gr.top < window.innerHeight;
+      return mr.width > 8 && ir.width > 8 && mr.bottom > 0 && mr.top < window.innerHeight && ir.bottom > 0 && ir.top < window.innerHeight;
     },
     null,
     5000,
