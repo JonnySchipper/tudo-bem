@@ -46,6 +46,7 @@ import {
 } from '@tudobem/shared';
 import { ensurePetTexture, petAnimKey } from './petLook';
 import { homeResidents, penResidents } from './residentPets';
+import { toyOverlay, type ToyOverlay } from './petToys';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
@@ -176,6 +177,8 @@ interface AvatarView {
   pet: Phaser.GameObjects.Sprite | null;
   petKind: string;
   petKey: string;
+  /** The pet's toy next to it (#234): a fetched ball, a bone between the paws (petToys.ts). */
+  petToy: Phaser.GameObjects.Image | null;
   petFollow: PetFollow;
   /** Chat timestamp already offered to the pet, so a line is heard once. */
   petHeard: number;
@@ -328,6 +331,8 @@ export class WorldScene extends Phaser.Scene {
   private furniture = new Map<string, FurnitureView>();
   /** Pen animals and resting pets (#234), by resident key. */
   private residents = new Map<string, Phaser.GameObjects.Sprite>();
+  /** The toys beside the resting pets, by resident key. */
+  private residentToys = new Map<string, Phaser.GameObjects.Image>();
   /** When this room was built (the kitnet pets gather at the bowl for a few seconds). */
   private residentsSince = Date.now();
   private grid: RoomGrid | null = null;
@@ -700,6 +705,8 @@ export class WorldScene extends Phaser.Scene {
     this.furniture.clear();
     for (const r of this.residents.values()) r.destroy();
     this.residents.clear();
+    for (const t of this.residentToys.values()) t.destroy();
+    this.residentToys.clear();
     this.residentsSince = Date.now();
     this.rig.clearRoom();
     this.shadows?.clearRoom();
@@ -1635,6 +1642,7 @@ export class WorldScene extends Phaser.Scene {
       pet: null,
       petKind: '',
       petKey: '',
+      petToy: null,
       petFollow: createPetFollow(),
       petHeard: -1,
       carry: null,
@@ -1660,6 +1668,7 @@ export class WorldScene extends Phaser.Scene {
   private destroyAvatar(v: AvatarView): void {
     v.parrot?.destroy();
     v.pet?.destroy();
+    v.petToy?.destroy();
     v.carry?.destroy();
     v.carryBeat?.img.destroy();
     v.icon?.destroy();
@@ -1937,12 +1946,17 @@ export class WorldScene extends Phaser.Scene {
       const anim = petAnimKey(tex, r.pose);
       if (this.anims.exists(anim) && spr.anims.currentAnim?.key !== anim) spr.play({ key: anim, startFrame: 0 });
       spr.setPosition(r.x, r.y).setFlipX(r.flip).setDepth(standingDepth(r.y, r.key));
+      const toy = this.placeToy(this.residentToys.get(r.key) ?? null, toyOverlay(r.toy, r.pose, r.flip, r.x, r.y), spr.depth, true);
+      if (toy) this.residentToys.set(r.key, toy);
+      else this.residentToys.delete(r.key);
       if (r.homeId) dyn.push({ x0: r.x - 10, y0: r.y - 16, x1: r.x + 10, y1: r.y + 2, hit: { kind: 'homePet', petId: r.homeId, name: r.name ?? null }, depth: r.y + 0.4 });
     }
     for (const [k, spr] of this.residents) {
       if (seen.has(k)) continue;
       spr.destroy();
       this.residents.delete(k);
+      this.residentToys.get(k)?.destroy();
+      this.residentToys.delete(k);
     }
   }
 
@@ -1989,6 +2003,7 @@ export class WorldScene extends Phaser.Scene {
         v.petKind = '';
         v.petKey = '';
       }
+      v.petToy = this.placeToy(v.petToy, null, 0, false);
       if (Number.isFinite(v.petFollow.x)) v.petFollow = createPetFollow();
       return;
     }
@@ -2022,6 +2037,22 @@ export class WorldScene extends Phaser.Scene {
     v.pet.setFlipX(pose.flip);
     v.pet.setDepth(standingDepth(follow.y, `${a.pub.id}:pet`));
     v.pet.setScale(1);
+    const toy = toyOverlay(a.pub.petToy, pose.name, pose.flip, v.pet.x, v.pet.y, { fetch: follow.fetch, play: follow.play });
+    v.petToy = this.placeToy(v.petToy, toy, v.pet.depth, v.pet.visible);
+  }
+
+  /** Shows, moves or removes one toy sprite (petToys.ts); returns what the caller keeps. Just in front of the pet, or just behind it. */
+  private placeToy(img: Phaser.GameObjects.Image | null, toy: ToyOverlay | null, depth: number, visible: boolean): Phaser.GameObjects.Image | null {
+    const d = toy ? this.m.sprites[toy.key] : undefined;
+    if (!toy || !d) {
+      img?.destroy();
+      return null;
+    }
+    if (!img || img.frame.name !== d.frame) {
+      img?.destroy();
+      img = this.rig.world(this.add.image(0, 0, d.atlas, d.frame)).setOrigin(...originOf(d));
+    }
+    return img.setPosition(toy.x, toy.y).setDepth(depth + (toy.behind ? -0.02 : 0.02)).setVisible(visible);
   }
 
   /**

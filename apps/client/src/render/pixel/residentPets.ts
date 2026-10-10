@@ -19,6 +19,8 @@ export interface Resident {
   pen?: { penId: string; slot: number };
   homeId?: string;
   name?: string | null;
+  /** A resting pet's toy (lying, it keeps it between the paws). */
+  toy?: string | null;
 }
 
 const T = 16;
@@ -67,6 +69,6 @@ export function homeResidents(pets: readonly HomePet[], apartment: readonly Plac
     const alt = Math.floor(nowMs / period) % 2 === 1;
     const base = p.pose === 'lie' ? 'lieS' : p.pose === 'sit' ? 'sitS' : 'idleS';
     const pose = alt ? (p.pose === 'lie' ? 'lieE' : p.pose === 'sit' ? 'idleS' : 'sitS') : base;
-    return { key: `home:${p.id}`, look: p.look, ...feet(p.tile.x, p.tile.y), pose, flip: hash(p.id) % 2 === 1, homeId: p.id, name: p.name };
+    return { key: `home:${p.id}`, look: p.look, ...feet(p.tile.x, p.tile.y), pose, flip: hash(p.id) % 2 === 1, homeId: p.id, name: p.name, toy: p.toy };
   });
 }

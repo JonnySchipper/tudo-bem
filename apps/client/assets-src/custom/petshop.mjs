@@ -622,6 +622,24 @@ function peluciaFx() {
   put(img, 3, 4, NAVY); put(img, 5, 4, NAVY); put(img, 4, 5, P.wood0);
   return { img, anchor: [4, 9] };
 }
+/** The ball a dog fetches (`busca`): it lands ahead of the owner and comes back in the dog's mouth (fx/bolinha 7 x 7). */
+function bolinhaFx() {
+  const img = blank(7, 7);
+  shape(img, ell(3.5, 3.5, 2.6, 2.6), [3, 3, 2, 2], [P.red0, P.red1, P.red2, P.red3]);
+  put(img, 2, 4, P.white); put(img, 3, 4, P.white); put(img, 4, 3, P.white);
+  put(img, 2, 2, P.red4);
+  outlineAround(img);
+  return { img, anchor: [3, 6] };
+}
+/** The cloth mouse a cat bats about (`brinca`) (fx/ratinho 10 x 6). */
+function ratinhoFx() {
+  const img = blank(10, 6);
+  shape(img, ell(4.5, 3.5, 3, 1.8), [4, 3, 3, 2], [P.slate, P.grey0, P.grey1, P.grey2]);
+  put(img, 2, 1, P.pink1); put(img, 2, 3, NAVY);
+  for (const [x, y] of [[8, 3], [9, 2]]) put(img, x, y, P.pink0);
+  outlineAround(img);
+  return { img, anchor: [4, 5] };
+}
 
 // ------------------------------------------------------------------ lojinha icons (16 x 16, `icons/<itemId>`, registered in icons.mjs)
 /** A collar seen from the front: a band ring with a buckle and a tag. `ramp` = [lo, mid, hi]. */
@@ -748,5 +766,7 @@ export async function petshopSet(ctx) {
   parts.push({ key: 'fx/carinho', frames: carinhoFrames(), fps: 6, anchor: [8, 15], meta: { shadow: null } });
   add('fx/ossinho', ossinhoFx(), { shadow: null });
   add('fx/pelucia', peluciaFx(), { shadow: null });
+  add('fx/bolinha', bolinhaFx(), { shadow: null });
+  add('fx/ratinho', ratinhoFx(), { shadow: null });
   return parts;
 }

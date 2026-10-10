@@ -22,7 +22,7 @@
    "data": "atlas/petshop.json",
    "w": 512,
    "h": 192,
-   "frames": 50
+   "frames": 52
   }
  },
  "terrain": {
@@ -22106,6 +22106,36 @@
    "h": 10,
    "ax": 4,
    "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/bolinha": {
+   "atlas": "petshop",
+   "frame": "fx/bolinha",
+   "w": 7,
+   "h": 7,
+   "ax": 3,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/ratinho": {
+   "atlas": "petshop",
+   "frame": "fx/ratinho",
+   "w": 10,
+   "h": 6,
+   "ax": 4,
+   "ay": 5,
    "footprint": [
     1,
     1
