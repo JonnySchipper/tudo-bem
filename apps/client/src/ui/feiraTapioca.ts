@@ -17,6 +17,9 @@
  * A bad spread or flip only caps that order at soft. Nothing ends the run early. The keyboard keeps a shortcut
  * for every drag (Enter on a bowl picks it, Enter on a pan or a customer uses it).
  *
+ * Taught by doing: a coach mark points at the next new action (feiraTapiocaPracticeLogic.ts), once each; the "?"
+ * card brings them back. The first time, `practice` runs one customer who never leaves (feiraTapiocaPractice.ts).
+ *
  * needs_br: true (order lines, pops, labels, end card).
  */
 import {
@@ -32,6 +35,7 @@ import {
   tapiocaFlip,
   tapiocaOrders,
   tapiocaPans,
+  tapiocaPracticeOrder,
   tapiocaServeQuality,
   tapiocaSpread,
   type FeiraOrderOutcome,
@@ -56,6 +60,7 @@ import {
   type StageCustomer,
   type StageLayout,
 } from './feiraStage';
+import { TAPIOCA_COACH_KEY, readTapiocaCoach, tapiocaCoachMark, type TapiocaCoachKey } from './feiraTapiocaPracticeLogic';
 
 export type TapiocaEnd = StallEnd;
 
@@ -63,6 +68,22 @@ export interface TapiocaHooks {
   finish: (outcomes: FeiraOrderOutcome[]) => void;
   quit: () => void;
   again: () => void;
+}
+
+/** The first-time practice (feiraTapiocaPractice.ts): one customer, one pan, no clock. */
+export interface TapiocaPracticeOpts {
+  /** "Pular" in the HUD */
+  skip: () => void;
+  /** the customer took the right tapioca */
+  served: () => void;
+}
+
+function readCoachStore(): Set<string> {
+  try {
+    return readTapiocaCoach(localStorage.getItem(TAPIOCA_COACH_KEY));
+  } catch {
+    return new Set();
+  }
 }
 
 /** needs_br: true */
@@ -260,16 +281,22 @@ export class TapiocaView {
   private steamAt = 0;
   /** performance.now when the lixeira last took something (the lid claps) */
   private binAt = 0;
+  /** The coach marks this browser has already learnt (`tb_tp_coach_v1`). */
+  private seen = readCoachStore();
+  /** The "?" card was open last frame (opening it brings the marks back). */
+  private helpOpen = false;
 
   constructor(
     seed: number,
     private readonly hooks: TapiocaHooks,
+    private readonly practice: TapiocaPracticeOpts | null = null,
   ) {
     this.stage = new FeiraStage<TapiocaOrder>({
       game: 'tapioca',
       prefix: 'tapioca',
       title: 'Tapioca',
-      orders: tapiocaOrders(seed),
+      orders: practice ? [tapiocaPracticeOrder()] : tapiocaOrders(seed),
+      ...(practice ? { practice: { skip: () => practice.skip() } } : {}),
       durationMs: TAPIOCA_DURATION_MS,
       palette: { awningA: '#d8432f', awningB: '#fffdf6', plaque: '#c0392b' },
       icons: (o) => [carrySprite(o.filling), bowlSprite(o.filling, true)],
@@ -339,10 +366,43 @@ export class TapiocaView {
     this.top = null;
   }
 
+  // ---------------------------------------------------------------- coach marks
+
+  /** An action was done: its mark never comes back (until the "?" card). */
+  private learn(key: TapiocaCoachKey) {
+    if (this.seen.has(key)) return;
+    this.seen.add(key);
+    try {
+      localStorage.setItem(TAPIOCA_COACH_KEY, JSON.stringify([...this.seen]));
+    } catch {
+      /* private mode: the marks only last this run */
+    }
+  }
+
+  private coach() {
+    const st = this.stage;
+    // opening the "?" card shows every mark again, once each
+    const help = document.getElementById('howto-card')?.dataset.game === 'tapioca';
+    if (help && !this.helpOpen) this.seen = new Set();
+    this.helpOpen = help;
+    if (st.over || st.closing || !st.started) return st.coach(null);
+    const wants = st.waiting().sort((a, b) => a.arrivedAt - b.arrivedAt).map((c) => c.order.filling);
+    const open = this.open();
+    st.coach(tapiocaCoachMark({
+      pans: this.pans.map((p, i) => ({
+        phase: p.phase,
+        open: i < open,
+        botched: p.spread !== 'even' || (p.flip !== null && p.flip !== 'perfect'),
+        filling: p.filling,
+      })),
+      wants,
+    }, this.seen));
+  }
+
   // ---------------------------------------------------------------- rules
 
   private open(): number {
-    return tapiocaPans(this.served);
+    return this.practice ? 1 : tapiocaPans(this.served);
   }
 
   private update(_dt: number, t: number) {
@@ -388,6 +448,7 @@ export class TapiocaView {
       p.flip = tapiocaFlip(this.stage.t - p.cookAt);
       p.phase = 'flipped';
       p.animAt = performance.now();
+      this.learn('flip');
       const good = p.flip === 'perfect';
       this.stage.pop(TAPIOCA_FLIP_POP[p.flip], good ? 'good' : 'bad');
       this.stage.sfx(good ? 'ready' : 'burnt');
@@ -404,6 +465,7 @@ export class TapiocaView {
     if (p.phase === 'filled') {
       p.phase = 'folded';
       p.animAt = performance.now();
+      this.learn('fold');
       this.stage.sfx('paper');
       return;
     }
@@ -418,6 +480,7 @@ export class TapiocaView {
     this.stage.dropLabel(`tp-${i}`);
     this.stage.pop(HINT.trash);
     this.stage.sfx('bin');
+    this.learn('bin');
     this.binAt = performance.now();
     this.stage.burst(this.bin.x, this.bin.y - 10, 6, ['#fffdf8', '#e2b340', C.steelMid], { up: 16, spread: 10, life: 0.4 });
     return true;
@@ -452,6 +515,7 @@ export class TapiocaView {
     p.phase = 'cooking';
     p.cookAt = this.stage.t;
     p.auto = false;
+    this.learn('sift');
     this.stage.sfx('sizzle');
     if (p.spread !== 'even') this.stage.pop(TAPIOCA_SPREAD_POP[p.spread], 'bad');
   }
@@ -462,6 +526,7 @@ export class TapiocaView {
     p.filling = f;
     p.phase = 'filled';
     p.animAt = performance.now();
+    this.learn('fill');
     this.stage.sfx('grab');
     this.stage.burst(p.x, p.y, 6, [FILL_INK[f].base, FILL_INK[f].hi], { up: 10, spread: 14, life: 0.4 });
     return true;
@@ -494,6 +559,13 @@ export class TapiocaView {
       return;
     }
     const fillingOk = p.filling === c.order.filling;
+    if (this.practice && !fillingOk) {
+      // the practice customer never leaves: she says so, and the tapioca stays on the pan (the lixeira takes it)
+      this.stage.pop(TAPIOCA_WRONG, 'bad');
+      this.stage.sfx('nope');
+      return;
+    }
+    this.learn('serve');
     const quality = tapiocaServeQuality(p.flip, fillingOk, this.stage.patience(c), p.spread);
     this.stage.record(c, quality, fillingOk ? undefined : TAPIOCA_WRONG);
     if (!fillingOk) this.stage.pop(TAPIOCA_WRONG, 'bad');
@@ -504,6 +576,7 @@ export class TapiocaView {
       this.stage.sfx('chime');
     }
     Object.assign(p, newPan(), { x: p.x, y: p.y });
+    if (this.practice && quality !== 'miss') this.practice.served();
   }
 
   // ---------------------------------------------------------------- drawing
@@ -572,6 +645,7 @@ export class TapiocaView {
       blit(g, bowlSprite(b.f, true), b.x, b.y - 1 + (on ? -1 : 0), true);
     }
     this.syncHits();
+    this.coach();
   }
 
   private drawLocked(g: Ctx, p: Pan) {

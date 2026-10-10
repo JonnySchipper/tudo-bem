@@ -34,6 +34,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [V. Diário: the sticker album (client)](#v-diario) (39)
 - [W. Bate-papos and the #229 wording sweep](#w-papos) (24)
 - [X. Praia: the beach, fishing, boats and the party boat](#x-praia) (33)
+- [Z. Tapioca practice](#z-tapioca-practice) (4)
 
 ## A. Time of day, weekdays and weather
 
@@ -871,6 +872,20 @@ The pet shop on Rua dos Ipês (leste): Seu Dito (Benedito Alves, 62, from a sít
 | 641 | Mais raças no Pet Shop do Seu Dito, na Rua dos Ipês. · Meus pets ({n}) | More breeds at Seu Dito's pet shop… | `ui/support.ts` | Apoiar panel | |
 | 642 | A lojinha fica no Pet Shop do Seu Dito. · Chegue mais perto do balcão. · Chegue mais perto do cercadinho. · Você já tem esse. · Esse item não serve pra esse bichinho. · Adote um no Pet Shop do Seu Dito. | (server errors) | `apps/server/src/petShop.ts`, `world.ts` | | |
 
+## Z. Tapioca practice
+
+<a id="z-tapioca-practice"></a>
+The Feira cart's one-customer Tapioca practice and its coach marks (C2, `ui/feiraTapiocaPracticeLogic.ts`, `ui/feiraTapiocaPractice.ts`,
+`ui/feiraStage.ts`, shared `tapiocaPracticeOrder`). Each coach mark is a short English line with one Portuguese word beside it, and every
+one of those words is already on the stage (pan labels, the bowls, the lixeira). Nothing here is spoken (no TTS). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 643 | Segura · Vira! · Recheio · Dobra · Pronta! · Lixeira · queijo · coco · chocolate · goiabada | (the coach marks' words) | `feiraTapiocaPracticeLogic.ts` | reused from the stage labels; the filling word is the one the customer asked for | |
+| 644 | Uma tapioca de queijo, por favor. | A cheese tapioca, please. | `feiraTapioca.ts` `tapiocaPracticeOrder` | Nanda's practice order; the line every polite order already uses | |
+| 645 | Treino · Pular ▶ · Começar ▶ · De novo · Boa! 🎉 Agora é pra valer. | Practice · Skip · Start · Again · Nice! Now for real. | `feiraStage.ts` HUD, `feiraTapiocaPractice.ts` | Correria's practice words (Começar o turno ▶ shortened to Começar ▶) | |
+| 646 | ●●● na fila | (the line of people) | `feiraStage.ts` queue chip | dots instead of a number, no digits on the stage | |
+
 ## Totals
 
-642 numbered strings in sections A to Q, S, T, U, V, W, X and Y, plus 9 proposed-card entries.
+646 numbered strings in sections A to Q, S, T, U, V, W, X, Y and Z, plus 9 proposed-card entries.

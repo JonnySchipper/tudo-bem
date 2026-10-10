@@ -41,6 +41,11 @@ try {
   await page.evaluate(() => window.__tb.interact({ prop: 'carrinho_jogos' }));
   await page.click('#feira-cart-play', { timeout: 15_000 });
   await sleep(800);
+  // a new profile's first Tapioca is the practice: go straight to the real run
+  if (await page.$('#tapioca-skip')) {
+    await page.click('#tapioca-skip');
+    await sleep(1200);
+  }
   if (await page.$('#howto-ok')) await page.click('#howto-ok');
   for (let s = 1; s <= SECS; s++) {
     await sleep(1000);

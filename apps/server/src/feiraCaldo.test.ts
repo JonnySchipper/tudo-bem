@@ -55,7 +55,7 @@ function engineFor(now: () => number, ana: StoredProfile, store: ProfileStore, s
 }
 
 describe('caldo de cana on the server', () => {
-  it('stays closed until an admin enables it, then deals caldo', () => {
+  it('stays off (the shipped cart is Tapioca) until an admin switches it on, then deals caldo', () => {
     let now = Date.parse('2026-10-08T16:00:00.000Z');
     const store = new ProfileStore(null);
     const ana = profile('lia', 'Lia');
@@ -64,8 +64,11 @@ describe('caldo de cana on the server', () => {
     const { engine, games, s } = engineFor(() => now, ana, store, sent);
     const beforeOn = engine.cartView();
     expect(beforeOn.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: true });
-    expect(beforeOn.games.find((g) => g.id === 'tapioca')?.mode).toBe('off');
-    expect(beforeOn.featured).toBeNull();
+    expect(beforeOn.games.find((g) => g.id === 'tapioca')?.mode).toBe('on');
+    expect(beforeOn.featured).toBe('tapioca');
+
+    expect(engine.setCartMode('tapioca', 'off')).toBe(true);
+    expect(engine.cartView().featured).toBeNull();
     engine.handle(s, { t: 'feiraGame', action: 'start' });
     expect(sent.some((m) => m.t === 'error' && m.code === 'far')).toBe(true);
     expect(s.feiraGame).toBeUndefined();

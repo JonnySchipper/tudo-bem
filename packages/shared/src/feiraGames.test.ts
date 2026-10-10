@@ -14,6 +14,7 @@ import {
   FEIRA_ROTATION_ORDER,
   crownHolder,
   daysSinceEpochET,
+  defaultFeiraCartConfig,
   emptyFeiraCartConfig,
   enabledFeiraGameIds,
   featuredEnabled,
@@ -39,7 +40,7 @@ import {
 } from './feiraGames.js';
 import { PASTEL_DURATION_MS, pastelOrders } from './feiraPastel.js';
 import { caldoOrders } from './feiraCaldo.js';
-import { TAPIOCA_COOK, TAPIOCA_DURATION_MS, TAPIOCA_PATIENCE_MS, TAPIOCA_SPREAD, tapiocaOrders, tapiocaServeQuality, tapiocaSpread } from './feiraTapioca.js';
+import { TAPIOCA_COOK, TAPIOCA_DURATION_MS, TAPIOCA_PATIENCE_MS, TAPIOCA_SPREAD, TAPIOCA_FILLING_LABEL, tapiocaOrders, tapiocaPracticeOrder, tapiocaServeQuality, tapiocaSpread } from './feiraTapioca.js';
 import './feiraPastel.js';
 import './feiraCaldo.js';
 
@@ -210,8 +211,31 @@ describe('medals, crown and ties', () => {
 });
 
 describe('feira cart switch', () => {
-  it('defaults every game to off, and the catalog is the rotation registry', () => {
+  it('ships one cart game for the beta: Tapioca every day, no rotation, Pastel and Caldo off but switchable', () => {
     const cfg = normalizeFeiraCartConfig(null);
+    expect(cfg).toEqual(defaultFeiraCartConfig());
+    expect(normalizeFeiraCartConfig(undefined)).toEqual(defaultFeiraCartConfig());
+    for (const day of ['1970-01-01', '1970-01-02', '1970-01-03', '2026-10-08']) {
+      expect(enabledFeiraGameIds(cfg, day)).toEqual(['tapioca']);
+      expect(featuredEnabled(day, enabledFeiraGameIds(cfg, day))).toBe('tapioca');
+    }
+    expect(feiraCartAdminView(cfg, '2026-10-08')).toMatchObject({
+      featured: 'tapioca',
+      games: [
+        { id: 'tapioca', mode: 'on', implemented: true },
+        { id: 'pastel', mode: 'off', implemented: true },
+        { id: 'caldo', mode: 'off', implemented: true },
+      ],
+    });
+    // a stored config wins over the default: an admin who switched Tapioca off keeps it off
+    const stored = normalizeFeiraCartConfig(JSON.parse(JSON.stringify(withFeiraCartMode(cfg, 'tapioca', 'off'))));
+    expect(enabledFeiraGameIds(stored, '2026-10-08')).toEqual([]);
+    const pastel = withFeiraCartMode(withFeiraCartMode(cfg, 'tapioca', 'off')!, 'pastel', 'on')!;
+    expect(featuredEnabled('2026-10-08', enabledFeiraGameIds(pastel, '2026-10-08'))).toBe('pastel');
+  });
+
+  it('turns every game off with an empty config, and the catalog is the rotation registry', () => {
+    const cfg = normalizeFeiraCartConfig({});
     expect(cfg.games).toEqual({});
     expect(enabledFeiraGameIds(cfg, '2026-10-08')).toEqual([]);
     expect(featuredEnabled('2026-10-08', [])).toBeNull();
@@ -346,5 +370,14 @@ describe('cart customers', () => {
         }
       }
     }
+  });
+});
+
+describe('tapioca practice', () => {
+  it('is one regular, one cheese tapioca, in an order line the game already uses', () => {
+    const o = tapiocaPracticeOrder();
+    expect(o).toMatchObject({ filling: 'queijo', who: 'nanda', name: 'Nanda', patienceMs: TAPIOCA_PATIENCE_MS });
+    expect(o.line.pt).toBe(`Uma tapioca de ${TAPIOCA_FILLING_LABEL.queijo.pt}, por favor.`);
+    expect(tapiocaPracticeOrder()).toEqual(o);
   });
 });

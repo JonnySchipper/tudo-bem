@@ -10,9 +10,13 @@
  *     finger or the keyboard, and the e2e scripts click the same ids;
  *   - the customers: walk in, wait at one of three spots with a speech bubble (the Portuguese line, the English
  *     gloss, the order as pixel icons) and a patience bar, then dance, thank you or storm off;
- *   - juice: particles, floating points, screen shake, the synthesized feira sounds, a 3-2-1 before the clock
+ *   - juice: particles, floating words, screen shake, the synthesized feira sounds, a 3-2-1 before the clock
  *     starts and a "Fechou!" when it stops;
- *   - the HUD (game, clock, freguesia, score, combo, Sair).
+ *   - the HUD (game, the sun crossing the sky for the clock, the freguesia meter, the faces of the customers served
+ *     with a glow for a streak of perfects, Sair). No digits on the stage (PRAIA-PLAN §0): the numbers wait for the
+ *     end card and the Placar;
+ *   - a coach mark (`coach`): one short line pinned over the piece to use next, for the games that teach by doing;
+ *   - a practice mode (`practice`): one customer who never runs out of patience, no clock, Treino and Pular in the HUD.
  *
  * Display and timing only. The server scores the run from the per-order outcomes this collects.
  *
@@ -397,7 +401,22 @@ export interface StageConfig<O extends StageOrder> {
   /** Set when a pointer tap on a customer must not serve: this pop says to drag it there. The keyboard still serves. */
   dragHint?: { pt: string; en: string };
   finish(outcomes: FeiraOrderOutcome[]): void;
+  /** The first-time practice: nobody loses patience, the clock never runs, no 3-2-1, and the HUD has Treino and Pular. */
+  practice?: { skip: () => void };
 }
+
+/** One coach mark: an English line with the Portuguese word beside it, pinned over the hit `target`. */
+export interface StageCoachMark {
+  key: string;
+  target: string;
+  pt: string;
+  en: string;
+}
+
+/** The face over a served (or lost) customer, in the HUD strip. */
+const FACE: Record<FeiraQuality, string> = { perfect: '😄', ok: '🙂', soft: '😐', miss: '😠' };
+/** How many faces the strip keeps (a run deals 11 or 12 customers). */
+const FACES_MAX = 12;
 
 const POINTS: Record<FeiraQuality, number> = { perfect: 48, ok: 32, soft: 16, miss: 0 };
 /** What floats over a served customer. needs_br: true */
@@ -444,14 +463,17 @@ export class FeiraStage<O extends StageOrder> {
   private assets: CharAssets | null = null;
   private backdrop: HTMLCanvasElement | null = null;
   private backdropKey = '';
-  private timerEl: HTMLElement;
-  private scoreEl: HTMLElement;
-  private comboEl: HTMLElement;
+  private sunEl: HTMLElement;
+  private facesEl: HTMLElement;
   private crowdMark: HTMLElement;
   private crowdFill: HTMLElement;
   private bannerEl: HTMLElement;
   private queueChip: HTMLElement;
+  private markEl: HTMLElement;
+  private markKey = '';
+  private lit: HTMLElement | null = null;
   private shownSecond = -1;
+  private shownSun = -1;
   private ro: ResizeObserver | null = null;
   private onResize = () => this.resize();
   private reduced = reducedMotion();
@@ -467,25 +489,37 @@ export class FeiraStage<O extends StageOrder> {
     this.g = g;
     this.hitsEl = h('div', { class: 'fst-hits' });
     this.textEl = h('div', { class: 'fst-text' });
-    this.timerEl = h('b', { class: 'fst-clock', id: `${cfg.prefix}-timer` }, `${Math.ceil(cfg.durationMs / 1000)}s`);
-    this.scoreEl = h('b', { class: 'fst-score', id: `${cfg.prefix}-live-score` }, '0');
-    this.comboEl = h('span', { class: 'fst-combo', hidden: true });
+    // the clock is the sun crossing the awning's sky (left to right), the score is the faces of the people served
+    this.sunEl = h('span', { class: 'fst-hud-clock fst-sun', id: `${cfg.prefix}-sun`, role: 'img', 'aria-label': 'Time left' },
+      h('i', { class: 'fst-sun-arc' }),
+      h('i', { class: 'fst-sun-arm' }, h('i', { class: 'fst-sun-dot' })),
+    );
+    this.facesEl = h('span', { class: 'fst-hud-faces', id: `${cfg.prefix}-faces`, role: 'img', 'aria-label': 'Customers served', 'data-glow': '0' });
     this.crowdMark = h('i', { class: 'fst-crowd-mark' });
     this.crowdFill = h('i', { class: 'fst-crowd-fill' });
     this.bannerEl = h('div', { class: 'fst-banner', hidden: true });
     this.queueChip = h('span', { class: 'fst-queue-chip', hidden: true });
+    this.markEl = h('div', { class: 'fst-mark', id: `${cfg.prefix}-coach`, role: 'status' });
+    const practice = cfg.practice;
     const hud = h('header', { class: 'fst-hud', id: `${cfg.prefix}-hud` },
       h('span', { class: 'fst-hud-title' }, cfg.title),
-      h('span', { class: 'fst-hud-clock' }, h('i', { class: 'fst-clock-icon', 'aria-hidden': 'true' }), this.timerEl),
-      h('div', { class: 'fst-crowd', id: `${cfg.prefix}-crowd` },
-        h('span', { class: 'fst-crowd-label' }, FEIRA_CROWD_LABEL.pt, en(FEIRA_CROWD_LABEL.en)),
-        h('span', { class: 'fst-crowd-bar' }, this.crowdFill, this.crowdMark),
-      ),
-      h('span', { class: 'fst-hud-score' }, this.scoreEl, h('small', null, 'pts'), this.comboEl),
+      ...(practice
+        ? [
+          h('span', { class: 'fst-hud-practice', id: `${cfg.prefix}-practice` }, 'Treino', en('Practice')),
+          h('button', { type: 'button', class: 'fst-quit fst-skip', id: `${cfg.prefix}-skip`, onclick: () => practice.skip() }, 'Pular ▶', en('Skip')),
+        ]
+        : [
+          this.sunEl,
+          h('div', { class: 'fst-crowd', id: `${cfg.prefix}-crowd` },
+            h('span', { class: 'fst-crowd-label' }, FEIRA_CROWD_LABEL.pt, en(FEIRA_CROWD_LABEL.en)),
+            h('span', { class: 'fst-crowd-bar' }, this.crowdFill, this.crowdMark),
+          ),
+          this.facesEl,
+        ]),
       h('button', { type: 'button', class: 'fst-quit', id: `${cfg.prefix}-quit`, onclick: () => this.endRun() }, 'Sair', en('Quit')),
     );
-    this.root = h('div', { id: `${cfg.prefix}-root`, class: `fst-root fst-game-${cfg.game}${this.showEn ? '' : ' fst-no-en'}` },
-      this.canvas, this.hitsEl, this.textEl, hud, this.queueChip, this.bannerEl,
+    this.root = h('div', { id: `${cfg.prefix}-root`, class: `fst-root fst-game-${cfg.game}${this.showEn ? '' : ' fst-no-en'}${practice ? ' fst-practice' : ''}` },
+      this.canvas, this.hitsEl, this.textEl, hud, this.queueChip, this.bannerEl, this.markEl,
     );
     this.root.addEventListener('pointermove', (e) => this.pointerMove(e));
     this.root.addEventListener('pointerup', (e) => this.pointerUp(e));
@@ -535,6 +569,12 @@ export class FeiraStage<O extends StageOrder> {
     await wait(450);
     while (!this.over && document.getElementById('howto-card')) await wait(150);
     if (this.over) return;
+    if (this.cfg.practice) {
+      // a practice has no clock to count in: the customer just walks up
+      this.runStart = performance.now();
+      this.started = true;
+      return;
+    }
     const beats: [string, string][] = [['3', ''], ['2', ''], ['1', ''], ['Abriu!', 'Open!']];
     for (const [pt, gl] of beats) {
       if (this.over) return;
@@ -583,7 +623,7 @@ export class FeiraStage<O extends StageOrder> {
       this.tickCustomers(now);
       this.cfg.update(dt, this.t);
       this.paintHud();
-      if (this.t >= this.cfg.durationMs) {
+      if (!this.cfg.practice && this.t >= this.cfg.durationMs) {
         // time is up: the stalls close, a beat to read it, then the result goes to the server
         this.closing = true;
         this.banner('Fechou!', 'Closing time!', 'close');
@@ -682,7 +722,7 @@ export class FeiraStage<O extends StageOrder> {
 
   /** 1 → 0 as patience runs out. */
   patience(c: StageCustomer<O>): number {
-    if (c.mood !== 'wait') return 1;
+    if (c.mood !== 'wait' || this.cfg.practice) return 1;
     return Math.max(0, 1 - (this.t - c.arrivedAt) / c.order.patienceMs);
   }
 
@@ -710,14 +750,16 @@ export class FeiraStage<O extends StageOrder> {
         this.react(c, 'miss');
         this.floatAt(this.L.spots[c.spot]!, this.L.counterY - 34, 'Foi embora · Left', 'miss');
         this.sfx('nope');
+        this.addFace('miss');
         this.paintCrowd();
       } else if (p < 0.3 && c.emote !== 'sweat' && c.emote !== 'anger') {
         this.emote(c, 'sweat', now);
       }
       if (c.bubble) c.bubble.classList.toggle('fst-hurry', p < 0.3);
     }
+    // the line is people, not a number: one dot each
     this.queueChip.hidden = queued === 0;
-    if (queued) this.queueChip.textContent = `${queued} na fila`;
+    if (queued) this.queueChip.textContent = `${'●'.repeat(Math.min(6, queued))} na fila`;
   }
 
   private walk(dt: number, now: number) {
@@ -823,7 +865,7 @@ export class FeiraStage<O extends StageOrder> {
       this.shake(2, 220);
     } else {
       this.served += 1;
-      // a word, not a sum: no math in the feira games (the HUD keeps the running score)
+      // a word, not a sum: no math in the feira games (the HUD shows their face; the end card has the score)
       this.floatAt(x, y, QUALITY_WORD[quality], quality);
       if (why) this.floatAt(x, y + 10, why.pt, 'soft');
       this.sfx(quality === 'perfect' ? 'cash' : 'ding');
@@ -831,6 +873,7 @@ export class FeiraStage<O extends StageOrder> {
       this.burst(x, this.L.counterY - 20, quality === 'perfect' ? 14 : 8, [C.gold, C.goldHi, '#ffffff']);
     }
     this.react(c, quality);
+    this.addFace(quality);
     this.paintCrowd();
     return pts;
   }
@@ -1329,26 +1372,70 @@ export class FeiraStage<O extends StageOrder> {
   }
 
   private paintHud() {
+    if (this.cfg.practice) return;
+    // the sun crosses the sky as the run goes: no seconds on screen, a few ticks at the very end
+    const k = Math.round(Math.min(1, Math.max(0, this.t / this.cfg.durationMs)) * 240) / 240;
+    if (k !== this.shownSun) {
+      this.shownSun = k;
+      this.sunEl.style.setProperty('--k', k.toFixed(4));
+    }
     const left = Math.max(0, Math.ceil((this.cfg.durationMs - this.t) / 1000));
     if (left !== this.shownSecond) {
       this.shownSecond = left;
-      this.timerEl.textContent = `${left}s`;
-      this.timerEl.classList.toggle('fst-late', left <= 10);
+      this.sunEl.classList.toggle('fst-late', left <= 10);
       if (left <= 5 && left > 0) this.sfx('tick');
     }
-    const s = String(this.score);
-    if (this.scoreEl.textContent !== s) {
-      this.scoreEl.textContent = s;
-      this.scoreEl.classList.remove('fst-bump');
-      void this.scoreEl.offsetWidth;
-      this.scoreEl.classList.add('fst-bump');
+    // a streak of perfects is a glow around the faces, not a multiplier
+    const glow = String(this.combo >= 2 ? Math.min(3, this.combo - 1) : 0);
+    if (this.facesEl.dataset.glow !== glow) this.facesEl.dataset.glow = glow;
+  }
+
+  /** One more face in the HUD strip: how that customer went. The oldest drops off past `FACES_MAX`. */
+  private addFace(quality: FeiraQuality) {
+    if (this.cfg.practice) return;
+    this.facesEl.append(h('i', { class: `fst-face fst-face-${quality}`, 'aria-hidden': 'true' }, FACE[quality]));
+    while (this.facesEl.childElementCount > FACES_MAX) this.facesEl.firstElementChild?.remove();
+  }
+
+  /**
+   * Show this coach mark (or none): a small bubble over (or under) its target hit, which lights up. The same mark stays put
+   * while its target does; a target that is gone or disabled hides it.
+   */
+  coach(m: StageCoachMark | null) {
+    const node = m ? this.hits.get(m.target) : undefined;
+    const want = node && !node.spec.disabled && !this.over ? m : null;
+    const target = want ? node!.btn : null;
+    if (this.lit !== target) {
+      this.lit?.classList.remove('fst-coach-lit');
+      this.lit = target;
+      target?.classList.add('fst-coach-lit');
     }
-    // a streak of perfects as stars, not a multiplier
-    const combo = this.combo >= 2 ? '★'.repeat(Math.min(5, this.combo)) : '';
-    if (this.comboEl.textContent !== combo) {
-      this.comboEl.textContent = combo;
-      this.comboEl.hidden = !combo;
+    if (!want || !node) {
+      if (this.markKey) {
+        this.markKey = '';
+        this.markEl.classList.remove('on');
+      }
+      return;
     }
+    if (this.markKey !== want.key) {
+      this.markKey = want.key;
+      this.markEl.replaceChildren(h('b', { lang: 'pt-BR' }, want.pt), h('span', { class: 'fst-mark-en' }, want.en));
+      this.markEl.dataset.key = want.key;
+      this.markEl.classList.add('on');
+    }
+    const z = this.L.zoom;
+    const r = node.spec.rect;
+    const mw = this.markEl.offsetWidth;
+    const mh = this.markEl.offsetHeight;
+    const vw = this.root.clientWidth || window.innerWidth;
+    const top = r.y * z;
+    const above = top - mh - 12 > this.L.hudH * z + 4;
+    const cx = (r.x + r.w / 2) * z;
+    const x = Math.max(6, Math.min(vw - mw - 6, cx - mw / 2));
+    const y = above ? top - mh - 12 : (r.y + r.h) * z + 12;
+    this.markEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+    this.markEl.dataset.side = above ? 'above' : 'below';
+    this.markEl.style.setProperty('--fst-mark-arrow', `${Math.round(cx - x)}px`);
   }
 
   private paintCrowd() {

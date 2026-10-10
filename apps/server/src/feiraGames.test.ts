@@ -4,15 +4,16 @@ import { World, type Session } from './world.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FeiraGamesEngine, memoryFeiraGames, type FeiraGamesDeps } from './feiraGames.js';
-import { pastelOrders, tapiocaOrders, type FeiraGameId } from '@tudobem/shared';
+import { emptyFeiraCartConfig, pastelOrders, tapiocaOrders, type FeiraGameId } from '@tudobem/shared';
 import { memoryFeiraCart } from './feiraCart.js';
 
 function ordersFor(game: FeiraGameId, seed: number): { at: number }[] {
   return game === 'pastel' ? pastelOrders(seed) : tapiocaOrders(seed);
 }
 
+/** Every game off, then just these on. */
 function cartOn(...ids: string[]) {
-  const cart = memoryFeiraCart();
+  const cart = memoryFeiraCart(emptyFeiraCartConfig());
   for (const id of ids) cart.setMode(id, 'on');
   return cart;
 }
@@ -212,12 +213,12 @@ describe('feira games server', () => {
     expect(s.feiraGame).toBeUndefined();
   });
 
-  it('starts closed: a start and a score submit are rejected until a game is turned on', () => {
+  it('with every game off, a start and a score submit are rejected until a game is turned on', () => {
     let now = Date.parse('2026-10-08T16:00:00.000Z');
     const store = new ProfileStore(null);
     const ana = profile('ana', 'Ana');
     store.add(ana);
-    const cart = memoryFeiraCart();
+    const cart = memoryFeiraCart(emptyFeiraCartConfig());
     const games = memoryFeiraGames(() => now);
     const sent: ServerMsg[] = [];
     const s = { id: 's', profile: ana, send: (m: ServerMsg) => sent.push(m), instance: { def: ROOMS.feira } } as unknown as Session;
@@ -263,7 +264,7 @@ describe('feira games server', () => {
     const store = new ProfileStore(null);
     const ana = profile('ana', 'Ana');
     store.add(ana);
-    const cart = memoryFeiraCart();
+    const cart = memoryFeiraCart(emptyFeiraCartConfig());
     const sent: ServerMsg[] = [];
     const s = { id: 's', profile: ana, send: (m: ServerMsg) => sent.push(m), instance: { def: ROOMS.feira } } as unknown as Session;
     const engine = new FeiraGamesEngine({
@@ -288,7 +289,46 @@ describe('feira games server', () => {
     expect(start && start.t === 'feiraGame' && start.phase === 'start' && start.game).toBe('pastel');
   });
 
-  it('a test pin switches pastel on even when today is tapioca and the saved flags are off', () => {
+  it('ships with Tapioca on every day (no stored config), and counts each accepted run on the profile', () => {
+    let now = Date.parse('1970-01-02T17:00:00.000Z');
+    const store = new ProfileStore(null);
+    const ana = profile('ana', 'Ana');
+    store.add(ana);
+    const sent: ServerMsg[] = [];
+    const s = { id: 's', profile: ana, send: (m: ServerMsg) => sent.push(m), instance: { def: ROOMS.feira } } as unknown as Session;
+    const engine = new FeiraGamesEngine({
+      now: () => now,
+      store,
+      games: memoryFeiraGames(() => now),
+      cart: memoryFeiraCart(null),
+      reward: () => {},
+      pushProfile: () => {},
+      err: (_s, code) => sent.push({ t: 'error', code, pt: 'x', en: 'y' }),
+      tileOf: () => ({ x: 22, y: 9, room: 'feira' }),
+      broadcastAll: () => {},
+      broadcastAvatar: () => {},
+    });
+    // 1970-01-02 and -03 were Pastel's and Caldo's calendar slots: no rotation now, it is Tapioca
+    for (const day of ['1970-01-01', '1970-01-02', '1970-01-03', '2026-10-08']) expect(engine.featuredNow(day)).toBe('tapioca');
+    expect(engine.cartView('1970-01-02').games.map((g) => [g.id, g.mode])).toEqual([['tapioca', 'on'], ['pastel', 'off'], ['caldo', 'off']]);
+    expect(ana.feiraRuns).toBeUndefined();
+    const run = (ms: number) => {
+      sent.length = 0;
+      engine.handle(s, { t: 'feiraGame', action: 'start' });
+      expect(sent.some((m) => m.t === 'feiraGame' && m.phase === 'start' && m.game === 'tapioca')).toBe(true);
+      now += ms;
+      engine.handle(s, { t: 'feiraGame', action: 'finish', outcomes: [] });
+    };
+    run(20_000);
+    expect(ana.feiraRuns).toEqual({ tapioca: 1 });
+    // a run the server rejects (too fast) is not a run
+    run(1_000);
+    expect(ana.feiraRuns).toEqual({ tapioca: 1 });
+    run(20_000);
+    expect(ana.feiraRuns).toEqual({ tapioca: 2 });
+  });
+
+  it('a test pin makes pastel the only game even when the shipped default has Tapioca on', () => {
     // 1970-01-01 17:00 UTC is still Jan 1 in ET, and that slot is tapioca.
     const now = Date.parse('1970-01-01T17:00:00.000Z');
     const store = new ProfileStore(null);
@@ -358,6 +398,7 @@ describe('feira games server', () => {
       tileOf: () => ({ x: 19, y: 8, room: 'feira' }),
       broadcastAll: () => {},
       broadcastAvatar: () => {},
+      cart: memoryFeiraCart(emptyFeiraCartConfig()),
     });
     engine.handle(s, { t: 'feiraGame', action: 'board' });
     expect(sent.some((m) => m.t === 'feiraGame' && m.phase === 'board')).toBe(false);

@@ -13,6 +13,7 @@ import {
   openMatTiles,
   DEFAULT_APPEARANCE,
   ECONOMY,
+  emptyFeiraCartConfig,
   isCpuId,
   isWalkable,
   MISSION_REWARD,
@@ -31,6 +32,7 @@ import { sanitizeAppearance, World, MG_RESUME_MS, type AccountLink, type Session
 import { LayoutStore } from './layoutStore.js';
 import { serveFront } from './correriaTestKit.js';
 import { memoryFeiraGames } from './feiraGames.js';
+import { memoryFeiraCart } from './feiraCart.js';
 import { ProfileStore, normalizeProfile, today, todaySaoPaulo, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
@@ -1101,28 +1103,32 @@ describe('Admin panel', () => {
     if (roster?.phase === 'players') expect(roster.players.map((p) => p.name)).toEqual(['Admin']);
   });
 
-  it('requires the admin password to turn a Feira cart game on, then tells everyone', async () => {
+  it('ships the cart with Tapioca on, needs the admin password to switch a Feira cart game, then tells everyone', async () => {
     const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
     const a = await client(world, 'Admin');
     const b = await client(world, 'Lia');
     await a.send({ t: 'join', room: 'feira' });
     const entered = a.last('roomState');
-    expect(entered && entered.t === 'roomState' && entered.feiraCart).toMatchObject({ closed: true, game: null });
+    expect(entered && entered.t === 'roomState' && entered.feiraCart).toMatchObject({ closed: false, game: 'tapioca' });
 
-    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'on' });
+    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'off' });
     expect(a.last('admin')).toMatchObject({ phase: 'auth', ok: false });
 
     await a.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
     await a.send({ t: 'admin', action: 'feiraCart' });
-    const locked = a.last('admin');
-    expect(locked?.phase).toBe('feiraCart');
-    if (locked?.phase === 'feiraCart') {
-      expect(locked.featured).toBeNull();
-      expect(locked.games.map((g) => g.id)).toEqual(['tapioca', 'pastel', 'caldo']);
-      expect(locked.games.every((g) => g.mode === 'off')).toBe(true);
-      expect(locked.games.find((g) => g.id === 'pastel')).toMatchObject({ mode: 'off', implemented: true });
-      expect(locked.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: true });
+    const shipped = a.last('admin');
+    expect(shipped?.phase).toBe('feiraCart');
+    if (shipped?.phase === 'feiraCart') {
+      expect(shipped.featured).toBe('tapioca');
+      expect(shipped.games.map((g) => g.id)).toEqual(['tapioca', 'pastel', 'caldo']);
+      expect(shipped.games.find((g) => g.id === 'tapioca')).toMatchObject({ mode: 'on', implemented: true });
+      expect(shipped.games.find((g) => g.id === 'pastel')).toMatchObject({ mode: 'off', implemented: true });
+      expect(shipped.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: true });
     }
+
+    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'off' });
+    expect(a.last('admin')).toMatchObject({ phase: 'feiraCart', featured: null });
+    expect(b.last('feiraGame')).toMatchObject({ phase: 'cart', closed: true, game: null });
 
     await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'on' });
     expect(a.last('admin')).toMatchObject({ phase: 'feiraCart', featured: 'tapioca' });
@@ -1136,7 +1142,7 @@ describe('Admin panel', () => {
   });
 
   it('lets you walk the cart tiles while every game is off, then shows Pastel live to people already there and to a new joiner', async () => {
-    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca', feiraCart: memoryFeiraCart(emptyFeiraCartConfig()) });
     const a = await client(world, 'Admin');
     const b = await client(world, 'Lia');
     await a.send({ t: 'join', room: 'feira' });

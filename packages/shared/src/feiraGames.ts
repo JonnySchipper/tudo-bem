@@ -1,16 +1,18 @@
 /**
- * Feira cart games: a daily rotation of skill minigames at the Feira cart.
+ * Feira cart games: the skill minigames at the Feira cart.
  *
  * Adding a game later = one game-logic module (orders, score, timing) + one client view,
  * then register its id in `FEIRA_ROTATION_ORDER` (and `FEIRA_GAME_LABEL`). That id is the admin
  * toggle: the panel lists the order, so Pastel and Caldo do not need their own switch code.
  * A game is playable once it also joins `FEIRA_IMPLEMENTED_GAMES` and `FEIRA_GAME_MODULES`.
- * Caldo de cana is reserved but not implemented yet: that slot falls back to Pastel.
+ * All three (Tapioca, Pastel, Caldo de cana) are implemented.
  *
- * Which games are on is a persisted config (`off` | `on` | `rotation`), default off.
- * `featuredEnabled` picks today's game from the ones that are on and implemented.
- * `featuredGame` is the calendar helper (unimplemented slots still fall back) and does not
- * read the switch.
+ * Which games are on is a persisted config (`off` | `on` | `rotation`). Until an admin stores one,
+ * the shipped default applies (`defaultFeiraCartConfig`): one cart game in the beta, Tapioca on
+ * every day, no rotation. Pastel and Caldo stay switchable from the admin panel.
+ * `featuredEnabled` picks today's game from the ones that are on and implemented (several on →
+ * they rotate by day). `featuredGame` is the calendar helper (unimplemented slots still fall back)
+ * and does not read the switch.
  *
  * Rotation is deterministic from the America/New_York calendar date (ET), not the game clock.
  * Scoring is recomputed from compact per-order outcomes; the client never names the score.
@@ -25,7 +27,7 @@ import type { Bilingual } from './types.js';
 export const FEIRA_ROTATION_ORDER = ['tapioca', 'pastel', 'caldo'] as const;
 export type FeiraRotationId = (typeof FEIRA_ROTATION_ORDER)[number];
 
-/** Games this build can actually start. Each one still ships off until an admin switches it on. */
+/** Games this build can actually start. Tapioca ships on (`defaultFeiraCartConfig`); the others wait for an admin. */
 export const FEIRA_IMPLEMENTED_GAMES = ['tapioca', 'pastel', 'caldo'] as const;
 export type FeiraGameId = (typeof FEIRA_IMPLEMENTED_GAMES)[number];
 
@@ -138,6 +140,12 @@ export interface FeiraCartConfig {
 
 export const emptyFeiraCartConfig = (): FeiraCartConfig => ({ version: 1, games: {} });
 
+/**
+ * The cart before an admin has stored anything: one game in the beta, Tapioca, every day (no rotation).
+ * Pastel and Caldo stay implemented and switchable from the admin panel.
+ */
+export const defaultFeiraCartConfig = (): FeiraCartConfig => ({ version: 1, games: { tapioca: { mode: 'on' } } });
+
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** A stored window, or null when the value is missing or not a window. Never throws. */
@@ -174,7 +182,9 @@ export function feiraGameActive(setting: FeiraCartGameSetting | undefined, day: 
   return scheduleCovers(setting.schedule, day);
 }
 
+/** A stored config. Nothing stored (null / undefined) is the shipped default, `defaultFeiraCartConfig`. */
 export function normalizeFeiraCartConfig(raw: unknown): FeiraCartConfig {
+  if (raw == null) return defaultFeiraCartConfig();
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const src = r.games && typeof r.games === 'object' ? (r.games as Record<string, unknown>) : {};
   const games: Record<string, FeiraCartGameSetting> = {};

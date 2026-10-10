@@ -14,6 +14,7 @@ import {
   FEIRA_DAILY_BLOCKED,
   FEIRA_DAILY_PAID_RUNS,
   FEIRA_GAME_LABEL,
+  FEIRA_ROTATION_ORDER,
   crownHolder,
   enabledFeiraGameIds,
   featuredEnabled,
@@ -73,11 +74,11 @@ export interface FeiraGamesDeps {
   /** Push the public avatar so the crown overlay updates for people in the same room. */
   broadcastAvatar: (s: Session) => void;
   rng?: () => number;
-  /** On/off switch. Omitted in older tests: a memory store that starts off. */
+  /** On/off switch. Omitted in older tests: a memory store on the shipped default (Tapioca on). */
   cart?: FeiraCartStore;
   /**
-   * Solo/shots pin (`?feiraon=pastel`). Switches that one game on for this world.
-   * Ignored unless the id is implemented. Production leaves it unset, so the admin flags stay off.
+   * Solo/shots pin (`?feiraon=pastel`). Makes that one game the cart's only game for this world.
+   * Ignored unless the id is implemented. Production leaves it unset, so the admin flags (or the shipped default) decide.
    */
   pin?: string;
 }
@@ -143,8 +144,11 @@ export class FeiraGamesEngine {
   private readonly cart: FeiraCartStore;
   constructor(private readonly d: FeiraGamesDeps) {
     this.cart = d.cart ?? memoryFeiraCart();
-    // The test pin is the setup that turns one game on. It does not invent a second flag store.
-    if (d.pin && isFeiraGameId(d.pin)) this.cart.setMode(d.pin, 'on');
+    // The test pin is the setup that makes one game the cart's only game (the shipped default has Tapioca on, so the
+    // others go off). It does not invent a second flag store.
+    if (d.pin && isFeiraGameId(d.pin)) {
+      for (const id of FEIRA_ROTATION_ORDER) this.cart.setMode(id, id === d.pin ? 'on' : 'off');
+    }
   }
 
   private calendarDay(): string {
@@ -379,6 +383,8 @@ export class FeiraGamesEngine {
       crown = crownHolder(st.scores) === p.id && score > 0;
     }
     this.d.games.persist();
+    // the cart games stage their rules on how many runs this player has had (feiraPastel.ts, feiraCaldo.ts)
+    if (!rejected) p.feiraRuns = { ...p.feiraRuns, [run.game]: Math.min(9999, (Math.floor(Number(p.feiraRuns?.[run.game])) || 0) + 1) };
     if (coins > 0) {
       this.d.reward(s, coins, { pt: `Carrinho da feira: ${FEIRA_GAME_LABEL[run.game].pt}`, en: `Market cart: ${FEIRA_GAME_LABEL[run.game].en}` });
     }

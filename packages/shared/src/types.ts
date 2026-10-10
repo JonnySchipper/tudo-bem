@@ -269,6 +269,12 @@ export interface PrivateProfile {
    * finalizes; the diary lists them. Absent on saves from before the cart games.
    */
   feiraMedals?: { day: string; game: string; medal: 'gold' | 'silver' | 'bronze'; score: number }[];
+  /**
+   * Feira cart runs the server accepted, per game id (`tapioca`, `pastel`, `caldo`). The cart games stage their
+   * rules on it (Pastel combos from the 3rd run, no burnt block or fire in the 1st; Caldo's short flavour list in the
+   * 1st) and the Tapioca practice is skipped once a run is on it. Absent means none.
+   */
+  feiraRuns?: Partial<Record<string, number>>;
   /** Permanent subscription founder badge. Absent means false. Never revoked. */
   founderBadge?: boolean;
   /** Permanent founders banner already granted. The item itself lives in `furniture`. */

@@ -43,6 +43,8 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     ],
     desktop: 'Hold the mouse button on a pan to spread. Click to flip and fold. Drag fillings and tapiocas.',
     phone: 'Hold a pan to spread. Tap to flip and fold. Drag fillings and tapiocas with your finger.',
+    // teaches by doing: a one-customer practice and a coach mark per action (feiraTapiocaPracticeLogic.ts); the "?" keeps this
+    autoOpen: false,
   },
   {
     id: 'pastel',
@@ -58,6 +60,7 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     ],
     desktop: 'Drag everything with the mouse. Click only to put out a fire.',
     phone: 'Drag everything with your finger. Tap only to put out a fire.',
+    autoOpen: false,
   },
   {
     id: 'caldo',
@@ -73,6 +76,7 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     ],
     desktop: 'Hold the mouse button on the wheel. Click or drag everything else.',
     phone: 'Hold your finger on the wheel. Tap or drag everything else.',
+    autoOpen: false,
   },
   {
     id: 'bout',
