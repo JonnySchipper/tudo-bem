@@ -7,13 +7,16 @@
  * Behind the cart: the stack of massa, a floured board, the fork, a vitrine of filling trays, a steel fryer
  * with two places in the oil (a third after 4 serves), the draining rack and a bin.
  *
- *   1. Tap the massa: a sheet of dough lands on the board. Tap (or drag) the fillings onto it: two for a combo.
- *   2. Tap the fork: the sheet folds over and the fork crimps the edges.
- *   3. Drag it into the oil (or tap an empty place). It puffs and blisters: raw, golden, dark, black, a charcoal
- *      brick, then fire. Tap it while it is golden: the skimmer lifts it onto the rack. Tap a fire to put it out.
- *   4. Drag it from the rack to the customer (or tap them).
+ * Everything moves by hand: nothing jumps to the next place on a tap (a tap only says what to drag where).
  *
- * Burnt is a soft fail and a wrong filling is a miss; nothing ends the run early.
+ *   1. Drag a sheet of massa onto the board, then drag the fillings onto it: two for a combo.
+ *   2. Drag the fork onto it: the sheet folds over and the fork crimps the edges.
+ *   3. Drag it into the oil. It puffs and blisters slowly: raw, golden, dark, black, a charcoal brick, then fire.
+ *      Drag it out onto the rack while it is golden. Tap a fire to put it out, then drag the brick to the bin.
+ *   4. Drag it from the rack to the customer.
+ *
+ * Burnt is a soft fail and a wrong filling is a miss; nothing ends the run early. The keyboard keeps the old
+ * one-key shortcuts (Enter on a piece does its step).
  *
  * needs_br: true (order lines, pops, labels, end card).
  */
@@ -56,6 +59,13 @@ const HINT = {
   full: { pt: 'Não tem lugar no óleo.', en: 'No room in the oil.' },
   locked: { pt: 'Esse lugar abre depois.', en: 'This spot opens later.' },
   drag: { pt: 'Ninguém pediu esse. Arrasta até o freguês.', en: 'Nobody ordered that one. Drag it to a customer.' },
+  dough: { pt: 'Arrasta a massa pra tábua.', en: 'Drag the dough onto the board.' },
+  part: { pt: 'Arrasta o recheio pra massa.', en: 'Drag the filling onto the dough.' },
+  fork: { pt: 'Arrasta o garfo até o pastel.', en: 'Drag the fork onto the pastel.' },
+  oil: { pt: 'Arrasta o pastel pro óleo.', en: 'Drag the pastel into the oil.' },
+  pull: { pt: 'Arrasta pro escorredor quando dourar.', en: 'Drag it to the rack when it is golden.' },
+  serve: { pt: 'Arrasta o pastel até o freguês.', en: 'Drag the pastel to the customer.' },
+  bin: { pt: 'Arrasta pra lixeira o que deu errado.', en: 'Drag anything that went wrong into the bin.' },
 };
 
 const FILL_INK: Record<PastelPart, { base: string; hi: string; lo: string }> = {
@@ -130,11 +140,8 @@ function sheetSprite(parts: readonly PastelPart[]): HTMLCanvasElement {
     const mid = hh / 2 + 1;
     for (let k = 0; k < parts.length; k++) {
       const p = parts[k]!;
-      const cx = parts.length === 1 ? w / 2 : w / 2 + (k === 0 ? -6 : 6);
-      if (inEllipse(x, y, cx, mid + 6, parts.length === 1 ? 9 : 6, 4.5)) {
-        const ink = FILL_INK[p];
-        return (x + y) % 3 === 0 ? ink.hi : (x * 2 + y) % 5 === 0 ? ink.lo : ink.base;
-      }
+      const cx = parts.length === 1 ? w / 2 : w / 2 + (k === 0 ? -7 : 7);
+      if (inEllipse(x, y, cx, mid + 6, parts.length === 1 ? 11 : 7, 5.5)) return fillingPx(p, x, y);
     }
     if (y === Math.floor(hh / 2)) return '#e8d29a'; // the fold line
     const flour = (x * 5 + y * 3) % 17 === 0;
@@ -142,28 +149,67 @@ function sheetSprite(parts: readonly PastelPart[]): HTMLCanvasElement {
   });
 }
 
-/** A steel gastronorm tray of one filling. */
+/**
+ * One pixel of a filling. Each has its own texture so they read apart at a glance, not only by colour: sliced
+ * calabresa, holey queijo, pizza with oregano, palmito rings, shredded frango, curled camarão, smooth catupiry,
+ * goiabada cubes, banana coins and dusty canela.
+ */
+function fillingPx(part: PastelPart, x: number, y: number): string {
+  const ink = FILL_INK[part];
+  const n = (x * 7 + y * 5) % 9;
+  switch (part) {
+    case 'calabresa': {
+      // round slices: a light rim around each dark coin
+      const dx = (x % 6) - 2.5;
+      const dy = (y % 5) - 2;
+      const d = dx * dx + dy * dy;
+      return d <= 2 ? ink.base : d <= 5 ? ink.hi : ink.lo;
+    }
+    case 'queijo':
+      return (x * 3 + y * 7) % 11 === 0 ? ink.lo : (x + y) % 5 === 0 ? ink.hi : ink.base;
+    case 'pizza':
+      return (x * 5 + y * 3) % 13 === 0 ? '#3d9a4a' : (x + y * 3) % 6 === 0 ? ink.hi : n === 4 ? ink.lo : ink.base;
+    case 'palmito':
+      return x % 4 === 0 ? ink.lo : x % 4 === 2 && y % 2 ? ink.hi : ink.base;
+    case 'frango':
+      return (x + y * 2) % 5 === 0 ? ink.lo : (x + y * 2) % 5 === 2 ? ink.hi : ink.base;
+    case 'camarao':
+      return (x + y) % 4 === 0 ? ink.lo : (x - y) % 5 === 0 ? ink.hi : ink.base;
+    case 'catupiry':
+      return (x - y + 40) % 6 === 0 ? ink.lo : ink.base;
+    case 'goiabada':
+      return x % 4 === 0 || y % 3 === 0 ? ink.lo : (x + y) % 4 === 1 ? ink.hi : ink.base;
+    case 'banana':
+      return x % 5 === 2 && y % 3 === 1 ? '#8a5a2c' : x % 5 === 0 ? ink.lo : ink.base;
+    case 'canela':
+      return (x * y) % 7 === 0 ? ink.hi : n === 4 ? ink.lo : ink.base;
+    default:
+      return n === 0 ? ink.hi : n === 4 ? ink.lo : ink.base;
+  }
+}
+
+/** A steel gastronorm tray heaped with one filling, a colour tag on its front. Big enough to tell apart on a phone. */
 function traySprite(part: PastelPart): HTMLCanvasElement {
   const ink = FILL_INK[part];
-  return paint(`ps-tray-${part}`, 20, 11, (x, y) => {
-    if (y <= 1) return x === 0 || x === 19 ? null : y === 0 ? C.steelHi : C.steel;
-    if (y >= 9) return x === 0 || x === 19 ? null : C.steelLo;
-    if (x <= 1 || x >= 18) return x <= 1 ? C.steel : C.steelMid;
-    const n = (x * 7 + y * 5) % 9;
-    if (part === 'calabresa' || part === 'pizza') {
-      if ((x + y * 3) % 6 === 0) return ink.hi;
-    }
-    if (part === 'camarao' && (x + y) % 4 === 0) return ink.lo;
-    return n === 0 ? ink.hi : n === 4 ? ink.lo : ink.base;
+  return paint(`ps-tray-${part}`, 26, 17, (x, y) => {
+    // the heap above the rim
+    if (y <= 8 && inEllipse(x, y, 13, 8, 11.5, 7.5)) return fillingPx(part, x, y);
+    if (y < 8) return null;
+    const inset = y >= 15 ? 1 : 0;
+    if (x < inset || x > 25 - inset) return null;
+    if (y === 8) return C.steelHi;
+    if (y === 9) return C.steel;
+    if (y === 16) return C.steelLo;
+    if (y >= 11 && y <= 13 && x >= 8 && x <= 17) return y === 11 ? ink.hi : ink.base;
+    return x < 4 ? C.steelHi : x > 21 ? C.steelMid : C.steel;
   });
 }
 
-/** Little bowl icon of a part for the bubble ticket. */
+/** A spoonful of a part in a little bowl: the bubble ticket and what you carry to the dough. */
 function partIcon(part: PastelPart): HTMLCanvasElement {
-  const ink = FILL_INK[part];
-  return paint(`ps-picon-${part}`, 14, 9, (x, y) => {
-    if (y <= 3) return inEllipse(x, y, 7, 4, 5.5, 3) ? ((x + y) % 3 ? ink.base : ink.hi) : null;
-    if (inEllipse(x, y, 7, 3, 7, 6)) return y === 4 ? '#ffffff' : x < 6 ? '#f8f8f8' : '#c6c8d4';
+  return paint(`ps-picon-${part}`, 18, 12, (x, y) => {
+    if (y <= 5) return inEllipse(x, y, 9, 5.5, 7.5, 4.5) ? fillingPx(part, x, y) : null;
+    if (inEllipse(x, y, 9, 4, 9, 8)) return y === 6 ? '#ffffff' : x < 8 ? '#f8f8f8' : '#c6c8d4';
     return null;
   });
 }
@@ -216,6 +262,8 @@ interface Fry {
   y: number;
   /** performance.now of the splash */
   dropAt: number;
+  /** a fire you put out: a charcoal brick that waits in the oil for you to drag it to the bin */
+  out: boolean;
 }
 
 interface Racked {
@@ -229,7 +277,7 @@ interface Racked {
 export class PastelView {
   private stage: FeiraStage<PastelOrder>;
   private board: { step: BoardStep; parts: PastelPart[]; at: number } = { step: 'empty', parts: [], at: 0 };
-  private fry: Fry[] = [0, 1, 2].map(() => ({ phase: 'empty', at: 0, filling: null, parts: [], combo: false, x: 0, y: 0, dropAt: 0 }));
+  private fry: Fry[] = [0, 1, 2].map(() => ({ phase: 'empty', at: 0, filling: null, parts: [], combo: false, x: 0, y: 0, dropAt: 0, out: false }));
   private rack: (Racked | null)[] = Array.from({ length: PASTEL_RACK }, () => null);
   private served = 0;
   private wasFire = [false, false, false];
@@ -257,6 +305,7 @@ export class PastelView {
       durationMs: PASTEL_DURATION_MS,
       palette: { awningA: '#f2c230', awningB: '#cb2a2a', plaque: '#c48a14' },
       icons: (o) => [pastelSprite('golden'), ...PASTEL_RECIPE[o.filling].parts.map(partIcon)],
+      dragHint: HINT.serve,
       layout: (L) => this.layout(L),
       update: (_dt, t) => this.update(t),
       draw: (g, t, now) => this.draw(g, t, now),
@@ -283,7 +332,7 @@ export class PastelView {
     const { W, work, portrait } = L;
     if (portrait) {
       // fryer and rack on top, the board row, then the vitrine of trays (two rows)
-      const content = 64 + 46 + 76;
+      const content = 64 + 46 + 90;
       const y0 = work.y + Math.max(6, Math.round((work.h - content) * 0.35));
       this.fryer = { x: 6, y: y0, w: Math.round(W * 0.68), h: 54 };
       this.rackAt = { x: this.fryer.x + this.fryer.w + 6, y: y0 + 2, w: W - this.fryer.w - 18, h: 50 };
@@ -295,7 +344,7 @@ export class PastelView {
       const ty = rowY + 40;
       const per = 6;
       const cw = (W - 8) / per;
-      this.trays = PASTEL_PARTS.map((part, i) => ({ part, x: Math.round(4 + cw * (i % per) + cw / 2), y: ty + Math.floor(i / per) * 38 }));
+      this.trays = PASTEL_PARTS.map((part, i) => ({ part, x: Math.round(4 + cw * (i % per) + cw / 2), y: ty + Math.floor(i / per) * 42 }));
     } else {
       const y0 = work.y + 6;
       const leftW = Math.round(W * 0.46);
@@ -307,7 +356,7 @@ export class PastelView {
       this.rackAt = { x: this.fryer.x + this.fryer.w + 8, y: y0 + 2, w: W - (this.fryer.x + this.fryer.w) - 14, h: this.fryer.h - 10 };
       const per = 11;
       const cw = (W - 8) / per;
-      const rowsY = Math.max(this.fryer.y + this.fryer.h + 14, work.y + work.h - 26);
+      const rowsY = Math.max(this.fryer.y + this.fryer.h + 16, work.y + work.h - 32);
       this.trays = PASTEL_PARTS.map((part, i) => ({ part, x: Math.round(4 + cw * i + cw / 2), y: rowsY }));
     }
     const n = 3;
@@ -340,7 +389,7 @@ export class PastelView {
     st.puff(f0.x + 4 + Math.random() * (f0.w - 8), f0.y + 8 + Math.random() * (f0.h - 14), Math.random() < 0.5 ? '#ffe7a0' : '#f2c230', { vy: -3, life: 0.25 });
     this.fry.forEach((f, i) => {
       if (f.phase !== 'frying') return;
-      const d = pastelDoneness(t - f.at, f.combo);
+      const d = this.doneOf(f, t);
       st.puff(f.x + (Math.random() - 0.5) * PW, f.y + 6, '#fff3c4', { vy: -4, life: 0.25 });
       if (d === 'dark' || d === 'black' || d === 'block') st.puff(f.x + (Math.random() - 0.5) * 18, f.y - 6, d === 'dark' ? '#a2a6be' : '#565972', { vy: -16, life: 1.3, size: 2 });
       if (d === 'fire') {
@@ -356,15 +405,21 @@ export class PastelView {
     });
   }
 
-  private takeDough() {
-    if (this.stage.over) return;
+  /** How done a pastel in the oil is now. A fire you put out stays a charcoal brick. */
+  private doneOf(f: Fry, t = this.stage.t): PastelDoneness {
+    return f.out ? 'block' : pastelDoneness(t - f.at, f.combo);
+  }
+
+  private takeDough(): boolean {
+    if (this.stage.over) return false;
     if (this.board.step !== 'empty') {
       this.stage.pop(HINT.board);
-      return;
+      return false;
     }
     this.board = { step: 'sheet', parts: [], at: performance.now() };
     this.stage.sfx('slap');
     this.stage.burst(this.boardAt.x, this.boardAt.y, 8, ['#ffffff', '#fff3c4'], { up: 8, spread: 18, life: 0.5, gravity: 30 });
+    return true;
   }
 
   private addPart(part: PastelPart): boolean {
@@ -389,16 +444,16 @@ export class PastelView {
     return true;
   }
 
-  private crimp() {
-    if (this.stage.over) return;
+  private crimp(): boolean {
+    if (this.stage.over) return false;
     if (this.board.step === 'empty') {
       this.stage.pop(PASTEL_POP.dough);
-      return;
+      return false;
     }
-    if (this.board.step !== 'sheet') return;
+    if (this.board.step !== 'sheet') return false;
     if (!this.board.parts.length) {
       this.stage.pop(HINT.empty);
-      return;
+      return false;
     }
     this.board.step = 'crimping';
     this.board.at = performance.now();
@@ -407,6 +462,7 @@ export class PastelView {
     window.setTimeout(() => {
       if (this.board.step === 'crimping') this.board.step = 'crimped';
     }, 520);
+    return true;
   }
 
   /** The crimped pastel goes into the oil at slot i (or the first free one). */
@@ -430,15 +486,32 @@ export class PastelView {
     f.parts = this.board.parts.slice();
     f.combo = filling ? PASTEL_RECIPE[filling].combo : this.board.parts.length > 1;
     f.dropAt = performance.now();
+    f.out = false;
     this.wasFire[k] = false;
     this.board = { step: 'empty', parts: [], at: 0 };
-    this.stage.sfx('sizzle');
+    this.stage.sfx('oil');
     this.stage.burst(f.x, f.y, 14, ['#ffe7a0', '#f2c230', '#ffffff'], { up: 40, spread: 30, life: 0.45 });
     return true;
   }
 
-  /** Tap a place in the oil: drop the crimped one in, pull a pastel out, or put a fire out. */
+  /** A tap on a place in the oil: put a fire out where it is. Anything else is dragged, so the tap says where. */
   private tapFry(i: number) {
+    const f = this.fry[i]!;
+    if (this.stage.over) return;
+    if (i >= this.open()) {
+      this.stage.pop(HINT.locked);
+      return;
+    }
+    if (f.phase === 'empty') {
+      this.stage.pop(this.board.step === 'crimped' ? HINT.oil : this.board.step === 'empty' ? HINT.dough : PASTEL_POP.need);
+      return;
+    }
+    if (this.doneOf(f) === 'fire') this.putOut(i);
+    else this.stage.pop(this.doneOf(f) === 'block' ? HINT.bin : HINT.pull);
+  }
+
+  /** Enter on a place in the oil: the keyboard's one-key version of every drag there. */
+  private keyFry(i: number) {
     const f = this.fry[i]!;
     if (this.stage.over) return;
     if (i >= this.open()) {
@@ -450,38 +523,64 @@ export class PastelView {
       else this.stage.pop(this.board.step === 'empty' ? PASTEL_POP.dough : PASTEL_POP.need);
       return;
     }
-    const done = pastelDoneness(this.stage.t - f.at, f.combo);
+    if (this.doneOf(f) === 'fire') this.putOut(i);
+    else this.pull(i);
+  }
+
+  private putOut(i: number) {
+    const f = this.fry[i]!;
+    f.out = true;
+    this.wasFire[i] = false;
+    this.stage.pop(PASTEL_POP.out);
+    this.stage.sfx('slap');
+    this.stage.burst(f.x, f.y - 4, 10, ['#d8d0e0', '#a2a6be', '#ffffff'], { up: 30, spread: 20, life: 0.8, gravity: -10 });
+  }
+
+  /** The skimmer lifts the pastel in oil place i onto the rack (dragged there, or Enter). */
+  private pull(i: number): boolean {
+    const f = this.fry[i];
+    if (!f || f.phase !== 'frying' || this.stage.over) return false;
+    const done = this.doneOf(f);
+    if (done === 'fire') {
+      this.putOut(i);
+      return false;
+    }
     const slot = this.rack.findIndex((r) => r === null);
     if (slot < 0) {
       this.stage.pop(PASTEL_POP.rack, 'bad');
       this.stage.sfx('nope');
-      return;
+      return false;
     }
-    this.rack[slot] = { filling: f.filling, parts: f.parts, done: done === 'fire' ? 'block' : done, at: performance.now() };
+    this.rack[slot] = { filling: f.filling, parts: f.parts, done, at: performance.now() };
+    this.clearFry(i);
+    this.stage.pop(done === 'golden' ? PASTEL_POP.perfect : done === 'raw' ? PASTEL_POP.raw : PASTEL_POP.soft, done === 'golden' ? 'good' : 'bad');
+    this.stage.sfx(done === 'golden' ? 'ready' : 'burnt');
+    return true;
+  }
+
+  private clearFry(i: number) {
+    const f = this.fry[i]!;
     f.phase = 'empty';
     f.filling = null;
     f.parts = [];
+    f.out = false;
     this.wasFire[i] = false;
-    if (done === 'fire') {
-      this.stage.pop(PASTEL_POP.out);
-      this.stage.sfx('slap');
-      this.stage.burst(f.x, f.y - 4, 10, ['#d8d0e0', '#a2a6be', '#ffffff'], { up: 30, spread: 20, life: 0.8, gravity: -10 });
-    } else {
-      this.stage.pop(done === 'golden' ? PASTEL_POP.perfect : done === 'raw' ? PASTEL_POP.raw : PASTEL_POP.soft, done === 'golden' ? 'good' : 'bad');
-      this.stage.sfx(done === 'golden' ? 'ready' : 'burnt');
-    }
   }
 
-  private trash(what: 'board' | number) {
+  private trash(what: 'board' | { rack: number } | { fry: number }): boolean {
     if (what === 'board') {
-      if (this.board.step === 'empty') return false;
+      if (this.board.step === 'empty' || this.board.step === 'crimping') return false;
       this.board = { step: 'empty', parts: [], at: 0 };
+    } else if ('rack' in what) {
+      if (!this.rack[what.rack]) return false;
+      this.rack[what.rack] = null;
     } else {
-      if (!this.rack[what]) return false;
-      this.rack[what] = null;
+      const f = this.fry[what.fry];
+      if (!f || f.phase !== 'frying') return false;
+      this.clearFry(what.fry);
     }
     this.stage.pop(PASTEL_POP.trash);
-    this.stage.sfx('slap');
+    this.stage.sfx('bin');
     return true;
   }
 
@@ -586,7 +685,7 @@ export class PastelView {
     blit(g, binSprite(), this.bin.x, this.bin.y, true);
     for (const tr of this.trays) {
       const on = this.board.parts.includes(tr.part);
-      if (on) fill(g, tr.x - 12, tr.y - 7, 24, 14, C.gold);
+      if (on) fill(g, tr.x - 15, tr.y - 10, 30, 21, C.gold);
       blit(g, traySprite(tr.part), tr.x, tr.y - (on ? 1 : 0), true);
     }
     this.syncHits();
@@ -647,7 +746,7 @@ export class PastelView {
       return;
     }
     const age = t - f.at;
-    const d = pastelDoneness(age, f.combo);
+    const d = this.doneOf(f, t);
     const fry = pastelFry(f.combo);
     // it puffs up as it fries and bobs on the bubbles
     const bob = Math.round(Math.sin(now / 160 + i) * 1);
@@ -676,7 +775,8 @@ export class PastelView {
     fill(g, mx + (fry.blackAt / span) * mw, my, mw - (fry.blackAt / span) * mw, 3, '#3a2a26');
     const nx = mx + Math.min(1, age / span) * mw;
     fill(g, nx - 1, my - 2, 2, 7, '#ffffff');
-    const lab = d === 'golden' ? ['Tira!', 'Pull it!', 'fst-label-go'] : d === 'raw' ? ['Fritando', 'Frying', ''] : d === 'fire' ? ['Apaga!', 'Put it out!', 'fst-label-hot'] : ['Queimando!', 'Burning!', 'fst-label-hot'];
+    const lab = f.out ? ['Pro lixo', 'Drag it to the bin', '']
+      : d === 'golden' ? ['Tira!', 'Drag it to the rack!', 'fst-label-go'] : d === 'raw' ? ['Fritando', 'Frying', ''] : d === 'fire' ? ['Apaga!', 'Tap to put it out!', 'fst-label-hot'] : ['Queimando!', 'Burning!', 'fst-label-hot'];
     st.label(`ps-fry-${i}`, f.x, f.y + PH / 2 + 3, lab[0]!, lab[1]!, lab[2]!);
   }
 
@@ -722,52 +822,74 @@ export class PastelView {
 
   private syncHits() {
     const st = this.stage;
+    // Every step is a drag to where it goes. A tap only says what to drag where; Enter (key) does the step.
     st.hit({
       id: 'pastel-dough',
       label: 'Massa · Dough',
       rect: { x: this.massa.x - 18, y: this.massa.y - 11, w: 36, h: 22 },
-      tap: () => this.takeDough(),
+      tap: () => st.pop(HINT.dough),
+      key: () => this.takeDough(),
+      drag: () => (this.board.step === 'empty' ? { kind: 'dough', sprite: sheetSprite([]) } : null),
     });
     st.label('ps-massa', this.massa.x, this.massa.y + 11, 'Massa', 'Dough', this.board.step === 'empty' ? 'fst-label-go' : '');
-    const crimped = this.board.step === 'crimped';
+    const step = this.board.step;
+    const crimped = step === 'crimped';
     st.hit({
       id: 'pastel-board',
       label: crimped ? 'Pastel fechado: pro óleo · Crimped: into the oil' : 'Tábua · Board',
       rect: { x: this.boardAt.x - 22, y: this.boardAt.y - 17, w: 44, h: 34 },
-      tap: () => (crimped ? this.drop() : this.board.step === 'empty' ? this.takeDough() : this.crimp()),
+      tap: () => st.pop(crimped ? HINT.oil : step === 'empty' ? HINT.dough : this.board.parts.length ? HINT.fork : HINT.part),
+      key: () => (crimped ? this.drop() : step === 'empty' ? this.takeDough() : this.crimp()),
       drag: () => (crimped ? { kind: 'board', sprite: pastelSprite('folded') } : null),
-      drop: (d) => (d.kind === 'part' ? this.addPart(d.data as PastelPart) : false),
-      accepts: (d) => d.kind === 'part' && this.board.step === 'sheet',
+      drop: (d) => (d.kind === 'part' ? this.addPart(d.data as PastelPart) : d.kind === 'dough' ? this.takeDough() : d.kind === 'fork' ? this.crimp() : false),
+      accepts: (d) => (d.kind === 'part' && step === 'sheet') || (d.kind === 'dough' && step === 'empty') || (d.kind === 'fork' && step === 'sheet' && this.board.parts.length > 0),
     });
-    const boardLabel = this.board.step === 'empty' ? null
-      : this.board.step === 'sheet' ? (this.board.parts.length ? ['Garfo pra fechar', 'Fork to crimp', ''] : ['Recheio', 'Add a filling', ''])
-        : this.board.step === 'crimped' ? ['Pro óleo!', 'Into the oil!', 'fst-label-go'] : ['Fechando…', 'Crimping…', ''];
+    const boardLabel = step === 'empty' ? null
+      : step === 'sheet' ? (this.board.parts.length ? ['Garfo pra fechar', 'Drag the fork here', ''] : ['Recheio', 'Drag a filling here', ''])
+        : crimped ? ['Pro óleo!', 'Drag it into the oil!', 'fst-label-go'] : ['Fechando…', 'Crimping…', ''];
     if (boardLabel) st.label('ps-board', this.boardAt.x, this.boardAt.y + 17, boardLabel[0]!, boardLabel[1]!, boardLabel[2]!);
     else st.dropLabel('ps-board');
     st.hit({
       id: 'pastel-crimp',
       label: 'Garfo: fechar · Fork: crimp',
       rect: { x: this.fork.x - 7, y: this.fork.y - 14, w: 14, h: 28 },
-      tap: () => this.crimp(),
+      tap: () => st.pop(HINT.fork),
+      key: () => this.crimp(),
+      drag: () => (step !== 'crimping' ? { kind: 'fork', sprite: forkSprite() } : null),
     });
     st.hit({
       id: 'pastel-bin',
       label: 'Lixo · Bin',
       rect: { x: this.bin.x - 10, y: this.bin.y - 11, w: 20, h: 22 },
-      tap: () => this.trash('board'),
-      drop: (d) => (d.kind === 'board' ? this.trash('board') : d.kind === 'rack' ? this.trash(d.data as number) : false),
-      accepts: (d) => d.kind === 'board' || d.kind === 'rack',
+      tap: () => st.pop(HINT.bin),
+      key: () => this.trash('board'),
+      drop: (d) => (d.kind === 'board' ? this.trash('board') : d.kind === 'rack' ? this.trash({ rack: d.data as number }) : d.kind === 'fry' ? this.trash({ fry: d.data as number }) : false),
+      accepts: (d) => d.kind === 'board' || d.kind === 'rack' || d.kind === 'fry',
     });
     const open = this.open();
     this.fry.forEach((f, i) => {
+      const frying = f.phase === 'frying' && i < open;
       st.hit({
         id: `pastel-slot-${i}`,
         label: i >= open ? 'Fechado · Locked' : f.phase === 'empty' ? 'Óleo · Oil' : 'Tirar do óleo · Pull it out',
         rect: { x: f.x - PW / 2 - 3, y: this.fryer.y, w: PW + 6, h: this.fryer.h },
         tap: () => this.tapFry(i),
+        key: () => this.keyFry(i),
+        // out of the oil by hand: onto the rack, or (a brick) into the bin. A fire is tapped out first.
+        drag: () => (frying && this.doneOf(f) !== 'fire' ? { kind: 'fry', sprite: pastelSprite(this.doneOf(f)), data: i } : null),
         drop: (d) => d.kind === 'board' && this.drop(i),
         accepts: (d) => d.kind === 'board' && f.phase === 'empty' && i < open,
       });
+    });
+    // the whole rack takes a pastel dragged out of the oil (the pastéis already on it sit over this, z 2)
+    st.hit({
+      id: 'pastel-rack',
+      label: 'Escorredor · Rack',
+      rect: { x: this.rackAt.x - 2, y: this.rackAt.y - 2, w: this.rackAt.w + 4, h: this.rackAt.h + 4 },
+      tap: () => st.pop(HINT.pull),
+      drop: (d) => d.kind === 'fry' && this.pull(d.data as number),
+      accepts: (d) => d.kind === 'fry',
+      z: 1,
     });
     this.rack.forEach((r, i) => {
       const p = this.rackSpot(i);
@@ -776,8 +898,9 @@ export class PastelView {
         id: `pastel-rack-${i}`,
         label: `Pastel ${r.filling ? PASTEL_RECIPE[r.filling].label.pt : ''} · Pastel on the rack`,
         rect: { x: p.x - PW / 2, y: p.y - 7, w: PW, h: 14 },
-        tap: () => {
-          // a tap on the rack serves the first customer who ordered it
+        tap: () => st.pop(HINT.serve),
+        key: () => {
+          // Enter on the rack serves the first customer who ordered it
           const c = st.waiting().find((w) => w.order.filling === r.filling);
           if (c) this.serveTo(c, { kind: 'rack', sprite: pastelSprite(r.done), data: i });
           else st.pop(HINT.drag);
@@ -792,11 +915,12 @@ export class PastelView {
       st.hit({
         id: `pastel-bowl-${tr.part}`,
         label: `${lab.pt} · ${lab.en}`,
-        rect: { x: tr.x - 12, y: tr.y - 8, w: 24, h: 26 },
-        tap: () => this.addPart(tr.part),
-        drag: () => (this.board.step === 'sheet' ? { kind: 'part', sprite: partIcon(tr.part), data: tr.part } : null),
+        rect: { x: tr.x - 13, y: tr.y - 9, w: 26, h: 30 },
+        tap: () => st.pop(this.board.step === 'empty' ? HINT.dough : HINT.part),
+        key: () => this.addPart(tr.part),
+        drag: () => ({ kind: 'part', sprite: partIcon(tr.part), data: tr.part }),
       });
-      st.label(`ps-tray-${tr.part}`, tr.x, tr.y + 7, lab.pt, lab.en, 'fst-label-tray');
+      st.label(`ps-tray-${tr.part}`, tr.x, tr.y + 9, lab.pt, lab.en, 'fst-label-tray');
     }
   }
 }

@@ -36,6 +36,7 @@ import {
   type CaldoOrder,
   type FeiraOrderOutcome,
 } from '@tudobem/shared';
+import { FEIRA_LOOP_MS } from '../audio/feiraSfx';
 import { stallEndCard, type StallEnd } from './feiraStall';
 import { C, FeiraStage, blit, disc, fill, inDisc, inEllipse, paint, rows, type Ctx, type DragPayload, type StageCustomer, type StageLayout } from './feiraStage';
 
@@ -352,6 +353,9 @@ export class CaldoView {
   private warnedNoCup = false;
   private warnedNoCane = false;
   private lastNow = 0;
+  /** performance.now of the last grind and pour sounds while cranking */
+  private crushAt = 0;
+  private streamAt = 0;
   // layout
   private crate = { x: 0, y: 0 };
   private press = { x: 0, y: 0, w: 0, h: 0 };
@@ -457,6 +461,15 @@ export class CaldoView {
     const flow = CALDO_CRANK.fillPerSec * dt;
     this.cane = Math.max(0, this.cane - flow / CALDO_CRANK.canePerCup);
     this.wheel += dt * 9;
+    // the rollers grind and the caldo pours (into the cup, or onto the counter) for as long as the wheel turns
+    if (now - this.crushAt >= FEIRA_LOOP_MS.crush) {
+      this.crushAt = now;
+      st.sfx('crush');
+    }
+    if (now - this.streamAt >= FEIRA_LOOP_MS.stream) {
+      this.streamAt = now;
+      st.sfx(this.spout ? 'stream' : 'splat');
+    }
     // juice runs from the spout
     const sx = this.spoutAt.x + 4;
     st.puff(sx + (Math.random() - 0.5), this.spoutAt.y + 3, JUICE[this.spout?.flavor ?? 'plain'], { vy: 60, vx: 0, ay: 120, life: 0.25 });
@@ -501,7 +514,10 @@ export class CaldoView {
     this.warnedNoCup = false;
     this.warnedNoCane = false;
     this.lastNow = performance.now();
-    this.stage.sfx('juicer');
+    // the first grind lands on the press; the pour follows once the juice reaches the spout
+    this.crushAt = this.lastNow;
+    this.streamAt = this.lastNow - FEIRA_LOOP_MS.stream / 2;
+    this.stage.sfx('crush');
   }
 
   private stopCrank() {
@@ -526,7 +542,7 @@ export class CaldoView {
       return false;
     }
     this.cane = Math.min(CALDO_CRANK.canePerCup * 1.2, this.cane + CALDO_CRANK.canePerCup);
-    this.stage.sfx('slap');
+    this.stage.sfx('cane');
     return true;
   }
 
@@ -541,7 +557,7 @@ export class CaldoView {
     }
     this.spout = { level: 0, flavor: null, ice: false, spilled: false, where: 'spout', at: performance.now() };
     this.selected = this.spout;
-    this.stage.sfx('pop');
+    this.stage.sfx('cup');
     return true;
   }
 
@@ -573,7 +589,7 @@ export class CaldoView {
     cup.flavor = f;
     cup.at = performance.now();
     this.selected = cup;
-    this.stage.sfx('glug');
+    this.stage.sfx('splash');
     const p = this.cupPos(cup);
     this.stage.burst(p.x, p.y - 22, 6, [JUICE[f], '#ffffff'], { up: 10, spread: 10, life: 0.4 });
     return true;
@@ -589,7 +605,7 @@ export class CaldoView {
     cup.ice = !cup.ice;
     cup.at = performance.now();
     this.selected = cup;
-    this.stage.sfx(cup.ice ? 'clink' : 'tick');
+    this.stage.sfx(cup.ice ? 'ice' : 'tick');
     return true;
   }
 

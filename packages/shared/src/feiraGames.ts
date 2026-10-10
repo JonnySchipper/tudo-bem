@@ -313,7 +313,7 @@ export const FEIRA_GAME_LABEL: Record<FeiraRotationId, Bilingual> = {
 export const FEIRA_GAME_INTRO: Record<FeiraGameId, Bilingual> = {
   tapioca: {
     pt: 'A chapa tá quente. Espalha a goma, vira no ponto e enrola o recheio.',
-    en: 'The griddle is hot. Spread the batter, flip on time, and roll the filling.',
+    en: 'The griddle is hot. Sift the goma (tapioca flour), flip it on time, and fold in the filling.',
   },
   pastel: {
     pt: 'Pega a massa, põe o recheio, fecha com o garfo e tira do óleo no dourado.',

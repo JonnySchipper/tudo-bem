@@ -7,8 +7,73 @@
 body.fst-on .howto-help {
   top: calc(56px + env(safe-area-inset-top));
   bottom: auto;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+}
+
+/* the cart games' how-to card: big enough to read at arm's length on a desktop, and on a phone */
+body.fst-on .howto-card {
+  width: min(640px, calc(100vw - 20px));
+  max-height: calc(100dvh - 24px);
+  padding: 20px 26px;
+}
+
+body.fst-on .howto-card h3 {
+  font-size: 30px;
+}
+
+body.fst-on .howto-card h3 .en {
+  font-size: 18px;
+}
+
+body.fst-on .howto-card .howto-kicker {
+  font-size: 14px;
+}
+
+body.fst-on .howto-card .howto-goal,
+body.fst-on .howto-card ol {
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+body.fst-on .howto-card ol li + li {
+  margin-top: 6px;
+}
+
+body.fst-on .howto-card .howto-controls {
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+body.fst-on .howto-card #howto-ok {
+  min-height: 48px;
+  padding: 0 22px;
+  font-size: 18px;
+}
+
+@media (max-width: 600px) {
+  body.fst-on .howto-card {
+    padding: 14px 16px;
+  }
+
+  body.fst-on .howto-card h3 {
+    font-size: 24px;
+  }
+
+  body.fst-on .howto-card .howto-goal,
+  body.fst-on .howto-card ol {
+    font-size: 17px;
+    line-height: 1.35;
+  }
+
+  body.fst-on .howto-card ol {
+    padding-left: 22px;
+  }
+
+  body.fst-on .howto-card .howto-controls {
+    font-size: 15px;
+  }
 }
 
 body.fst-on .topbar,
@@ -436,13 +501,28 @@ body.fst-on #world-labels {
   height: 20px;
 }
 
+.fst-portrait .fst-label {
+  font-size: 13px;
+}
+
+.fst-portrait .fst-label .en {
+  font-size: 11px;
+}
+
 .fst-portrait .fst-label.fst-label-tray {
-  font-size: 9px;
+  font-size: 12px;
   padding: 1px 3px;
 }
 
 .fst-portrait .fst-label.fst-label-tray .en {
-  font-size: 7.5px;
+  font-size: 10px;
+}
+
+.fst-portrait .fst-pop {
+  font-size: 16px;
+  white-space: normal;
+  max-width: calc(100vw - 16px);
+  text-align: center;
 }
 
 /* ---------------------------------------------------------------- labels, plaque, pops, floats, banners */
@@ -455,11 +535,11 @@ body.fst-on #world-labels {
   align-items: center;
   padding: 1px 5px 2px;
   border-radius: 4px;
-  background: rgba(42, 34, 51, 0.78);
+  background: rgba(42, 34, 51, 0.82);
   color: #fffdf6;
   font-family: var(--font-pixel);
-  font-size: 11px;
-  line-height: 1.05;
+  font-size: 15px;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
@@ -470,7 +550,8 @@ body.fst-on #world-labels {
 .fst-label .en {
   color: #cfe8c3;
   font-family: var(--font-body);
-  font-size: 9px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .fst-label.fst-label-hot {
@@ -486,12 +567,12 @@ body.fst-on #world-labels {
   max-width: calc(var(--z, 4) * 31px);
   white-space: normal;
   text-align: center;
-  font-size: 10px;
-  background: rgba(42, 34, 51, 0.7);
+  font-size: 13px;
+  background: rgba(42, 34, 51, 0.8);
 }
 
 .fst-label.fst-label-tray .en {
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .fst-label[hidden] {
@@ -523,10 +604,14 @@ body.fst-on #world-labels {
   border-radius: 8px;
   background: var(--fst-paper);
   box-shadow: 0 3px 0 rgba(42, 34, 51, 0.4);
-  font-size: 15px;
+  font-size: 19px;
   white-space: nowrap;
-  animation: fst-pop 1.3s ease-out forwards;
+  animation: fst-pop 1.8s ease-out forwards;
   z-index: 3;
+}
+
+.fst-pop .en {
+  font-size: 15px;
 }
 
 .fst-pop-good {

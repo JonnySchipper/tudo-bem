@@ -8,6 +8,7 @@ import { sharedCharAssets, type CharAssets } from './charAssets';
 import { composeRgba } from './charcompose';
 import { composeLook } from './composeLook';
 import { FACING_ROW, type Facing } from './facing';
+import { nodDip } from './emoteMotion';
 import { hatSpec, lookForAppearance, lookKey } from './looks';
 
 /** Art px of the preview canvas: the 16x32 frame with room for a hat, a parrot and the bow. */
@@ -31,7 +32,7 @@ export interface CharPreview {
   /** cycle S -> E -> N -> W; returns the new facing */
   turn(): Facing;
   facing(): Facing;
-  /** play the wave (emote `oi`) once */
+  /** greet once (emote `oi`): a small nod, never a wave */
   wave(): void;
   /** walk in place (the walk cycle of the current facing) or stand idle */
   setWalking(on: boolean): void;
@@ -135,14 +136,11 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
     const { look, c } = composedFor(assets, spec);
     const meta = assets.manifest.sheet;
     const [fw, fh] = meta.frame;
-    const oi = meta.anims.oi;
-    const waving = now - waveT0 < ((oi.frames / (oi.fps ?? 8)) * (oi.repeat ?? 1)) * 1000;
+    // the greeting is a nod on whatever pose is showing (nobody waves; the oi row raises an arm)
+    const nod = nodDip((now - waveT0) / 1000);
     let row: number;
     let col: number;
-    if (waving) {
-      row = oi.row ?? 12;
-      col = Math.floor(((now - waveT0) / 1000) * (oi.fps ?? 8)) % oi.frames;
-    } else if (walking) {
+    if (walking) {
       row = meta.anims.walk.rows![FACING_ROW[facing]];
       col = Math.floor((now / 1000) * (meta.anims.walk.fps ?? 10)) % meta.anims.walk.frames;
     } else if (look.idle.anim === 'phone' && facing === 'S') {
@@ -171,7 +169,7 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
         } else ctx.drawImage(bird.canvas, px, py);
       }
     }
-    ctx.drawImage(c.sheet, col * fw, row * fh, fw, fh, FX, FY, fw, fh);
+    ctx.drawImage(c.sheet, col * fw, row * fh, fw, fh, FX, FY + nod, fw, fh);
   };
   raf = requestAnimationFrame(draw);
 

@@ -15,6 +15,7 @@ import { speak, stopSpeaking } from '../audio';
 import { sharedCharAssets, type CharAssets } from '../render/pixel/charAssets';
 import { composeLook } from '../render/pixel/composeLook';
 import { lookForAppearance, lookForNpc, type Look } from '../render/pixel/looks';
+import { NOD_S, nodDip } from '../render/pixel/emoteMotion';
 import type { FlightSfx } from '../audio/flightSfx';
 import {
   cabinLayout,
@@ -73,7 +74,7 @@ function composeSheet(assets: CharAssets, look: Look): Sheet {
 }
 
 /** The sheet rows (manifest `sheet.anims`): idle 0-3, walk 4-7, sit 8-11 (S W E N), then the emotes facing S. */
-const ROW = { idleS: 0, idleW: 1, walkW: 5, walkE: 6, sitS: 8, oi: 12, rir: 14 } as const;
+const ROW = { idleS: 0, idleW: 1, walkW: 5, walkE: 6, sitS: 8, rir: 14 } as const;
 
 function drawFrame(ctx: CanvasRenderingContext2D, s: Sheet | null, row: number, col: number, footX: number, footY: number, flip = false) {
   if (!s) return;
@@ -354,25 +355,31 @@ export function playFlightIntro(opts: FlightIntroOpts): Promise<void> {
     let row: number = ROW.idleS;
     let col = Math.floor(t * 5) % 6;
     let flip = false;
+    let nod = 0;
     if (S.liaPose === 'walk') {
       row = ROW.walkW;
       col = Math.floor(t * 10) % 6;
     } else if (S.liaPose === 'walkOut') {
       row = ROW.walkE;
       col = Math.floor(t * 10) % 6;
-    } else if (S.liaPose === 'oi' || S.liaPose === 'rir') {
+    } else if (S.liaPose === 'oi') {
+      // nobody waves (the oi row raises an arm): Lia greets you with a small nod, turned to you
       const k = (performance.now() - S.liaPoseT) / 1000;
-      const frames = S.liaPose === 'oi' ? 6 : 4;
-      if (k < (frames / 8) * 2) {
-        row = S.liaPose === 'oi' ? ROW.oi : ROW.rir;
-        col = Math.floor(k * 8) % frames;
+      row = ROW.idleW;
+      nod = nodDip(k, reduced);
+      if (k >= NOD_S) S.liaPose = 'idle';
+    } else if (S.liaPose === 'rir') {
+      const k = (performance.now() - S.liaPoseT) / 1000;
+      if (k < (4 / 8) * 2) {
+        row = ROW.rir;
+        col = Math.floor(k * 8) % 4;
       } else S.liaPose = 'idle';
     } else {
       // turned to the player, a little to her right
       row = ROW.idleW;
       flip = false;
     }
-    drawFrame(ctx, lia, row, col, lx, L.floorY + 2, flip);
+    drawFrame(ctx, lia, row, col, lx, L.floorY + 2 + nod, flip);
     drawCabinLight(ctx, W, H, L, S.phase, t);
   }
 
