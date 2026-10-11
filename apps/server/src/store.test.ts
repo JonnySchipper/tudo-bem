@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fileAdapter } from './fileStore.js';
 import { closeDatabase, openDatabase } from './sqliteDb.js';
-import { ProfileStore, STORE_RETRY_BASE_MS, STORE_SAVE_DEBOUNCE_MS, normalizeProfile, type PersistenceAdapter, type StoredProfile } from './store.js';
+import { ProfileStore, STORE_RETRY_BASE_MS, STORE_SAVE_DEBOUNCE_MS, VETERAN_RECADOS, normalizeProfile, type PersistenceAdapter, type StoredProfile } from './store.js';
 
 const profile = (id: string) => ({ id, name: id, token: `t-${id}`, ageGate18: true, coins: 0 }) as unknown as StoredProfile;
 
@@ -212,5 +212,36 @@ describe('normalizeProfile: the player day (D1)', () => {
     expect(p.escola).toMatchObject({ tz: -180, streak: 3, lastDay: '2026-10-07' });
     expect(p.correria).toMatchObject({ stars: 4, shifts: 2, date: '2026-10-09', paid: 3 });
     expect(p.cartela).toEqual({ stamps: 5, activityDay: { tatame: '2026-10-08' } });
+  });
+});
+
+describe('normalizeProfile: the lifetime recado count on a save from before it', () => {
+  const old = (extra: Partial<StoredProfile> = {}) =>
+    ({ id: 'v', name: 'v', token: 't-v', ageGate18: true, coins: 0, hats: [], tutorial: {}, tutorialRewarded: false, daily: { date: '2026-10-08', sceneClears: {} }, lastSeen: 0, ...extra }) as unknown as StoredProfile;
+  const today = (n: number) => ({ day: 3, offered: [], active: [], done: Array.from({ length: n }, (_, i) => `r${i}`) }) as unknown as StoredProfile['recados'];
+
+  it('starts a save that shows it has lived here as a regular, even with no favor done today', () => {
+    const veterans: Partial<StoredProfile>[] = [
+      { tutorialRewarded: true },
+      { tutorial: { carlos: true } as StoredProfile['tutorial'] },
+      { bond: { carlos: 10 } },
+      { cartela: { stamps: 1, activityDay: {} } },
+      { cartela: { stamps: 0, activityDay: { feira: '2026-09-01' } } },
+      { hats: ['bone'] },
+    ];
+    for (const extra of veterans) expect(normalizeProfile(old(extra)).recadosDoneTotal, JSON.stringify(extra)).toBe(VETERAN_RECADOS);
+    // today's list still wins when it is longer
+    expect(normalizeProfile(old({ tutorialRewarded: true, recados: today(5) })).recadosDoneTotal).toBe(5);
+  });
+
+  it('starts any other old save from today’s list', () => {
+    expect(normalizeProfile(old()).recadosDoneTotal).toBe(0);
+    expect(normalizeProfile(old({ bond: { carlos: 9 } })).recadosDoneTotal).toBe(0);
+    expect(normalizeProfile(old({ recados: today(2) })).recadosDoneTotal).toBe(2);
+  });
+
+  it('keeps a stored count (never seeds it again)', () => {
+    expect(normalizeProfile(old({ recadosDoneTotal: 1, tutorialRewarded: true, hats: ['bone'] })).recadosDoneTotal).toBe(1);
+    expect(normalizeProfile(old({ recadosDoneTotal: 0, recados: today(2) })).recadosDoneTotal).toBe(2);
   });
 });

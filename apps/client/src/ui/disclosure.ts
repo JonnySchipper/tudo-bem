@@ -5,7 +5,7 @@
  *
  *  - S0 Arrival: the arrivals hall, the airport and the bus (the hall or the flight is not done yet).
  *  - S1 Newcomer: in the Vila, has not yet ordered from Seu Carlos.
- *  - S2 Resident: has ordered from Seu Carlos and finished at least one recado.
+ *  - S2 Resident: has ordered from Seu Carlos and finished at least one recado (or finished the welcome chain).
  *  - S3 Regular: 25 diary words, or 3 recados, or a finished Escola lesson, or a gi.
  */
 
@@ -21,6 +21,8 @@ export interface DisclosureProfile {
   desembarqueDone?: boolean;
   arrivalIntroDone?: boolean;
   tutorial?: Partial<Record<string, boolean>>;
+  /** The welcome chain's bonus was paid: every step done. */
+  tutorialRewarded?: boolean;
   recados?: { done?: readonly string[] };
   /** Recados finished, ever (`recados.done` is only today's). */
   recadosDoneTotal?: number;
@@ -39,6 +41,9 @@ export const S3_RECADOS = 3;
 /** Recados finished, ever: the lifetime counter, or today's list on a save from before it. */
 export const recadosDone = (p: DisclosureProfile): number => Math.max(p.recadosDoneTotal ?? 0, p.recados?.done?.length ?? 0);
 
+/** Has the Cartela ever stamped (a stamp on the card now, or any activity's last stamp day)? */
+const stamped = (p: DisclosureProfile): boolean => (p.cartela?.stamps ?? 0) > 0 || Object.keys(p.cartela?.activityDay ?? {}).length > 0;
+
 /** Escola lessons finished. */
 const lessons = (p: DisclosureProfile): number => p.escola?.lessons ?? 0;
 
@@ -49,15 +54,23 @@ const lessons = (p: DisclosureProfile): number => p.escola?.lessons ?? 0;
 export function stage(p: DisclosureProfile): Stage {
   if (p.desembarqueDone === false || p.arrivalIntroDone === false) return 'S0';
   const done = recadosDone(p);
-  if ((p.diary?.length ?? 0) >= S3_DIARY || done >= S3_RECADOS || lessons(p) >= 1 || !!p.giOwned) return 'S3';
-  if (p.tutorial?.carlos === true && done >= 1) return 'S2';
+  if ((p.diary?.length ?? 0) >= S3_DIARY || done >= S3_RECADOS || lessons(p) >= 1 || !!p.giOwned || livedHereBeforeTheCount(p)) return 'S3';
+  if ((p.tutorial?.carlos === true && done >= 1) || p.tutorialRewarded === true) return 'S2';
   return 'S1';
 }
+
+/**
+ * A profile without the lifetime recado count (a save from before it, not yet seeded by the server) that has a Cartela stamp or a hat has
+ * lived here: a regular. Once the count exists it decides, since the hat step and a Feira visit come early in a newcomer's first day.
+ */
+const livedHereBeforeTheCount = (p: DisclosureProfile): boolean => p.recadosDoneTotal === undefined && (stamped(p) || (p.hats?.length ?? 0) > 0);
 
 /** Where the HUD is: solo builds have no accounts (no friends), and only your own kitnet can be decorated. */
 export interface HudRoomCtx {
   solo?: boolean;
   ownKitnet?: boolean;
+  /** Friend requests waiting for an answer (`game.incoming`): Amigos shows from S1 so a newcomer can answer one. */
+  friendRequests?: number;
 }
 
 /** One flag per HUD element in the §3 table. */
@@ -76,7 +89,7 @@ export interface HudShows {
   look: boolean;
   /** Chapéus: owns a hat, or the hat step at Nanda's stall is done. */
   hats: boolean;
-  /** Amigos: multiplayer only. */
+  /** Amigos: multiplayer only (before S2 only while a friend request waits). */
   friends: boolean;
   /** Decorar: own kitnet only. */
   decor: boolean;
@@ -98,9 +111,6 @@ export interface HudShows {
   belt: boolean;
 }
 
-/** Has the Cartela ever stamped (a stamp on the card now, or any activity's last stamp day)? */
-const stamped = (p: DisclosureProfile): boolean => (p.cartela?.stamps ?? 0) > 0 || Object.keys(p.cartela?.activityDay ?? {}).length > 0;
-
 /**
  * What the top bar shows. The arrivals hall and the airport show only what their guided steps teach (money, the Diário, the map, the camera);
  * the Vila adds Favores; the rest arrives as it starts to mean something. Test profiles (admin Testes) see everything out of the arrival.
@@ -121,7 +131,7 @@ export function hudShows(p: DisclosureProfile, room: HudRoomCtx | null = null): 
     favores: s1,
     look: s2,
     hats: s2 && ((p.hats?.length ?? 0) > 0 || p.tutorial?.chapeu === true || test),
-    friends: s2 && !room?.solo,
+    friends: (s2 || (s1 && (room?.friendRequests ?? 0) > 0)) && !room?.solo,
     decor: !!room?.ownKitnet,
     emotesOpen: s2,
     gearExtras: s2,

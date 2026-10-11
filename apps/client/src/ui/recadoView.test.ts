@@ -33,6 +33,18 @@ const active = (id: string, step = 0): RecadoActiveView => {
 const board = (over: Partial<RecadoBoard> = {}): RecadoBoard => ({ day: 1, offered: [], active: [], done: [], ...over });
 
 describe('tracker view-model', () => {
+  it('a resident who never placed the chair keeps the full tracker: the errands, the chain’s row, then offers', () => {
+    const offerOf = (id: string) => ({ id, giver: recadoById(id)!.giver, title: recadoById(id)!.title, ask: recadoById(id)!.ask, reward: recadoById(id)!.reward });
+    const veteran = profile({ tutorial: tut(2), recadosDoneTotal: 3, bond: {} });
+    const e = trackerEntries(board({ active: [active('carlos_cafe_pra_nanda')], offered: [offerOf('nanda_coxinha')] }), veteran, undefined, true);
+    expect(e.map((x) => x.kind)).toEqual(['recado', 'tutorial', 'offer']);
+    const resident = profile({ tutorial: tut(2), recadosDoneTotal: 1 });
+    expect(trackerEntries(board({ offered: [offerOf('nanda_coxinha')] }), resident, undefined, true).map((x) => x.kind)).toEqual(['tutorial', 'offer']);
+    // a newcomer (S1, or Seu Carlos not done yet) still sees the one row
+    expect(trackerEntries(board({ offered: [offerOf('nanda_coxinha')] }), profile({ tutorial: tut(2), recadosDoneTotal: 0 }), undefined, true).map((x) => x.kind)).toEqual(['tutorial']);
+    expect(trackerEntries(board({ offered: [offerOf('nanda_coxinha')] }), profile({ tutorial: tut(0), recadosDoneTotal: 5 }), undefined, true).map((x) => x.kind)).toEqual(['tutorial']);
+  });
+
   it('while Júlia’s welcome chain lasts it is one row: the chain’s next step, or the errand in hand', () => {
     const p = profile({ tutorial: tut(2) });
     const offerOf = (id: string) => ({ id, giver: recadoById(id)!.giver, title: recadoById(id)!.title, ask: recadoById(id)!.ask, reward: recadoById(id)!.reward });

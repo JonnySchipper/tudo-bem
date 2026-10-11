@@ -1,6 +1,7 @@
 import type { BoardRow, EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
 import { feiraCartShown, feiraRoomFor, npcDefById, padariaCasaRoom, positionAlong, ROOMS } from '@tudobem/shared';
 import type { RecadoBoard } from './ui/recadoView';
+import { readShowEnglish } from './ui/dialogueLogic';
 import { bindRvNoteProfile } from './ui/rvNote';
 
 export interface Bubble {
@@ -77,7 +78,7 @@ class Game {
    * English glosses under other players' Portuguese chat. The player's own setting (Ajustes), on by default; earning a nameplate colour in
    * the escola never turns it off (DECISIONS.md, "nameplate colour vs English help").
    */
-  englishHelp = localStorage.getItem('tb_english') !== 'off';
+  englishHelp = readShowEnglish();
   /** Admin design mode: world props can be moved. Player walking and clicks pause. */
   designMode = false;
   /** Extra camera offset (world px) while designing, so a phone can pan props out from under the panel. */

@@ -13,6 +13,7 @@ import {
   midpoint,
   npcTagColor,
   offersPapo,
+  LEGACY_SHOW_EN_KEY,
   readShowEnglish,
   showsHearts,
   typedCount,
@@ -197,6 +198,25 @@ describe('Mostrar inglês preference', () => {
     expect(readShowEnglish(s)).toBe(false);
     writeShowEnglish(true, s);
     expect(readShowEnglish(s)).toBe(true);
+  });
+
+  it('moves an old dialogue-only off (tb_show_en) onto the one key, once', () => {
+    const s = mem();
+    s.setItem(LEGACY_SHOW_EN_KEY, 'off');
+    expect(readShowEnglish(s)).toBe(false);
+    expect(s.getItem(SHOW_EN_KEY)).toBe('off');
+    // the new key wins from then on
+    writeShowEnglish(true, s);
+    expect(readShowEnglish(s)).toBe(true);
+    // an old 'on', or an off under a key already set, changes nothing
+    const on = mem();
+    on.setItem(LEGACY_SHOW_EN_KEY, 'on');
+    expect(readShowEnglish(on)).toBe(true);
+    expect(on.getItem(SHOW_EN_KEY)).toBeNull();
+    const set = mem();
+    set.setItem(SHOW_EN_KEY, 'on');
+    set.setItem(LEGACY_SHOW_EN_KEY, 'off');
+    expect(readShowEnglish(set)).toBe(true);
   });
 
   it('survives storage that throws (private windows) and no storage at all', () => {

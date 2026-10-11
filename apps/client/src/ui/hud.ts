@@ -480,7 +480,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
     if (p) {
       paintHudBelt(p.bjj);
       // the disclosure ladder (disclosure.ts): each element waits for the stage at which it means something
-      const shows = hudShows(p, { solo: game.solo, ownKitnet: game.isOwnKitnet });
+      const shows = hudShows(p, { solo: game.solo, ownKitnet: game.isOwnKitnet, friendRequests: game.incoming.length });
       beltEl.style.display = shows.belt ? '' : 'none';
       plate.style.display = shows.plate ? '' : 'none';
       drawerPlateChip.style.display = shows.plate ? '' : 'none';
