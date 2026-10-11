@@ -1,0 +1,1785 @@
+{
+  "room": "lagoa",
+  "objects": [
+    {
+      "id": "moita_n0",
+      "kind": "sebe",
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s0",
+      "kind": "sebe",
+      "x": 0,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_n2",
+      "kind": "sebe",
+      "x": 2,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s2",
+      "kind": "sebe",
+      "x": 2,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita_b"
+    },
+    {
+      "id": "moita_n4",
+      "kind": "sebe",
+      "x": 4,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s4",
+      "kind": "sebe",
+      "x": 4,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_n6",
+      "kind": "sebe",
+      "x": 6,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s6",
+      "kind": "sebe",
+      "x": 6,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita_b"
+    },
+    {
+      "id": "moita_n8",
+      "kind": "sebe",
+      "x": 8,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s8",
+      "kind": "sebe",
+      "x": 8,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_n10",
+      "kind": "sebe",
+      "x": 10,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s10",
+      "kind": "sebe",
+      "x": 10,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita_b"
+    },
+    {
+      "id": "moita_n12",
+      "kind": "sebe",
+      "x": 12,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s12",
+      "kind": "sebe",
+      "x": 12,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_n14",
+      "kind": "sebe",
+      "x": 14,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s14",
+      "kind": "sebe",
+      "x": 14,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita_b"
+    },
+    {
+      "id": "moita_n16",
+      "kind": "sebe",
+      "x": 16,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s16",
+      "kind": "sebe",
+      "x": 16,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_n18",
+      "kind": "sebe",
+      "x": 18,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s18",
+      "kind": "sebe",
+      "x": 18,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita_b"
+    },
+    {
+      "id": "moita_n20",
+      "kind": "sebe",
+      "x": 20,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s20",
+      "kind": "sebe",
+      "x": 20,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_n22",
+      "kind": "sebe",
+      "x": 22,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s22",
+      "kind": "sebe",
+      "x": 22,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita_b"
+    },
+    {
+      "id": "moita_n24",
+      "kind": "sebe",
+      "x": 24,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s24",
+      "kind": "sebe",
+      "x": 24,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_n26",
+      "kind": "sebe",
+      "x": 26,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s26",
+      "kind": "sebe",
+      "x": 26,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita_b"
+    },
+    {
+      "id": "moita_n28",
+      "kind": "sebe",
+      "x": 28,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s28",
+      "kind": "sebe",
+      "x": 28,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_n30",
+      "kind": "sebe",
+      "x": 30,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s30",
+      "kind": "sebe",
+      "x": 30,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita_b"
+    },
+    {
+      "id": "moita_n32",
+      "kind": "sebe",
+      "x": 32,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s32",
+      "kind": "sebe",
+      "x": 32,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_n34",
+      "kind": "sebe",
+      "x": 34,
+      "y": 0,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita"
+    },
+    {
+      "id": "moita_s34",
+      "kind": "sebe",
+      "x": 34,
+      "y": 25,
+      "w": 2,
+      "blocks": true,
+      "art": "lagoa/moita_b"
+    },
+    {
+      "id": "moita_o1",
+      "kind": "sebe",
+      "x": 0,
+      "y": 1,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l1",
+      "kind": "sebe",
+      "x": 35,
+      "y": 1,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o2",
+      "kind": "sebe",
+      "x": 0,
+      "y": 2,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l2",
+      "kind": "sebe",
+      "x": 35,
+      "y": 2,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o3",
+      "kind": "sebe",
+      "x": 0,
+      "y": 3,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l3",
+      "kind": "sebe",
+      "x": 35,
+      "y": 3,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o4",
+      "kind": "sebe",
+      "x": 0,
+      "y": 4,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l4",
+      "kind": "sebe",
+      "x": 35,
+      "y": 4,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o5",
+      "kind": "sebe",
+      "x": 0,
+      "y": 5,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l5",
+      "kind": "sebe",
+      "x": 35,
+      "y": 5,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o6",
+      "kind": "sebe",
+      "x": 0,
+      "y": 6,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l6",
+      "kind": "sebe",
+      "x": 35,
+      "y": 6,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o7",
+      "kind": "sebe",
+      "x": 0,
+      "y": 7,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l7",
+      "kind": "sebe",
+      "x": 35,
+      "y": 7,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o8",
+      "kind": "sebe",
+      "x": 0,
+      "y": 8,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l8",
+      "kind": "sebe",
+      "x": 35,
+      "y": 8,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o9",
+      "kind": "sebe",
+      "x": 0,
+      "y": 9,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l9",
+      "kind": "sebe",
+      "x": 35,
+      "y": 9,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o10",
+      "kind": "sebe",
+      "x": 0,
+      "y": 10,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l10",
+      "kind": "sebe",
+      "x": 35,
+      "y": 10,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o11",
+      "kind": "sebe",
+      "x": 0,
+      "y": 11,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l11",
+      "kind": "sebe",
+      "x": 35,
+      "y": 11,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o12",
+      "kind": "sebe",
+      "x": 0,
+      "y": 12,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o13",
+      "kind": "sebe",
+      "x": 0,
+      "y": 13,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o14",
+      "kind": "sebe",
+      "x": 0,
+      "y": 14,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o15",
+      "kind": "sebe",
+      "x": 0,
+      "y": 15,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l15",
+      "kind": "sebe",
+      "x": 35,
+      "y": 15,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o16",
+      "kind": "sebe",
+      "x": 0,
+      "y": 16,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l16",
+      "kind": "sebe",
+      "x": 35,
+      "y": 16,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o17",
+      "kind": "sebe",
+      "x": 0,
+      "y": 17,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l17",
+      "kind": "sebe",
+      "x": 35,
+      "y": 17,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o18",
+      "kind": "sebe",
+      "x": 0,
+      "y": 18,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l18",
+      "kind": "sebe",
+      "x": 35,
+      "y": 18,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o19",
+      "kind": "sebe",
+      "x": 0,
+      "y": 19,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l19",
+      "kind": "sebe",
+      "x": 35,
+      "y": 19,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o20",
+      "kind": "sebe",
+      "x": 0,
+      "y": 20,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l20",
+      "kind": "sebe",
+      "x": 35,
+      "y": 20,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o21",
+      "kind": "sebe",
+      "x": 0,
+      "y": 21,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l21",
+      "kind": "sebe",
+      "x": 35,
+      "y": 21,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o22",
+      "kind": "sebe",
+      "x": 0,
+      "y": 22,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l22",
+      "kind": "sebe",
+      "x": 35,
+      "y": 22,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o23",
+      "kind": "sebe",
+      "x": 0,
+      "y": 23,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l23",
+      "kind": "sebe",
+      "x": 35,
+      "y": 23,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_o24",
+      "kind": "sebe",
+      "x": 0,
+      "y": 24,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "moita_l24",
+      "kind": "sebe",
+      "x": 35,
+      "y": 24,
+      "blocks": true,
+      "art": "lagoa/moita_p"
+    },
+    {
+      "id": "ipe_roxo_1",
+      "kind": "arvore",
+      "x": 2,
+      "y": 1,
+      "blocks": true,
+      "art": "props/ipe_roxo_large",
+      "w": 2,
+      "h": 2
+    },
+    {
+      "id": "jeriva_1",
+      "kind": "arvore",
+      "x": 5,
+      "y": 2,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "arvore_1",
+      "kind": "arvore",
+      "x": 7,
+      "y": 1,
+      "blocks": true,
+      "art": "props/ipe_branco_medium"
+    },
+    {
+      "id": "ipe_branco_1",
+      "kind": "arvore",
+      "x": 9,
+      "y": 1,
+      "blocks": true,
+      "art": "props/ipe_branco_large",
+      "w": 2,
+      "h": 2
+    },
+    {
+      "id": "jeriva_2",
+      "kind": "arvore",
+      "x": 12,
+      "y": 1,
+      "blocks": true,
+      "art": "props/jeriva_b"
+    },
+    {
+      "id": "ipe_amarelo_1",
+      "kind": "arvore",
+      "x": 17,
+      "y": 1,
+      "blocks": true,
+      "art": "props/ipe_amarelo_medium_b"
+    },
+    {
+      "id": "jeriva_3",
+      "kind": "arvore",
+      "x": 20,
+      "y": 1,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "ipe_roxo_2",
+      "kind": "arvore",
+      "x": 23,
+      "y": 1,
+      "blocks": true,
+      "art": "props/ipe_roxo_medium"
+    },
+    {
+      "id": "arvore_2",
+      "kind": "arvore",
+      "x": 25,
+      "y": 1,
+      "blocks": true,
+      "art": "props/ipe_medium"
+    },
+    {
+      "id": "jeriva_4",
+      "kind": "arvore",
+      "x": 28,
+      "y": 1,
+      "blocks": true,
+      "art": "props/jeriva_b"
+    },
+    {
+      "id": "ipe_branco_2",
+      "kind": "arvore",
+      "x": 32,
+      "y": 1,
+      "blocks": true,
+      "art": "props/ipe_branco_medium"
+    },
+    {
+      "id": "ipe_roxo_3",
+      "kind": "arvore",
+      "x": 33,
+      "y": 3,
+      "blocks": true,
+      "art": "props/ipe_roxo_large",
+      "w": 2,
+      "h": 2
+    },
+    {
+      "id": "jeriva_ilha",
+      "kind": "arvore",
+      "x": 10,
+      "y": 9,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "jeriva_5",
+      "kind": "arvore",
+      "x": 33,
+      "y": 8,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "ipe_amarelo_2",
+      "kind": "arvore",
+      "x": 32,
+      "y": 18,
+      "blocks": true,
+      "art": "props/ipe_amarelo_medium_b"
+    },
+    {
+      "id": "arvore_3",
+      "kind": "arvore",
+      "x": 29,
+      "y": 23,
+      "blocks": true,
+      "art": "props/ipe_roxo_medium_b"
+    },
+    {
+      "id": "ipe_roxo_4",
+      "kind": "arvore",
+      "x": 26,
+      "y": 22,
+      "blocks": true,
+      "art": "props/ipe_roxo_medium_b"
+    },
+    {
+      "id": "jeriva_6",
+      "kind": "arvore",
+      "x": 23,
+      "y": 23,
+      "blocks": true,
+      "art": "props/jeriva_b"
+    },
+    {
+      "id": "ipe_branco_3",
+      "kind": "arvore",
+      "x": 2,
+      "y": 22,
+      "blocks": true,
+      "art": "props/ipe_branco_large",
+      "w": 2,
+      "h": 2
+    },
+    {
+      "id": "jeriva_7",
+      "kind": "arvore",
+      "x": 6,
+      "y": 23,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "arvore_4",
+      "kind": "arvore",
+      "x": 12,
+      "y": 24,
+      "blocks": true,
+      "art": "props/ipe_roxo_medium"
+    },
+    {
+      "id": "jeriva_8",
+      "kind": "arvore",
+      "x": 18,
+      "y": 23,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "ipe_roxo_5",
+      "kind": "arvore",
+      "x": 1,
+      "y": 19,
+      "blocks": true,
+      "art": "props/ipe_roxo_medium"
+    },
+    {
+      "id": "jeriva_9",
+      "kind": "arvore",
+      "x": 1,
+      "y": 7,
+      "blocks": true,
+      "art": "props/jeriva_b"
+    },
+    {
+      "id": "ipe_amarelo_3",
+      "kind": "arvore",
+      "x": 3,
+      "y": 4,
+      "blocks": true,
+      "art": "props/ipe_amarelo_medium_b"
+    },
+    {
+      "id": "jeriva_10",
+      "kind": "arvore",
+      "x": 33,
+      "y": 21,
+      "blocks": true,
+      "art": "props/jeriva"
+    },
+    {
+      "id": "lampiao_1",
+      "kind": "poste",
+      "x": 27,
+      "y": 12,
+      "blocks": true,
+      "art": "props/lamp_old",
+      "lightAtNight": true
+    },
+    {
+      "id": "lampiao_2",
+      "kind": "poste",
+      "x": 27,
+      "y": 15,
+      "blocks": true,
+      "art": "props/lamp_old",
+      "lightAtNight": true
+    },
+    {
+      "id": "lampiao_3",
+      "kind": "poste",
+      "x": 31,
+      "y": 15,
+      "blocks": true,
+      "art": "props/lamp_old",
+      "lightAtNight": true
+    },
+    {
+      "id": "lampiao_4",
+      "kind": "poste",
+      "x": 31,
+      "y": 9,
+      "blocks": true,
+      "art": "props/lamp_old",
+      "lightAtNight": true
+    },
+    {
+      "id": "lampiao_5",
+      "kind": "poste",
+      "x": 28,
+      "y": 4,
+      "blocks": true,
+      "art": "props/lamp_old",
+      "lightAtNight": true
+    },
+    {
+      "id": "lanterna_pier_1",
+      "kind": "lagoa_deco",
+      "x": 21,
+      "y": 12,
+      "blocks": true,
+      "art": "praia/pier_lampada",
+      "lightAtNight": true
+    },
+    {
+      "id": "lanterna_pier_2",
+      "kind": "lagoa_deco",
+      "x": 21,
+      "y": 15,
+      "blocks": true,
+      "art": "praia/pier_lampada",
+      "lightAtNight": true
+    },
+    {
+      "id": "poste_pier_1",
+      "kind": "lagoa_deco",
+      "x": 18,
+      "y": 12,
+      "art": "praia/pier_poste",
+      "blocks": false
+    },
+    {
+      "id": "poste_pier_2",
+      "kind": "lagoa_deco",
+      "x": 18,
+      "y": 15,
+      "art": "praia/pier_poste",
+      "blocks": false
+    },
+    {
+      "id": "poste_pier_3",
+      "kind": "lagoa_deco",
+      "x": 22,
+      "y": 15,
+      "art": "praia/pier_poste",
+      "blocks": false
+    },
+    {
+      "id": "poste_pier_4",
+      "kind": "lagoa_deco",
+      "x": 22,
+      "y": 12,
+      "art": "praia/pier_poste",
+      "blocks": false
+    },
+    {
+      "id": "poste_pier_5",
+      "kind": "lagoa_deco",
+      "x": 11,
+      "y": 6,
+      "art": "praia/pier_poste",
+      "blocks": false
+    },
+    {
+      "id": "poste_pier_6",
+      "kind": "lagoa_deco",
+      "x": 18,
+      "y": 6,
+      "art": "praia/pier_poste",
+      "blocks": false
+    },
+    {
+      "id": "quiosque_mirante",
+      "kind": "lagoa_deco",
+      "x": 13,
+      "y": 3,
+      "w": 4,
+      "h": 2,
+      "art": "lagoa/quiosque_sape",
+      "blocks": false
+    },
+    {
+      "id": "banco_mirante",
+      "kind": "banco",
+      "x": 14,
+      "y": 4,
+      "w": 2,
+      "seat": "SW",
+      "blocks": false
+    },
+    {
+      "id": "banco_trilha",
+      "kind": "banco",
+      "x": 24,
+      "y": 2,
+      "w": 2,
+      "seat": "SW",
+      "blocks": false
+    },
+    {
+      "id": "tronco_sul",
+      "kind": "lagoa_deco",
+      "x": 21,
+      "y": 20,
+      "w": 2,
+      "seat": "NE",
+      "art": "lagoa/tronco",
+      "blocks": false
+    },
+    {
+      "id": "tronco_oeste",
+      "kind": "lagoa_deco",
+      "x": 2,
+      "y": 16,
+      "w": 2,
+      "seat": "NE",
+      "art": "lagoa/tronco",
+      "blocks": false
+    },
+    {
+      "id": "pesca_lagoa",
+      "kind": "pesca_spot",
+      "x": 19,
+      "y": 13,
+      "interact": {
+        "x": 19,
+        "y": 13
+      },
+      "label": {
+        "pt": "Pesca no píer da lagoa",
+        "en": "Fishing from the lagoon jetty"
+      },
+      "art": "praia/pesca_bollard",
+      "action": "pesca",
+      "water": "lagoa",
+      "blocks": false
+    },
+    {
+      "id": "pesca_lagoa_mirante",
+      "kind": "pesca_spot",
+      "x": 12,
+      "y": 5,
+      "interact": {
+        "x": 12,
+        "y": 5
+      },
+      "label": {
+        "pt": "Pesca no mirante",
+        "en": "Fishing from the lookout"
+      },
+      "art": "praia/pesca_bollard",
+      "action": "pesca",
+      "water": "lagoa",
+      "blocks": false
+    },
+    {
+      "id": "pesca_lagoa_sul",
+      "kind": "pesca_spot",
+      "x": 15,
+      "y": 21,
+      "interact": {
+        "x": 15,
+        "y": 21
+      },
+      "label": {
+        "pt": "Pesca na areia da lagoa",
+        "en": "Fishing from the lagoon sand"
+      },
+      "art": "praia/pesca_stake",
+      "action": "pesca",
+      "water": "lagoa",
+      "blocks": false
+    },
+    {
+      "id": "pesca_lagoa_oeste",
+      "kind": "pesca_spot",
+      "x": 2,
+      "y": 12,
+      "interact": {
+        "x": 2,
+        "y": 12
+      },
+      "label": {
+        "pt": "Pesca na margem",
+        "en": "Fishing from the bank"
+      },
+      "art": "praia/pesca_stake",
+      "action": "pesca",
+      "water": "lagoa",
+      "blocks": false
+    },
+    {
+      "id": "placa_lagoa",
+      "kind": "lagoa_deco",
+      "x": 33,
+      "y": 11,
+      "blocks": true,
+      "art": "lagoa/placa_lagoa",
+      "label": {
+        "pt": "Lagoa do Jerivá",
+        "en": "Jerivá Lagoon"
+      }
+    },
+    {
+      "id": "placa_capivara",
+      "kind": "lagoa_deco",
+      "x": 9,
+      "y": 21,
+      "blocks": true,
+      "art": "lagoa/placa_capivara",
+      "label": {
+        "pt": "Cuidado: capivaras",
+        "en": "Careful: capybaras"
+      }
+    },
+    {
+      "id": "aguape_1",
+      "kind": "lagoa_deco",
+      "x": 8,
+      "y": 8,
+      "art": "lagoa/aguape_a",
+      "blocks": false
+    },
+    {
+      "id": "aguape_2",
+      "kind": "lagoa_deco",
+      "x": 9,
+      "y": 7,
+      "art": "lagoa/aguape_b",
+      "blocks": false
+    },
+    {
+      "id": "aguape_3",
+      "kind": "lagoa_deco",
+      "x": 7,
+      "y": 9,
+      "art": "lagoa/aguape_c",
+      "blocks": false
+    },
+    {
+      "id": "aguape_4",
+      "kind": "lagoa_deco",
+      "x": 6,
+      "y": 10,
+      "art": "lagoa/aguape_a",
+      "blocks": false
+    },
+    {
+      "id": "aguape_5",
+      "kind": "lagoa_deco",
+      "x": 14,
+      "y": 15,
+      "art": "lagoa/aguape_b",
+      "blocks": false
+    },
+    {
+      "id": "aguape_6",
+      "kind": "lagoa_deco",
+      "x": 15,
+      "y": 16,
+      "art": "lagoa/aguape_a",
+      "blocks": false
+    },
+    {
+      "id": "aguape_7",
+      "kind": "lagoa_deco",
+      "x": 13,
+      "y": 16,
+      "art": "lagoa/aguape_c",
+      "blocks": false
+    },
+    {
+      "id": "aguape_8",
+      "kind": "lagoa_deco",
+      "x": 22,
+      "y": 9,
+      "art": "lagoa/aguape_a",
+      "blocks": false
+    },
+    {
+      "id": "aguape_9",
+      "kind": "lagoa_deco",
+      "x": 23,
+      "y": 10,
+      "art": "lagoa/aguape_c",
+      "blocks": false
+    },
+    {
+      "id": "aguape_10",
+      "kind": "lagoa_deco",
+      "x": 24,
+      "y": 11,
+      "art": "lagoa/aguape_b",
+      "blocks": false
+    },
+    {
+      "id": "aguape_11",
+      "kind": "lagoa_deco",
+      "x": 16,
+      "y": 8,
+      "art": "lagoa/aguape_b",
+      "blocks": false
+    },
+    {
+      "id": "aguape_12",
+      "kind": "lagoa_deco",
+      "x": 19,
+      "y": 10,
+      "art": "lagoa/aguape_a",
+      "blocks": false
+    },
+    {
+      "id": "aguape_13",
+      "kind": "lagoa_deco",
+      "x": 12,
+      "y": 13,
+      "art": "lagoa/aguape_c",
+      "blocks": false
+    },
+    {
+      "id": "aguape_14",
+      "kind": "lagoa_deco",
+      "x": 6,
+      "y": 14,
+      "art": "lagoa/aguape_b",
+      "blocks": false
+    },
+    {
+      "id": "aguape_15",
+      "kind": "lagoa_deco",
+      "x": 18,
+      "y": 18,
+      "art": "lagoa/aguape_c",
+      "blocks": false
+    },
+    {
+      "id": "aguape_16",
+      "kind": "lagoa_deco",
+      "x": 10,
+      "y": 17,
+      "art": "lagoa/aguape_a",
+      "blocks": false
+    },
+    {
+      "id": "junco_1",
+      "kind": "sebe",
+      "x": 10,
+      "y": 5,
+      "art": "praia/taboa",
+      "blocks": false
+    },
+    {
+      "id": "junco_2",
+      "kind": "sebe",
+      "x": 8,
+      "y": 6,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_3",
+      "kind": "sebe",
+      "x": 7,
+      "y": 7,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_4",
+      "kind": "sebe",
+      "x": 5,
+      "y": 9,
+      "art": "praia/taboa",
+      "blocks": false
+    },
+    {
+      "id": "junco_5",
+      "kind": "sebe",
+      "x": 4,
+      "y": 11,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_6",
+      "kind": "sebe",
+      "x": 3,
+      "y": 12,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_7",
+      "kind": "sebe",
+      "x": 4,
+      "y": 14,
+      "art": "praia/taboa",
+      "blocks": false
+    },
+    {
+      "id": "junco_8",
+      "kind": "sebe",
+      "x": 5,
+      "y": 15,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_9",
+      "kind": "sebe",
+      "x": 7,
+      "y": 17,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_10",
+      "kind": "sebe",
+      "x": 9,
+      "y": 18,
+      "art": "praia/taboa",
+      "blocks": false
+    },
+    {
+      "id": "junco_11",
+      "kind": "sebe",
+      "x": 11,
+      "y": 19,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_12",
+      "kind": "sebe",
+      "x": 20,
+      "y": 19,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_13",
+      "kind": "sebe",
+      "x": 22,
+      "y": 18,
+      "art": "praia/taboa",
+      "blocks": false
+    },
+    {
+      "id": "junco_14",
+      "kind": "sebe",
+      "x": 23,
+      "y": 17,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_15",
+      "kind": "sebe",
+      "x": 24,
+      "y": 16,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_16",
+      "kind": "sebe",
+      "x": 25,
+      "y": 15,
+      "art": "praia/taboa",
+      "blocks": false
+    },
+    {
+      "id": "junco_17",
+      "kind": "sebe",
+      "x": 26,
+      "y": 11,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_18",
+      "kind": "sebe",
+      "x": 26,
+      "y": 10,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_19",
+      "kind": "sebe",
+      "x": 25,
+      "y": 9,
+      "art": "praia/taboa",
+      "blocks": false
+    },
+    {
+      "id": "junco_20",
+      "kind": "sebe",
+      "x": 23,
+      "y": 7,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_21",
+      "kind": "sebe",
+      "x": 20,
+      "y": 6,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_22",
+      "kind": "sebe",
+      "x": 12,
+      "y": 8,
+      "art": "praia/taboa",
+      "blocks": false
+    },
+    {
+      "id": "junco_23",
+      "kind": "sebe",
+      "x": 11,
+      "y": 11,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_24",
+      "kind": "sebe",
+      "x": 9,
+      "y": 10,
+      "art": "lagoa/junco",
+      "blocks": false
+    },
+    {
+      "id": "junco_25",
+      "kind": "sebe",
+      "x": 12,
+      "y": 9,
+      "art": "praia/taboa",
+      "blocks": false
+    },
+    {
+      "id": "pedras_ilha",
+      "kind": "pedras",
+      "x": 11,
+      "y": 10,
+      "art": "praia/pedras_a",
+      "blocks": true
+    },
+    {
+      "id": "pedras_oeste",
+      "kind": "pedras",
+      "x": 3,
+      "y": 17,
+      "w": 2,
+      "art": "praia/pedras_b",
+      "blocks": true
+    },
+    {
+      "id": "pedras_norte",
+      "kind": "pedras",
+      "x": 7,
+      "y": 4,
+      "art": "praia/pedras_a",
+      "blocks": true
+    },
+    {
+      "id": "pedras_sul",
+      "kind": "pedras",
+      "x": 20,
+      "y": 21,
+      "art": "praia/pedras_a",
+      "blocks": true
+    },
+    {
+      "id": "canoa_lagoa",
+      "kind": "lagoa_deco",
+      "x": 23,
+      "y": 16,
+      "w": 2,
+      "art": "lagoa/canoa_agua",
+      "blocks": false
+    },
+    {
+      "id": "heliconia_1",
+      "kind": "sebe",
+      "x": 6,
+      "y": 3,
+      "blocks": true,
+      "art": "lagoa/heliconia"
+    },
+    {
+      "id": "heliconia_2",
+      "kind": "sebe",
+      "x": 26,
+      "y": 5,
+      "blocks": true,
+      "art": "lagoa/bromelia"
+    },
+    {
+      "id": "heliconia_3",
+      "kind": "sebe",
+      "x": 32,
+      "y": 6,
+      "blocks": true,
+      "art": "lagoa/heliconia"
+    },
+    {
+      "id": "heliconia_4",
+      "kind": "sebe",
+      "x": 4,
+      "y": 20,
+      "blocks": true,
+      "art": "lagoa/bromelia"
+    },
+    {
+      "id": "heliconia_5",
+      "kind": "sebe",
+      "x": 25,
+      "y": 19,
+      "blocks": true,
+      "art": "lagoa/heliconia"
+    },
+    {
+      "id": "heliconia_6",
+      "kind": "sebe",
+      "x": 34,
+      "y": 16,
+      "blocks": true,
+      "art": "lagoa/bromelia"
+    },
+    {
+      "id": "heliconia_7",
+      "kind": "sebe",
+      "x": 8,
+      "y": 22,
+      "blocks": true,
+      "art": "lagoa/heliconia"
+    },
+    {
+      "id": "heliconia_8",
+      "kind": "sebe",
+      "x": 28,
+      "y": 8,
+      "blocks": true,
+      "art": "lagoa/bromelia"
+    },
+    {
+      "id": "heliconia_9",
+      "kind": "sebe",
+      "x": 28,
+      "y": 20,
+      "blocks": true,
+      "art": "lagoa/heliconia"
+    },
+    {
+      "id": "flores_1",
+      "kind": "cenario",
+      "x": 4,
+      "y": 6,
+      "w": 2,
+      "art": "decals/flowers_0",
+      "blocks": false
+    },
+    {
+      "id": "flores_2",
+      "kind": "cenario",
+      "x": 23,
+      "y": 20,
+      "w": 2,
+      "art": "decals/flowers_1",
+      "blocks": false
+    },
+    {
+      "id": "flores_3",
+      "kind": "cenario",
+      "x": 31,
+      "y": 20,
+      "w": 2,
+      "art": "decals/flowers_2",
+      "blocks": false
+    },
+    {
+      "id": "flores_4",
+      "kind": "cenario",
+      "x": 6,
+      "y": 18,
+      "w": 2,
+      "art": "decals/flowers_1",
+      "blocks": false
+    },
+    {
+      "id": "flores_5",
+      "kind": "cenario",
+      "x": 27,
+      "y": 17,
+      "w": 2,
+      "art": "decals/flowers_0",
+      "blocks": false
+    },
+    {
+      "id": "flores_6",
+      "kind": "cenario",
+      "x": 9,
+      "y": 3,
+      "w": 2,
+      "art": "decals/flowers_2",
+      "blocks": false
+    },
+    {
+      "id": "tufo_1",
+      "kind": "cenario",
+      "x": 3,
+      "y": 8,
+      "art": "decals/gtuft_0",
+      "blocks": false
+    },
+    {
+      "id": "tufo_2",
+      "kind": "cenario",
+      "x": 8,
+      "y": 4,
+      "art": "decals/gtuft_1",
+      "blocks": false
+    },
+    {
+      "id": "tufo_3",
+      "kind": "cenario",
+      "x": 14,
+      "y": 23,
+      "art": "decals/gtuft_2",
+      "blocks": false
+    },
+    {
+      "id": "tufo_4",
+      "kind": "cenario",
+      "x": 24,
+      "y": 21,
+      "art": "decals/gtuft_0",
+      "blocks": false
+    },
+    {
+      "id": "tufo_5",
+      "kind": "cenario",
+      "x": 29,
+      "y": 16,
+      "art": "decals/gtuft_1",
+      "blocks": false
+    },
+    {
+      "id": "tufo_6",
+      "kind": "cenario",
+      "x": 32,
+      "y": 11,
+      "art": "decals/gtuft_2",
+      "blocks": false
+    },
+    {
+      "id": "tufo_7",
+      "kind": "cenario",
+      "x": 3,
+      "y": 13,
+      "art": "decals/gtuft_0",
+      "blocks": false
+    },
+    {
+      "id": "tufo_8",
+      "kind": "cenario",
+      "x": 28,
+      "y": 10,
+      "art": "decals/gtuft_1",
+      "blocks": false
+    },
+    {
+      "id": "tufo_9",
+      "kind": "cenario",
+      "x": 31,
+      "y": 4,
+      "art": "decals/gtuft_2",
+      "blocks": false
+    },
+    {
+      "id": "tufo_10",
+      "kind": "cenario",
+      "x": 5,
+      "y": 21,
+      "art": "decals/gtuft_0",
+      "blocks": false
+    },
+    {
+      "id": "tufo_11",
+      "kind": "cenario",
+      "x": 26,
+      "y": 3,
+      "art": "decals/gtuft_1",
+      "blocks": false
+    },
+    {
+      "id": "tufo_12",
+      "kind": "cenario",
+      "x": 22,
+      "y": 6,
+      "art": "decals/gtuft_2",
+      "blocks": false
+    },
+    {
+      "id": "pique_nique",
+      "kind": "lagoa_deco",
+      "x": 7,
+      "y": 20,
+      "w": 2,
+      "art": "lagoa/pique_nique",
+      "blocks": false
+    },
+    {
+      "id": "vara_lagoa",
+      "kind": "cenario",
+      "x": 16,
+      "y": 22,
+      "art": "praia/vara_apoiada",
+      "blocks": false
+    },
+    {
+      "id": "pegadas_lagoa",
+      "kind": "cenario",
+      "x": 11,
+      "y": 21,
+      "art": "praia/pegadas",
+      "blocks": false
+    },
+    {
+      "id": "balde_lagoa",
+      "kind": "cenario",
+      "x": 20,
+      "y": 14,
+      "art": "praia/balde",
+      "blocks": false
+    }
+  ]
+}

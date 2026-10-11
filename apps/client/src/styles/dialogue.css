@@ -578,88 +578,7 @@ html.px-ui .dbx {
   }
 }
 
-/* ---------------------------------------------------------------- readable signs: the card */
-
-.panel.hotspot-card {
-  width: min(560px, calc(100vw - 24px));
-  text-align: center;
-}
-
-.hotspot-card .hs-kicker {
-  font-family: var(--font-pixel, var(--font-title));
-  font-size: 0.85em;
-  color: var(--ink-soft);
-  margin-bottom: 8px;
-}
-
-.hotspot-card .hs-kicker .en {
-  display: inline;
-  margin-left: 8px;
-}
-
-.hotspot-card .hs-sign {
-  background: #fffdf6;
-  border: 3px solid var(--px-ink, #573c2c);
-  box-shadow: inset 0 0 0 2px #f0e0c0;
-  padding: 14px 18px;
-  display: grid;
-  gap: 2px;
-}
-
-.hotspot-card .hs-pt {
-  font-weight: 800;
-  font-size: 1.3em;
-  line-height: 1.25;
-  color: var(--ink);
-}
-
-.hotspot-card .hs-pt.first {
-  font-size: 1.9em;
-  color: var(--terracota-dark, var(--terracota));
-  letter-spacing: 0.02em;
-}
-
-.hotspot-card .hs-pt.priced {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  text-align: left;
-}
-
-.hotspot-card .hs-pt.priced::after {
-  content: none;
-}
-
-.hotspot-card .hs-pt .lead {
-  flex: 1;
-  border-bottom: 2px dotted rgba(87, 60, 44, 0.4);
-  transform: translateY(-4px);
-}
-
-.hotspot-card .hs-pt .price {
-  font-family: var(--font-pixel, var(--font-title));
-  color: var(--sp-green);
-}
-
-.hotspot-card .hs-actions {
-  margin: 10px 0 6px;
-}
-
-.hotspot-card .hs-gloss {
-  color: var(--ink-soft);
-  font-style: italic;
-  font-weight: 600;
-  display: grid;
-  gap: 1px;
-}
-
-.hotspot-card .hs-en.first {
-  font-weight: 800;
-}
-
-.hotspot-card .hs-save {
-  margin-top: 12px;
-}
+/* readable signs: the card lives in hotspotCard.css */
 
 /* ---------------------------------------------------------------- the Caderno panel */
 
@@ -860,9 +779,6 @@ html.px-ui .dbx {
 .dbx-actions .dbx-footer, .dbx-actions .dbx-footer-row { flex: 0 0 auto; }
 .dbx-head .dbx-note { font-size: 0.7em; background: rgba(87,60,44,0.1); padding: 1px 6px; }
 .dbx-head .dbx-note .en { display: none; }
-.hotspot-card .hs-en.priced { display: flex; align-items: baseline; gap: 8px; text-align: left; }
-.hotspot-card .hs-en .lead { flex: 1; border-bottom: 2px dotted rgba(87,60,44,0.3); transform: translateY(-3px); }
-.hotspot-card .hs-en .price { font-style: normal; font-weight: 800; }
 
 /* ---- second pass: one-line chips, compact tools, phone head */
 .dbx button { min-height: 0; }
@@ -883,11 +799,10 @@ html.px-ui .dbx {
 
 /* ---- third pass */
 .caderno .cad-listen { min-height: 0; height: 28px; }
-.hotspot-card .hs-pt .price { font-family: var(--font-body); font-weight: 800; }
 @media (max-width: 640px) {
   .caderno .cad-tab-name { font-size: 0.78em; letter-spacing: -0.02em; }
   .caderno .cad-tab { padding: 4px 5px 5px; min-width: 0; }
-  .panel.caderno, .panel.hotspot-card { max-height: calc(100dvh - 140px); overflow-y: auto; }
+  .panel.caderno { max-height: calc(100dvh - 140px); overflow-y: auto; }
 }
 
 /* ---------------------------------------------------------------- Phase 10: compact phone layout (target: at most ~35% of the screen) */

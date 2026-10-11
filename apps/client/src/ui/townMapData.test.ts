@@ -27,7 +27,7 @@ describe('the Mapa: one picture of Vila Ipê', () => {
       if ('via' in on) expect(ROOM_ON_MAP[on.via], `${id} via ${on.via}`).toHaveProperty('hit');
     }
     const rooms = mapSpots().filter((s) => s.room);
-    expect(rooms.map((s) => s.id).sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'petshop', 'praca', 'praia', 'rua', 'rua_leste']);
+    expect(rooms.map((s) => s.id).sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'lagoa', 'padaria', 'petshop', 'praca', 'praia', 'rua', 'rua_leste']);
     // each place travels to its own room and is labelled with that room's own name and gloss
     for (const s of rooms) {
       expect(s.room).toBe(s.id);
@@ -112,6 +112,10 @@ describe('the Mapa: one picture of Vila Ipê', () => {
     expect(closed.soon?.pt).toContain('praia');
     expect(tapResult(closed, { touch: false, selected: null, here: 'rua' })).toBe('teaser');
     expect(mapSpots({ praiaOpen: true }).find((s) => s.id === 'praia')!.room).toBe('praia');
+    // the Lagoa is its own place at the west end of the beach's corner, and closes with the beach
+    expect(hereSpotId('lagoa')).toBe('lagoa');
+    expect(mapSpots().find((s) => s.id === 'lagoa')!.room).toBe('lagoa');
+    expect(mapSpots({ praiaOpen: false }).some((s) => s.id === 'lagoa')).toBe(false);
   });
 
   it('gives a phone big tap targets (the map fills the sheet\'s height on a 390×844 phone and pans sideways)', () => {

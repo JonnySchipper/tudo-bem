@@ -6808,6 +6808,8 @@
   {"id": "diary.praia.proibido", "pt": "proibido", "en": "forbidden", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "praia_proibido"}, "origin": "added", "needsBr": true},
   {"id": "diary.praia.aluguel", "pt": "aluguel", "en": "rental", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "praia_aluguel"}, "origin": "added", "needsBr": true},
   {"id": "diary.praia.churrasco", "pt": "churrasco", "en": "barbecue", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "festa_placa"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.capivara", "pt": "capivara", "en": "capybara", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "lagoa_capivara"}, "origin": "added", "needsBr": true},
+  {"id": "diary.praia.trilha", "pt": "trilha", "en": "trail", "area": "praia", "source": "reading", "anchor": {"kind": "sign", "id": "praia_trilha"}, "origin": "added", "needsBr": true},
   {"id": "diary.praia.lancar", "pt": "lançar", "en": "to cast (a line)", "area": "praia", "source": "conversation", "anchor": {"kind": "line", "id": "neide.como"}, "origin": "added", "needsBr": true},
   {"id": "diary.praia.fisgar", "pt": "fisgar", "en": "to hook (a fish)", "area": "praia", "source": "conversation", "anchor": {"kind": "line", "id": "neide.como2"}, "match": "fisgou", "origin": "added", "needsBr": true},
   {"id": "diary.praia.puxar", "pt": "puxar", "en": "to pull, to reel in", "area": "praia", "source": "conversation", "anchor": {"kind": "line", "id": "neide.como3"}, "match": "puxa", "origin": "added", "needsBr": true}

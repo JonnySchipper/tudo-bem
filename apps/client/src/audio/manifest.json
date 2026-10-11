@@ -4115,6 +4115,24 @@
       "file": "ui-400317c94b.mp3"
     },
     {
+      "id": "ui-d2d3502b35",
+      "voice": "ui",
+      "text": "TRILHA DA LAGOA. Siga em frente, pelo oeste.",
+      "file": "ui-d2d3502b35.mp3"
+    },
+    {
+      "id": "ui-885b0703da",
+      "voice": "ui",
+      "text": "LAGOA DO JERIVÁ. Água doce. Pesca livre no píer e na margem.",
+      "file": "ui-885b0703da.mp3"
+    },
+    {
+      "id": "ui-da518cd50c",
+      "voice": "ui",
+      "text": "CUIDADO: CAPIVARAS. Não dê comida aos animais.",
+      "file": "ui-da518cd50c.mp3"
+    },
+    {
       "id": "ui-97e4ea2659",
       "voice": "ui",
       "text": "Vaga livre para uma nova barraca",
@@ -10929,6 +10947,18 @@
       "voice": "ui",
       "text": "churrasco",
       "file": "ui-3782624acf.mp3"
+    },
+    {
+      "id": "ui-56590b1562",
+      "voice": "ui",
+      "text": "capivara",
+      "file": "ui-56590b1562.mp3"
+    },
+    {
+      "id": "ui-356d63f93a",
+      "voice": "ui",
+      "text": "trilha",
+      "file": "ui-356d63f93a.mp3"
     },
     {
       "id": "ui-c19f009097",

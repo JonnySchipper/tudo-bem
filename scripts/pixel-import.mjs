@@ -87,8 +87,8 @@ const manifest = { version: 1, tile: 16, atlases: {}, terrain: {}, sprites: {}, 
 const atlasItems = { outdoor: [] };
 const sprites = manifest.sprites;
 
-/** The world atlas a sprite packs into: the beach pieces have their own (the outdoor atlas is at the 1024 x 2048 texture cap). */
-const worldAtlas = (name) => (name.startsWith('praia/') ? 'praia' : 'outdoor');
+/** The world atlas a sprite packs into: the beach and the lagoon pieces have their own (the outdoor atlas is at the 1024 x 2048 texture cap). */
+const worldAtlas = (name) => (name.startsWith('praia/') ? 'praia' : name.startsWith('lagoa/') ? 'lagoa' : 'outdoor');
 
 function addFrame(atlas, name, img) {
   const a = atlas === 'outdoor' ? worldAtlas(name) : atlas;
@@ -296,7 +296,7 @@ for (const [name, items] of Object.entries(atlasItems)) {
       const gen = FLOORS[def.custom];
       if (!gen) throw new Error(`import-map: unknown ${def.kind} floor '${def.custom}'`);
       const fills = gen.fn(gen.needsPack ? await sheet(def.sheet) : undefined);
-      tiles.push(...(def.kind === 'shore' ? buildShoreTiles(fills) : buildFlushTiles(fills, { rim: def.rim ?? null })));
+      tiles.push(...(def.kind === 'shore' ? buildShoreTiles(fills, gen.shore) : buildFlushTiles(fills, { rim: def.rim ?? null })));
       layers[ch] = { name: def.name, edge: def.kind, first, phases: gen.phasesX, phasesY: gen.phasesY, variants: 1, tiles: 16 * fills.length };
       const s = blank(16 * gen.phasesX, 16 * gen.phasesY);
       fills.forEach((f, p) => paste(s, f, (p % gen.phasesX) * 16, Math.floor(p / gen.phasesX) * 16));

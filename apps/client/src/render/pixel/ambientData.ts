@@ -63,6 +63,8 @@ export interface AudioZones {
   waves?: { y: number; x0: number; x1: number; loud?: { x: number; y: number } }[];
   /** the Praia: where the gulls sit and call by day (the costão), world px */
   gulls?: { x: number; y: number }[];
+  /** the Lagoa: where the frogs sing (the reedy banks), world px, full within `r` */
+  frogs?: { x: number; y: number; r: number }[];
 }
 
 export interface AmbientRoom {
@@ -144,6 +146,22 @@ export const AMBIENT: Record<string, AmbientRoom> = {
       radios: [{ x: 7 * T, y: 4 * T }],
       waves: [{ y: 19 * T, x0: 0, x1: 34 * T, loud: { x: 28.5 * T, y: 25 * T } }],
       gulls: [{ x: 36 * T, y: 12 * T }],
+    },
+  },
+  // Lagoa do Jerivá (36 x 26): no traffic, egrets instead of pigeons (the lake's own critters live in `lake.ts`), frogs in the reeds of the
+  // west cove and round the island, heard all over the water and quietest out on the boardwalk by the entrance
+  lagoa: {
+    streets: [],
+    flocks: [],
+    audio: {
+      streets: [],
+      fountain: { x: -9999, y: -9999 },
+      radios: [],
+      frogs: [
+        { x: 6 * T, y: 12 * T, r: 4 * T },
+        { x: 11 * T, y: 10 * T, r: 3 * T },
+        { x: 21 * T, y: 18 * T, r: 3 * T },
+      ],
     },
   },
   // the party boat's deck: the sea all round it

@@ -39,6 +39,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [AB. Tapioca practice](#ab-tapioca-practice) (4)
 - [AC. Favores panel](#ac-favores-panel) (1)
 - [AD. Favores step copy](#ad-favores-step-copy) (33)
+- [AE. Lagoa do Jerivá](#ae-lagoa) (7)
 
 ## A. Time of day, weekdays and weather
 
@@ -966,6 +967,20 @@ The step line of a favor, as a plain sentence (E4, `describeStep` in `packages/s
 | 692 | Peça dois pães de queijo pro Seu Carlos. | Ask Seu Carlos for two orders of cheese bread (cassava cheese roll). | `packages/shared/src/recados.ts (describeStep)` | (sample, quantity 2): no recado uses it yet | |
 | 693 | Leia a placa “PADARIA DO SEU CARLOS”. | Read the sign “Bakery of Seu Carlos”. | `packages/shared/src/recados.ts (describeStep)` | (sample, sign step): no recado uses it yet | |
 
+## AE. Lagoa do Jerivá
+
+<a id="ae-lagoa"></a>
+
+| # | Portuguese | English | Where | Notes | OK? |
+|---|---|---|---|---|---|
+| 701 | Lagoa do Jerivá · Praia | Jerivá Lagoon · Beach | `rooms.ts` (the room's name, the trail's edge labels) | | |
+| 702 | TRILHA DA LAGOA / Siga em frente, pelo oeste. | LAGOON TRAIL / Straight ahead, to the west. | `hotspots.ts` `praia_trilha` | spoken (ui) | |
+| 703 | LAGOA DO JERIVÁ / Água doce. Pesca livre no píer e na margem. | JERIVÁ LAGOON / Fresh water. Free fishing from the jetty and the bank. | `hotspots.ts` `lagoa_placa` | spoken (ui) | |
+| 704 | CUIDADO: CAPIVARAS / Não dê comida aos animais. | CAREFUL: CAPYBARAS / Don't feed the animals. | `hotspots.ts` `lagoa_capivara` | spoken (ui) | |
+| 705 | Pesca no píer da lagoa · Pesca no mirante · Pesca na areia da lagoa · Pesca na margem | Fishing from the lagoon jetty · from the lookout · from the lagoon sand · from the bank | `layouts/lagoa.json` spot labels | | |
+| 706 | capivara · trilha | capybara · trail | `diary-words.json` (reading words) | | |
+| 707 | Lagoa (admin Testes teleporter) | Lagoon | `adminTestes.ts` | | |
+
 ## Totals
 
-651 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z, AA, AB and AC, plus 33 in section AD (numbered 661 to 693; 652 to 660 are held for AC), plus 9 proposed-card entries.
+651 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z, AA, AB and AC, plus 33 in section AD (numbered 661 to 693; 652 to 660 are held for AC) and 7 in section AE (numbered 701 to 707), plus 9 proposed-card entries.

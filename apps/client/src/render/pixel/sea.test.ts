@@ -13,8 +13,8 @@ describe('the Praia sea (foam and crabs)', () => {
       expect(floor[t.y][t.x]).toBe('o');
       expect(floor[t.y - 1][t.x]).toBe('s');
     }
-    // the lagoa's north bank has its own little shore too
-    expect(shoreTiles(floor, Infinity).some((t) => t.y < 12)).toBe(true);
+    // the lagoa is its own area now (fresh water, no foam): every wave breaks on the sea's shore row
+    expect(shoreTiles(floor, Infinity).every((t) => t.y >= 19)).toBe(true);
   });
 
   it('crabs live on the long shore row, on sand, at most three', () => {
@@ -70,10 +70,10 @@ describe('the Praia sea shading (the visual pass)', () => {
     expect(seaShore(ROOMS.praca.floor).every((y) => y === -1)).toBe(true);
   });
 
-  it('tells the lagoa from the sea', () => {
-    const l = lagoas(floor);
-    expect(l).toHaveLength(1);
-    expect(l[0]).toEqual({ x0: 2, y0: 9, x1: 5, y1: 11 });
+  it('tells a pocket of water in the sand from the sea (the Praia has none now: the Lagoa is its own area)', () => {
+    const pond = ['ssssss', 'soosss', 'soosss', 'ssssss', 'oooooo'];
+    expect(lagoas(pond)).toEqual([{ x0: 1, y0: 1, x1: 2, y1: 2 }]);
+    expect(lagoas(floor)).toEqual([]);
     expect(lagoas(ROOMS.barco_festa.floor)).toEqual([]);
   });
 
@@ -92,7 +92,7 @@ describe('the Praia sea shading (the visual pass)', () => {
     expect(shallow[1]).toBeGreaterThan(deep[1]); // the shallows are paler
     expect(deep[3]).toBeGreaterThan(0);
     expect(at(10 * 16 + 4, shoreY - 2)[3]).toBeGreaterThan(0); // wet sand
-    expect(at(10 * 16 + 4, shoreY - 40)[3]).toBe(0); // dry sand is left alone
+    expect(at(10 * 16 + 4, shoreY - 14)[3]).toBe(0); // dry sand past the wet band is left alone
     expect(paintSeaShade(ROOMS.praca.floor)).toBeNull();
   });
 

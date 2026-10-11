@@ -34,6 +34,16 @@ export async function goPraia(page, { timeout = 30_000 } = {}) {
   await sleep(500);
 }
 
+/** The Lagoa is a trail west of the Praia: take the bus to the beach, then walk off its west edge (the gap in the fence). */
+export async function goLagoa(page, { timeout = 30_000 } = {}) {
+  if ((await page.evaluate(() => window.__tb.game.room?.room)) === 'lagoa') return;
+  await goPraia(page, { timeout });
+  const tile = await page.evaluate(() => window.__tb.rooms.praia.portals.find((p) => p.edge && p.to === 'lagoa' && p.y === 10));
+  await page.evaluate(([x, y]) => window.__tb.walkTo(x, y), [tile.x, tile.y]);
+  await waitFor(page, () => window.__tb.game.room?.room === 'lagoa', null, timeout, 'walk the trail to the lagoa');
+  await sleep(500);
+}
+
 /** Walk off the edge of the current area toward `target` until you are in it. Resolves when `game.room.room === target`. */
 export async function goArea(page, target, { timeout = 30_000 } = {}) {
   for (let hop = 0; hop < 5; hop++) {

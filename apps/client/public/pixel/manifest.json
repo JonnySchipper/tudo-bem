@@ -17,6 +17,13 @@
    "frames": 560,
    "lazy": true
   },
+  "lagoa": {
+   "image": "atlas/lagoa.png",
+   "data": "atlas/lagoa.json",
+   "w": 1024,
+   "h": 128,
+   "frames": 52
+  },
   "petshop": {
    "image": "atlas/petshop.png",
    "data": "atlas/petshop.json",
@@ -38,7 +45,7 @@
   "margin": 1,
   "spacing": 2,
   "columns": 16,
-  "count": 1020,
+  "count": 1084,
   "layers": {
    "c": {
     "name": "calcada",
@@ -136,10 +143,19 @@
     "variants": 1,
     "tiles": 64
    },
+   "w": {
+    "name": "lagoa",
+    "edge": "shore",
+    "first": 899,
+    "phases": 2,
+    "phasesY": 2,
+    "variants": 1,
+    "tiles": 64
+   },
    "s": {
     "name": "areia",
     "edge": "flat",
-    "first": 899,
+    "first": 963,
     "phases": 1,
     "variants": 10,
     "tiles": 25
@@ -147,7 +163,7 @@
    "o": {
     "name": "agua",
     "edge": "shore",
-    "first": 924,
+    "first": 988,
     "phases": 2,
     "phasesY": 2,
     "variants": 1,
@@ -156,7 +172,7 @@
    "b": {
     "name": "deque",
     "edge": "flush",
-    "first": 988,
+    "first": 1052,
     "phases": 2,
     "phasesY": 1,
     "variants": 1,
@@ -21514,6 +21530,521 @@
    "overhead": null,
    "shadow": "fx/shadow_16"
   },
+  "lagoa/moita": {
+   "atlas": "lagoa",
+   "frame": "lagoa/moita",
+   "w": 34,
+   "h": 28,
+   "ax": 16,
+   "ay": 26,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "lagoa/moita#cast",
+    "w": 47,
+    "h": 9,
+    "ax": 16,
+    "ay": 1
+   }
+  },
+  "lagoa/moita_b": {
+   "atlas": "lagoa",
+   "frame": "lagoa/moita_b",
+   "w": 34,
+   "h": 28,
+   "ax": 16,
+   "ay": 26,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "lagoa/moita_b#cast",
+    "w": 47,
+    "h": 9,
+    "ax": 16,
+    "ay": 1
+   }
+  },
+  "lagoa/moita_p": {
+   "atlas": "lagoa",
+   "frame": "lagoa/moita_p",
+   "w": 20,
+   "h": 26,
+   "ax": 10,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "lagoa/moita_p#cast",
+    "w": 32,
+    "h": 9,
+    "ax": 10,
+    "ay": 1
+   }
+  },
+  "lagoa/heliconia": {
+   "atlas": "lagoa",
+   "frame": "lagoa/heliconia",
+   "w": 20,
+   "h": 30,
+   "ax": 10,
+   "ay": 28,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "lagoa/heliconia#cast",
+    "w": 34,
+    "h": 10,
+    "ax": 10,
+    "ay": 1
+   }
+  },
+  "lagoa/bromelia": {
+   "atlas": "lagoa",
+   "frame": "lagoa/bromelia",
+   "w": 18,
+   "h": 14,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "lagoa/tronco": {
+   "atlas": "lagoa",
+   "frame": "lagoa/tronco",
+   "w": 34,
+   "h": 14,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "lagoa/tronco#cast",
+    "w": 41,
+    "h": 6,
+    "ax": 16,
+    "ay": 1
+   }
+  },
+  "lagoa/pique_nique": {
+   "atlas": "lagoa",
+   "frame": "lagoa/pique_nique",
+   "w": 32,
+   "h": 16,
+   "ax": 16,
+   "ay": 15,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "lagoa/junco": {
+   "atlas": "lagoa",
+   "frame": "lagoa/junco",
+   "w": 16,
+   "h": 24,
+   "ax": 8,
+   "ay": 22,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "lagoa/aguape_a": {
+   "atlas": "lagoa",
+   "frame": "lagoa/aguape_a",
+   "w": 18,
+   "h": 14,
+   "ax": 9,
+   "ay": 13,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "lagoa/aguape_b": {
+   "atlas": "lagoa",
+   "frame": "lagoa/aguape_b",
+   "w": 18,
+   "h": 14,
+   "ax": 9,
+   "ay": 13,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "lagoa/aguape_c": {
+   "atlas": "lagoa",
+   "frame": "lagoa/aguape_c",
+   "w": 18,
+   "h": 14,
+   "ax": 9,
+   "ay": 13,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "lagoa/canoa_agua": {
+   "atlas": "lagoa",
+   "frame": "lagoa/canoa_agua",
+   "w": 40,
+   "h": 16,
+   "ax": 20,
+   "ay": 15,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "lagoa/quiosque_sape": {
+   "atlas": "lagoa",
+   "frame": "lagoa/quiosque_sape",
+   "w": 72,
+   "h": 38,
+   "ax": 36,
+   "ay": 37,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": "lagoa/quiosque_sape_telhado",
+   "shadow": "fx/shadow_48",
+   "light": {
+    "x": 36,
+    "y": 9,
+    "r": 56,
+    "color": "#ffd890"
+   },
+   "lit": "lagoa/quiosque_sape_lit"
+  },
+  "lagoa/quiosque_sape_telhado": {
+   "atlas": "lagoa",
+   "frame": "lagoa/quiosque_sape_telhado",
+   "w": 72,
+   "h": 30,
+   "ax": 36,
+   "ay": 63,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "lagoa/quiosque_sape_lit": {
+   "atlas": "lagoa",
+   "frame": "lagoa/quiosque_sape_lit",
+   "w": 72,
+   "h": 38,
+   "ax": 36,
+   "ay": 37,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "lagoa/placa_lagoa": {
+   "atlas": "lagoa",
+   "frame": "lagoa/placa_lagoa",
+   "w": 50,
+   "h": 34,
+   "ax": 25,
+   "ay": 33,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "lagoa/placa_lagoa#cast",
+    "w": 66,
+    "h": 11,
+    "ax": 25,
+    "ay": 1
+   }
+  },
+  "lagoa/placa_capivara": {
+   "atlas": "lagoa",
+   "frame": "lagoa/placa_capivara",
+   "w": 40,
+   "h": 40,
+   "ax": 20,
+   "ay": 39,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10",
+   "cast": {
+    "frame": "lagoa/placa_capivara#cast",
+    "w": 58,
+    "h": 12,
+    "ax": 20,
+    "ay": 1
+   }
+  },
+  "lagoa/placa_trilha": {
+   "atlas": "lagoa",
+   "frame": "lagoa/placa_trilha",
+   "w": 38,
+   "h": 36,
+   "ax": 24,
+   "ay": 35,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "lagoa/placa_trilha#cast",
+    "w": 54,
+    "h": 11,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "lagoa/capivara": {
+   "atlas": "lagoa",
+   "frame": "lagoa/capivara/0",
+   "w": 28,
+   "h": 20,
+   "ax": 14,
+   "ay": 19,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "lagoa/capivara/0",
+     "lagoa/capivara/1",
+     "lagoa/capivara/2",
+     "lagoa/capivara/3",
+     "lagoa/capivara/4",
+     "lagoa/capivara/5",
+     "lagoa/capivara/6"
+    ],
+    "fps": 6
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "lagoa/capivara_filhote": {
+   "atlas": "lagoa",
+   "frame": "lagoa/capivara_filhote/0",
+   "w": 18,
+   "h": 13,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "lagoa/capivara_filhote/0",
+     "lagoa/capivara_filhote/1",
+     "lagoa/capivara_filhote/2",
+     "lagoa/capivara_filhote/3",
+     "lagoa/capivara_filhote/4",
+     "lagoa/capivara_filhote/5",
+     "lagoa/capivara_filhote/6"
+    ],
+    "fps": 6
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "lagoa/garca": {
+   "atlas": "lagoa",
+   "frame": "lagoa/garca/0",
+   "w": 16,
+   "h": 26,
+   "ax": 8,
+   "ay": 25,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "lagoa/garca/0",
+     "lagoa/garca/1",
+     "lagoa/garca/2",
+     "lagoa/garca/3"
+    ],
+    "fps": 4
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "lagoa/marreca": {
+   "atlas": "lagoa",
+   "frame": "lagoa/marreca/0",
+   "w": 16,
+   "h": 10,
+   "ax": 8,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "lagoa/marreca/0",
+     "lagoa/marreca/1"
+    ],
+    "fps": 3
+   },
+   "overhead": null,
+   "shadow": null
+  },
+  "lagoa/libelula": {
+   "atlas": "lagoa",
+   "frame": "lagoa/libelula/0",
+   "w": 9,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "lagoa/libelula/0",
+     "lagoa/libelula/1"
+    ],
+    "fps": 14
+   },
+   "overhead": null,
+   "shadow": null
+  },
+  "lagoa/serra_0": {
+   "atlas": "lagoa",
+   "frame": "lagoa/serra_0",
+   "w": 224,
+   "h": 60,
+   "ax": 0,
+   "ay": 60,
+   "footprint": [
+    14,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "lagoa/serra_1": {
+   "atlas": "lagoa",
+   "frame": "lagoa/serra_1",
+   "w": 224,
+   "h": 60,
+   "ax": 0,
+   "ay": 60,
+   "footprint": [
+    14,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "lagoa/serra_2": {
+   "atlas": "lagoa",
+   "frame": "lagoa/serra_2",
+   "w": 224,
+   "h": 60,
+   "ax": 0,
+   "ay": 60,
+   "footprint": [
+    14,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "lagoa/serra_3": {
+   "atlas": "lagoa",
+   "frame": "lagoa/serra_3",
+   "w": 224,
+   "h": 60,
+   "ax": 0,
+   "ay": 60,
+   "footprint": [
+    14,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "facades/petshop": {
    "atlas": "petshop",
    "frame": "facades/petshop",
@@ -28481,11 +29012,6 @@
   },
   "ui/icon_hat": {
    "file": "ui/icon_hat.png",
-   "w": 16,
-   "h": 16
-  },
-  "ui/icon_look": {
-   "file": "ui/icon_look.png",
    "w": 16,
    "h": 16
   },

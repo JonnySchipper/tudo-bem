@@ -142,6 +142,43 @@ function streetBlock(edge: number, dir: -1 | 1, len: number, tag: string): { pro
   return { props, bays };
 }
 
+/** The mata round the Lagoa: what grows past its west, east and south edges (the north is the Serra do Mar backdrop). */
+const MATA: [art: string, kind: PropKind][] = [
+  ['props/jeriva', 'arvore'],
+  ['lagoa/moita', 'sebe'],
+  ['props/ipe_roxo_medium', 'arvore'],
+  ['lagoa/moita_b', 'sebe'],
+  ['props/jeriva_b', 'arvore'],
+  ['props/ipe_branco_medium', 'arvore'],
+  ['lagoa/moita', 'sebe'],
+  ['props/ipe_medium', 'arvore'],
+];
+
+/** A cheap 0..1 hash of two integers (the mata's jitter). */
+function hash2(a: number, b: number): number {
+  let h = (a * 374761393 + b * 668265263) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/**
+ * Trees and thickets on a 3-tile lattice (jittered by a tile, the species by hash) past the west, east and south edges of a map, out to
+ * `reach` tiles: scenery only, outside the grid.
+ */
+export function mataRing(cols: number, rows: number, reach: number): PropDef[] {
+  const out: PropDef[] = [];
+  for (let y = 0; y < rows + reach; y += 3)
+    for (let x = -reach; x < cols + reach; x += 3) {
+      const jx = x + Math.floor(hash2(x, y) * 2);
+      const jy = y + Math.floor(hash2(y, x) * 2);
+      const inside = jx >= -1 && jx <= cols && jy <= rows;
+      if (inside || jx < -reach || jx >= cols + reach || jy >= rows + reach) continue;
+      const [art, kind] = MATA[Math.floor(hash2(jx * 7, jy * 13) * MATA.length)];
+      out.push({ id: `viz_mata_${jx}_${jy}`, kind, x: jx, y: jy, w: art.startsWith('lagoa/moita') ? 2 : 1, art, blocks: false });
+    }
+  return out;
+}
+
 /** The surround of an open-air area, or null for an interior. `reach` (tiles) is how far past the edges props are built (`surroundReachFor`). */
 export function surroundFor(def: RoomDef, propReach = SURROUND_PROP_REACH): Surround | null {
   if (!def.outdoor) return null;
@@ -224,6 +261,9 @@ export function surroundFor(def: RoomDef, propReach = SURROUND_PROP_REACH): Surr
     grid[j] = [...grid[src]];
   }
   const floor = grid.map((r) => r.map((c) => c ?? 'c').join(''));
+
+  // the Lagoa sits in the mata: trees all round past its edges
+  if (def.id === 'lagoa') props.push(...mataRing(def.cols, def.rows, R));
 
   // the neighbours' own props and dressing, as scenery
   const neighbours = areas.filter((a) => a.def.id !== def.id);

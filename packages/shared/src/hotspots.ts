@@ -168,7 +168,7 @@ const DIARY_SIGNS: HotspotDef[] = [
 
 /**
  * The Praia (PRAIA-PLAN.md 1.3). Its reading words (praia, aluguel, perigo, correnteza, posto, proibido) are diary signs in `diaryWorld.ts`; these
- * are the longer boards. Prices on Jô's board agree with `STREET_SNACKS` (tested). needs_br: every line.
+ * are the longer boards, with the trail to the Lagoa and its boards. Prices on Jô's board agree with `STREET_SNACKS` (tested). needs_br: every line.
  */
 const PRAIA_SIGNS: HotspotDef[] = [
   { id: 'praia_letreiro', room: 'praia', x: 18, y: 2, w: 3, h: 1, pt: 'PRAIA DO JERIVÁ\nLitoral paulista', en: 'JERIVÁ BEACH\nSão Paulo coast' },
@@ -185,6 +185,10 @@ const PRAIA_SIGNS: HotspotDef[] = [
   { id: 'praia_proibido', room: 'praia', x: 19, y: 7, pt: 'PROIBIDO PESCAR AQUI\nPesque na beira do mar.', en: 'NO FISHING HERE\nFish at the water’s edge.' },
   { id: 'praia_aluguel', room: 'praia', x: 25, y: 6, pt: 'ALUGUEL DE BARCOS\nFale com o Seu Bento.', en: 'BOAT RENTAL\nTalk to Mr. Bento.' },
   { id: 'festa_placa', room: 'barco_festa', x: 11, y: 8, pt: 'CHURRASCO · REFRI · MÚSICA', en: 'BARBECUE · SODA · MUSIC' },
+  // the trail to the Lagoa, and the Lagoa's own boards
+  { id: 'praia_trilha', room: 'praia', x: 1, y: 12, pt: 'TRILHA DA LAGOA\nSiga em frente, pelo oeste.', en: 'LAGOON TRAIL\nStraight ahead, to the west.' },
+  { id: 'lagoa_placa', room: 'lagoa', x: 33, y: 11, pt: 'LAGOA DO JERIVÁ\nÁgua doce. Pesca livre no píer e na margem.', en: 'JERIVÁ LAGOON\nFresh water. Free fishing from the jetty and the bank.' },
+  { id: 'lagoa_capivara', room: 'lagoa', x: 9, y: 21, pt: 'CUIDADO: CAPIVARAS\nNão dê comida aos animais.', en: 'CAREFUL: CAPYBARAS\nDon’t feed the animals.' },
 ];
 
 export const HOTSPOTS: HotspotDef[] = [...BASE_HOTSPOTS, ...AIRPORT_SIGNS, ...PRAIA_SIGNS, ...DIARY_SIGNS];
