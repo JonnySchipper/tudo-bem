@@ -7,7 +7,7 @@ import { speak } from '../../audio';
 import { showDialogueBox, type BoxChip } from '../dialogue';
 import { closeDialogue } from '../panels';
 import { toast } from '../hud';
-import { visibleBoatTiers } from './barcoMenuLogic';
+import { boatChipRoom, visibleBoatTiers } from './barcoMenuLogic';
 
 type MenuMsg = Extract<ServerMsg, { t: 'barco'; phase: 'menu' }>;
 
@@ -40,7 +40,8 @@ export function onBarcoMsg(m: Extract<ServerMsg, { t: 'barco' }>) {
 }
 
 function openMenu(m: MenuMsg) {
-  const tiers = visibleBoatTiers(m.tiers);
+  // at most 3 boats, 2 beside "Devolver o barco": "Agora não" always fits
+  const tiers = visibleBoatTiers(m.tiers, boatChipRoom(!!m.trip));
   const chips: BoxChip[] = [];
   const actions: (() => void)[] = [];
   if (m.trip) {
