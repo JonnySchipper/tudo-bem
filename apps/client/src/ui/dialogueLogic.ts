@@ -166,10 +166,18 @@ export const SHOW_EN_KEY = 'tb_english';
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>;
 
+/** The dialogue's own key before the two settings became one: an 'off' there moves to `SHOW_EN_KEY` once. */
+export const LEGACY_SHOW_EN_KEY = 'tb_show_en';
+
 /** Default on; a stored 'off' wins. Storage can throw (private windows), so every access is guarded. */
 export function readShowEnglish(store: Store | null = safeStorage()): boolean {
   try {
-    return store?.getItem(SHOW_EN_KEY) !== 'off';
+    const v = store?.getItem(SHOW_EN_KEY);
+    if (v == null && store?.getItem(LEGACY_SHOW_EN_KEY) === 'off') {
+      store.setItem(SHOW_EN_KEY, 'off');
+      return false;
+    }
+    return v !== 'off';
   } catch {
     return true;
   }

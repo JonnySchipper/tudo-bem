@@ -27,7 +27,7 @@ import {
   type RecadoOfferView,
   type RoomId,
 } from '@tudobem/shared';
-import { atLeast, type Stage } from './disclosure';
+import { atLeast, stage, type Stage } from './disclosure';
 
 /** The board the server sends (`{ t: 'recados' }`). */
 export interface RecadoBoard {
@@ -94,16 +94,18 @@ export function giverWhere(giver: NpcId, minute: number | undefined): Bilingual 
 }
 
 /**
- * While Júlia's welcome chain lasts the tracker is one row, the next step: the errand in hand, else the chain's next step. After it, the
+ * While a newcomer's welcome chain lasts the tracker is one row, the next step: the errand in hand, else the chain's next step. After it, the
  * active recados in the order they were accepted, then (while there is room to take one, and once Júlia has been met) today's offers, so a
  * neighbour's errand is on screen before the player ever talks to them; max 3 entries. `minute` adds the where-lines.
  */
 export function trackerEntries(board: RecadoBoard | null, p: PrivateProfile | null | undefined, minute: number | undefined, metJulia: boolean): TrackerEntry[] {
   const out: TrackerEntry[] = [];
-  if (p && tutorialPending(p)) out.push(tutorialEntry(p));
+  const chain = p && tutorialPending(p) ? tutorialEntry(p) : null;
   const active = (board?.active ?? []).map((a): TrackerEntry => ({ key: a.id, kind: 'recado', giver: a.giver, title: a.title, step: a.hint, progress: `${Math.min(a.step + 1, a.steps)}/${a.steps}`, done: a.step, total: a.steps, where: activeWhere(a, minute) }));
-  if (out.length) return active.length ? active.slice(0, 1) : out;
+  // the one-row collapse is a newcomer's: a resident who never placed the chair keeps the full tracker, the chain's row after the errands
+  if (chain && (!p!.tutorial.carlos || !atLeast(stage(p!), 'S2'))) return active.length ? active.slice(0, 1) : [chain];
   out.push(...active.slice(0, TRACKER_MAX));
+  if (chain && out.length < TRACKER_MAX) out.push(chain);
   if (metJulia && (board?.active.length ?? 0) < RECADO_MAX_ACTIVE) {
     for (const o of board?.offered ?? []) {
       if (out.length >= TRACKER_MAX) break;
