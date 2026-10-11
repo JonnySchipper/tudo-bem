@@ -1143,9 +1143,21 @@ html.px-ui .dbx {
   min-width: max-content;
 }
 
-/* the house counter of an owned padaria: the whole menu on the board (no key numbers: the one chip is "Agora não") */
+/* the house counter of an owned padaria: the whole menu on the board (no key numbers: the one chip is "Agora não"); a longer
+   menu than a cart's, so every tile is the phone's: the item on the left, the name over the price tag */
 .snack-cart-padaria .snack-pick {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  flex-basis: 180px;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 2px;
+}
+
+.snack-cart-padaria .snack-bag {
+  grid-row: span 2;
+}
+
+.snack-cart-padaria .snack-price {
+  justify-self: start;
 }
 
 .snack-cart-padaria .snack-cart-row {
@@ -1160,7 +1172,7 @@ html.px-ui .dbx {
 
 @media (max-width: 640px) {
   .snack-cart-padaria .snack-pick {
-    grid-template-columns: auto minmax(0, 1fr);
+    flex-basis: 140px;
   }
   .snack-bag:empty {
     width: 32px;
