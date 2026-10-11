@@ -1861,6 +1861,67 @@ The plan is [PRAIA-PLAN.md](../PRAIA-PLAN.md); this is what was built and what w
 - **Known weaknesses / later.** There is no `e2e-praia.mjs` yet: the two-player path is proven by `partyBoat.test.ts` against the real `World`, not in two browsers. `scripts/praia-shots.mjs` was written but not run in the build environment (no Chrome there), so there are no shots in `docs/lifesim/shots/praia/` yet. Not built: CPU beachgoers taking shelter under the kiosk roof in the rain, a beach music bed of its own, and the perf run. Section 11 of the plan (tournament, bait, cooking, tide table) stays later.
 - **Needs BR review:** section X of [BR-REVIEW.md](./BR-REVIEW.md).
 
+## Simplification and progressive disclosure (2026-10-11)
+
+Feedback (Jonny): the game is too complicated and too overwhelming in a lot of places. The 2026-10-09 answer to the same feedback added
+explanation (19 how-to cards, HUD notes, the Vila guide); the day after, twelve new systems landed on top. This round removes and defers
+instead. The review that drove it, with every item, its evidence and acceptance criteria, is [`docs/SIMPLIFICATION-REVIEW.md`](../SIMPLIFICATION-REVIEW.md);
+the work ran as 20 agent branches merged on `claude/simplification`.
+
+- **The disclosure ladder.** `apps/client/src/ui/disclosure.ts` (pure, tested): `stage(profile)` is S0 Arrival (hall or airport), S1 Newcomer
+  (in the Vila, no padaria order yet), S2 Resident (ordered once and one favor done; `recadosDoneTotal` is a new lifetime counter on the
+  profile, filled from `recados.done` for old saves), S3 Regular (25 diary words, or 3 favors, or an Escola lesson, or a gi). `hudShows`
+  gives one boolean per HUD element from the review's §3 table: a newcomer sees the room name, the clock, RV, Mapa, Favores, Diário, the
+  camera once owned, the gear and the chat bar. Visual, Chapéus, Amigos, the room counts, the emote row (tucked behind the smiley), Guia,
+  Tutorial, Créditos and Apoiar wait for S2; the Verde plate and the Meta chip for S3 and a lesson; the Cartela chip for S3 and a stamp;
+  the belt for a gi, as before. The kiosk, the Placar and checkers are scenery before S3 (`kioskShown`, `s3Doors.ts`). Fala is a gear entry.
+- **Arrival.** The hall is five steps (andar, falar, placa, chat, porta) and the door is never locked; the RV explainer, the Map and Fala
+  steps are gone. The airport is Célia (the camera only), an optional plane photo with one combined word card, and the bus; `AIRPORT_NEXT`
+  is deleted; passport and the lanchonete are there to meet, not steps. The flight has three asks and a visible Pular. The sign-in card has
+  no game nouns and no dead guest button in multiplayer; the name card is name, pronoun, Embarcar, with the rules behind a link.
+- **The Vila.** The welcome chain is carlos, chapeu, cadeira (`TUTORIAL_STEPS`); the hall's four steps complete silently on landing and on
+  load (`completeHallSteps`), `meveum` left the chain, and the bonus still pays once. No per-step ✓ toasts. Until Júlia is met there is one
+  arrow and no offers or `!` markers; the Vila guide never opens by itself (Ajustes → Guia, the open-world "?" and Júlia's question keep it,
+  trimmed to Favores, Diário, Lugares); the Ways-out banner is gone (every room's door tags glow on a first visit); every `place` how-to
+  card has `autoOpen: false` and at most three bullets (a test enforces both).
+- **One word home.** The Caderno tab, "Guardar no caderno" and the per-group RV payout are gone from the player's view (the server keeps the
+  seen/heard/used state for the tatame bank; `cadernoPaid` is legacy). Diário chapters appear with their first word, the Início stats, tier bar
+  and medals at S3, sorts and filters once a chapter has 8 words, and empty slots are capped to the next 6.
+- **One box per click.** The idle line is the first line of whatever box the click opens (`LeadSlot`), a hand-over or an offer replaces the
+  greeting's first node, "Agora não" never queues a second offer. Chips are capped at 4 (3 + the exit), keys 1-4 reach them all; "Vamos
+  bater um papo?" needs an order and a bond point; shop footer buttons sit on the last node; the counter shows three menu chips (the errand's
+  item always kept) plus "Agora não"; hearts in the header appear with the first bond point; the offer box shows RV only. The client Pedido
+  rápido path is deleted (`pedido.ts`, `pedido-ticket.ts`, `counterSpeaker.ts`, the `scene` handler); the server `scene` handler stays
+  test-only, and the scene payout no longer halves (full for `sceneFullPerDay`, then zero).
+- **One daily loop, one day.** Every cap, streak, stamp card, paid-run counter and mission uses the player's own day (`playerDay`); the
+  48-minute game day is ambience only (feira hours, schedules, greetings, offers). The kiosk mission and the Cartela chip are S3; stamp
+  toasts fire only while the chip is visible; the Vizinho do dia stars need S3 and a favor done today. The leaderboards are words and
+  streak (`feiraScore` removed). One signal per event: stamps animate the chip, end cards carry their RV, the done card carries the heart
+  change, hat and parrot purchases no longer toast, the toast stack is 2 before S3, and the full Nova palavra card shows for the first three
+  words of a session before the word-flight chip takes over.
+- **Favores.** The tracker shows one row while the welcome chain lasts; the panel is Em andamento and Hoje na vila, with Mochila when the
+  bag has something, Amizades once any neighbour has a heart (no legend), the Vizinho banner at S3, and withheld favors greyed as "Fale mais
+  com {nome}". Steps read as sentences ("Peça um café com leite pro Seu Carlos."), the Oi! button counts as a greeting near the neighbour, and
+  three quick-reply chips (Oi!, the greeting for the hour, Valeu!) send real chat lines from S1.
+- **Activities.** Tatame: a new white belt starts with collar_tie, double_leg and passar; hook_sweep, posture and armbar move to stripes 1-3
+  (old profiles keep theirs); the partner's attacks are auto-braced for the first three wins, judged by the server (`stagedBrace`); the
+  meters row waits for stripe 1, the pick cards show only name and chevrons until the first win, and the lobby folds the other partners.
+  Feira carts: Tapioca on by default with no rotation, a one-customer practice with one coach mark per action, no digits on the stage
+  (a sun for the clock, faces for the score); Pastel and Caldo stay implemented and switchable, with no combos before run 3 and fewer
+  flavours in a first run. Correria: a first shift has two waves, no extra-hot coffee below level 2, no listening orders at level 0, one
+  orange size until `cafe_rapido`, packing at 8 items, unlocks on the shift ladder (old star unlocks are kept by max), the end card is RV,
+  stars, words and one "next" line, and the unrendered server lesson cards are gone. Escola: the first visit is the greeting, the word count
+  and Começar; the streak and path after one lesson, the goal picker after three, the tier bar and mission at the deep stage; no combo tile
+  on the end card. Pet shop: Adotar and Meus pets, Lojinha once a pet is owned, the command sheet behind "?", no Apoiar card in the panel.
+  The padaria door shows its meter from 300 RV; Fundar an academy from purple; `BETA_HIDE` hides padaria size 3, gear and décor and the
+  academy look editor; Bento lists the affordable boats plus the next one.
+- **Help.** One English flag (`tb_english`) behind the gear and the dialogue switch; one "?" per context (HUD note, how-to card, or the Vila
+  guide in the open world); RV is explained once, the first time any price list opens (`rvNote.ts`); the chat hints are "Vai, mas com cuidado"
+  and "Essa não dá, tenta de outro jeito" (no moderation vocabulary). R only rotates furniture; arrows never turn Diário pages over a dialogue.
+- **Not changed here.** The 48-minute clock itself, the server's authority model, billing beyond hiding its UI, art. Voice clips for removed
+  lines stay in the manifest. The e2e and screenshot scripts were updated by reading; `pnpm e2e:all` was run once on the merged branch (see the
+  PR). New on-screen Portuguese is in BR-REVIEW sections Z to AE; nothing new is spoken.
+
 ## Lagoa do Jerivá: the lagoon becomes its own area (2026-10-10)
 
 The Praia's lagoa was a 4×3 square of sea water in the sand with a fishing stake beside it. It is now its own open-air area, `lagoa`, a short walk west of the beach.
