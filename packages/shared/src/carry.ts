@@ -58,6 +58,7 @@ export const CARRY: Record<CarryId, CarryDef> = {
   pao_de_queijo: food('pao_de_queijo', null, 'o pão de queijo', 'the cheese bread'),
   coxinha: food('coxinha', null, 'a coxinha', 'the coxinha'),
   pao_na_chapa: food('pao_na_chapa', null, 'o pão na chapa', 'the grilled bread'),
+  pastel: food('pastel', null, 'o pastel', 'the pastel'),
   agua_de_coco: drink('agua_de_coco', 'coco_vazio', 'a água de coco', 'the coconut water'),
   cafezinho: drink('cafezinho', 'copinho_vazio', 'o cafezinho', 'the little coffee'),
   cafe: drink('cafe', 'copinho_vazio', 'o café', 'the coffee'),

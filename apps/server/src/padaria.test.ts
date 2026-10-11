@@ -4,6 +4,7 @@ import {
   CLOCK_OFFSET_MS,
   counterMenu,
   counterPrice,
+  counterSells,
   DEFAULT_APPEARANCE,
   GAME_DAY_MS,
   MS_PER_GAME_MINUTE,
@@ -107,6 +108,36 @@ describe('the padaria counter', () => {
     // a coxinha replaces the café in your hand
     await a.send({ t: 'padaria', action: 'buy', itemId: 'coxinha' });
     expect(a.s.carry).toBe('coxinha');
+  });
+
+  it('the pastel favor: the pastel joins the menu while Júlia asks for one, the baker sells it, and Nanda gets it', async () => {
+    const favor = [{ id: 'julia_pastel_pra_nanda', step: 0 }];
+    expect(counterMenu(favor)).toContain('pastel');
+    expect(counterSells('pastel', favor)).toBe(true);
+    expect(counterSells('pastel', undefined)).toBe(false);
+    expect(counterSells('pastel', [{ id: 'julia_pastel_pra_nanda', step: 1 }])).toBe(false);
+    setGameTime(12);
+    const world = makeWorld();
+    const a = await client(world);
+    const p = a.s.profile!;
+    p.coins = 30;
+    p.recados!.offered = ['julia_pastel_pra_nanda'];
+    await a.send({ t: 'recados', action: 'accept', id: 'julia_pastel_pra_nanda' });
+    expect(p.recados!.active.find((r) => r.id === 'julia_pastel_pra_nanda')?.step).toBe(0);
+    await toCounter(a);
+    await a.send({ t: 'padaria', action: 'buy', itemId: 'pastel' });
+    expect(p.coins).toBe(30 - counterPrice('pastel'));
+    expect(a.s.carry).toBe('pastel');
+    expect(p.bag?.pastel).toBe(1);
+    expect(p.recados!.active.find((r) => r.id === 'julia_pastel_pra_nanda')?.step).toBe(1);
+    // once the pastel is ordered the counter stops selling it
+    await a.send({ t: 'padaria', action: 'buy', itemId: 'pastel' });
+    expect(p.bag?.pastel).toBe(1);
+    await a.send({ t: 'join', room: 'praca' });
+    const nanda = ROOMS.praca.npcs.find((q) => q.id === 'nanda')!;
+    await walkTo(a, nanda.interact.x, nanda.interact.y);
+    await a.send({ t: 'give', npc: 'nanda', itemId: 'pastel' });
+    expect(p.recados!.done).toContain('julia_pastel_pra_nanda');
   });
 
   it('refuses without enough RV, from across the room, outside the padaria, and for things not on the menu', async () => {

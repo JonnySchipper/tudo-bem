@@ -132,6 +132,7 @@ import {
   COUNTER_PRICES,
   counterPrice,
   isCounterItem,
+  counterSells,
   academyCard,
   academyIdFromInstance,
   academyInstanceId,
@@ -2786,7 +2787,7 @@ export class World {
       this.broadcastAvatar(s);
       return;
     }
-    if (!isCounterItem(itemId)) return;
+    if (!counterSells(itemId, p.recados?.active)) return;
     const baker = this.npcs.whoIn('padaria').find((n) => n.id === 'carlos' || n.id === 'graca');
     if (!baker) return;
     const cur = this.currentTile(s).tile;

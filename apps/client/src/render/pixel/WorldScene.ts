@@ -35,7 +35,7 @@ import {
   type RoomDef,
   type RoomGrid,
   type WallDecor,
-  COUNTER_MENU,
+  COUNTER_ITEMS,
   CRESTS,
   PET_COPY,
   STREET_SNACKS,
@@ -389,7 +389,7 @@ export class WorldScene extends Phaser.Scene {
     // what you can carry: the praça snacks, the padaria counter menu, and the empties they leave
     const carry = new Map<string, string>();
     for (const s of STREET_SNACKS) carry.set(s.id, s.icon);
-    for (const id of COUNTER_MENU) carry.set(id, id);
+    for (const id of COUNTER_ITEMS) carry.set(id, id);
     for (const c of Object.values(CARRY)) if (c.kind === 'trash') carry.set(c.id, c.tex);
     for (const [id, icon] of carry) {
       const img = m.images?.[`icons/${icon}`];
