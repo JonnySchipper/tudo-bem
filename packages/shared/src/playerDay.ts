@@ -15,9 +15,10 @@
  * The 48-minute game day (clock.ts) is ambience only: feira hours, NPC schedules, greetings, recado offers, rotating diary
  * objects, pen litters, scene payouts. Never use it for a cap.
  *
- * Migration: day keys written under an older boundary (New York, São Paulo, UTC) are compared with `!==` like any other.
- * A stored key that is not today's player-day is yesterday's: the cap rolls over once, and stamps, stars, shift counts and
- * streak lengths are never reset by it.
+ * Migration: day keys written under an older boundary (New York, São Paulo, UTC) can be a day AHEAD of the player's own
+ * day (anyone west of UTC in their evening). Every cap reads a stored key through `sameOrFutureDay`: an earlier key is a
+ * past day and rolls over once; a key later than today counts as today (and is written back as today), so the cap does not
+ * roll over now and again at local midnight. Stamps, stars, shift counts and streak lengths are never reset by it.
  */
 
 const MIN = 60_000;
@@ -35,6 +36,15 @@ export const clampTz = (tz: unknown): number =>
 /** The player's calendar day (`YYYY-MM-DD`) at `nowMs`, `tzOffsetMin` minutes east of UTC. 0 (the default) is the UTC day. */
 export function playerDay(nowMs: number, tzOffsetMin = 0): string {
   return new Date(nowMs + clampTz(tzOffsetMin) * MIN).toISOString().slice(0, 10);
+}
+
+/**
+ * Does a stored day key still count as `today` for a cap? Today's key does, and so does a key later than today: one written
+ * under the UTC day, before the player's offset was stored, runs up to a day ahead west of UTC. A missing or malformed key,
+ * or an earlier day, does not (the cap rolls over). ISO day strings compare in calendar order. The one rollover check.
+ */
+export function sameOrFutureDay(stored: unknown, today: string): boolean {
+  return typeof stored === 'string' && ISO_DAY.test(stored) && stored >= today;
 }
 
 /** Whole days from `a` to `b` (both `YYYY-MM-DD`). */

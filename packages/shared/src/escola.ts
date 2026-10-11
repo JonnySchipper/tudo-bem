@@ -16,7 +16,7 @@ import { VENDORS } from './feira.js';
 import { hotspotById } from './hotspots.js';
 import { NPC_TALK, fillTalk } from './npcTalk.js';
 import { npcDefById } from './rooms.js';
-import { clampTz, dayDiff, playerDay } from './playerDay.js';
+import { clampTz, dayDiff, playerDay, sameOrFutureDay } from './playerDay.js';
 import type { Bilingual, Nameplate } from './types.js';
 
 const MIN = 60_000;
@@ -199,7 +199,7 @@ export function currentStreak(st: Pick<EscolaState, 'streak' | 'lastDay' | 'free
 }
 
 /** Did a lesson already count today? */
-export const studiedToday = (st: Pick<EscolaState, 'lastDay'>, today: string): boolean => st.lastDay === today;
+export const studiedToday = (st: Pick<EscolaState, 'lastDay'>, today: string): boolean => sameOrFutureDay(st.lastDay, today);
 
 export interface StreakBump {
   streak: number;
@@ -211,11 +211,14 @@ export interface StreakBump {
 
 /** A finished lesson on `today`: the streak grows once per day; a gap is bridged by freezes when there are enough, else it restarts at 1. */
 export function bumpStreak(st: EscolaState, today: string): StreakBump {
-  if (st.lastDay === today) return { streak: st.streak, extended: false, usedFreezes: 0, earnedFreeze: false };
+  // today already counted; a later key (an older UTC key, or a clock that went backwards) is today: kept, not grown, and
+  // written back as today so tomorrow grows it
+  if (sameOrFutureDay(st.lastDay, today)) {
+    st.lastDay = today;
+    return { streak: st.streak, extended: false, usedFreezes: 0, earnedFreeze: false };
+  }
   const gap = st.lastDay ? dayDiff(st.lastDay, today) : Infinity;
   let used = 0;
-  // a clock that went backwards does not break a streak (and does not grow it either)
-  if (gap < 0) return { streak: st.streak, extended: false, usedFreezes: 0, earnedFreeze: false };
   if (gap === 1 && st.streak > 0) st.streak += 1;
   else if (Number.isFinite(gap) && gap > 1 && st.streak > 0 && gap - 1 <= st.freezes) {
     used = gap - 1;
@@ -233,14 +236,12 @@ export function bumpStreak(st: EscolaState, today: string): StreakBump {
 }
 
 /** XP earned today (0 on a new day). */
-export const todayXp = (st: Pick<EscolaState, 'day' | 'dayXp'>, today: string): number => (st.day === today ? st.dayXp : 0);
+export const todayXp = (st: Pick<EscolaState, 'day' | 'dayXp'>, today: string): number => (sameOrFutureDay(st.day, today) ? st.dayXp : 0);
 
 /** Add XP to the lifetime and today's total. True when this crossed today's goal. */
 export function addXp(st: EscolaState, today: string, xp: number): boolean {
-  if (st.day !== today) {
-    st.day = today;
-    st.dayXp = 0;
-  }
+  if (!sameOrFutureDay(st.day, today)) st.dayXp = 0;
+  st.day = today;
   const before = st.dayXp;
   st.dayXp += xp;
   st.xp += xp;
@@ -249,12 +250,12 @@ export function addXp(st: EscolaState, today: string, xp: number): boolean {
 
 /** The RV the desk may still pay today, and in this lesson (`paidThisLesson` so far). */
 export function rvRoom(st: EscolaState, today: string, paidThisLesson: number): number {
-  const day = st.rv?.day === today ? st.rv.n : 0;
+  const day = sameOrFutureDay(st.rv?.day, today) ? st.rv!.n : 0;
   return Math.max(0, Math.min(ESCOLA_RV.perLesson - paidThisLesson, ESCOLA_RV.perDay - day));
 }
 
 export function payRv(st: EscolaState, today: string, n: number) {
-  st.rv = { day: today, n: (st.rv?.day === today ? st.rv.n : 0) + n };
+  st.rv = { day: today, n: (sameOrFutureDay(st.rv?.day, today) ? st.rv!.n : 0) + n };
 }
 
 // ---------------------------------------------------------------- spaced repetition

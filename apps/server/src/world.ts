@@ -170,6 +170,7 @@ import {
   weatherAt,
   type FishId,
   type PraiaConfig,
+  sameOrFutureDay,
 } from '@tudobem/shared';
 import type { ChatSafetyCtx, ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { JEV_CONTEXT_LINES } from './services/jevModel.js';
@@ -2465,7 +2466,7 @@ export class World {
       // Pedido rápido RV: once per player day (fixes double-dip after Missão/prior Pedido)
       const grantDay = this.dayOf(p);
       const lastGrant = p.daily.pedidoRvGranted?.[sc.npc];
-      if (lastGrant === grantDay) {
+      if (sameOrFutureDay(lastGrant, grantDay)) {
         dailyBlocked = true;
         payout = 0;
       } else {
@@ -2482,7 +2483,9 @@ export class World {
 
   private rollDaily(p: StoredProfile) {
     const day = this.dayOf(p);
-    if (p.daily.date !== day) p.daily = { date: day, sceneClears: {} };
+    // an earlier stored key rolls over; a later one (an older UTC key) counts as today (playerDay.ts)
+    if (!sameOrFutureDay(p.daily.date, day)) p.daily = { date: day, sceneClears: {} };
+    else p.daily.date = day;
   }
 
   /** Push the stored profile to a connected player. */
@@ -2614,8 +2617,10 @@ export class World {
 
   private missionOf(p: StoredProfile): DailyMission {
     const day = this.dayOf(p);
-    if (p.mission?.date !== day) p.mission = freshMission(day);
-    return p.mission;
+    // an earlier stored key rolls over; a later one (an older UTC key) counts as today (playerDay.ts)
+    const m = p.mission && sameOrFutureDay(p.mission.date, day) ? p.mission : freshMission(day);
+    m.date = day;
+    return (p.mission = m);
   }
 
   private takeMission(s: Session) {

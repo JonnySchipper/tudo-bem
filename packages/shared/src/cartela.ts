@@ -3,7 +3,7 @@
  * calendar day), seven stamps pay once (then a fresh card). Progress survives logout on the profile.
  */
 import { ROLL_RV_LOSS } from './academia.js';
-import { viewerDay } from './playerDay.js';
+import { sameOrFutureDay, viewerDay } from './playerDay.js';
 import type { Bilingual } from './types.js';
 
 export const CARTELA_GOAL = 7;
@@ -20,8 +20,8 @@ export interface CartelaState {
   /** Stamps on the current card (0–6 until the 7th pays and resets). */
   stamps: number;
   /**
-   * Last player day (YYYY-MM-DD) each activity earned a stamp. Saves from before the player day hold New York keys:
-   * a key that is not today's simply means "not stamped today" (the stamps on the card are kept).
+   * Last player day (YYYY-MM-DD) each activity earned a stamp. Saves from before the player day hold New York or UTC keys:
+   * an earlier key means "not stamped today", a later one counts as today (`sameOrFutureDay`); the stamps on the card are kept.
    */
   activityDay: Partial<Record<CartelaActivity, string>>;
 }
@@ -49,11 +49,11 @@ export function normalizeCartela(raw: unknown): CartelaState {
 }
 
 export function stampsOnDay(st: CartelaState, day: string): number {
-  return CARTELA_ACTIVITIES.filter((a) => st.activityDay[a] === day).length;
+  return CARTELA_ACTIVITIES.filter((a) => sameOrFutureDay(st.activityDay[a], day)).length;
 }
 
 export function activityStampedToday(st: CartelaState, activity: CartelaActivity, day: string): boolean {
-  return st.activityDay[activity] === day;
+  return sameOrFutureDay(st.activityDay[activity], day);
 }
 
 export type CartelaStampResult =

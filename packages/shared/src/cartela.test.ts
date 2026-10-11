@@ -85,9 +85,11 @@ describe('cartela stamps', () => {
     const res = tryCartelaStamp(old, 'tatame', today);
     expect(res.ok && res.next.stamps).toBe(4);
     expect(res.ok && res.next.activityDay.tatame).toBe(today);
-    // a key from a zone ahead of the player's (not today's) also rolls over, never resets the card
-    const ahead = tryCartelaStamp({ stamps: 5, activityDay: { balcao: '2026-10-04' } }, 'balcao', today);
-    expect(ahead.ok && ahead.next.stamps).toBe(6);
+    // a key from a zone ahead of the player's (a later day) is today: no second stamp now, and the card is kept
+    const ahead = { stamps: 5, activityDay: { balcao: '2026-10-04' } };
+    expect(stampsOnDay(ahead, today)).toBe(1);
+    expect(tryCartelaStamp(ahead, 'balcao', today).ok).toBe(false);
+    expect(tryCartelaStamp(ahead, 'tatame', today)).toMatchObject({ ok: true, next: { stamps: 6 } });
   });
 
   it('caps at four stamps per player day across activities', () => {

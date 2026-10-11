@@ -218,7 +218,7 @@ describe('feira: the purchase RV cap counts the player day (D1)', () => {
     pending.length = 0;
   });
 
-  it('a key from the older UTC day is yesterday (it pays again); a key on the player day holds the cap', async () => {
+  it('a key from the older UTC day (ahead of the player day) holds the cap as today; an earlier day\'s key rolls over', async () => {
     const world = makeWorld(9 * 60);
     const inbox: ServerMsg[] = [];
     const s = world.connect(`f${n++}`, (m) => inbox.push(m), () => {});
@@ -235,10 +235,11 @@ describe('feira: the purchase RV cap counts the player day (D1)', () => {
       return r.phase === 'pay' ? r.rv : -1;
     };
     p.feira = { date: '1970-01-01', n: FEIRA_RV_PER_DAY };
+    expect(await pay()).toBe(0);
+    expect(p.feira).toEqual({ date: '1969-12-31', n: FEIRA_RV_PER_DAY });
+    p.feira = { date: '1969-12-30', n: FEIRA_RV_PER_DAY };
     expect(await pay()).toBe(FEIRA_RV_EXACT);
     expect(p.feira).toEqual({ date: '1969-12-31', n: 1 });
-    p.feira = { date: '1969-12-31', n: FEIRA_RV_PER_DAY };
-    expect(await pay()).toBe(0);
   });
 });
 

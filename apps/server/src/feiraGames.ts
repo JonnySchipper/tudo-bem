@@ -41,6 +41,7 @@ import {
   type FeiraMedalAward,
   type FeiraOrderOutcome,
   type ServerMsg,
+  sameOrFutureDay,
 } from '@tudobem/shared';
 import type { Session } from './world.js';
 import type { ProfileStore, StoredProfile } from './store.js';
@@ -198,8 +199,8 @@ export class FeiraGamesEngine {
    */
   private paidCount(p: StoredProfile, board: FeiraGamesState): number {
     const day = profileDay(p, this.d.now());
-    if (p.feiraPaid) return p.feiraPaid.day === day ? p.feiraPaid.n : 0;
-    return board.day === day ? (board.paid[p.id] ?? 0) : 0;
+    if (p.feiraPaid) return sameOrFutureDay(p.feiraPaid.day, day) ? p.feiraPaid.n : 0;
+    return sameOrFutureDay(board.day, day) ? (board.paid[p.id] ?? 0) : 0;
   }
 
   /** Drop today's paid-run count for one player. Public scores stay. */

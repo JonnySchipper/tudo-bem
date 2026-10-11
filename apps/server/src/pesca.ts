@@ -36,6 +36,7 @@ import {
   type Tile,
   type WaterId,
   type Weather,
+  sameOrFutureDay,
 } from '@tudobem/shared';
 import type { StoredProfile } from './store.js';
 
@@ -286,7 +287,8 @@ export class PescaEngine {
   private capLeft(p: StoredProfile): number {
     const pr = this.progress(p);
     const day = this.d.day(p);
-    if (pr.sales.date !== day) pr.sales = { date: day, rv: 0 };
+    // an earlier stored key rolls over; a later one (an older UTC key) counts as today (playerDay.ts)
+    pr.sales = { date: day, rv: sameOrFutureDay(pr.sales.date, day) ? pr.sales.rv : 0 };
     return Math.max(0, this.d.saleCap() - pr.sales.rv);
   }
 
