@@ -6,6 +6,7 @@
 export async function finishArrival(page) {
   await skipFlight(page);
   await page.waitForFunction(() => window.__tb?.game?.profile && window.__tb.game.room, null, { timeout: 20_000 });
+  await quietFirstTimeCards(page);
   const needs = await page.evaluate(() => window.__tb.game.profile.arrivalIntroDone === false);
   // a brand-new account starts in the arrivals hall (the guided tutorial): mark it done and go on to the airport
   const hall = await page.evaluate(() => window.__tb.game.profile.desembarqueDone === false);
@@ -48,6 +49,22 @@ async function dismissWordCards(page) {
       while (document.getElementById('photo-close') === gone && performance.now() - started < 700) await sleep(30);
     }
   });
+}
+
+/**
+ * Place cards ("How it works") no longer open by themselves (`autoOpen: false` in howToPlayData.ts); the "?" keeps them.
+ * Play paths that are about something else still mark them seen, so a card that starts opening again cannot cover the next click.
+ * The Vila guide is not marked: it never auto-opens, and e2e-solo opens it from the "?". Minigame "How to play" cards stay unseen
+ * because those scripts read them. Ids are every `kind: 'place'` card.
+ */
+export const PLACE_CARDS = ['balcao', 'papo', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira', 'petshop', 'pesca'];
+
+export async function quietFirstTimeCards(page) {
+  await page.evaluate((ids) => {
+    const id = window.__tb.game.profile?.id;
+    if (!id) return;
+    for (const g of ids) localStorage.setItem(`tb_howto:${id}:${g}`, '1');
+  }, PLACE_CARDS);
 }
 
 /** A brand-new account flies in first (the cutscene, ui/flightIntro.ts): skip it, as its "Pular" button does. No-op for other accounts. */
