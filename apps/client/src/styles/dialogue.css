@@ -1143,6 +1143,31 @@ html.px-ui .dbx {
   min-width: max-content;
 }
 
+/* the house counter of an owned padaria: the whole menu on the board (no key numbers: the one chip is "Agora não") */
+.snack-cart-padaria .snack-pick {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.snack-cart-padaria .snack-cart-row {
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+.snack-bag:empty {
+  width: 48px;
+  height: 48px;
+}
+
+@media (max-width: 640px) {
+  .snack-cart-padaria .snack-pick {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .snack-bag:empty {
+    width: 32px;
+    height: 32px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .snack-drip {
     animation: none;

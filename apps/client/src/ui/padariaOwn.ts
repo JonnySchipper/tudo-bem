@@ -8,13 +8,9 @@
  */
 import {
   CARLOS_POIS_NAO,
-  COUNTER_PRICES,
-  OWNED_SHELF,
   PADARIA_FOUNDER_HAT,
   PADARIA_NAME_MAX,
   PADARIA_SIZE_NAMES,
-  cardById,
-  counterMenuForOwned,
   fundarCostRv,
   npcDefById,
   padariaDoorShowsMeter,
@@ -32,6 +28,8 @@ import { h, en, bi, rvPriceNote } from './dom';
 import { closeModal, modalId, openModal } from './modal';
 import { closeDialogue, showDialogue } from './panels';
 import { foodIcon } from './pixelArt';
+import { houseCounterPicks } from './padariaOwnLogic';
+import { cartBoard } from './streetSnack';
 import { setHatIcon } from '../render/pixel/charPreview';
 
 /** The founder toque, drawn from the hat sprite (the owner's mark on every padaria card). */
@@ -211,30 +209,23 @@ export function syncPadariaFloor() {
 
 /** The counter of an owned padaria: the house menu by size and sweets. Visitors' reais go to the owner. */
 export function openHouseCounter(card: PadariaCard) {
-  // the house specials (what the upgrades bought) first, then the everyday menu
-  const all = counterMenuForOwned(card);
-  const menu = [...all.filter((id) => (OWNED_SHELF as readonly string[]).includes(id)), ...all.filter((id) => !(OWNED_SHELF as readonly string[]).includes(id))];
-  const label = (id: string) => cardById(`lex.padaria.${id}`);
-  const chips = [
-    ...menu.map((id) => {
-      const c = label(id);
-      return { pt: `${c?.form ?? id} · ${COUNTER_PRICES[id] ?? 0} RV`, en: c?.gloss_en ?? id };
-    }),
-    { pt: 'Agora não', en: 'Not now' },
-  ];
+  // the whole menu is a board (12+ things at size 2, more than the box's chips): one tile per item, and "Agora não" is the box's one chip
+  const menu = houseCounterPicks(card);
+  const choose = (i: number) => {
+    closeDialogue();
+    const pick = menu[i];
+    if (pick) actions?.buy(pick.id);
+  };
   showDialogue({
     npc: null,
     speaker: card.owner ? 'Seu balcão' : `Balcão da ${card.name}`,
     line: card.owner
       ? { pt: `Balcão da ${card.name}. O que vai pra sacola?`, en: `${card.name}’s counter. What goes in the bag?` }
       : { pt: `Bem-vindo à ${card.name}! O que vai ser?`, en: `Welcome to ${card.name}! What’ll it be?` },
-    extras: rvPriceNote(),
-    chips,
+    extras: cartBoard('padaria', menu.map((p, i) => ({ ...p, chip: i })), choose, false),
+    chips: [{ pt: 'Agora não', en: 'Not now' }],
     key: `house-counter-${card.id}`,
-    onChoose: (i) => {
-      closeDialogue();
-      if (i < menu.length) actions?.buy(menu[i]!);
-    },
+    onChoose: () => closeDialogue(),
     onClose: closeDialogue,
   });
 }
