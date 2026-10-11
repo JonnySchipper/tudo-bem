@@ -28,10 +28,8 @@ import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
 import {
   DEFAULT_APPEARANCE,
-  DESEMBARQUE_EXIT,
   MISSION_COPY,
   ROOMS,
-  TUTORIAL_STEPS,
   buildGrid,
   cameraObjectIds,
   findPath,
@@ -80,6 +78,7 @@ import type { TapCue } from './render/pixel/tapMark';
 import { HOLD_MS, STEER_MS, TapGesture } from './tapGesture';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, holdCartelaChip, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
+import { hudShows, kioskShown } from './ui/disclosure';
 import { CARTELA_BANNER_MS, cartelaBanner, openCartela } from './ui/cartela';
 import { CARTELA_COPY, stampNotice } from '@tudobem/shared';
 import {
@@ -94,17 +93,15 @@ import {
   showJulia,
   showParrotPerch,
   wireParrotShop,
-  showScene,
 } from './ui/panels';
 import { openMap } from './ui/townMap';
-import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
 import { openSupport } from './ui/support';
 import { bindPetName, maybeAskPetName, openPetName, showPetNameError } from './ui/petName';
 import { bindPetShop, openHomePetCard, openPetShop, petAdopted } from './ui/petShop';
 import { bindAdmin, onAdminMsg } from './ui/admin';
 import { applyServerLayout } from './ui/layoutSync';
-import { dialogueBoxKey, dialogueBoxNpc, isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
+import { dialogueBoxKey, dialogueBoxNpc, isDialogueBoxOpen, leadNextBox, setDialogueHost, showDialogueBox } from './ui/dialogue';
 import { bindRecadoActions, mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith, recadoFocus } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
@@ -120,10 +117,11 @@ import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { openLeaderboards } from './ui/leaderboards';
+import { checkersOpens, placarOpens } from './ui/s3Doors';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
-import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia, showAirportNext } from './ui/airportTutorial';
+import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
 import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
-import { desembGateHint, desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
+import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
 import { firstRoom } from './ui/desembarqueLogic';
 import { designLinkRoom, watchDesignLink } from './ui/designLink';
 import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
@@ -132,7 +130,7 @@ import { shouldPlayFlightIntro } from './ui/flightIntroLogic';
 import { thanksFor } from './ui/airportTutorialLogic';
 import { installHowToPlay } from './ui/howToPlay';
 import { maybeShowVilaGuide, openVilaGuide } from './ui/vilaGuide';
-import { doorTagsFor, showRoomIntro } from './ui/wayfinding';
+import { doorTagsFor, noteRoomVisit } from './ui/wayfinding';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
 import { startAchado, claimReadingWord } from './ui/achado';
@@ -311,29 +309,11 @@ function propOnInteractTile(): PropDef | undefined {
   return room.props.find((p) => p.action && p.interact && p.interact.x === cur.tile.x && p.interact.y === cur.tile.y);
 }
 
-/**
- * The arrivals hall's doors to the airport stay shut until every tutorial step before them is done: trying them shows what is left
- * (PT + EN) and returns true. Any other door is never shut.
- */
-let gateToastAt = -1e9;
-function gateShut(portalId: string): boolean {
-  if (portalId !== DESEMBARQUE_EXIT) return false;
-  const hint = desembGateHint();
-  if (!hint) return false;
-  // one hint per beat: a double click or a held key does not stack toasts
-  if (performance.now() - gateToastAt > 1500) {
-    gateToastAt = performance.now();
-    toast('info', `🔒 ${hint.pt}`, hint.en);
-  }
-  return true;
-}
-
 function runPending() {
   const p = game.pending;
   game.pending = null;
   if (!p) return;
   if (p.kind === 'portal') {
-    if (gateShut(p.portalId)) return;
     const to = game.roomDef?.portals.find((q) => q.id === p.portalId)?.to;
     // an owner at Seu Carlos's door picks: their own padaria or his (the facade is shared; the owned shop has no door of its own)
     if (to === 'padaria' && game.profile?.padaria) chooseBakery(game.profile.padaria, () => net.send({ t: 'portal', portalId: p.portalId }));
@@ -397,52 +377,37 @@ function openComissaria() {
 function talkTo(npc: NpcDef['id']) {
   closeDialogue();
   if (npc === 'comissaria') markDesembStep('falar');
-  // the player chose to talk: an unheard idle line is this conversation's first line in the box (passing chatter stays a bubble and teaches nothing).
-  // A vendor's idle lines are stall calls, so off duty they open with their own small talk instead.
+  // One click, one box. An unheard idle line leads the first line of whatever box this click opens (a hand-over, an errand, the greeting):
+  // passing chatter stays a bubble and teaches nothing. A vendor's idle lines are stall calls, so off duty they open with their own small talk.
   const speaker = game.liveNpcs(now()).find((n) => n.id === npc);
   const idle = speaker && !vendorOffDuty(npc) ? talkIdleOpen(npc, speaker.idleLines, game.profile?.diary, clock.minutes()) : null;
   const vendor = isStallVendor(npc);
-  // read before `talk`: that message pays bond at once, and an idle line can sit on screen until the profile push lands
+  // read before `talk`: that message pays bond at once, and the box can sit on screen until the profile push lands
   const juliaMet = npc === 'julia' && profileMetJulia();
   // the server counts the talk (bond +2 once a day, `falar` steps); the bakers count it through the counter / a bate-papo,
   // the vendors through their stall panel (it sends `talk` itself)
   if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
-  // an NPC first hands you what they came with: a thank-you hand-over ("Entregar …") or today's errand ("Pode deixar!" / "Agora não")
-  const proceed = () =>
-    runPrelude(npc, {
-      accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
-      give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
-      proceed: () => talkFlow(npc, juliaMet),
-    });
-  if (!speaker || !idle) return proceed();
-  // the line over their head would say it twice: the box has it now
-  game.npcBubbles.delete(npc);
-  let went = false;
-  // the next beat takes the same box in place (no close and reopen, the camera stays): one conversation, not two
-  const go = () => {
-    if (went) return;
-    went = true;
-    proceed();
-  };
-  speak(idle.line.pt, { speaker: npc });
-  showDialogueBox({
-    key: `idle-${npc}`,
-    npcId: npc,
-    speaker: speaker.name,
-    role: speaker.role.pt,
-    expression: 'feliz',
-    line: idle.line,
-    chips: [{ pt: 'Continuar', en: 'Continue' }],
-    onChip: go,
-    onClose: go,
+  const led = idle ? leadNextBox(npc, idle.line) : null;
+  // an NPC first hands you what they came with: a thank-you hand-over ("Trouxe … pra você!") or today's errand ("Pode deixar!" / "Agora não"),
+  // in place of the talk's first line
+  runPrelude(npc, {
+    accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
+    give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
+    proceed: () => talkFlow(npc, juliaMet),
   });
+  if (!idle || !led) return;
+  // the line over their head would say it twice: the box has it now (a talk that opened a panel instead keeps it as the bubble)
+  if (led()) game.npcBubbles.delete(npc);
+  else npcSay(npc, idle.line);
+  // said aloud first; the talk's own line is on 🔊
+  speak(idle.line.pt, { speaker: npc });
   sendLine(idle.anchor);
 }
 
 /** A bate-papo (pre-made, never graded) talked through: the server counts it; a node's diary line can teach its word. */
 const papoHooks = { done: (npc: NpcId, id: string) => net.send({ t: 'papo', npc, id }), onLine: (anchor: string) => sendLine(anchor) };
 
-/** On with the NPC's usual talk. The beat before it (the idle line, an errand) is replaced in place; a talk that opens no box of its own closes it. */
+/** On with the NPC's usual talk. The beat before it (a hand-over, an errand) is replaced in place; a talk that opens no box of its own closes it. */
 function talkFlow(npc: NpcDef['id'], juliaMet = false) {
   const before = dialogueBoxKey();
   openTalk(npc, juliaMet);
@@ -473,8 +438,8 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
     // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help)
     openNpcTalk(npc, {
       // Seu Dito's "Quero ver a lojinha" / "Quero ver!" open the pet shop panel; everyone else's shop is Nanda's hats
-      openShop: npc === 'dito' ? () => void openPetShop('lojinha') : openShop,
-      openAdopt: npc === 'dito' ? () => void openPetShop('adotar') : undefined,
+      openShop: npc === 'dito' ? () => openPetShop('lojinha') : openShop,
+      openAdopt: npc === 'dito' ? () => openPetShop('adotar') : undefined,
       onLine: (anchor) => sendLine(anchor),
       buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
       openMat: () => openBout(),
@@ -499,7 +464,7 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
 function readHotspot(hs: HotspotDef) {
   closeDialogue();
   if (hs.room === 'desembarque') markDesembStep('placa');
-  const card = () => openHotspotCard(hs, { onSave: (cards) => openDiario({ cadernoGroup: cards[0]?.split('.')[1], highlight: cards }) });
+  const card = () => openHotspotCard(hs);
   if (!findOnSign(hs, (found) => found && hs.pt.includes('\n') && game.room?.room === hs.room && !document.querySelector('[data-modal]') && card())) card();
   net.send({ t: 'read', hotspotId: hs.id });
 }
@@ -612,16 +577,25 @@ function openEscolaDesk() {
   });
 }
 
+/** Rewards whose RV an on-screen card already shows (the Correria, feira cart, Escola and tatame end cards; Vizinho do dia on the thanks card). */
+const rewardOnCard = (reason: string): boolean =>
+  reason === 'Correria no Balcão' || reason.startsWith('Carrinho da feira: ') || reason === 'Dona Lúcia paga a aula.' || reason.startsWith('Treino no tatame') || reason === 'Vizinho do dia';
+
 function propAction(action: string, propId?: string) {
   if (action === 'feira_stall') openStall(propId);
   else if (action === 'shop_hats') openShop();
   else if (action === 'minigame') startMinigame();
-  else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
+  else if (action === 'kiosk') {
+    // the Missão do dia is a regular's (S3): before that the kiosk is scenery
+    if (game.profile && kioskShown(game.profile)) openKiosk(() => net.send({ t: 'mission', action: 'take' }));
+  }
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
   else if (action === 'street_snack' && propId) openStreetSnack(propId, (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
   else if (action === 'beach_shop') openBeachRack();
   else if (action === 'pesca' || action === 'fish_sell' || action === 'boat_rental' || action === 'party_boat') praiaAction(action, propId);
-  else if (action === 'checkers') openCheckers();
+  else if (action === 'checkers') {
+    if (checkersOpens(game.profile)) openCheckers();
+  }
   else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
   else if (action === 'escola') openEscolaDesk();
@@ -632,7 +606,7 @@ function propAction(action: string, propId?: string) {
     const card = game.room?.room === 'andar' ? game.room.academy : undefined;
     if (card) openAcademyBoard(card);
   } else if (action === 'leaderboard') {
-    openLeaderboards(() => net.send({ t: 'leaderboards' }));
+    if (placarOpens(game.profile)) openLeaderboards(() => net.send({ t: 'leaderboards' }));
   } else if (action === 'padaria_door') {
     // inside an owned padaria the vaso is its book (Melhorias for the owner, the shop's card for a visitor)
     const own = game.room?.padaria;
@@ -644,9 +618,9 @@ function propAction(action: string, propId?: string) {
     game.pendingFeiraOpen = open;
     net.send({ t: 'feiraGame', action: 'board', open });
   } else if (action === 'petshop_counter') {
-    void openPetShop('lojinha');
+    openPetShop('lojinha');
   } else if (action === 'petshop_pen') {
-    void openPetShop('adotar');
+    openPetShop('adotar');
   } else if (action === 'padaria_counter') {
     const own = game.room?.padaria;
     if (own) openHouseCounter(own);
@@ -800,13 +774,9 @@ function updateGuides() {
   }
   // the kitnet guide's floor steps: a free tile for the piece in hand, or the piece to rotate
   if (r.room === 'kitnet') add(kitnetWorldGuide());
-  // the Vila's first stop is Júlia (the bus toast sends you to her): until you have met her, one arrow, to her or the way to her
-  if (p.arrivalIntroDone !== false && (r.room === 'rua_leste' || r.room === 'rua' || r.room === 'praca') && !profileMetJulia()) {
-    const julia = guideAt('npc', 'julia', 120, 'Júlia · sua guia', 'Júlia · your guide: talk to her');
-    if (julia) add(julia);
-    else if (r.room === 'rua_leste') add(guideAt('portal', 'leste_rua_1', 60, '← Júlia: pela Rua', '← Júlia: via the Street'));
-    else if (r.room === 'rua') add(guideAt('portal', 'rua_praca_1', 60, 'Júlia: Praça ↓', 'Júlia: Square ↓'));
-    else add(guideAt('portal', 'praca_rua_1', 60, 'Júlia: pela Rua ↑', 'Júlia: via the Street ↑'));
+  // the Vila's first stop is Júlia (the bus toast sends you to her): until you have met her, exactly one arrow, to her or the way to her
+  if (p.arrivalIntroDone !== false && !profileMetJulia()) {
+    if (!renderer.guides.length) add(juliaGuide(r.room));
     return;
   }
   if (r.room === 'rua') {
@@ -866,6 +836,20 @@ function updateGuides() {
   const errand = recadoGuide();
   // a sign already standing there (the tutorial's "Padaria: pela Rua ↑") points the same way: one label, not two on top of each other
   if (errand && !renderer.guides.some((g) => Math.abs(g.x - errand.x) + Math.abs(g.y - errand.y) <= 3)) add(errand);
+}
+
+/** Before the player has met Júlia: the one arrow, on her when she is in the room, else on the door toward the Praça. */
+function juliaGuide(room: RoomId): Guide | null {
+  const julia = guideAt('npc', 'julia', 120, 'Júlia · sua guia', 'Júlia · your guide: talk to her');
+  if (julia) return julia;
+  if (room === 'rua_leste') return guideAt('portal', 'leste_rua_1', 60, '← Júlia: pela Rua', '← Júlia: via the Street');
+  if (room === 'rua') return guideAt('portal', 'rua_praca_1', 60, 'Júlia: Praça ↓', 'Júlia: Square ↓');
+  if (room === 'praca') return guideAt('portal', 'praca_rua_1', 60, 'Júlia: pela Rua ↑', 'Júlia: via the Street ↑');
+  const from = selfTile()?.tile;
+  const portal = from ? nextPortalToward(room, from, 'praca') : null;
+  if (!portal) return null;
+  const to = ROOMS[portal.to];
+  return { x: portal.doorAt?.x ?? portal.x, y: portal.doorAt?.y ?? portal.y, lift: 60, label: `Júlia: ${to.name}`, en: `Júlia: ${to.gloss}` };
 }
 
 /** Where the first active recado's current step points: its NPC or sign in this room, else the way out toward their room. Nothing while they are at home. */
@@ -1060,7 +1044,7 @@ net.on((m: ServerMsg) => {
       const keepMg = !!correriaUi?.open && game.room?.room === m.room;
       // off the airport bus: the tutorial's last step is done, and the Vila says hello
       const offTheBus = game.room?.room === 'aeroporto' && m.room === 'rua_leste';
-      // out of the arrivals hall's doors: its last step, and the airport's "what next"
+      // out of the arrivals hall's doors: its last step (the server marks the hall done)
       const outOfHall = game.room?.room === 'desembarque' && m.room === 'aeroporto';
       // a new room state (a join, a reconnect) ends any bout: the server dropped it too
       boutUi?.destroy();
@@ -1094,8 +1078,7 @@ net.on((m: ServerMsg) => {
       if (outOfHall) {
         markDesembStep('porta');
         net.send({ t: 'arrival', action: 'landed' });
-        if (game.profile?.arrivalIntroDone === false) setTimeout(showAirportNext, 700);
-      } else showRoomIntro(m.room, doorTagsFor(ROOMS[m.room]), game.profile?.id);
+      } else noteRoomVisit(m.room, doorTagsFor(ROOMS[m.room]), game.profile?.id);
       if (offTheBus) {
         markAirportStep('onibus');
         setTimeout(() => toast('info', 'Bem-vindo à Vila Ipê! A Júlia te espera na praça: siga a Rua pra oeste.', 'Welcome to Vila Ipê! Júlia is waiting in the square: follow the street west.'), 900);
@@ -1104,7 +1087,7 @@ net.on((m: ServerMsg) => {
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
       // your own padaria: what is where, the first time you stand in it
       if (m.padaria?.owner) setTimeout(welcomeOwner, 900);
-      // the first time in the Vila: one card with what there is to do (it waits for the welcome toast and any dialogue to clear)
+      // the Vila guide never opens by itself (shouldShowVilaGuide): Ajustes → Guia, the "?" and Júlia keep it
       maybeShowVilaGuide(m.room);
       if (m.room === 'padaria' && !m.padaria && !game.profile?.tutorial.carlos)
         setTimeout(() => {
@@ -1220,14 +1203,22 @@ net.on((m: ServerMsg) => {
       if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks' && m.tag !== 'recado_bonus') toast(m.level, m.pt, m.en);
       break;
     case 'cartela': {
-      const line = stampNotice(m.activity, m.stamps, m.paid);
+      // the chip is the stamp's signal (it animates on the profile that follows): nothing shows while it is hidden (before S3), the
+      // first stamp of a regular brings it in with one line, after that the chip alone (and the payout banner on the seventh)
+      const p = game.profile;
+      const shown = !!p && hudShows(p).cartela;
+      const appears = !shown && !!p && hudShows({ ...p, cartela: { stamps: Math.max(1, m.stamps), activityDay: p.cartela?.activityDay ?? {} } }).cartela;
+      if (!shown && !appears) break;
       if (m.paid) {
         // the profile that follows already holds the fresh card: keep the chip full while the banner plays (the reward toast follows)
         holdCartelaChip(m.stamps, CARTELA_BANNER_MS);
         cartelaBanner(m.stamps);
         ambience.sting('mission');
       } else {
-        toast('info', line.pt, line.en);
+        if (appears) {
+          const line = stampNotice(m.activity, m.stamps, m.paid);
+          toast('info', line.pt, line.en);
+        }
         ambience.sfx('stamp');
       }
       game.emit('hud');
@@ -1238,36 +1229,19 @@ net.on((m: ServerMsg) => {
         missionBanner();
         ambience.sting('mission');
       } else if (m.reason.pt === CARTELA_COPY.paid.pt) {
-        // the payout banner already shows the card and the RV; the coin counter ticks when it leaves
-        window.setTimeout(() => document.getElementById('coins')?.classList.add('tick'), CARTELA_BANNER_MS - 300);
-        window.setTimeout(() => document.getElementById('coins')?.classList.remove('tick'), CARTELA_BANNER_MS + 400);
+        // the payout banner already shows the card and the RV; the coin counter ticks when it leaves (at once while the chip is hidden)
+        const wait = game.profile && hudShows(game.profile).cartela ? CARTELA_BANNER_MS : 300;
+        window.setTimeout(() => document.getElementById('coins')?.classList.add('tick'), wait - 300);
+        window.setTimeout(() => document.getElementById('coins')?.classList.remove('tick'), wait + 400);
       } else if (m.reason.pt.startsWith('Favor: ') || m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
-      else {
-        toast('reward', m.reason.pt, m.reason.en, m.amount);
-        ambience.sting(m.reason.pt.startsWith('Caderno completo') ? 'caderno' : 'coin');
-      }
-      break;
-    case 'scene':
-      if (isPedidoOpen()) {
-        updatePedido(m.view, {
-          said: m.said,
-          feedback: m.feedback,
-          score: m.lastScore,
-          payout: m.payout,
-          dailyBlocked: m.dailyBlocked,
-          fillTicket: m.fillTicket,
-          notice: m.notice,
-        });
+      else if (rewardOnCard(m.reason.pt)) {
+        // an end card (or the thanks card's Vizinho do dia line) already shows this RV: the coin counter ticks, no toast
+        const coinsEl = document.getElementById('coins');
+        coinsEl?.classList.add('tick');
+        window.setTimeout(() => coinsEl?.classList.remove('tick'), 700);
       } else {
-        openPedido(m.view, {
-          onChoose: (i) => net.send({ t: 'scene', action: 'choose', chip: i }),
-          onClose: () => {
-            net.send({ t: 'scene', action: 'close' });
-            closePedido();
-          },
-          onPlay: startMinigame,
-          onType: (text) => net.send({ t: 'scene', action: 'type', text }),
-        });
+        toast('reward', m.reason.pt, m.reason.en, m.amount);
+        ambience.sting('coin');
       }
       break;
     case 'mg':
@@ -1338,14 +1312,10 @@ net.on((m: ServerMsg) => {
       game.emit('recados');
       updateGuides();
       break;
-    case 'tutorial': {
-      const s = TUTORIAL_STEPS.find((x) => x.id === m.step);
-      // in the airport the checklist ticks these itself (in its own words: "Ande pelo terminal", not "pela praça")
-      const ticked = (inAirport() || inDesembarque()) && (m.step === 'andar' || m.step === 'sentar' || m.step === 'acenar');
-      if (s && !ticked) toast('reward', `✓ ${s.pt}`, s.en);
+    case 'tutorial':
+      // the tracker row flash is the signal: no toast per step
       updateGuides();
       break;
-    }
   }
 });
 
@@ -1376,7 +1346,7 @@ function openSupportPanel() {
     setPet: (pet) => net.send({ t: 'perk', action: 'pet', pet }),
     setBubble: (style) => net.send({ t: 'perk', action: 'bubble', style }),
     renamePet: (pet) => openPetName(pet),
-    openPets: () => void openPetShop('meus'),
+    openPets: () => openPetShop('meus'),
     takePet: (petId) => net.send({ t: 'pet', action: 'active', petId }),
   });
 }
@@ -1394,7 +1364,6 @@ function startGame() {
     rename: (petId, name) => net.send({ t: 'pet', action: 'rename', petId, name }),
     buy: (itemId) => net.send({ t: 'pet', action: 'buy', itemId }),
     equip: (petId, slot, itemId) => net.send({ t: 'pet', action: 'equip', petId, slot, itemId }),
-    support: openSupportPanel,
   });
   window.dispatchEvent(new Event('tb:game-start'));
   document.addEventListener('visibilitychange', () => {
@@ -1409,7 +1378,6 @@ function startGame() {
       net.send({ t: 'carry', action });
     },
     openMap: () => {
-      markDesembStep('mapa');
       openMap((room) => {
         // the intro (arrivals hall, then the airport until Célia's hand-over) has no way out by map: finish it, or skip it in the hall
         if (game.profile && firstRoom(game.profile) !== null && (inDesembarque() || inAirport())) {
@@ -1421,10 +1389,7 @@ function startGame() {
     },
     openCredits,
     openSupport: openSupportPanel,
-    openCaderno: () => {
-      markDesembStep('diario');
-      openDiario();
-    },
+    openCaderno: () => openDiario(),
     openGuide: () => {
       closeModal();
       closeDialogue();
@@ -1573,7 +1538,6 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       return [t.pt, `${t.en} — click to read`];
     }
     case 'portal':
-      if (hit.portal.id === DESEMBARQUE_EXIT && desembGateHint()) return [`🔒 ${hit.portal.label.pt}`, 'Locked until the tutorial steps are done'];
       return [hit.portal.label.pt, hit.portal.label.en];
     case 'avatar': {
       const a = game.avatars.get(hit.id);
@@ -1650,7 +1614,9 @@ function handleClickInner(hit: Hit | null) {
     case 'prop': {
       const p: PropDef = hit.prop;
       if (game.cameraOn) break;
-      if (p.action && p.interact) {
+      // the kiosk is scenery until the Missão do dia means something (S3)
+      const scenery = p.action === 'kiosk' && !(game.profile && kioskShown(game.profile));
+      if (p.action && p.interact && !scenery) {
         markTap('target', { tile: p.interact });
         walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });
       } else if (cameraObjectIds().has(p.id)) toast('info', 'Abra a câmera pra fotografar.', 'Open the camera to take a photo.');
@@ -1662,10 +1628,6 @@ function handleClickInner(hit: Hit | null) {
       break;
     case 'portal': {
       const tile = { x: hit.portal.x, y: hit.portal.y };
-      if (gateShut(hit.portal.id)) {
-        markTap('refused', { tile });
-        break;
-      }
       markTap('target', { tile });
       walkTo(tile, { kind: 'portal', portalId: hit.portal.id, tile });
       break;
@@ -1835,6 +1797,17 @@ canvas.addEventListener('pointercancel', (e) => {
   window.clearTimeout(holdTimer);
   gesture.cancel(e.pointerId);
 });
+// while a dialogue box is open, the page-turning keys never turn the Diário's pages under it (window capture runs before the Diário's
+// document-capture listener); a text field keeps its own arrows
+window.addEventListener(
+  'keydown',
+  (e) => {
+    if (!isDialogueBoxOpen() || !document.querySelector('.backdrop[data-modal="caderno"]') || !['ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.key)) return;
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA') e.stopPropagation();
+  },
+  true,
+);
 document.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement)?.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || modalId() || document.querySelector('.idle-kicked')) return;

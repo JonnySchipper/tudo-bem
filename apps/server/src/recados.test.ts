@@ -14,7 +14,7 @@ import {
 } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { serveFront, waitFront } from './correriaTestKit.js';
-import { ProfileStore, type PersistenceAdapter, type StoredProfile } from './store.js';
+import { ProfileStore, normalizeProfile, type PersistenceAdapter, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 5_000_000;
@@ -193,6 +193,7 @@ describe('recados on the server', () => {
     expect(p.bond?.carlos).toBe(2 + done.reward.bond);
     expect(p.recados!.active).toEqual([]);
     expect(p.recados!.done).toEqual(['carlos_cafe_pra_nanda']);
+    expect(p.recadosDoneTotal).toBe(1);
     expect(a.all('notice').some((m) => m.level === 'reward' && m.pt.includes(done.thanks.pt) && m.pt.startsWith('Seu Carlos'))).toBe(true);
     expect(a.last('profile')!.profile.bond?.carlos).toBe(2 + done.reward.bond);
     expect(a.last('recados')!.done).toEqual(['carlos_cafe_pra_nanda']);
@@ -211,7 +212,7 @@ describe('recados on the server', () => {
     const a = await client(world);
     offer(a, 'nanda_coxinha');
     await a.send({ t: 'recados', action: 'accept', id: 'nanda_coxinha' });
-    expect(a.all('notice').find((m) => m.tag === 'recado_accept')?.pt).toBe('Favor aceito: Coxinha da padaria → Peça 1× coxinha (Seu Carlos).');
+    expect(a.all('notice').find((m) => m.tag === 'recado_accept')?.pt).toBe('Favor aceito: Coxinha da padaria → Peça uma coxinha pro Seu Carlos.');
 
     await a.send({ t: 'recados', action: 'drop', id: 'nope' });
     expect(errors(a)).toEqual(['recado']);
@@ -353,6 +354,32 @@ describe('recados on the server', () => {
     expect(b.s.profile!.recados!.done).toEqual([]);
   });
 
+  it('the Oi! emote greets the NPC nearby, but never satisfies a timed greeting', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    const p = a.s.profile!;
+    offer(a, 'nanda_um_oi_pro_carlos', 'julia_cumprimento_certo');
+    await a.send({ t: 'recados', action: 'accept', id: 'nanda_um_oi_pro_carlos' });
+    await a.send({ t: 'recados', action: 'accept', id: 'julia_cumprimento_certo' });
+    await a.send({ t: 'join', room: 'padaria' });
+    expect(p.recados!.active.map((x) => x.id)).toEqual(['nanda_um_oi_pro_carlos', 'julia_cumprimento_certo']);
+
+    // A different emote is not a greeting.
+    await a.send({ t: 'emote', kind: 'valeu' });
+    expect(p.recados!.active.find((x) => x.id === 'nanda_um_oi_pro_carlos')).toBeTruthy();
+    // Out of reach of Seu Carlos the wave greets nobody; next to him it does.
+    await a.send({ t: 'emote', kind: 'oi' });
+    expect(p.recados!.done).not.toContain('nanda_um_oi_pro_carlos');
+    const carlos = ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
+    await walkTo(a, carlos.interact.x, carlos.interact.y);
+    await a.send({ t: 'emote', kind: 'oi' });
+    expect(p.recados!.done).toContain('nanda_um_oi_pro_carlos');
+    // The timed greeting (bom dia / boa tarde / boa noite by the hour) still needs the words.
+    expect(p.recados!.active).toEqual([{ id: 'julia_cumprimento_certo', step: 0 }]);
+    await a.send({ t: 'chat', text: `${greetingFor(gameMinutes(clock))[0]!.toUpperCase()}${greetingFor(gameMinutes(clock)).slice(1)}` });
+    expect(p.recados!.active).toEqual([{ id: 'julia_cumprimento_certo', step: 1 }]);
+  });
+
   it('the day rolls over by game day: new offer, done cleared, bond unlocks the next recado', async () => {
     const world = makeWorld();
     const a = await client(world);
@@ -418,6 +445,10 @@ describe('old profiles', () => {
       daily: { date: '2026-01-01', sceneClears: {} },
       lastSeen: 1,
     };
+    // A save from before the lifetime recado count starts from today's list.
+    const counted = normalizeProfile({ ...old, recados: { day: 3, offered: [], active: [], done: ['a', 'b'] } } as unknown as StoredProfile);
+    expect(counted.recadosDoneTotal).toBe(2);
+    expect(normalizeProfile({ ...counted, recadosDoneTotal: 9 }).recadosDoneTotal).toBe(9);
     // Also a save that has garbage in the new fields (hand-edited).
     const messy = { ...old, id: 'def456', token: 'tok-messy', bag: 'oops', recados: { day: 'x', active: [{ id: 1 }] }, bond: [3] };
     const adapter: PersistenceAdapter = { describe: () => 'test', load: () => JSON.parse(JSON.stringify([old, messy])) as StoredProfile[], save: () => {} };
@@ -433,6 +464,7 @@ describe('old profiles', () => {
       expect(welcome.profile.bag).toEqual({});
       expect(welcome.profile.bond).toEqual({});
       expect(welcome.profile.recados).toEqual({ day: -1, offered: [], active: [], done: [], talked: [], graded: [] });
+      expect(welcome.profile.recadosDoneTotal).toBe(0);
       await world.handle(s, { t: 'join', room: 'praca' });
       const board = inbox.filter((m) => m.t === 'recados').at(-1) as Extract<ServerMsg, { t: 'recados' }>;
       expect(board.offered).toHaveLength(3);

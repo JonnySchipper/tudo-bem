@@ -276,7 +276,7 @@ export function counterLayout(menu: readonly string[] | null | undefined, room: 
   const chapa = at('chapa');
   const coffee = at('coffee');
   const juicer = at('juicer');
-  // the bag and the plate come with packing (from six items on the menu, `whereRequired`)
+  // the bag and the plate come with packing (from eight items on the menu, `whereRequired`)
   const pack = whereRequired(open.size);
   const wide = w >= 160;
   const shelfTop = rowY(0) - 28;

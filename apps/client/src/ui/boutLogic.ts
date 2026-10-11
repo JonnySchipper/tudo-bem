@@ -10,11 +10,13 @@ import {
   GRADE_LABEL,
   MAT_CALLS,
   REF_LINES,
+  STAGED_BRACE_WINS,
   boutStepLabel,
   endLine,
   gradeTap,
   isHitGrade,
   type Bilingual,
+  type BjjProgress,
   type BoutReason,
   type BoutSnapshot,
   type BoutWinner,
@@ -242,16 +244,67 @@ export function cuesForEnd(m: Msg<'end'>): StageCue[] {
   return out;
 }
 
+// ---------------------------------------------------------------- staging (docs/lifesim/TATAME-V3.md "Staging")
+
+/**
+ * What the overlay shows for this much progress (the staged first matches, 2026-10-10). Gated on the profile (`BjjProgress`), never on
+ * the browser:
+ *  - `meters`: the grips / brace / control / Ritmo row waits for the first stripe (from blue belt it is always on);
+ *  - `cardDetail`: a pick card is its name and chevrons until the first win; then what it does, its risk and the Responde! badge;
+ *  - `pad`: the defense pad is part of the match from {@link STAGED_BRACE_WINS} wins (before that the server braces the partner's
+ *    attacks for you and sends no defense beat: `stagedBrace` in matFight.ts);
+ *  - `coach`: which coach notes this match carries: the first-ever match's (`first`, wins 0), the first match with the pad's (`pad`),
+ *    or none.
+ */
+export interface BoutStageView {
+  meters: boolean;
+  cardDetail: boolean;
+  pad: boolean;
+  coach: CoachSet | null;
+}
+
+export function boutStageView(bjj: Pick<BjjProgress, 'belt' | 'stripes' | 'wins'> | null | undefined): BoutStageView {
+  const wins = Math.max(0, Math.floor(Number(bjj?.wins) || 0));
+  const belt = bjj?.belt ?? 'branca';
+  const stripes = Math.max(0, Math.floor(Number(bjj?.stripes) || 0));
+  return {
+    meters: belt !== 'branca' || stripes >= 1,
+    cardDetail: wins >= 1,
+    pad: wins >= STAGED_BRACE_WINS,
+    coach: wins === 0 ? 'first' : wins === STAGED_BRACE_WINS ? 'pad' : null,
+  };
+}
+
 // ---------------------------------------------------------------- coach copy (needs_br: true; the #49 lock: no position names)
 
-export type CoachMoment = 'pick' | 'chain' | 'defend';
+export type CoachMoment = 'pick' | 'chain' | 'defend' | 'sai';
+/** The first-ever match (wins 0, no defense pad yet), or the first match with the defense pad (wins = STAGED_BRACE_WINS). */
+export type CoachSet = 'first' | 'pad';
 
-/** needs_br: true — the three one-line notes of a first-ever match (wins 0), one at the first pick, chain and defense. */
-export const COACH_NOTES: Record<CoachMoment, Bilingual> = {
+/** needs_br: true — the end-card tip after losing to a finish, also the pad match's note at the first Sai! mash. */
+const SAI_TIP: Bilingual = { pt: 'Contra o final, toque Sai! sem parar, rápido.', en: 'Against a finish, keep tapping Sai!, fast.' };
+
+/** needs_br: true — the one-line notes of a first-ever match (wins 0): at the first pick and the first chain. It has no defense pad. */
+export const COACH_NOTES: Partial<Record<CoachMoment, Bilingual>> = {
   pick: { pt: 'Escolha um golpe. As setas dizem quantos comandos ele tem.', en: 'Pick a move. The arrows say how many commands it takes.' },
   chain: { pt: 'Escute a Bia e toque a palavra que ela falar.', en: 'Listen to Bia and tap the word she says.' },
-  defend: { pt: 'Ele vai atacar! Toque a defesa que a Bia falar.', en: 'They are attacking! Tap the defense Bia calls.' },
 };
+
+/**
+ * needs_br: true — the defense pad's own three notes, in the first match that has it (wins = STAGED_BRACE_WINS, until a win): at the
+ * first pick (the warning line now matters), the first defense, and the first Sai! mash against a finish.
+ */
+export const PAD_COACH_NOTES: Partial<Record<CoachMoment, Bilingual>> = {
+  pick: { pt: 'Agora ele também ataca. O aviso diz o que vem.', en: 'Now they attack too. The warning says what is coming.' },
+  defend: { pt: 'Ele vai atacar! Toque a defesa que a Bia falar.', en: 'They are attacking! Tap the defense Bia calls.' },
+  sai: SAI_TIP,
+};
+
+/** The coach note for this moment of a match with this set of notes, or null. */
+export function coachNote(set: CoachSet | null, moment: CoachMoment): Bilingual | null {
+  if (!set) return null;
+  return (set === 'first' ? COACH_NOTES : PAD_COACH_NOTES)[moment] ?? null;
+}
 
 /**
  * Professora Bia's one tip on the end card: the next thing to try, from how the match went and the moves the player has. needs_br: true.
@@ -263,7 +316,7 @@ export function coachTip(o: { winner: 'you' | 'partner' | 'draw' | 'none'; reaso
   if (o.winner === 'you' && o.reason === 'finalizacao') return { pt: 'Que final! O último Aperta! é rápido: toque sem esperar.', en: 'What a finish! The last Aperta! is quick: tap without waiting.' };
   if (o.winner === 'partner' && o.reason === 'finalizacao')
     // no count: it is three Sai! against most partners and four against Daniel (saiCount). needs_br: true
-    return { pt: 'Contra o final, toque Sai! sem parar, rápido.', en: 'Against a finish, keep tapping Sai!, fast.' };
+    return SAI_TIP;
   if (o.you === 0 && o.them === 0)
     return has('double_leg')
       ? { pt: 'Pegue a gola primeiro: a Queda fica com um comando só.', en: 'Take the collar first: the takedown is then one command.' }

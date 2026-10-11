@@ -81,8 +81,8 @@ const walkTo = (page, x, y, sit = false) => page.evaluate(([x, y, sit]) => windo
 const clickTileHit = (page, x, y) => page.evaluate(([x, y]) => window.__tb.clickHit({ kind: 'tile', tile: { x, y } }), [x, y]);
 
 /**
- * Open an NPC's dialogue. A learned idle line opens the talk ("Continuar"), then Phase 8a may offer an errand (Pode deixar! / Agora não) or a
- * hand-over (Entregar …) before the usual box (`finalKey`, the `data-dialogue` of the box we want). `offer: 'accept'` takes the errand and returns
+ * Open an NPC's dialogue. One click opens one box (a learned idle line leads its first line); Phase 8a may open with an errand (Pode deixar! /
+ * Agora não) or a hand-over (Trouxe … pra você!) in place of the usual box (`finalKey`, the `data-dialogue` of the box we want). `offer: 'accept'` takes the errand and returns
  * 'accepted'; `give: true` hands the item over and returns 'gave'; otherwise offers are declined ("Agora não" / "Só conversar") until the usual box
  * is open ('open').
  */
@@ -92,9 +92,7 @@ async function openNpc(page, npc, finalKey, { offer = 'decline', give = false } 
     await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
     const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
     if (key === finalKey) return 'open';
-    if (key?.startsWith('idle-')) {
-      await page.click('#dialogue-box [data-chip="0"]'); // Continuar
-    } else if (key?.startsWith('offer-')) {
+    if (key?.startsWith('offer-')) {
       if (offer === 'accept') {
         await page.click('#dialogue-box [data-chip="0"]');
         return 'accepted';
@@ -139,7 +137,7 @@ async function toSignInCard(page) {
   } catch {
     // The beat already opened the sign-in card.
   }
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
 }
 
 /** Guest path (“Explorar como visitante”): shipped by the intro, so it must reach the world. */
@@ -211,14 +209,12 @@ async function main() {
   await page.waitForSelector('#intro-enter', { timeout: 12_000 });
   assert(!(await page.$('#avatar-name')) && !(await room(page)) && !(await page.$('#birth-month')), 'intro first: no DOB, no creator, no world');
   if (!SOLO) {
-    // Multiplayer is account-only: the guest CTA steers to Criar conta instead of entering the world.
+    // Multiplayer is account-only: no guest door on the sign-in card, and no game nouns (Fase 0, RV, kitnet) before the game.
     await toSignInCard(page);
-    await page.click('#intro-guest');
-    await page.waitForSelector('.intro-feedback:has-text("crie sua conta")', { timeout: 5000 });
-    await sleep(600);
-    assert(!(await page.$('#avatar-name')) && !(await room(page)), 'guest does not enter multiplayer');
-    assert(await page.isVisible('#intro-18'), 'guest CTA switches to Criar conta');
-    log('guest CTA → Criar conta (no multiplayer without an account)');
+    assert(!(await page.$('#intro-guest')), 'no guest CTA in multiplayer');
+    const card = await page.textContent('.intro-panel');
+    assert(!/Fase 0|kitnet|\bRV\b/.test(card ?? ''), 'the sign-in card names no game nouns');
+    log('sign-in card: no guest CTA, no game nouns');
   }
 
   // 1. Account (email + password, optional 18+ tick) → avatar creation. Solo builds enter as guests.
@@ -250,7 +246,7 @@ async function main() {
   assert(((await page.textContent('#recado-tracker')) ?? '').includes('Bem-vindo à Vila Ipê'), 'the tracker shows the welcome chain');
   // skipping the flight keeps the random passenger the account was made with: a starter outfit
   assert(['camiseta', 'blusa'].includes(start.appearance.top) && ['calca', 'saia'].includes(start.appearance.bottom), 'a passenger look in a starter outfit');
-  // Menu → Visual: the look editor (what the creator used to be) changes the look any time
+  // Menu → Visual: the look editor (what the creator used to be) changes the look any time (the button joins the bar at the resident stage)
   await page.evaluate(() => document.getElementById('btn-look').click());
   await page.waitForSelector('.look-editor #avatar-preview', { timeout: 5_000 });
   const lookLabels = await page.$$eval('.look-editor .field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
@@ -275,22 +271,21 @@ async function main() {
     assert(crowd.length >= 4 && crowd.length <= 8, `4–8 CPUs for one player on the big map (got ${crowd.length})`);
     assert(crowd.every((c) => c.nameplate === 'verde' && CPU_NAMES.includes(c.name) && !/\s/.test(c.name)), 'CPU plates: Verde, allowlisted first names only');
     const head = await page.textContent('.topbar .room small');
-    assert(/ 1\/16 aqui/.test(head), `head-count ignores CPUs (${head})`);
+    // a newcomer's plate is the room's name and gloss: the head count waits for the resident stage (SIMPLIFICATION-REVIEW §3)
+    assert(!/ aqui/.test(head), `no head count for a newcomer (${head})`);
     log('ambiance:', crowd.map((c) => c.name).join(', '), '·', head.trim());
   }
 
-  // 1c. Daily kiosk: Missão do dia (Set A)
+  // 1c. Daily kiosk: Missão do dia (Set A). A regular's loop (S3): for a newcomer the kiosk is scenery, no panel
   await interact(page, { prop: 'quiosque' });
-  await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 12_000 });
-  const steps = await page.$$eval('[data-mission-step]', (els) => els.map((e) => e.textContent));
-  assert(steps[0].startsWith('Cumprimenta') && steps[1].startsWith('Pede') && steps[2].startsWith('Monta'), `kiosk steps Cumprimenta / Pede / Monta (${steps})`);
-  // Curriculum-locked kiosk copy
-  assert((await page.textContent('[data-modal="kiosk"] h2')) === 'Missão do dia', 'kiosk header: Missão do dia');
-  assert((await page.textContent('[data-modal="kiosk"] .rv-badge')).trim() === '+25 RV', 'kiosk +25 RV badge');
-  assert((await page.textContent('#mission-take .pt')) === 'Pegar missão', 'kiosk CTA: Pegar missão');
-  assert((await page.getAttribute('[data-modal="kiosk"] .mission-row', 'aria-label')) === 'Cumprimenta · Pede · Monta', 'kiosk steps row: Cumprimenta · Pede · Monta');
-  await page.click('#mission-take');
+  await sleep(1200);
+  assert(!(await page.$('[data-modal="kiosk"]')), 'a newcomer gets no kiosk panel (SIMPLIFICATION-REVIEW B5)');
+  assert(!(await page.isVisible('#mission-pill')), 'no Missão do dia pill before a mission is taken');
+  // the rules are unchanged: take it over the socket so the steps below still tick, and the pill turns up once taken
+  await page.evaluate(() => window.__tb.net.send({ t: 'mission', action: 'take' }));
   await waitFor(page, () => window.__tb.game.profile?.mission?.taken, null, 5000, 'mission taken');
+  await page.waitForSelector('#mission-pill', { state: 'visible', timeout: 5000 });
+  assert(((await page.textContent('#mission-pill')) ?? '').includes('Missão do dia'), 'the pill shows once a mission is taken');
   await shot(page, '01b_praca_kiosk');
   await page.keyboard.press('Escape');
 
@@ -298,11 +293,14 @@ async function main() {
   await clickTile(page, 14, 6);
   await waitIdleAt(page, 14, 6);
   await clickTile(page, 12, 6, 4); // banco_1 (Praça Central, by the kiosk): a real click on a bench
-  await waitFor(page, () => window.__tb.game.profile?.tutorial.sentar, null, 8000, 'sat on bench');
+  // the welcome chain no longer has the hall-taught steps (done when the hall is): the avatar itself says it sat
+  await waitFor(page, () => { const me = window.__tb.game.avatars.get(window.__tb.game.room.selfId); return !!(me?.pub.sitting || me?.sitOnArrive); }, null, 8000, 'sat on bench');
+  // a newcomer's emotes wait behind the smiley next to the chat field, on desktop too
+  if (!(await page.isVisible('[data-emote="oi"]'))) await page.click('#btn-emotes');
   await page.click('[data-emote="oi"]');
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
   await page.press('#chat-input', 'Enter');
-  await waitFor(page, () => window.__tb.game.profile?.tutorial.conversar, null, 5000, 'chat step');
+  await waitFor(page, () => document.getElementById('chat-input')?.value === '', null, 5000, 'chat sent');
   // Alone with CPUs off there's nobody to greet yet, so Cumprimenta (and the mission) only complete with ambiance.
   if (AMBIANCE) await waitFor(page, () => window.__tb.game.profile?.mission?.steps.cumprimenta, null, 5000, 'mission: Cumprimenta');
   let pageB = null;
@@ -361,7 +359,8 @@ async function main() {
     const bId = await pageB.evaluate(() => window.__tb.game.room.selfId);
     aId = await page.evaluate(() => window.__tb.game.room.selfId);
     await pageB.evaluate((id) => window.__tb.net.send({ t: 'friend', action: 'request', targetId: id }), aId);
-    await page.click('#btn-friends');
+    // Amigos joins the bar at the resident stage; this newcomer opens the panel straight from its button
+    await page.evaluate(() => document.getElementById('btn-friends').click());
     await page.waitForSelector('button:has-text("Aceitar")');
     await page.click('button:has-text("Aceitar")');
     await waitFor(page, (id) => window.__tb.game.profile.friends.includes(id), bId, 5000, 'friends');
@@ -379,19 +378,19 @@ async function main() {
   assert((await cpus(page)).length === 0, 'CPUs stay out of the Padaria');
   await dwell(1200);
 
-  // 3b. Readable world: walk up to the padaria menu, the card opens and the read counts its words as seen; the Caderno lists them
+  // 3b. Readable world: walk up to the padaria menu, the card opens (Ouvir and close) and the read counts its words as seen
   await interact(page, { hotspot: 'padaria_cardapio' });
   await page.waitForSelector('.hotspot-card', { timeout: 20_000 });
   assert(await page.$('.hotspot-card #hs-listen'), 'sign card has a listen button');
-  assert(await page.$('.hotspot-card #hs-save'), 'sign card has Guardar no caderno');
+  assert(!(await page.$('.hotspot-card #hs-save')), 'sign card has no Guardar button: the Diário is the one word home');
   await waitFor(page, () => Object.keys(window.__tb.game.profile.caderno ?? {}).length >= 5, null, 5000, 'reading the menu marks its words as seen');
   await shot(page, '03b_hotspot_cardapio');
   // a programmatic interact does not take focus away from the chat field (a real click would); Escape is ignored inside inputs
   await page.evaluate(() => document.activeElement?.blur?.());
   await page.keyboard.press('Escape');
   await page.click('#btn-caderno');
-  // the Diário opens on its Início; the Caderno de palavras is its last tab. The book first swings its cover open and the
-  // pages slap in (about 2s of animation); a player taps the tab once the book is open, so wait for that before clicking.
+  // the Diário opens on its Início, with Início, the chapters that hold a word and Fotos (no Caderno tab). The book first swings its
+  // cover open and the pages slap in (about 2s of animation).
   await waitFor(
     page,
     () => {
@@ -402,10 +401,9 @@ async function main() {
     15_000,
     'the Diário cover is open',
   );
-  await page.click('[data-modal="caderno"] [data-journal-tab="caderno"]', { timeout: 15_000 });
-  await page.waitForSelector('[data-modal="caderno"] [data-card="lex.padaria.coxinha"]', { timeout: 5000 });
-  assert(!(await page.textContent('[data-modal="caderno"] [data-card="lex.padaria.coxinha"] .cad-pt')).includes('???'), 'Caderno shows a word the sign taught');
-  await shot(page, '03c_caderno');
+  const tabs = await page.$$eval('[data-modal="caderno"] [data-journal-tab]', (els) => els.map((e) => e.dataset.journalTab));
+  assert(tabs[0] === 'inicio' && tabs.at(-1) === 'fotos' && !tabs.includes('caderno'), `the Diário tabs are Início, chapters, Fotos (${tabs.join(', ')})`);
+  await shot(page, '03c_diario');
   await page.keyboard.press('Escape');
 
   // 4. The baker on duty: today's recado, then the counter (pay, carry it, it goes in the bag). Pedido rápido is gone.
@@ -448,7 +446,7 @@ async function main() {
   assert(afterScene.mission?.steps.pede, 'ordering counts as Pede');
   if (recadoRun) assert((afterScene.bag?.cafe_com_leite ?? 0) >= 1, `the café com leite is in the bag (${JSON.stringify(afterScene.bag)})`);
 
-  // 5. Correria no Balcão: one full shift through the real taps (3 waves, 15 customers) behind the padaria counter
+  // 5. Correria no Balcão: one full shift through the real taps (a first shift: 2 waves, 9 customers) behind the padaria counter
   await startShiftFromPedido(page);
   assert(await page.isVisible('#cr-panel'), 'the counter strip is up');
   assert(!(await page.$('[data-modal="minigame"]')), 'no modal over the padaria');
@@ -470,7 +468,7 @@ async function main() {
   await dwell(2200);
   const afterMg = await profile(page);
   log('shift served', served, 'customers; payout →', afterMg.coins - afterScene.coins, 'RV');
-  assert(served >= 10, `the bot served most of the 15 customers (${served})`);
+  assert(served >= 7, `the bot served most of the 9 customers of a first shift (${served})`);
   assert(afterMg.coins - afterScene.coins >= 8, 'the shift pays RV');
   assert(afterMg.correria?.shifts === 1 && afterMg.correria.stars >= 1, `stars and the shift counter are on the profile (${JSON.stringify(afterMg.correria)})`);
   if (AMBIANCE) {
@@ -540,14 +538,9 @@ async function main() {
     const crowd = await cpus(page);
     assert(crowd.length > 0, 'CPUs still in the praça');
     assert(crowd.every((c) => c.bubbles === 0), 'CPUs never chat');
-    // Kiosk now shows the completion state
-    await interact(page, { prop: 'quiosque' });
-    await page.waitForSelector('[data-modal="kiosk"] #mission-done', { timeout: 12_000 });
-    const done = await page.textContent('#mission-done .big');
-    assert(done === 'Missão completa! +25 RV', `kiosk complete copy (${done})`);
-    await shot(page, '08b_kiosk_complete');
-    await page.keyboard.press('Escape');
-    log('kiosk shows “Missão completa! +25 RV”');
+    // a finished mission leaves the HUD (the kiosk panel is a regular's)
+    assert(!(await page.isVisible('#mission-pill')), 'the Missão do dia pill leaves once the mission pays');
+    log('mission paid: the pill is gone');
   }
   // 6a. Nanda greets in the dialogue box (and the server hears the talk). She keeps shop hours, so pin the clock to midday for this step.
   await page.evaluate(() => window.__tb.setClock({ time: '12:00' }));
@@ -571,7 +564,13 @@ async function main() {
     await sleep(500);
   }
   log('opening Nanda talk'); await openNpc(page, 'nanda', 'talk-nanda'); log('Nanda talk open');
-  assert(await page.$('#btn-ver-chapeus'), 'Nanda offers Ver chapéus');
+  // "Ver chapéus" waits for her last line: the greeting, "Agora não", then the goodbye with the button
+  assert(!(await page.$('#btn-ver-chapeus')), 'Ver chapéus is not on the first line');
+  await page.click('#dialogue-box [data-chip="0"]');
+  await page.waitForFunction(() => document.querySelectorAll('#dialogue-box .dbx-chip').length === 2 && document.querySelector('#dialogue-box')?.textContent?.includes('Agora não'), null, { timeout: 5000 });
+  await page.click('#dialogue-box [data-chip="1"]');
+  await page.waitForSelector('#btn-ver-chapeus', { timeout: 5000 });
+  assert(await page.$('#btn-ver-chapeus'), 'Nanda offers Ver chapéus on her last line');
   await waitFor(page, () => (window.__tb.game.profile.bond?.nanda ?? 0) >= 2, null, 5000, 'talk bond with Nanda');
   await shot(page, '08c_nanda_dialogue');
   await page.keyboard.press('Escape');
@@ -642,10 +641,12 @@ async function main() {
   assert(stage && stage.mode !== 'off', `the bout stage is on the mat (${JSON.stringify(stage)})`);
   assert(await page.evaluate(() => window.__tb.bout.feed.active), 'the bout feed is active');
   await shot(page, '09b3_bout_pick');
-  // Tatame v3: the control meter, the grip chips and the partner's telegraph are on the pick; at most four cards and no percentages
+  // Tatame v3, staged (TATAME-V3 "Staging"): no meters row before the first stripe; the partner's telegraph is on the pick; at most four
+  // cards and no percentages
+  const staged = (await profile(page)).bjj?.wins ?? 0;
   const hud = await readBoutHud(page);
-  assert(hud.meter !== null && Number.isFinite(hud.meter), `the control meter is up (${JSON.stringify(hud)})`);
-  assert((await page.$$('#bout-grips-you .grip-chip[data-grip]')).length === 2, 'your Gola and Manga chips are on the HUD');
+  assert(hud.meter === null, `no control meter before the first stripe (${JSON.stringify(hud)})`);
+  assert((await page.$$('#bout-grips-you .grip-chip[data-grip]')).length === 0, 'no grip chips before the first stripe');
   assert(hud.plan && hud.plan.text.includes('Mateus'), `the partner telegraphs its next move (${JSON.stringify(hud.plan)})`);
   assert(hud.cards.length >= 1 && hud.cards.length <= 4, `one to four cards on the pick (${hud.cards.join(', ')})`);
   assert(!(await page.evaluate(() => /\d+\s*%/.test(document.querySelector('#bout')?.textContent ?? ''))), 'no percentages on the overlay');
@@ -662,6 +663,8 @@ async function main() {
   assert(['you', 'partner', 'draw'].includes(result.winner), `the match ended with a result (${result.winner} / ${result.reason})`);
   assert(result.moves >= 2, `at least two picks were played (${result.moves}, ${result.winner} by ${result.reason})`);
   assert(sawChain && result.taps >= 2, `commands were tapped on the pad (${result.taps} taps, defense beats: ${sawDefend})`);
+  // the first wins have no defense pad: the partner's attacks are braced for you
+  assert(staged >= 3 || !sawDefend, `no defense beat in the staged first wins (wins ${staged})`);
   assert(await page.$('#bout-perfect'), 'the end card counts the perfect commands');
   assert(await page.$('#bout-today .bt-chip'), 'the end card lists the words of the day');
   const score = await page.evaluate(() => ({ you: document.querySelector('.bout-side.you .pts')?.textContent, them: document.querySelector('.bout-side.partner .pts')?.textContent }));
@@ -755,7 +758,8 @@ async function main() {
   }
 
   const final = await profile(page);
-  const missing = Object.entries(final.tutorial).filter(([, v]) => !v).map(([k]) => k);
+  // Júlia's welcome chain (TUTORIAL_STEPS): the padaria, a hat, a chair
+  const missing = ['carlos', 'chapeu', 'cadeira'].filter((k) => !final.tutorial[k]);
   log('final coins', final.coins, 'hat', final.hat, 'missing steps', missing.length ? missing : 'none', 'bonus', final.tutorialRewarded);
   assert(!missing.length && final.tutorialRewarded, 'all first steps done + bonus');
   assert(!errors.length, `no page errors: ${errors.join(' | ')}`);

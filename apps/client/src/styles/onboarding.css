@@ -712,12 +712,7 @@ body.in-desembarque #aero-tut {
   display: none;
 }
 
-/* the RV balance answers a click */
-.hud-rv[role='button'] {
-  cursor: pointer;
-}
-
-/* ---------------------------------------------------------------- small explainer cards: the RV note, the airport's next steps */
+/* ---------------------------------------------------------------- small explainer cards (the HUD notes, the hall's skip) */
 
 .tb-note {
   position: fixed;
@@ -770,29 +765,6 @@ body.in-desembarque #aero-tut {
   margin: 0 0 8px;
   font-size: 12px;
   color: var(--verde-dark, #1f6640);
-}
-
-/* a panel the player opens (Célia, the agente, the menu) comes first: the next-steps card steps aside until it closes */
-#ui:has(> .backdrop:not(.clear)) > .aero-next {
-  display: none;
-}
-
-.aero-next .aero-next-goal {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  margin: 6px 0;
-}
-
-.aero-next .aero-next-goal b {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  background: var(--amarelo, #f2c230);
-  border: 2px solid var(--px-ink, #573c2c);
-  font-family: var(--font-pixel, var(--font-title));
 }
 
 /* ---------------------------------------------------------------- how to play (ui/howToPlay.ts) */
@@ -889,36 +861,6 @@ body.in-desembarque #aero-tut {
   font-family: var(--font-pixel, var(--font-title));
   font-size: 22px;
   font-weight: 800;
-}
-
-/* ---------------------------------------------------------------- first visit to a room: where its doors go */
-
-.room-intro {
-  position: fixed;
-  z-index: 9;
-  left: 50%;
-  top: calc(var(--hud-bottom, 62px) + 12px);
-  transform: translateX(-50%);
-  max-width: min(560px, calc(100vw - 24px));
-  padding: 6px 14px;
-  background: rgba(251, 241, 227, 0.96);
-  box-shadow: 0 0 0 3px var(--px-ink, #573c2c);
-  color: var(--ink, #2c2c2c);
-  font-size: 13px;
-  line-height: 1.3;
-  text-align: center;
-  pointer-events: none;
-  animation: celebrate-in 0.3s both;
-}
-
-.room-intro b {
-  font-family: var(--font-pixel, var(--font-title));
-  font-size: 15px;
-}
-
-.room-intro.leaving {
-  opacity: 0;
-  transition: opacity 0.6s ease;
 }
 
 /* ---------------------------------------------------------------- the Vila Ipê guide (ui/vilaGuide.ts): what there is to do, once */

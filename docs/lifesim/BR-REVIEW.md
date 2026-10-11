@@ -34,6 +34,12 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [V. Diário: the sticker album (client)](#v-diario) (39)
 - [W. Bate-papos and the #229 wording sweep](#w-papos) (24)
 - [X. Praia: the beach, fishing, boats and the party boat](#x-praia) (33)
+- [Z. Chat hints](#z-chat-hints) (2)
+- [AA. Tatame staging](#aa-tatame-staging) (2)
+- [AB. Tapioca practice](#ab-tapioca-practice) (4)
+- [AC. Favores panel](#ac-favores-panel) (1)
+- [AD. Favores step copy](#ad-favores-step-copy) (33)
+- [AE. Lagoa do Jerivá](#ae-lagoa) (7)
 
 ## A. Time of day, weekdays and weather
 
@@ -182,7 +188,7 @@ Idle lines of the three original NPCs (Carlos, Nanda, Júlia) pre-date the conve
 ## F. Recados (errands)
 
 <a id="f-recados"></a>
-The 18 recados are authored in `content/curriculum/phase0/recados.md` (all `needs_br: true`); the templated step lines below are built in `describeStep`, so each distinct rendering is listed once.
+The 18 recados are authored in `content/curriculum/phase0/recados.md` (all `needs_br: true`); the templated step lines below are built in `describeStep`, so each distinct rendering is listed once. The order, hand-over and greeting step lines were reworded as sentences in section AD, which supersedes them.
 
 | # | PT | EN | Where | Note | OK? |
 |---|---|---|---|---|---|
@@ -618,7 +624,7 @@ Visual pass on the arrival, camera, diary, escola and cartela. Everything else o
 
 | # | PT | EN | Where | Note | OK? |
 |---|---|---|---|---|---|
-| 463 | Toma a câmera e a cartela do bairro. | Here, take the camera and the neighborhood stamp card. | `apps/client/src/ui/arrival.ts` | **New, needs a Brazilian read.** Júlia's line in the plane intro. It replaces "A cartela de carimbos ainda não chegou. Quando ela existir, eu te entrego aqui." and drops "Enquanto isso," from the next line, because the cartela is on this build now. | |
+| 463 | Toma a câmera. | Here, take the camera. | `packages/shared/src/arrival.ts` | **Trimmed, needs a Brazilian read.** Júlia's note at the airport (Célia's hand-over). Was "Toma a câmera e a cartela do bairro."; the cartela is no longer handed over at the airport. | |
 | 464 | De novo | Again | `apps/client/src/ui/escola.ts` | Existing label from the tatame rematch, reused for "practice another word" after a right answer at the escola. Check it still fits there. | |
 | 465 | Hoje: 1/4 | Today: 1/4 | `apps/client/src/ui/cartela.ts` | Trimmed from "Hoje: 1/4 hoje", which repeated the word. | |
 | 466 | peça preta · peça branca | black piece · white piece | `apps/client/src/ui/checkers.ts` | **New, needs a Brazilian read.** Screen-reader labels of the damas pieces (not shown on screen). | |
@@ -849,7 +855,7 @@ The pet shop on Rua dos Ipês (leste): Seu Dito (Benedito Alves, 62, from a sít
 | 619 | Olha o bigode dela, todo arrepiado. | Look at her whiskers, all bristled. | pen_cat_2 | teaches bigode | |
 | 620 | Esse gato brinca com tudo. Até com o rabo! | This cat plays with everything. Even its tail! | pen_cat_3 | teaches brincar | |
 | 621 | Esse aqui? Boa escolha. Agora é só dar um nome. · Parabéns! Agora faz parte da família. · Seis já é uma matilha! Deixa um em casa primeiro. | (adoption lines) | `PETSHOP_LINES` | spoken from the panel | |
-| 622 | Adoção é pra quem apoia a Vila. Mas carinho é de graça, viu? | Adoption is for those who support the Vila. But petting is free, okay? | `PETSHOP_LINES.gate` | the one upsell line; spoken once per panel opening | |
+| 622 | Adoção é pra quem apoia a Vila. Mas carinho é de graça, viu? | Adoption is for those who support the Vila. But petting is free, okay? | `PETSHOP_LINES.gate` | the only supporter copy left in the panel: shown and spoken in the meet view of a non-supporter, instead of the "good choice" line | |
 | 623 | Prontinho. Seu bichinho vai adorar. · Faltam uns reais virtuais ainda. Volta depois, sem pressa. · Vai passear? Leva a guia! · Deixa em casa que eu sei que ele fica bem. | (shop and switch lines) | `PETSHOP_LINES` | | |
 | 624 | PET SHOP · Do Seu Dito | | `hotspots.ts` petshop_letreiro | facade sign; teaches pet shop | |
 | 625 | ADOÇÃO · Adote um amigo | Adoption · Adopt a friend | petshop_adocao | teaches adoção | |
@@ -862,27 +868,119 @@ The pet shop on Rua dos Ipês (leste): Seu Dito (Benedito Alves, 62, from a sít
 | 632 | Faça carinho nos bichinhos do pet shop. | Pet the animals at the pet shop. | `escola.ts` huntHint | hint when only pen words are missing | |
 | 633 | The 38 breed names (Vira-lata caramelo, Fila brasileiro, Terrier brasileiro (Fox Paulistinha), Gato vira-lata (SRD), Frajola, Gata escaminha…) and their coat names | | `petBreeds.ts` | each breed's `pt`, each coat's `pt` | |
 | 634 | Coleira vermelha · azul · verde · rosa · Bandana do Brasil · Bolinha · Ratinho de pano · Ossinho · Pelúcia · Caminha xadrez · Caminha azul · Cesta de vime · Saco de ração + pote | (lojinha items) | `PET_ITEMS` | | |
-| 635 | Adotar · Meus pets · Lojinha · Na loja hoje · Catálogo de raças · Fazer carinho · Levar · Em casa · Renomear · Comprar · Apoiar a Vila · Só olhar · Em breve · Sem nome · Passeando | (panel) | `ui/petShop.ts` | | |
-| 636 | Adoção é pra apoiadores · Apoiadores adotam até 6 bichinhos, levam um pra passear e o resto fica em casa, na kitnet. | Adoption is for supporters… | `ui/petShop.ts` gate card | | |
-| 637 | Nenhum pet ainda. Os bichinhos estão esperando no Pet Shop do Seu Dito. · Seus pets estão em casa, na kitnet. Pra passear com eles, apoie a Vila de novo. | No pets yet… · Your pets are at home… | `ui/petShop.ts` Meus pets | | |
+| 635 | Adotar · Meus pets · Lojinha · Na loja hoje · Catálogo de raças · Fazer carinho · Levar · Em casa · Renomear · Comprar · Sem nome · Passeando | (panel) | `ui/petShop.ts` | | |
+| 636 | Adoção é pra apoiadores · Apoiadores adotam até 6 bichinhos, levam um pra passear e o resto fica em casa, na kitnet. | Adoption is for supporters… | removed: the inline Apoiar card left the panel (SIMPLIFICATION-REVIEW C4) | | |
+| 637 | Nenhum pet ainda. Os bichinhos estão esperando no Pet Shop do Seu Dito. | No pets yet… | `ui/petShop.ts` Meus pets (the lapsed-pets note left the panel; the kitnet card keeps its own) | | |
 | 638 | Caminhas e o saco de ração vão pra sua kitnet. Coleiras e brinquedos você põe no bichinho em Meus pets. | Beds and the food bag go to your kitnet… | `ui/petShop.ts` Lojinha | | |
-| 639 | Comandos: senta · deita · vem · busca · brinca | sit · lie down · come · fetch · play | `PET_COMMANDS` | spoken (ui) | |
+| 639 | Comandos: senta · deita · vem · busca · brinca | sit · lie down · come · fetch · play | `PET_COMMANDS` | now the five lines of the Pet Shop "?" card (`howToPlayData.ts`), no longer in Meus pets | |
 | 640 | {nome} quer passear? · Seu bichinho · Fechar | Does {name} want a walk? | `ui/petShop.ts` kitnet card | | |
 | 641 | Mais raças no Pet Shop do Seu Dito, na Rua dos Ipês. · Meus pets ({n}) | More breeds at Seu Dito's pet shop… | `ui/support.ts` | Apoiar panel | |
 | 642 | A lojinha fica no Pet Shop do Seu Dito. · Chegue mais perto do balcão. · Chegue mais perto do cercadinho. · Você já tem esse. · Esse item não serve pra esse bichinho. · Adote um no Pet Shop do Seu Dito. | (server errors) | `apps/server/src/petShop.ts`, `world.ts` | | |
 
-## Z. Lagoa do Jerivá
+## Z. Chat hints
+
+<a id="z-chat-hints"></a>
+The hint under the chat input while typing (`packages/shared/src/safety.ts` `CHAT_HINTS`, shown by `ui/hud.ts`). It replaces "Vai com aviso", "Vai pra revisão" and "Não pode"; the moderation wording is gone from the player's path. An escalated message (held, queued, unchanged) shows the same line as a block, and `ESCALATE_NOTE` and the `ethnic_review` note now read as it does.
+
+| # | PT | EN | Where | Notes | BR |
+|---|---|---|---|---|---|
+| 643 | Vai, mas com cuidado | It sends, but go easy | `CHAT_HINTS.warn` | message goes out; was "Vai com aviso" | |
+| 644 | Essa não dá, tenta de outro jeito | Not that one, try another way | `CHAT_HINTS.block` | block and escalate; was "Não pode" / "Vai pra revisão"; also `ESCALATE_NOTE` | |
+
+## AA. Tatame staging
+
+<a id="aa-tatame-staging"></a>
+The staged first matches on the mat (2026-10-10, `docs/lifesim/TATAME-V3.md` "Staging"): the lobby shows the suggested partner and folds
+the others, and the first match with the defense pad has its own coach notes. Read on screen, never spoken (no TTS). The pad match's
+other two notes reuse existing lines ("Ele vai atacar! Toque a defesa que a Bia falar." and the end-card tip "Contra o final, toque Sai!
+sem parar, rápido."). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+| --- | --- | --- | --- | --- | --- |
+| 645 | Mais parceiros | More partners | `apps/client/src/ui/bout.ts` lobby | the fold that reveals the other partners | |
+| 646 | Agora ele também ataca. O aviso diz o que vem. | Now they attack too. The warning says what is coming. | `apps/client/src/ui/boutLogic.ts` `PAD_COACH_NOTES.pick` | coach note at the first pick of the first match with the defense pad (wins 3) | |
+
+
+## AB. Tapioca practice
+
+<a id="ab-tapioca-practice"></a>
+The Feira cart's one-customer Tapioca practice and its coach marks (C2, `ui/feiraTapiocaPracticeLogic.ts`, `ui/feiraTapiocaPractice.ts`,
+`ui/feiraStage.ts`, shared `tapiocaPracticeOrder`). Each coach mark is a short English line with one Portuguese word beside it, and every
+one of those words is already on the stage (pan labels, the bowls, the lixeira). Nothing here is spoken (no TTS). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 647 | Segura · Vira! · Recheio · Dobra · Pronta! · Lixeira · queijo · coco · chocolate · goiabada | (the coach marks' words) | `feiraTapiocaPracticeLogic.ts` | reused from the stage labels; the filling word is the one the customer asked for | |
+| 648 | Uma tapioca de queijo, por favor. | A cheese tapioca, please. | `feiraTapioca.ts` `tapiocaPracticeOrder` | Nanda's practice order; the line every polite order already uses | |
+| 649 | Treino · Pular ▶ · Começar ▶ · De novo · Boa! 🎉 Agora é pra valer. | Practice · Skip · Start · Again · Nice! Now for real. | `feiraStage.ts` HUD, `feiraTapiocaPractice.ts` | Correria's practice words (Começar o turno ▶ shortened to Começar ▶) | |
+| 650 | ●●● na fila | (the line of people) | `feiraStage.ts` queue chip | dots instead of a number, no digits on the stage | |
+
+## AC. Favores panel
+
+<a id="ac-favores-panel"></a>
+A recado the giver holds back until the friendship grows (`minBond`) is shown greyed under "Hoje na vila" with who to talk to
+(SIMPLIFICATION-REVIEW D4, `apps/client/src/ui/recados.ts`, `recadoView.ts` `withheldView`). Panel text, read on screen, never spoken
+(no TTS). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 651 | Fale mais com {nome} | Talk more with {nome} | `apps/client/src/ui/recados.ts` Hoje na vila | `{nome}` is the giver with the article the game uses (Seu Carlos, Dona Graça, Nanda) | |
+
+## AD. Favores step copy
+
+<a id="ad-favores-step-copy"></a>
+The step line of a favor, as a plain sentence (E4, `describeStep` in `packages/shared/src/recados.ts`). Shown in the tracker, the panel and the "✓" notice; never spoken (no TTS). These replace the "Peça 1× …" / "Entregue 1× …" / "Cumprimente … no chat" lines of section F (rows 114 to 198 for the order, hand-over and greeting steps); the "Vá para: …" lines are unchanged. A quantity above one is spelled in words with a plural noun ("dois pães de queijo"); no favor asks for more than one yet, so row 692 is a rendered sample. The chat bar's three quick replies (Oi!, Bom dia / Boa tarde / Boa noite by the hour, Valeu!) reuse the emote row's and the clock's words and add no new Portuguese. **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 661 | Peça um café com leite pro Seu Carlos. | Ask Seu Carlos for the coffee with milk. | `packages/shared/src/recados.ts (describeStep)` | carlos_cafe_pra_nanda · pedir step line (tracker and "✓" notice) | |
+| 662 | Leve o café com leite pra Nanda. | Take the coffee with milk to Nanda. | `packages/shared/src/recados.ts (describeStep)` | carlos_cafe_pra_nanda · entregar step line (tracker and "✓" notice) | |
+| 663 | Peça uma coxinha pro Seu Carlos. | Ask Seu Carlos for the chicken croquette. | `packages/shared/src/recados.ts (describeStep)` | nanda_coxinha · pedir step line (tracker and "✓" notice) | |
+| 664 | Leve a coxinha pra Nanda. | Take the chicken croquette to Nanda. | `packages/shared/src/recados.ts (describeStep)` | nanda_coxinha · entregar step line (tracker and "✓" notice) | |
+| 665 | Cumprimente alguém do jeito certo pra hora. | Greet someone the right way for the time of day. | `packages/shared/src/recados.ts (describeStep)` | julia_cumprimento_certo · cumprimentar step line (tracker and "✓" notice) | |
+| 666 | Peça um pão na chapa pro Seu Carlos. | Ask Seu Carlos for the grilled buttered bread. | `packages/shared/src/recados.ts (describeStep)` | graca_pao_pra_julia · pedir step line (tracker and "✓" notice) | |
+| 667 | Leve o pão na chapa pra Júlia. | Take the grilled buttered bread to Júlia. | `packages/shared/src/recados.ts (describeStep)` | graca_pao_pra_julia · entregar step line (tracker and "✓" notice) | |
+| 668 | Cumprimente Seu Carlos. | Greet Seu Carlos. | `packages/shared/src/recados.ts (describeStep)` | nanda_um_oi_pro_carlos · cumprimentar step line (tracker and "✓" notice) | |
+| 669 | Peça uma banana pra Tia Lu. | Ask Tia Lu for the banana. | `packages/shared/src/recados.ts (describeStep)` | tia_lu_banana_pra_nanda · pedir step line (tracker and "✓" notice) | |
+| 670 | Leve a banana pra Nanda. | Take the banana to Nanda. | `packages/shared/src/recados.ts (describeStep)` | tia_lu_banana_pra_nanda · entregar step line (tracker and "✓" notice) | |
+| 671 | Peça uma água pro Seu Carlos. | Ask Seu Carlos for the water. | `packages/shared/src/recados.ts (describeStep)` | carlos_agua_pra_julia · pedir step line (tracker and "✓" notice) | |
+| 672 | Leve a água pra Júlia. | Take the water to Júlia. | `packages/shared/src/recados.ts (describeStep)` | carlos_agua_pra_julia · entregar step line (tracker and "✓" notice) | |
+| 673 | Peça um pastel pro Seu Carlos. | Ask Seu Carlos for the fried pastry (savory). | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_pra_nanda · pedir step line (tracker and "✓" notice) | |
+| 674 | Leve o pastel pra Nanda. | Take the fried pastry (savory) to Nanda. | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_pra_nanda · entregar step line (tracker and "✓" notice) | |
+| 675 | Leve a água pra Professora Bia. | Take the water to Professora Bia. | `packages/shared/src/recados.ts (describeStep)` | graca_agua_pra_academia · entregar step line (tracker and "✓" notice) | |
+| 676 | Fale com a Nanda. | Talk to Nanda. | `packages/shared/src/recados.ts (describeStep)` | julia_conhecer_nanda · falar step line (tracker and "✓" notice) | |
+| 677 | Peça flores pra Tia Lu. | Ask Tia Lu for the flowers. | `packages/shared/src/recados.ts (describeStep)` | tia_lu_flores_pra_julia · pedir step line (tracker and "✓" notice) | |
+| 678 | Leve as flores pra Júlia. | Take the flowers to Júlia. | `packages/shared/src/recados.ts (describeStep)` | tia_lu_flores_pra_julia · entregar step line (tracker and "✓" notice) | |
+| 679 | Peça uma maçã pra Tia Lu. | Ask Tia Lu for the apple. | `packages/shared/src/recados.ts (describeStep)` | nanda_maca · pedir step line (tracker and "✓" notice) | |
+| 680 | Leve a maçã pra Nanda. | Take the apple to Nanda. | `packages/shared/src/recados.ts (describeStep)` | nanda_maca · entregar step line (tracker and "✓" notice) | |
+| 681 | Peça uma alface pro Seu Zé. | Ask Seu Zé for the lettuce. | `packages/shared/src/recados.ts (describeStep)` | carlos_salada_do_ze · pedir step line (tracker and "✓" notice) | |
+| 682 | Peça um tomate pro Seu Zé. | Ask Seu Zé for the tomato. | `packages/shared/src/recados.ts (describeStep)` | carlos_salada_do_ze · pedir step line (tracker and "✓" notice) | |
+| 683 | Leve a alface pro Seu Carlos. | Take the lettuce to Seu Carlos. | `packages/shared/src/recados.ts (describeStep)` | carlos_salada_do_ze · entregar step line (tracker and "✓" notice) | |
+| 684 | Leve o tomate pro Seu Carlos. | Take the tomato to Seu Carlos. | `packages/shared/src/recados.ts (describeStep)` | carlos_salada_do_ze · entregar step line (tracker and "✓" notice) | |
+| 685 | Fale com Seu Carlos. | Talk to Seu Carlos. | `packages/shared/src/recados.ts (describeStep)` | nanda_pergunta_pro_carlos · falar step line (tracker and "✓" notice) | |
+| 686 | Cumprimente a Júlia do jeito certo pra hora. | Greet Júlia the right way for the time of day. | `packages/shared/src/recados.ts (describeStep)` | graca_cumprimenta_julia · cumprimentar step line (tracker and "✓" notice) | |
+| 687 | Cumprimente a Júlia. | Greet Júlia. | `packages/shared/src/recados.ts (describeStep)` | julia_volta_pela_vizinhanca · cumprimentar step line (tracker and "✓" notice) | |
+| 688 | Peça um pastel pro Seu Chico. | Ask Seu Chico for the fried pastry (savory). | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · pedir step line (tracker and "✓" notice) | |
+| 689 | Peça um caldo de cana pro Seu Chico. | Ask Seu Chico for the sugarcane juice. | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · pedir step line (tracker and "✓" notice) | |
+| 690 | Leve o pastel pra Professora Bia. | Take the fried pastry (savory) to Professora Bia. | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · entregar step line (tracker and "✓" notice) | |
+| 691 | Leve o caldo de cana pra Professora Bia. | Take the sugarcane juice to Professora Bia. | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · entregar step line (tracker and "✓" notice) | |
+| 692 | Peça dois pães de queijo pro Seu Carlos. | Ask Seu Carlos for two orders of cheese bread (cassava cheese roll). | `packages/shared/src/recados.ts (describeStep)` | (sample, quantity 2): no recado uses it yet | |
+| 693 | Leia a placa “PADARIA DO SEU CARLOS”. | Read the sign “Bakery of Seu Carlos”. | `packages/shared/src/recados.ts (describeStep)` | (sample, sign step): no recado uses it yet | |
+
+## AE. Lagoa do Jerivá
+
+<a id="ae-lagoa"></a>
 
 | # | Portuguese | English | Where | Notes | OK? |
 |---|---|---|---|---|---|
-| 643 | Lagoa do Jerivá · Praia | Jerivá Lagoon · Beach | `rooms.ts` (the room's name, the trail's edge labels) | | |
-| 644 | TRILHA DA LAGOA / Siga em frente, pelo oeste. | LAGOON TRAIL / Straight ahead, to the west. | `hotspots.ts` `praia_trilha` | spoken (ui) | |
-| 645 | LAGOA DO JERIVÁ / Água doce. Pesca livre no píer e na margem. | JERIVÁ LAGOON / Fresh water. Free fishing from the jetty and the bank. | `hotspots.ts` `lagoa_placa` | spoken (ui) | |
-| 646 | CUIDADO: CAPIVARAS / Não dê comida aos animais. | CAREFUL: CAPYBARAS / Don't feed the animals. | `hotspots.ts` `lagoa_capivara` | spoken (ui) | |
-| 647 | Pesca no píer da lagoa · Pesca no mirante · Pesca na areia da lagoa · Pesca na margem | Fishing from the lagoon jetty · from the lookout · from the lagoon sand · from the bank | `layouts/lagoa.json` spot labels | | |
-| 648 | capivara · trilha | capybara · trail | `diary-words.json` (reading words) | | |
-| 649 | Lagoa (admin Testes teleporter) | Lagoon | `adminTestes.ts` | | |
+| 701 | Lagoa do Jerivá · Praia | Jerivá Lagoon · Beach | `rooms.ts` (the room's name, the trail's edge labels) | | |
+| 702 | TRILHA DA LAGOA / Siga em frente, pelo oeste. | LAGOON TRAIL / Straight ahead, to the west. | `hotspots.ts` `praia_trilha` | spoken (ui) | |
+| 703 | LAGOA DO JERIVÁ / Água doce. Pesca livre no píer e na margem. | JERIVÁ LAGOON / Fresh water. Free fishing from the jetty and the bank. | `hotspots.ts` `lagoa_placa` | spoken (ui) | |
+| 704 | CUIDADO: CAPIVARAS / Não dê comida aos animais. | CAREFUL: CAPYBARAS / Don't feed the animals. | `hotspots.ts` `lagoa_capivara` | spoken (ui) | |
+| 705 | Pesca no píer da lagoa · Pesca no mirante · Pesca na areia da lagoa · Pesca na margem | Fishing from the lagoon jetty · from the lookout · from the lagoon sand · from the bank | `layouts/lagoa.json` spot labels | | |
+| 706 | capivara · trilha | capybara · trail | `diary-words.json` (reading words) | | |
+| 707 | Lagoa (admin Testes teleporter) | Lagoon | `adminTestes.ts` | | |
 
 ## Totals
 
-649 numbered strings in sections A to Q, S, T, U, V, W, X, Y and Z, plus 9 proposed-card entries.
+651 numbered strings in sections A to Q, S, T, U, V, W, X, Y, Z, AA, AB and AC, plus 33 in section AD (numbered 661 to 693; 652 to 660 are held for AC) and 7 in section AE (numbered 701 to 707), plus 9 proposed-card entries.

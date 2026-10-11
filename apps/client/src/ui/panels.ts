@@ -17,7 +17,6 @@ import {
   ROOMS,
   furnitureById,
   hatById,
-  npcDefById,
   tierRule,
   FOUNDER_BADGE,
   REPORT_REASONS,
@@ -27,7 +26,6 @@ import {
   type NpcDef,
   type PublicAvatar,
   type RoomId,
-  type SceneView,
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui, clear, rvPriceNote } from './dom';
@@ -42,6 +40,7 @@ import { icon } from '../art/ui';
 import { beltChip } from './beltChip';
 import { clock } from '../gameClock';
 import { profileMetJulia, rememberJuliaMet } from './juliaMet';
+import { kioskShown } from './disclosure';
 
 // ---------------------------------------------------------------- modal base
 
@@ -67,8 +66,6 @@ export interface DialogueOpts {
   extras?: HTMLElement;
   /** Box key (the typewriter restarts when it changes); default `talk-<npc>`. */
   key?: string;
-  /** Free-typed reply (scored with accept-list rules). */
-  onType?: (text: string) => void;
 }
 
 /** Closes whatever NPC dialogue is up (the in-world box). */
@@ -77,7 +74,7 @@ export function closeDialogue() {
   game.modalOpen = !!modalId();
 }
 
-/** The generic NPC dialogue (Júlia's help, the parrot perch, the Carlos scene) as a beat of the dialogue box. */
+/** The generic NPC dialogue (Júlia's help, the parrot perch) as a beat of the dialogue box. */
 function boxSpecFor(o: DialogueOpts): BoxSpec {
   const score = o.feedback?.score;
   return {
@@ -91,7 +88,6 @@ function boxSpecFor(o: DialogueOpts): BoxSpec {
     feedback: o.feedback ? h('span', { class: `feedback dbx-feedback s${score}` }, `${o.feedback.text.pt} · ${o.feedback.text.en}`) : null,
     extras: o.extras,
     chips: o.chips,
-    input: o.chips.length && o.onType ? { id: 'scene-type', placeholder: 'Responda em português… (Answer in Portuguese)', send: 'Responder', onSend: (text) => o.onType?.(text) } : null,
     footer: o.footer,
     onChip: o.onChoose,
     onClose: o.onClose,
@@ -100,36 +96,6 @@ function boxSpecFor(o: DialogueOpts): BoxSpec {
 
 export function showDialogue(o: DialogueOpts) {
   return showDialogueBox(boxSpecFor(o));
-}
-
-export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?: Bilingual; score?: number; payout?: number }, onChoose: (i: number) => void, onClose: () => void, onPlay: () => void, onType?: (text: string) => void) {
-  // the baker at the counter: Seu Carlos by day, Dona Graça at night (D12), the same authored scene
-  const onDuty = [...game.avatars.values()].find((a) => (a.pub.npc === 'carlos' || a.pub.npc === 'graca') && a.pub.activity === 'trabalhando');
-  const carlos = npcDefById(onDuty?.pub.npc ?? 'carlos') ?? ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
-  speak(view.line.pt, { speaker: carlos.id });
-  const footer = view.end
-    ? h(
-        'div',
-        { class: 'row', style: 'margin-top:12px' },
-        extra.payout ? h('span', { class: 'feedback' }, `+${extra.payout} RV · Café da manhã completo!`) : null,
-        h('span', { class: 'spacer' }),
-        h('button', { onclick: onClose }, bi('Tchau!', 'Bye')),
-        h('button', { class: 'primary', onclick: onPlay, id: 'btn-play-mg' }, bi('Jogar “Correria no Balcão”', 'Play Counter Rush')),
-      )
-    : undefined;
-  showDialogue({
-    npc: carlos,
-    speaker: carlos.name,
-    role: carlos.role.pt,
-    line: view.line,
-    chips: view.chips,
-    said: extra.said,
-    feedback: extra.feedback && extra.score !== undefined ? { text: extra.feedback, score: extra.score } : undefined,
-    onChoose,
-    onClose,
-    footer,
-    onType,
-  });
 }
 
 // Authored guide NPC (client-only chips; no rewards, so no server authority needed).
@@ -147,7 +113,7 @@ export function showJulia(fromGreeting = false) {
       line,
       key: 'talk-julia',
       chips: JULIA_TREE.map((j) => j.q),
-      // the questions on keys 1-5; leaving is the button (or Esc)
+      // the questions on keys 1-4; leaving is the button (or Esc)
       footer: h('button', { class: 'ghost', onclick: closeDialogue }, bi('Tchau, Júlia!', 'Bye, Júlia!')),
       onChoose: (i) => {
         const j = JULIA_TREE[i];
@@ -172,6 +138,8 @@ export function showJulia(fromGreeting = false) {
 export const rvBadge = (amount = MISSION_REWARD) => h('span', { class: 'rv-badge' }, h('span', { class: 'coin' }), `+${amount} RV`);
 
 export function openKiosk(take: () => void) {
+  // a regular's daily loop (S3): before that the kiosk is scenery and has no panel
+  if (!game.profile || !kioskShown(game.profile)) return;
   const body = h('div');
   const render = () => {
     const m = game.profile?.mission;

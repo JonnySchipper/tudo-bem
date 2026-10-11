@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_APPEARANCE, ROOMS, caldoOrders, todayEastern, type ServerMsg } from '@tudobem/shared';
+import { DEFAULT_APPEARANCE, ROOMS, caldoOrders, feiraBoardDay, type ServerMsg } from '@tudobem/shared';
 import { type Session } from './world.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 import { FeiraGamesEngine, memoryFeiraGames, type FeiraGamesDeps } from './feiraGames.js';
@@ -55,7 +55,7 @@ function engineFor(now: () => number, ana: StoredProfile, store: ProfileStore, s
 }
 
 describe('caldo de cana on the server', () => {
-  it('stays closed until an admin enables it, then deals caldo', () => {
+  it('stays off (the shipped cart is Tapioca) until an admin switches it on, then deals caldo', () => {
     let now = Date.parse('2026-10-08T16:00:00.000Z');
     const store = new ProfileStore(null);
     const ana = profile('lia', 'Lia');
@@ -64,8 +64,11 @@ describe('caldo de cana on the server', () => {
     const { engine, games, s } = engineFor(() => now, ana, store, sent);
     const beforeOn = engine.cartView();
     expect(beforeOn.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: true });
-    expect(beforeOn.games.find((g) => g.id === 'tapioca')?.mode).toBe('off');
-    expect(beforeOn.featured).toBeNull();
+    expect(beforeOn.games.find((g) => g.id === 'tapioca')?.mode).toBe('on');
+    expect(beforeOn.featured).toBe('tapioca');
+
+    expect(engine.setCartMode('tapioca', 'off')).toBe(true);
+    expect(engine.cartView().featured).toBeNull();
     engine.handle(s, { t: 'feiraGame', action: 'start' });
     expect(sent.some((m) => m.t === 'error' && m.code === 'far')).toBe(true);
     expect(s.feiraGame).toBeUndefined();
@@ -95,11 +98,11 @@ describe('caldo de cana on the server', () => {
     expect(engine.cartView().games.find((g) => g.id === 'caldo')?.mode).toBe('on');
   });
 
-  it('keeps the caldo switch on when the ET day rolls', () => {
+  it('keeps the caldo switch on when the board day rolls', () => {
     let now = Date.parse('2026-10-08T20:00:00.000Z');
     const store = new ProfileStore(null);
     const games = memoryFeiraGames(() => now);
-    games.state.day = todayEastern(now);
+    games.state.day = feiraBoardDay(now);
     const engine = new FeiraGamesEngine({
       now: () => now,
       store,

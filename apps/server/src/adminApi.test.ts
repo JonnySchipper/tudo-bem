@@ -398,14 +398,14 @@ describe('admin dashboard API (/api/admin/*)', () => {
     expect((await write('feedback/triage', { id: items[0].id, status: 'archived' })).status).toBe(400);
   });
 
-  it('switches feira carts (off by default) and resets a layout override', async () => {
+  it('switches feira carts (Tapioca on by default, the rest off) and resets a layout override', async () => {
     await start();
     const { write, get } = await signIn();
     const w = (await get('world')).body;
-    expect(w.feiraCart.games.every((g: { mode: string }) => g.mode === 'off')).toBe(true);
+    expect(w.feiraCart.games.map((g: { id: string; mode: string }) => [g.id, g.mode])).toEqual([['tapioca', 'on'], ['pastel', 'off'], ['caldo', 'off']]);
     expect(w.rooms.find((r: { id: string }) => r.id === 'praca').designUrl).toBe('/?design=praca');
-    const game = w.feiraCart.games[0].id;
-    expect((await write('world/feira-cart', { game, mode: 'on' })).body.feiraCart.games[0].mode).toBe('on');
+    const game = w.feiraCart.games[1].id;
+    expect((await write('world/feira-cart', { game, mode: 'on' })).body.feiraCart.games[1].mode).toBe('on');
     await write('world/feira-cart', { game, mode: 'off' });
     expect((await write('world/feira-cart', { game, mode: 'always' })).status).toBe(400);
     expect((await write('world/layout-reset', { room: 'praca' })).status).toBe(409);

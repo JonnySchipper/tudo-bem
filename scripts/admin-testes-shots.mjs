@@ -41,7 +41,7 @@ async function enter(page) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   if (BASE.includes('solo')) {
     await page.click('#intro-guest');
   } else {
@@ -61,11 +61,11 @@ async function enter(page) {
 async function openTestes(page, phone) {
   if (phone) {
     await page.click('#btn-burger');
-    await page.click('#btn-credits');
   } else {
     await page.click('#btn-menu');
-    await page.click('#btn-credits');
   }
+  // Créditos waits for the resident stage in Ajustes (SIMPLIFICATION-REVIEW §3): press the button itself
+  await page.$eval('#btn-credits', (b) => b.click());
   await page.click('#credits-admin-door');
   await page.fill('#admin-password', 'tb-admin-praca');
   await page.click('#admin-login-go');

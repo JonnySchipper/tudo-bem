@@ -11,11 +11,19 @@ import {
   LEVELS,
   MAX_PRESENT,
   MAX_SHIFT_POINTS,
+  maxShiftPoints,
+  pourMsFor,
   MENU_LADDER,
   PAY_MUL_MAX,
   PAY_STEP_PCT,
   POUR,
   JUICE,
+  FIRST_SHIFT_WAVE_SIZES,
+  HOT_FROM_LEVEL,
+  ORANGE_SIZES_UNLOCK,
+  orangeSizesVary,
+  shiftTotalFor,
+  waveSizesFor,
   JUICER_LESSON_ID,
   SUCO_ITEMS,
   UNLOCKS,
@@ -43,9 +51,7 @@ import {
   newShift,
   newUnlocks,
   normalizeCorreria,
-  noteLesson,
   payBump,
-  pendingLesson,
   orderSig,
   patienceMs,
   patiencePipMs,
@@ -93,7 +99,7 @@ function build(sh: Shift, ev: CEvent[] = []): void {
       } else if (CAFE_ITEMS.includes(line.itemId)) {
         // extra quente: hold on past the green into the red
         push(shiftAct(sh, { a: 'pour_start', item: line.itemId }));
-        push(shiftAdvance(sh, POUR.fullMs * (want.mods.includes(HOT_MOD) ? 1.25 : 0.85)));
+        push(shiftAdvance(sh, pourMsFor(sh.ctx.unlocked) * (want.mods.includes(HOT_MOD) ? 1.25 : 0.85)));
         push(shiftAct(sh, { a: 'pour_end' }));
       } else if (SUCO_ITEMS.includes(line.itemId)) {
         // oranges until the glass reaches the line, then take it
@@ -138,8 +144,31 @@ describe('the shift numbers', () => {
   it('three waves of 4 + 5 + 6 customers', () => {
     expect(WAVE_SIZES).toEqual([4, 5, 6]);
     expect(CORRERIA_TOTAL).toBe(15);
-    expect([0, 3, 4, 8, 9, 14].map(waveOf)).toEqual([0, 0, 1, 1, 2, 2]);
+    expect([0, 3, 4, 8, 9, 14].map((i) => waveOf(i))).toEqual([0, 0, 1, 1, 2, 2]);
     expect(MAX_PRESENT).toBe(3);
+  });
+
+  it('the first shift of a profile is two waves (4 + 5); the second shift on is the full three', () => {
+    expect(FIRST_SHIFT_WAVE_SIZES).toEqual([4, 5]);
+    expect(waveSizesFor(0)).toEqual([4, 5]);
+    expect(waveSizesFor(undefined)).toEqual([4, 5]);
+    expect(waveSizesFor(1)).toEqual([4, 5, 6]);
+    expect(shiftTotalFor(0)).toBe(9);
+    expect(shiftTotalFor(7)).toBe(CORRERIA_TOTAL);
+    const first = newShift(ctx({ shifts: 0 }));
+    expect(shiftSnapshot(first)).toMatchObject({ waves: 2, total: 9 });
+    const ev = playAll(first);
+    expect(first.over).toBe(true);
+    expect(first.stats.served).toBe(9);
+    expect(ev.filter((e) => e.k === 'wave')).toHaveLength(2);
+    expect(Math.max(...ev.flatMap((e) => (e.k === 'wave' ? [e.wave] : [])))).toBe(1);
+    const second = newShift(ctx({ shifts: 1 }));
+    expect(shiftSnapshot(second)).toMatchObject({ waves: 3, total: 15 });
+    playAll(second);
+    expect(second.stats.served).toBe(15);
+    // the shorter shift is judged against its own ceiling
+    expect(starsFor(0.8 * maxShiftPoints(9), 9)).toBe(3);
+    expect(summarizeShift(first).stars).toBeGreaterThanOrEqual(2);
   });
 
   it('every shelf item has a price (the house counter of an owned padaria sells at it)', () => {
@@ -185,8 +214,8 @@ describe('difficulty by level', () => {
     expect(patienceMs({ timeMs: 900_000 } as MgOrder, 0, 0)).toBe(100_000);
   });
 
-  it('Verde wave 1 is written only, with no follow-ups; listening and follow-ups ramp in', () => {
-    expect(LEVELS[0]!.listen[0]).toBe(0);
+  it('Verde is written only in every wave, with no follow-ups in wave 1; listening and follow-ups ramp in from the next level', () => {
+    expect(LEVELS[0]!.listen).toEqual([0, 0, 0]);
     expect(LEVELS[0]!.follow[0]).toBe(0);
     for (let lv = 1; lv < LEVELS.length; lv++) {
       for (let w = 1; w < 3; w++) {
@@ -235,16 +264,51 @@ describe('difficulty by level', () => {
     expect(modes(3).listening / modes(3).n).toBeGreaterThan(modes(0).listening / Math.max(1, modes(0).n));
   });
 
-  it('level follows the total stars; unlocks are by stars only', () => {
+  it('level follows the total stars; unlocks follow the shifts played', () => {
     expect([0, 2, 3, 7, 8, 15, 16, 99].map(levelForStars)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
-    expect(unlockedFor(0)).toEqual([]);
-    expect(unlockedFor(2)).toEqual(['salgados']);
-    expect(unlockedFor(10)).toEqual(['salgados', 'chapa2', 'cafe_rapido', 'sabado']);
-    expect(newUnlocks(1, 4).map((u) => u.id)).toEqual(['salgados', 'chapa2']);
-    expect(newUnlocks(4, 4)).toEqual([]);
-    expect(UNLOCKS.map((u) => u.stars)).toEqual([...UNLOCKS.map((u) => u.stars)].sort((a, b) => a - b));
+    // the ladder: shifts played, no stars needed
+    expect(unlockedFor(0, 0)).toEqual([]);
+    expect(unlockedFor(0, 9)).toEqual([]);
+    expect(unlockedFor(0, 10)).toEqual(['chapa2']);
+    expect(unlockedFor(0, 12)).toEqual(['chapa2', 'salgados', 'cafe_rapido']);
+    expect(unlockedFor(0, 16)).toEqual(['chapa2', 'salgados', 'cafe_rapido', 'sabado']);
+    expect(newUnlocks(0, 0, 9, 10).map((u) => u.id)).toEqual(['chapa2']);
+    expect(newUnlocks(0, 0, 10, 11)).toEqual([]);
+    expect(newUnlocks(0, 0, 11, 12).map((u) => u.id)).toEqual(['salgados', 'cafe_rapido']);
+    // one progression, in order: each unlock sits after the menu item it belongs to
+    expect(UNLOCKS.map((u) => u.shifts)).toEqual([...UNLOCKS.map((u) => u.shifts)].sort((a, b) => a - b));
+    const opensAt = (id: string) => (MENU_LADDER.indexOf(id as (typeof MENU_LADDER)[number]) - 1) * ITEM_EVERY_SHIFTS;
+    const at = (id: string) => UNLOCKS.find((u) => u.id === id)!.shifts;
+    expect(at('chapa2')).toBeGreaterThan(opensAt('pao_na_chapa'));
+    expect(at('cafe_rapido')).toBeGreaterThan(opensAt('suco_de_laranja'));
+    expect(at('salgados')).toBe(opensAt('coxinha'));
+    expect(at('sabado')).toBeLessThanOrEqual(FULL_MENU_SHIFTS);
     expect(chapaSlots([])).toBe(1);
     expect(chapaSlots(['chapa2'])).toBe(2);
+  });
+
+  it('a profile that earned unlocks with the old star rule keeps them, whatever its shifts say (the max of both rules)', () => {
+    // the old star thresholds: salgados 2, chapa2 4, cafe_rapido 7, sabado 10
+    expect(UNLOCKS.map((u) => [u.id, u.stars])).toEqual([['chapa2', 4], ['salgados', 2], ['cafe_rapido', 7], ['sabado', 10]]);
+    expect(unlockedFor(2)).toEqual(['salgados']);
+    expect(unlockedFor(2, 0)).toEqual(['salgados']);
+    expect(unlockedFor(10, 3)).toEqual(['chapa2', 'salgados', 'cafe_rapido', 'sabado']);
+    // stars and shifts together: each unlock comes from whichever rule gets there first
+    expect(unlockedFor(4, 12)).toEqual(['chapa2', 'salgados', 'cafe_rapido']);
+    for (let stars = 0; stars <= 12; stars++) {
+      for (let shifts = 0; shifts <= 20; shifts++) {
+        const now = unlockedFor(stars, shifts);
+        // never fewer than the old rule gave, never fewer than the shifts alone give
+        for (const id of unlockedFor(stars)) expect(now, `${stars} stars, ${shifts} shifts`).toContain(id);
+        for (const id of unlockedFor(0, shifts)) expect(now).toContain(id);
+        // and playing on never takes one away
+        for (const id of now) expect(unlockedFor(stars + 1, shifts + 1)).toContain(id);
+      }
+    }
+    // a gain is reported once, by whichever rule crosses first
+    expect(newUnlocks(1, 2, 5, 6).map((u) => u.id)).toEqual(['salgados']);
+    expect(newUnlocks(2, 4, 8, 9).map((u) => u.id)).toEqual(['chapa2']);
+    expect(newUnlocks(4, 4, 10, 11)).toEqual([]);
   });
 });
 
@@ -311,17 +375,28 @@ describe('order generation', () => {
       }
   });
 
-  it('extra quente: only for a lone coffee, never on the very first shift, and said on the order', () => {
+  it('extra quente: only from level 2 up, for a lone coffee, never on the very first shift, and said on the order', () => {
+    expect(HOT_FROM_LEVEL).toBe(2);
     let hot = 0;
-    for (let seed = 1; seed <= 300; seed++) {
-      const o = makeCorrOrder(mulberry32(seed), { level: 1, wave: 1, unlocked: [], shifts: 3, saturday: false, avoid: [] });
-      if (!o.mods.includes(HOT_MOD)) continue;
-      hot++;
-      expect(o.lines.filter((l) => CAFE_ITEMS.includes(l.itemId))).toHaveLength(1);
-      expect(o.pt).toMatch(/extra quente/);
-      expect(o.en).toMatch(/extra-hot/);
-      const first = makeCorrOrder(mulberry32(seed), { level: 1, wave: 1, unlocked: [], shifts: 0, saturday: false, avoid: [] });
-      expect(first.mods).not.toContain(HOT_MOD);
+    for (const level of [0, 1]) {
+      // the chance is 0 at the first two levels, however many shifts are behind the player
+      for (let seed = 1; seed <= 300; seed++) {
+        const o = makeCorrOrder(mulberry32(seed), { level, wave: 2, unlocked: [], shifts: FULL_MENU_SHIFTS, saturday: false, avoid: [] });
+        expect(o.mods, `level ${level} seed ${seed}`).not.toContain(HOT_MOD);
+        expect(o.pt).not.toMatch(/extra quente/);
+      }
+    }
+    for (const level of [2, 3]) {
+      for (let seed = 1; seed <= 300; seed++) {
+        const o = makeCorrOrder(mulberry32(seed), { level, wave: 1, unlocked: [], shifts: 3, saturday: false, avoid: [] });
+        if (!o.mods.includes(HOT_MOD)) continue;
+        hot++;
+        expect(o.lines.filter((l) => CAFE_ITEMS.includes(l.itemId))).toHaveLength(1);
+        expect(o.pt).toMatch(/extra quente/);
+        expect(o.en).toMatch(/extra-hot/);
+        const first = makeCorrOrder(mulberry32(seed), { level, wave: 1, unlocked: [], shifts: 0, saturday: false, avoid: [] });
+        expect(first.mods).not.toContain(HOT_MOD);
+      }
     }
     expect(hot).toBeGreaterThan(20);
   });
@@ -580,7 +655,7 @@ describe('the espremedor (orange juicer)', () => {
   });
 
   it('each tap is one orange; tap the glass at the line and it goes on the tray', () => {
-    const sh = newShift(ctx());
+    const sh = newShift(ctx({ unlocked: [ORANGE_SIZES_UNLOCK] }));
     expect(shiftSnapshot(sh).hopper).toEqual([orangeAt(7, 0), orangeAt(7, 1), orangeAt(7, 2)]);
     const ev = drop(sh);
     expect(ev[0]).toMatchObject({ k: 'juice_drop', size: orangeAt(7, 0), fill: JUICE.sizes[orangeAt(7, 0)] });
@@ -591,6 +666,24 @@ describe('the espremedor (orange juicer)', () => {
     expect(shiftAct(sh, { a: 'juice_take' })[0]).toEqual({ k: 'juice_ok', item: 'suco_de_laranja', fill });
     expect(sh.tray).toEqual(['suco_de_laranja']);
     expect(sh.juice).toBeNull();
+  });
+
+  it('until cafe_rapido every orange is the standard size: the hopper and the drops never vary', () => {
+    expect(ORANGE_SIZES_UNLOCK).toBe('cafe_rapido');
+    expect(orangeSizesVary([])).toBe(false);
+    expect(orangeSizesVary(['chapa2', 'salgados'])).toBe(false);
+    expect(orangeSizesVary(['cafe_rapido'])).toBe(true);
+    expect(Array.from({ length: 40 }, (_, i) => orangeAt(7, i, false))).toEqual(Array(40).fill('m'));
+    const sh = newShift(ctx({ unlocked: ['chapa2', 'salgados'] }));
+    expect(shiftSnapshot(sh).hopper).toEqual(['m', 'm', 'm']);
+    const sizes: string[] = [];
+    while ((sh.juice?.fill ?? 0) < JUICE.goodMin) {
+      for (const e of drop(sh)) if (e.k === 'juice_drop') sizes.push(e.size);
+    }
+    expect(sizes).toEqual(['m', 'm', 'm']);
+    expect(shiftAct(sh, { a: 'juice_take' })[0]).toMatchObject({ k: 'juice_ok' });
+    // after the unlock the sizes are the seeded mix again
+    expect(new Set(Array.from({ length: 12 }, (_, i) => orangeAt(7, i, orangeSizesVary(['cafe_rapido'])))).size).toBeGreaterThan(1);
   });
 
   it('one orange at a time: a tap while it still presses does nothing, nor does taking the glass mid-press', () => {
@@ -900,7 +993,7 @@ describe('the menu ladder', () => {
     expect(menuIdsForShifts(1)).toEqual(['cafe', 'pao']);
     expect(menuCountForShifts(2)).toBe(3);
     expect(menuIdsForShifts(2)[2]).toBe('agua');
-    expect(menuCountForShifts(8)).toBe(WHERE_MENU_AT);
+    expect(menuCountForShifts(12)).toBe(WHERE_MENU_AT);
     expect(menuIdsForShifts(8)[5]).toBe('pao_na_chapa');
     expect(menuIdsForShifts(9)).not.toContain('suco_de_laranja');
     expect(menuIdsForShifts(10)[6]).toBe('suco_de_laranja');
@@ -910,43 +1003,12 @@ describe('the menu ladder', () => {
     expect(payBump(40, ['cafe', 'pao'])).toBeNull();
   });
 
-  it('teaches each new item once, and the packing card wins the shift it unlocks', () => {
-    expect(pendingLesson(['cafe', 'pao'], [], false)?.id).toBe('cafe');
-    expect(pendingLesson(['cafe', 'pao'], ['cafe'], false)?.id).toBe('pao');
-    expect(pendingLesson(['cafe', 'pao'], ['cafe', 'pao'], false)).toBeNull();
-    const open = menuIdsForShifts(8);
-    expect(whereRequired(open.length)).toBe(true);
-    expect(pendingLesson(open, ['cafe'], true)?.id).toBe('where');
-    expect(pendingLesson(open, [...MENU_LADDER], true)?.id).toBe('where');
-    expect(pendingLesson(open, [...MENU_LADDER, 'where'], true)).toBeNull();
-    const agua = pendingLesson(menuIdsForShifts(2), ['cafe', 'pao'], false);
-    expect(agua?.id).toBe('agua');
-    expect(agua?.title.en.length).toBeGreaterThan(2);
-    expect(agua?.steps[0]?.pt).toMatch(/geladeira/);
-    expect(noteLesson(['cafe'], agua)).toEqual(['cafe', 'agua']);
-    expect(noteLesson(['cafe'], null)).toEqual(['cafe']);
-    expect(noteLesson(['cafe'], pendingLesson(['cafe', 'pao'], ['cafe'], false))).toEqual(['cafe', 'pao']);
+  it('the one-time item cards are gone: nothing teaches by card, and old saves still read back coherent', () => {
+    const snap = shiftSnapshot(newShift(ctx({ shifts: 2 })));
+    expect('lesson' in snap).toBe(false);
     expect(normalizeCorreria(undefined).taught).toEqual([]);
     expect(normalizeCorreria({ stars: 1, shifts: 4, best: 1 }).taught).toEqual([...MENU_LADDER, 'where']);
     expect(normalizeCorreria({ stars: 0, shifts: 0, best: 0, taught: ['cafe', 'nope', 'cafe'] }).taught).toEqual(['cafe']);
-  });
-
-  it('the juicer has its own card: shown once, even to saves that saw the old fridge card for suco', () => {
-    const open = menuIdsForShifts(10);
-    const before = [...MENU_LADDER.slice(0, 6), 'where'];
-    const card = pendingLesson(open, before, true);
-    expect(card?.id).toBe(JUICER_LESSON_ID);
-    expect(card?.title.pt).toMatch(/espremedor/);
-    expect(card?.steps.map((s) => s.pt).join(' ')).toMatch(/laranjas na máquina.*Pare na linha/s);
-    for (const s of card!.steps) expect(s.en.length).toBeGreaterThan(5);
-    expect(pendingLesson(open, noteLesson(before, card), true)).toBeNull();
-    // a #130 save that already had 'suco_de_laranja' taught (the fridge card) still gets the juicer once
-    expect(pendingLesson(open, [...before, 'suco_de_laranja'], true)?.id).toBe(JUICER_LESSON_ID);
-    // and a save from before the ladder (every old card marked seen)
-    const old = normalizeCorreria({ stars: 20, shifts: 40, best: 200 });
-    expect(old.taught).not.toContain(JUICER_LESSON_ID);
-    expect(pendingLesson(menuIdsForShifts(40), old.taught!, true)?.id).toBe(JUICER_LESSON_ID);
-    // the new key survives a round trip; unknown keys still drop
     expect(normalizeCorreria({ shifts: 12, taught: ['cafe', JUICER_LESSON_ID, 'zzz'] }).taught).toEqual(['cafe', JUICER_LESSON_ID]);
   });
 
@@ -961,12 +1023,11 @@ describe('the menu ladder', () => {
     expect(payBump(1)).toBeNull();
     expect(payBump(2)).toEqual({ pt: '+1 item no cardápio: pagamento +6%', en: '+1 menu item: pay +6%' });
     expect(payBump(3)).toBeNull();
-    const sh = newShift(ctx({ shifts: 2, bump: payBump(2), lesson: pendingLesson(menuIdsForShifts(2), ['cafe', 'pao'], false) }));
+    const sh = newShift(ctx({ shifts: 2, bump: payBump(2) }));
     const snap = shiftSnapshot(sh);
     expect(snap.menu).toHaveLength(3);
     expect(snap.payMul).toBeCloseTo(1.06);
     expect(snap.bump?.pt).toMatch(/\+6%/);
-    expect(snap.lesson?.id).toBe('agua');
     expect(snap.ladder).toEqual({ open: ['cafe', 'pao', 'agua'], fresh: ['agua'], next: 'pao_de_queijo', nextIn: 2, total: MENU_LADDER.length });
   });
 
@@ -991,14 +1052,15 @@ describe('the menu ladder', () => {
     expect(menuLadder(NaN).open).toEqual(['cafe', 'pao']);
   });
 
-  it('pra viagem / pra comer aqui is absent before 6 items and on every order after', () => {
-    expect(whereRequired(5)).toBe(false);
-    expect(whereRequired(6)).toBe(true);
+  it('pra viagem / pra comer aqui is absent before 8 items and on every order after', () => {
+    expect(WHERE_MENU_AT).toBe(8);
+    expect(whereRequired(7)).toBe(false);
+    expect(whereRequired(8)).toBe(true);
     for (let seed = 1; seed <= 40; seed++) {
-      const small = makeCorrOrder(mulberry32(seed), { level: 3, wave: 2, unlocked: ['sabado'], shifts: 6, saturday: false, avoid: [] });
-      expect(menuCountForShifts(6)).toBe(5);
+      const small = makeCorrOrder(mulberry32(seed), { level: 3, wave: 2, unlocked: ['sabado'], shifts: 10, saturday: false, avoid: [] });
+      expect(menuCountForShifts(10)).toBe(7);
       expect(whereMods(small.mods)).toEqual([]);
-      const big = makeCorrOrder(mulberry32(seed + 90), { level: 2, wave: 1, unlocked: [], shifts: 8, saturday: false, avoid: [] });
+      const big = makeCorrOrder(mulberry32(seed + 90), { level: 2, wave: 1, unlocked: [], shifts: 12, saturday: false, avoid: [] });
       expect(whereMods(big.mods)).toHaveLength(1);
       expect(big.pt).toMatch(/pra viagem|pra comer aqui/);
       expect(big.en).toMatch(/to go|for here/i);

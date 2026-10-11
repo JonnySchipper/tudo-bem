@@ -9,7 +9,7 @@ import { AcademyStore, type AcademyPersistence } from '@tudobem/server/academy';
 import { PadariaStore, type PadariaPersistence } from '@tudobem/server/padaria';
 import { ProfileStore, type PersistenceAdapter, type StoredProfile } from '@tudobem/server/store';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from '@tudobem/server/services';
-import type { NetLike, NetStatus } from './net';
+import { withTz, type NetLike, type NetStatus } from './net';
 
 const KEY = 'tb_solo_profiles_v1';
 const ACADEMY_KEY = 'tb_solo_academies_v1';
@@ -101,7 +101,7 @@ export class LocalNet implements NetLike {
 
   send(m: ClientMsg) {
     if (!this.world || !this.session) return;
-    void this.world.handle(this.session, JSON.parse(JSON.stringify(m)));
+    void this.world.handle(this.session, JSON.parse(JSON.stringify(withTz(m))));
   }
 
   /** Shot / e2e hook: cart games ship off. Turn one on for this solo session (`caldo`, `tapioca`). */

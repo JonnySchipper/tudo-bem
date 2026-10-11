@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { todayEastern } from './cartela.js';
 import { DIARY_PLACEMENTS } from './diaryWorld.js';
 import { HOTSPOTS } from './hotspots.js';
 import { RECADOS } from './recados.js';
@@ -13,7 +12,9 @@ import {
   FEIRA_MIN_ELAPSED_MS,
   FEIRA_ROTATION_ORDER,
   crownHolder,
-  daysSinceEpochET,
+  daysSinceEpochDay,
+  feiraBoardDay,
+  defaultFeiraCartConfig,
   emptyFeiraCartConfig,
   enabledFeiraGameIds,
   featuredEnabled,
@@ -39,15 +40,15 @@ import {
 } from './feiraGames.js';
 import { PASTEL_DURATION_MS, pastelOrders } from './feiraPastel.js';
 import { caldoOrders } from './feiraCaldo.js';
-import { TAPIOCA_COOK, TAPIOCA_DURATION_MS, TAPIOCA_PATIENCE_MS, TAPIOCA_SPREAD, tapiocaOrders, tapiocaServeQuality, tapiocaSpread } from './feiraTapioca.js';
+import { TAPIOCA_COOK, TAPIOCA_DURATION_MS, TAPIOCA_PATIENCE_MS, TAPIOCA_SPREAD, TAPIOCA_FILLING_LABEL, tapiocaOrders, tapiocaPracticeOrder, tapiocaServeQuality, tapiocaSpread } from './feiraTapioca.js';
 import './feiraPastel.js';
 import './feiraCaldo.js';
 
 describe('feira rotation', () => {
-  it('is daysSinceEpoch(ET) mod 3 over a fixed order', () => {
+  it('is daysSinceEpoch(board day) mod 3 over a fixed order', () => {
     expect(FEIRA_ROTATION_ORDER).toEqual(['tapioca', 'pastel', 'caldo']);
     const day = '2026-10-08';
-    const n = daysSinceEpochET(day);
+    const n = daysSinceEpochDay(day);
     expect(rotationSlot(day)).toBe(FEIRA_ROTATION_ORDER[((n % 3) + 3) % 3]);
     expect(rotationSlot('1970-01-01')).toBe('tapioca');
     expect(rotationSlot('1970-01-02')).toBe('pastel');
@@ -55,25 +56,21 @@ describe('feira rotation', () => {
     expect(rotationSlot('1970-01-04')).toBe('tapioca');
   });
 
-  it('is the same game for the whole ET date, including the 23:30 vs 00:30 boundary', () => {
-    // 2026-10-08 23:30 ET is 2026-10-09 03:30 UTC (EDT, UTC-4)
-    const late = Date.parse('2026-10-09T03:30:00.000Z');
-    // 2026-10-09 00:30 ET is 2026-10-09 04:30 UTC
-    const early = Date.parse('2026-10-09T04:30:00.000Z');
-    expect(todayEastern(late)).toBe('2026-10-08');
-    expect(todayEastern(early)).toBe('2026-10-09');
+  it('is the same game for the whole board day (UTC), including the 23:30 vs 00:30 boundary', () => {
+    const late = Date.parse('2026-10-08T23:30:00.000Z');
+    const early = Date.parse('2026-10-09T00:30:00.000Z');
+    expect(feiraBoardDay(late)).toBe('2026-10-08');
+    expect(feiraBoardDay(early)).toBe('2026-10-09');
     expect(featuredGameAt(late)).toBe(featuredGame('2026-10-08'));
     expect(featuredGameAt(early)).toBe(featuredGame('2026-10-09'));
     // the slot still changes across midnight even when the fallback lands on the same game
     expect(rotationSlot('2026-10-08')).not.toBe(rotationSlot('2026-10-09'));
   });
 
-  it('uses the ET date across the spring-forward and fall-back hours', () => {
-    // 2026-03-08 is the US spring-forward day. 01:30 ET does not exist; 03:30 ET is 07:30 UTC.
-    expect(todayEastern(Date.parse('2026-03-08T07:30:00.000Z'))).toBe('2026-03-08');
-    // 2026-11-01 is the fall-back day. 01:30 ET happens twice; both are still Nov 1.
-    expect(todayEastern(Date.parse('2026-11-01T05:30:00.000Z'))).toBe('2026-11-01');
-    expect(todayEastern(Date.parse('2026-11-01T06:30:00.000Z'))).toBe('2026-11-01');
+  it('has no daylight-saving hours: the board day is the UTC date on the US clock-change days', () => {
+    expect(feiraBoardDay(Date.parse('2026-03-08T07:30:00.000Z'))).toBe('2026-03-08');
+    expect(feiraBoardDay(Date.parse('2026-11-01T05:30:00.000Z'))).toBe('2026-11-01');
+    expect(feiraBoardDay(Date.parse('2026-11-01T23:59:59.000Z'))).toBe('2026-11-01');
     expect(featuredGame('2026-11-01')).toBe(featuredGameAt(Date.parse('2026-11-01T05:30:00.000Z')));
   });
 
@@ -210,8 +207,31 @@ describe('medals, crown and ties', () => {
 });
 
 describe('feira cart switch', () => {
-  it('defaults every game to off, and the catalog is the rotation registry', () => {
+  it('ships one cart game for the beta: Tapioca every day, no rotation, Pastel and Caldo off but switchable', () => {
     const cfg = normalizeFeiraCartConfig(null);
+    expect(cfg).toEqual(defaultFeiraCartConfig());
+    expect(normalizeFeiraCartConfig(undefined)).toEqual(defaultFeiraCartConfig());
+    for (const day of ['1970-01-01', '1970-01-02', '1970-01-03', '2026-10-08']) {
+      expect(enabledFeiraGameIds(cfg, day)).toEqual(['tapioca']);
+      expect(featuredEnabled(day, enabledFeiraGameIds(cfg, day))).toBe('tapioca');
+    }
+    expect(feiraCartAdminView(cfg, '2026-10-08')).toMatchObject({
+      featured: 'tapioca',
+      games: [
+        { id: 'tapioca', mode: 'on', implemented: true },
+        { id: 'pastel', mode: 'off', implemented: true },
+        { id: 'caldo', mode: 'off', implemented: true },
+      ],
+    });
+    // a stored config wins over the default: an admin who switched Tapioca off keeps it off
+    const stored = normalizeFeiraCartConfig(JSON.parse(JSON.stringify(withFeiraCartMode(cfg, 'tapioca', 'off'))));
+    expect(enabledFeiraGameIds(stored, '2026-10-08')).toEqual([]);
+    const pastel = withFeiraCartMode(withFeiraCartMode(cfg, 'tapioca', 'off')!, 'pastel', 'on')!;
+    expect(featuredEnabled('2026-10-08', enabledFeiraGameIds(pastel, '2026-10-08'))).toBe('pastel');
+  });
+
+  it('turns every game off with an empty config, and the catalog is the rotation registry', () => {
+    const cfg = normalizeFeiraCartConfig({});
     expect(cfg.games).toEqual({});
     expect(enabledFeiraGameIds(cfg, '2026-10-08')).toEqual([]);
     expect(featuredEnabled('2026-10-08', [])).toBeNull();
@@ -346,5 +366,14 @@ describe('cart customers', () => {
         }
       }
     }
+  });
+});
+
+describe('tapioca practice', () => {
+  it('is one regular, one cheese tapioca, in an order line the game already uses', () => {
+    const o = tapiocaPracticeOrder();
+    expect(o).toMatchObject({ filling: 'queijo', who: 'nanda', name: 'Nanda', patienceMs: TAPIOCA_PATIENCE_MS });
+    expect(o.line.pt).toBe(`Uma tapioca de ${TAPIOCA_FILLING_LABEL.queijo.pt}, por favor.`);
+    expect(tapiocaPracticeOrder()).toEqual(o);
   });
 });

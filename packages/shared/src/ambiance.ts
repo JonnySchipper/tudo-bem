@@ -166,7 +166,7 @@ export const MISSION_COPY = {
 export const MISSION_REWARD = 25;
 
 export interface DailyMission {
-  /** YYYY-MM-DD (server day). A new day resets the mission. */
+  /** YYYY-MM-DD (player day, playerDay.ts `profileDay`). A new day resets the mission. */
   date: string;
   taken: boolean;
   steps: Record<MissionStep, boolean>;

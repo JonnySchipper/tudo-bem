@@ -174,53 +174,39 @@ export function cueFor(e: CEvent): { sfx?: CorreriaSfx; toast?: Bilingual & { to
   }
 }
 
+/** The one "next" line of the end card: a counter unlock just earned (gold), the item the next shift opens (gold), or the countdown to the next item. */
+export interface EndNext extends Bilingual {
+  tone: 'new' | 'plain';
+}
+
 export interface EndModel {
   big: string;
   stars: string;
-  rows: { label: Bilingual; value: string }[];
   words: Bilingual[];
-  unlocks: Bilingual[];
+  next: EndNext | null;
   note: Bilingual | null;
 }
 
+/** What the next shift brings, in one line. A new unlock leads (its hint), then the item that opens next shift, then the countdown or the full-menu line. */
+export function endNext(end: Pick<CorreriaEnd, 'newUnlocks' | 'ladder'>): EndNext | null {
+  const u = end.newUnlocks[0];
+  if (u) {
+    const def = UNLOCKS.find((x) => x.id === u.id);
+    return { pt: def?.hint.pt ?? u.pt, en: def?.hint.en ?? u.en, tone: 'new' };
+  }
+  const { fresh, next } = ladderEnd(end.ladder);
+  if (fresh) return { ...fresh, tone: 'new' };
+  return next ? { ...next, tone: 'plain' } : null;
+}
+
 export function endModel(end: CorreriaEnd, carlos: Bilingual): EndModel {
-  const rows: EndModel['rows'] = [
-    { label: { pt: 'Clientes atendidos', en: 'Customers served' }, value: `${end.served}/${end.served + end.left}` },
-    { label: { pt: 'Pedidos perfeitos', en: 'Perfect orders' }, value: String(end.perfect) },
-    { label: { pt: 'Melhor combo', en: 'Best combo' }, value: `x${end.bestCombo}` },
-    { label: { pt: 'Gorjetas', en: 'Tips' }, value: moneyLabel(end.tips * 100) },
-  ];
   return {
     big: end.coins > 0 ? `+${end.coins} RV` : '0 RV',
     stars: '★'.repeat(end.stars) + '☆'.repeat(3 - end.stars),
-    rows,
     words: end.words,
-    unlocks: end.newUnlocks.map((u) => ({ pt: UNLOCKS.find((x) => x.id === u.id)?.hint.pt ?? u.pt, en: UNLOCKS.find((x) => x.id === u.id)?.hint.en ?? u.en })),
+    next: endNext(end),
     note: carlos,
   };
-}
-
-export interface LadderChip {
-  id: string;
-  pt: string;
-  en: string;
-  state: 'open' | 'new' | 'next' | 'more';
-}
-
-/**
- * The menu strip: the open items (the ones this shift added marked new), then the next one, locked. Past `max` chips the oldest open items
- * fold into one "+N" chip in front, so a long menu stays one short row on a phone.
- */
-export function ladderStrip(l: MenuLadderView | undefined, max = 6): LadderChip[] {
-  if (!l) return [];
-  const name = (id: string) => mgItemById(id)?.card;
-  const chip = (id: string, state: LadderChip['state']): LadderChip => ({ id, pt: name(id)?.form ?? id, en: name(id)?.gloss_en ?? id, state });
-  const out = l.open.map((id) => chip(id, l.fresh.includes(id) ? 'new' : 'open'));
-  if (l.next) out.push(chip(l.next, 'next'));
-  if (out.length <= max) return out;
-  const keep = out.slice(out.length - (max - 1));
-  const folded = out.length - keep.length;
-  return [{ id: 'more', pt: `+${folded}`, en: `+${folded} more`, state: 'more' }, ...keep];
 }
 
 /** The line about the next item, "Próximo: água em 2 turnos", or the full-menu line. Null without a ladder. */

@@ -5,7 +5,8 @@ import type { Bilingual } from './types.js';
 /**
  * Caderno de palavras (HOWTO Phase 7 step 3): per curriculum card, how often the player saw it (an NPC
  * line, a sign), heard it (🔊) and used it (typed an accepted form, or chatted it). Pure helpers; the
- * server owns the events and the payout.
+ * server owns the events. It is bookkeeping, not a player-facing ledger: the tatame bank weighs its cards
+ * by it (challenges.ts), and a finished group no longer pays (the Diário is the one word home).
  */
 export interface CadernoEntry {
   seen: number;
@@ -16,8 +17,6 @@ export interface CadernoEntry {
 }
 export type Caderno = Record<string, CadernoEntry>;
 
-/** RV paid once per finished group (default from the HOWTO; the amount is Jonny's call). */
-export const CADERNO_GROUP_RV = 15;
 /** A `heard` message may name at most this many cards. */
 export const CADERNO_HEARD_MAX_IDS = 10;
 const COUNT_CAP = 9999;
@@ -114,6 +113,7 @@ export function normalizeCaderno(raw: unknown): Caderno {
   return out;
 }
 
+/** Groups an old save was paid for, back when a finished group paid RV. Kept on the profile; nothing pays any more. */
 export function normalizeCadernoPaid(raw: unknown): string[] {
   const known = new Set(cadernoGroups().map((g) => g.id));
   return Array.isArray(raw) ? [...new Set(raw.filter((x): x is string => typeof x === 'string' && known.has(x)))] : [];

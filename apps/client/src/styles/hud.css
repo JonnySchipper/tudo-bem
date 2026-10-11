@@ -26,6 +26,7 @@
 .rtrack,
 .chatbar,
 .emotes button,
+.chat-chips button,
 .hud-menu,
 .parrot-whisper,
 .mission-banner {
@@ -174,27 +175,7 @@
   flex: none;
 }
 
-/* Fala — always on the strip, desktop and phone, one tap to the note form. */
-.hud-feedback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex: none;
-  height: 44px;
-  padding: 2px 10px 4px 9px;
-  cursor: pointer;
-  font: inherit;
-  line-height: 1.05;
-}
-
-.hud-feedback-words {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-/* a speech bubble drawn in blocks: terracotta, three cream dots, a stepped tail */
+/* Fala, an Ajustes entry: a speech bubble drawn in blocks (terracotta, three cream dots, a stepped tail) in the icon's place */
 .fala-bubble {
   position: relative;
   display: block;
@@ -232,8 +213,8 @@
   clip-path: polygon(0 0, 100% 0, 100% 34%, 67% 34%, 67% 67%, 34% 67%, 34% 100%, 0 100%);
 }
 
-.hud-feedback:hover .fala-bubble,
-.hud-feedback:focus-visible .fala-bubble {
+.hud-fala:hover .fala-bubble,
+.hud-fala:focus-visible .fala-bubble {
   animation: fala-nudge 0.4s steps(2, end) 1;
 }
 
@@ -243,33 +224,9 @@
   }
 }
 
-.hud-feedback .pt {
-  font-family: var(--font-pixel);
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--terracota-dark);
-}
-
-.hud-feedback .hud-gloss {
-  font-family: var(--font-body);
-  font-style: italic;
-  font-weight: 700;
-  font-size: 11px;
-  color: var(--ink-soft);
-}
-
-.hud-feedback:hover,
-.hud-feedback:focus-visible {
-  background: #fffdf8;
-}
-
-.hud-feedback:focus-visible {
-  outline: 3px solid var(--azul);
-  outline-offset: -3px;
-}
-
-.hud-feedback:active {
-  transform: translateY(2px);
+.hud-menu .hud-fala .fala-bubble {
+  justify-self: center;
+  margin: 0 0 6px;
 }
 
 .hud-stats {
@@ -798,6 +755,34 @@ button.hud-burger,
   color: #f5e6d3;
 }
 
+.chat-chips {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.chat-chips button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 2px 12px 4px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  transition: none;
+}
+
+.chat-chips button:hover {
+  background: #fffdf8;
+  transform: translateY(-1px);
+}
+
+.chat-chips button:active {
+  transform: translateY(2px);
+}
+
 .chatbar {
   align-self: stretch;
   display: flex;
@@ -894,6 +879,39 @@ button.hud-burger,
   display: none;
 }
 
+/* a newcomer's desktop: the emote chips wait behind the smiley, as on a phone, and open as a row above the chat bar */
+.bottombar.emotes-tucked .emotes {
+  display: none;
+}
+
+.bottombar.emotes-tucked.emotes-open .emotes {
+  display: flex;
+}
+
+.bottombar.emotes-tucked .hud-emote-toggle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.bottombar.emotes-tucked .hud-emote-toggle[aria-expanded='true'] {
+  background: #f7d9b4;
+  box-shadow: inset 0 -3px 0 0 var(--terracota);
+}
+
+/* the open world's "?" (the Vila guide, howToPlay.ts) steps aside while the emote chips are open over its corner */
+body:has(.bottombar.emotes-open) .howto-help.howto-vila {
+  display: none;
+}
+
 /* the dialogue box has its own reply field; on a phone every sheet covers the bottom bar */
 body:has(.dbx) .bottombar {
   display: none;
@@ -967,35 +985,6 @@ body:has(.dbx) .bottombar {
 
   .hud-stats .hud-verde {
     display: none;
-  }
-
-  /* Fala on the phone strip: the bubble over a small label, as wide as the burger, so the left plate keeps its room */
-  .hud-feedback {
-    flex-direction: column;
-    gap: 0;
-    width: 48px;
-    padding: 4px 0 2px;
-  }
-
-  .hud-feedback .fala-bubble {
-    margin-bottom: 6px;
-  }
-
-  .hud-feedback .fala-bubble::after {
-    left: 15px;
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 67% 100%, 67% 67%, 34% 67%, 34% 34%, 0 34%);
-  }
-
-  .hud-feedback .hud-gloss {
-    display: none;
-  }
-
-  .hud-feedback-words {
-    align-items: center;
-  }
-
-  .hud-feedback .pt {
-    font-size: 11px;
   }
 
   button.hud-burger {

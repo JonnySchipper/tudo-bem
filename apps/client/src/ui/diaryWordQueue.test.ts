@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CARD_MS, WordQueue, cardMs, momentsOfShot } from './diaryWordQueue';
+import { CARD_MS, FULL_CARDS_PER_SESSION, WordQueue, cardMs, momentsOfShot, wantsFullCard } from './diaryWordQueue';
 
 const w = (pt: string) => ({ pt, en: pt, areaPt: 'Praça', progress: '1/98' });
 
@@ -54,5 +54,12 @@ describe('the new-word cards of a shot', () => {
     expect(cardMs({ index: 2, total: 12 })).toBe(CARD_MS.many);
     expect(cardMs({ index: 12, total: 12 })).toBe(CARD_MS.last);
     expect(CARD_MS.many).toBeLessThan(CARD_MS.more);
+  });
+});
+
+describe('the full card is for the first words of a session', () => {
+  it('shows the Nova palavra card for the first three, then the word only flies into the Diário', () => {
+    expect(FULL_CARDS_PER_SESSION).toBe(3);
+    expect([0, 1, 2, 3, 4].map(wantsFullCard)).toEqual([true, true, true, false, false]);
   });
 });

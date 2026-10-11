@@ -1,5 +1,6 @@
 import { snackAddon, snacksAt, type StreetSnackDef } from '@tudobem/shared';
 import { showDialogue, closeDialogue } from './panels';
+import { MAX_CONTENT_CHIPS } from './dialogueLogic';
 import { h, rvPriceNote } from './dom';
 import { foodIcon } from './pixelArt';
 
@@ -13,8 +14,9 @@ const CALL: Record<string, { speaker: string; line: { pt: string; en: string } }
 /** The street carts get a menu board in their own colours; the airport café keeps plain chips. */
 const CART_LOOK: Record<string, string> = { pipoqueiro: 'pipoca', carrinho_coco: 'coco', barraca_jo: 'coco' };
 
-interface Pick {
-  icon: string;
+export interface Pick {
+  /** The bag icon (`icons/<id>`); left out for things with no sprite yet. */
+  icon?: string;
   pt: string;
   en: string;
   price: number;
@@ -28,7 +30,7 @@ interface Pick {
  * The cart's menu board: an awning, then one tile per thing it sells (the bag or coconut at 3x, the name, a price tag). The tiles are the
  * same choices as the numbered chips, which stay for the keyboard (CSS hides the duplicates while the board is up).
  */
-function cartBoard(look: string, picks: Pick[], choose: (chip: number) => void): HTMLElement {
+export function cartBoard(look: string, picks: Pick[], choose: (chip: number) => void, numbered = true): HTMLElement {
   return h(
     'div',
     { class: `snack-cart snack-cart-${look}` },
@@ -40,8 +42,8 @@ function cartBoard(look: string, picks: Pick[], choose: (chip: number) => void):
         h(
           'button',
           { class: 'snack-pick', 'data-snack': p.id, onclick: () => choose(p.chip), 'aria-label': `${p.pt}, ${p.price} RV` },
-          h('span', { class: 'num' }, String(p.chip + 1)),
-          h('span', { class: `snack-bag${p.drizzle ? ' drizzle' : ''}` }, foodIcon(p.icon, 3, p.pt), p.drizzle ? h('i', { class: 'snack-drip', 'aria-hidden': 'true' }) : null),
+          numbered ? h('span', { class: 'num' }, String(p.chip + 1)) : null,
+          h('span', { class: `snack-bag${p.drizzle ? ' drizzle' : ''}` }, p.icon ? foodIcon(p.icon, 3, p.pt) : null, p.drizzle ? h('i', { class: 'snack-drip', 'aria-hidden': 'true' }) : null),
           h('span', { class: 'snack-name' }, h('span', { class: 'pt' }, p.pt), h('span', { class: 'en plain' }, p.en)),
           h('span', { class: 'snack-price' }, `${p.price} RV`),
         ),
@@ -79,11 +81,12 @@ export function openStreetSnack(propId: string, buy: (itemId: string) => void): 
     speaker: call.speaker,
     line: call.line,
     extras: look ? cartBoard(look, menu.map((s, i) => ({ icon: s.icon, pt: s.pt, en: s.en, price: s.price, chip: i, id: s.id })), choose) : rvPriceNote(),
+    // 3 snack chips and "Agora não" (keys 1-4); a longer menu is all on the cart's board
     chips: [
-      ...menu.map((s) => ({ pt: `${s.pt} · ${s.price} RV`, en: `${s.en} · ${s.price} RV` })),
+      ...menu.slice(0, MAX_CONTENT_CHIPS).map((s) => ({ pt: `${s.pt} · ${s.price} RV`, en: `${s.en} · ${s.price} RV` })),
       { pt: 'Agora não', en: 'Not now' },
     ],
-    onChoose: choose,
+    onChoose: (i) => choose(i < MAX_CONTENT_CHIPS ? i : -1),
     key: 'street-snack',
     onClose: closeDialogue,
   });

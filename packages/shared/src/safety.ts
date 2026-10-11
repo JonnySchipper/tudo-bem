@@ -211,6 +211,15 @@ const PII: CompiledPii[] = (piiPack.patterns as PiiPatternJson[]).map((p) => ({
   normalized: !!p.normalized,
 }));
 
+/**
+ * The chat input's hint while the player types: one friendly line for a message that sends with a warning, one for a message that does not
+ * go out (block and escalate alike: what happens behind a hold is never shown). needs_br (docs/lifesim/BR-REVIEW.md, "Chat hints").
+ */
+export const CHAT_HINTS = {
+  warn: { pt: 'Vai, mas com cuidado', en: 'It sends, but go easy' },
+  block: { pt: 'Essa não dá, tenta de outro jeito', en: 'Not that one, try another way' },
+} as const satisfies Record<string, Bilingual>;
+
 export const SAFETY_NOTES: Record<SafetyLabel, Bilingual> = {
   pii: { pt: 'Opa! Nada de dados pessoais aqui, tá?', en: 'Oops! No personal info here (phone, email, address, school, links).' },
   off_platform_contact: { pt: 'Vamos conversar aqui mesmo na praça!', en: 'Let’s keep chatting here in the world — no outside apps or contacts.' },
@@ -223,10 +232,11 @@ export const SAFETY_NOTES: Record<SafetyLabel, Bilingual> = {
   scam: { pt: 'Cuidado! Nunca compartilhe senhas ou dinheiro.', en: 'Careful! Never share passwords or money.' },
   bullying: { pt: 'Vamos ser gentis uns com os outros!', en: 'Let’s be kind to each other!' },
   self_harm: { pt: 'Você é importante. Fale com alguém de confiança.', en: 'You matter. Please reach out to someone you trust or a local helpline. A moderator has been notified.' },
-  ethnic_review: { pt: 'Sua mensagem foi para a revisão da moderação.', en: 'Your message was sent to moderator review.' },
+  ethnic_review: CHAT_HINTS.block,
   spam: { pt: 'Calma! Uma mensagem de cada vez.', en: 'Easy! One message at a time.' },
 };
-export const ESCALATE_NOTE: Bilingual = { pt: 'Sua mensagem foi para a revisão da moderação.', en: 'Your message was sent to moderator review.' };
+/** An escalated message is held out of sight; the player only sees the same friendly line as a block. */
+export const ESCALATE_NOTE: Bilingual = CHAT_HINTS.block;
 
 export const SAFETY_SEVERITY: Record<SafetyAction, number> = { allow: 0, warn: 1, block: 2, escalate: 3 };
 /** Among hits with the most severe action, the later label wins (pc08 phone + WhatsApp = pii; pc10 vendo conta + pix = scam). */

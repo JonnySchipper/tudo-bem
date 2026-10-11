@@ -107,7 +107,8 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
     },
   },
   // ---- the Praia (PRAIA-PLAN.md 6). Special `next`s: `rental` (Bento's boats), `caderneta` (Neide's fishing log), `snacks` (Jô's menu),
-  // `sell` (Jô's fish tray), `rack` (Jô's beach hats). needs_br: true (every line and chip)
+  // `sell` (Jô's fish tray). Each opener has 3 chips, so the bate-papo chip still fits the 4 a box shows. Jô's beach hats are on the rack
+  // itself; Neide's big fish wait behind "Como é que pesca?"; Bento's party boat is in his rental menu. needs_br: true (every line and chip)
   bento: {
     start: 'oi',
     nodes: {
@@ -116,7 +117,6 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
         chips: [
           { pt: 'Quanto custa alugar?', en: 'How much to rent?', next: 'precos' },
           { pt: 'Qual é o melhor barco?', en: 'Which is the best boat?', next: 'melhor' },
-          { pt: 'E o barco de festa?', en: 'And the party boat?', next: 'festa' },
           { pt: 'Tchau, Seu Bento!', en: 'Bye, Mr. Bento!', next: 'end' },
         ],
       },
@@ -134,13 +134,6 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
           { pt: 'Valeu, Seu Bento!', en: 'Thanks, Mr. Bento!', next: 'end' },
         ],
       },
-      festa: {
-        line: { pt: 'Esse é pra ir com os amigos. Música, churrasco e muita pescaria.', en: 'That one’s for going with friends. Music, barbecue and lots of fishing.' },
-        chips: [
-          { pt: 'Quero ver os barcos.', en: 'I want to see the boats.', next: 'rental' },
-          { pt: 'Legal! Tchau!', en: 'Cool! Bye!', next: 'end' },
-        ],
-      },
     },
   },
   neide: {
@@ -150,7 +143,6 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
         line: { pt: '{saudacao}, {nome}. Senta aí. Já pescou hoje?', en: '{greeting}, {nome}. Sit down. Fished yet today?' },
         chips: [
           { pt: 'Como é que pesca?', en: 'How do you fish?', next: 'como' },
-          { pt: 'Onde tem peixe grande?', en: 'Where are the big fish?', next: 'grande' },
           { pt: 'Minha caderneta de pesca', en: 'My fishing log', next: 'caderneta' },
           { pt: 'Tchau, Dona Neide!', en: 'Bye, Dona Neide!', next: 'end' },
         ],
@@ -187,7 +179,6 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
         chips: [
           { pt: 'Vou querer um lanche.', en: 'I’d like a snack.', next: 'snacks' },
           { pt: 'Quer comprar peixe?', en: 'Do you want to buy fish?', next: 'peixe' },
-          { pt: 'Tem chapéu aí?', en: 'Got any hats?', next: 'rack' },
           { pt: 'Só olhando, {obrigad}!', en: 'Just looking, thanks!', next: 'end' },
         ],
       },
@@ -300,6 +291,12 @@ export function fillTalk(text: string, ctx: { name?: string; pronoun?: string; m
     .replace(/\{saudacao\}/g, greetingCap(g))
     .replace(/\{greeting\}/g, GREETING_EN[g])
     .replace(/\s+([!?,.])/g, '$1');
+}
+
+/** The greeting's last node: none of its chips leads to another node (the box closes or a panel opens). Shop buttons wait for it. */
+export function isLastTalkNode(talk: NpcTalk, nodeId: string): boolean {
+  const node = talk.nodes[nodeId];
+  return !!node && node.chips.every((c) => !talk.nodes[c.next]);
 }
 
 /** Ids of the NPCs with a greeting (the client sends `talk` for these). */

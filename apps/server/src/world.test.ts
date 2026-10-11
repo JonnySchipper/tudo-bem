@@ -6,13 +6,15 @@ import {
   GAME_DAY_MS,
   gameDay,
   gameMinutes,
-  todayEastern,
+  feiraBoardDay,
+  profileDay,
   greetingCap,
   normalizeBjj,
   greetingFor,
   openMatTiles,
   DEFAULT_APPEARANCE,
   ECONOMY,
+  emptyFeiraCartConfig,
   isCpuId,
   isWalkable,
   MISSION_REWARD,
@@ -22,6 +24,9 @@ import {
   SCORE_FEEDBACK,
   seatTiles,
   TYPED_MISS_HINT,
+  TUTORIAL_STEPS,
+  TUTORIAL_STEP_IDS,
+  HALL_TUTORIAL_STEPS,
   type ServerMsg,
   type ClientMsg,
   type PublicAvatar,
@@ -31,7 +36,8 @@ import { sanitizeAppearance, World, MG_RESUME_MS, type AccountLink, type Session
 import { LayoutStore } from './layoutStore.js';
 import { serveFront } from './correriaTestKit.js';
 import { memoryFeiraGames } from './feiraGames.js';
-import { ProfileStore, normalizeProfile, today, todaySaoPaulo, type StoredProfile } from './store.js';
+import { memoryFeiraCart } from './feiraCart.js';
+import { ProfileStore, normalizeProfile, today, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 1_000_000;
@@ -313,14 +319,17 @@ describe('World', () => {
     for (let r = 0; r < 40 && a.last('mg')!.phase !== 'end'; r++) await serveFront(world, a, advance);
     const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
     expect(end.phase).toBe('end');
-    expect(end.end.served).toBeGreaterThan(10);
+    expect(end.end.served).toBeGreaterThan(6); // the first shift is nine customers
     expect(end.end.coins).toBeGreaterThanOrEqual(ECONOMY.minigameMin);
     expect(end.end.coins).toBeLessThanOrEqual(ECONOMY.minigameMax);
 
     // Back to praça, buy + equip a hat
     await a.send({ t: 'join', room: 'praca' });
+    const noticesBeforeHat = a.all('notice').length;
     await a.send({ t: 'buy', kind: 'hat', itemId: 'boina_vermelha' });
     expect(a.s.profile!.hat).toBe('boina_vermelha');
+    // one signal per purchase: the stall's card stamps the hat, so the server sends no "bought" notice
+    expect(a.all('notice').slice(noticesBeforeHat).some((n) => n.level === 'reward')).toBe(false);
 
     // Kitnet: the first visit pays the gift, which buys the chair (nothing is free), then place it
     expect(a.s.profile!.furniture.cadeira_madeira ?? 0).toBe(0);
@@ -330,6 +339,8 @@ describe('World', () => {
     expect(a.s.profile!.coins).toBe(before + ECONOMY.kitnetGift);
     await a.send({ t: 'buy', kind: 'furniture', itemId: 'cadeira_madeira' });
     expect(a.s.profile!.furniture.cadeira_madeira).toBe(1);
+    // furniture has no stall stamp: its notice stays
+    expect(a.last('notice')!.pt).toMatch(/^Comprou: /);
     await a.send({ t: 'furniture', action: 'place', itemId: 'cadeira_madeira', x: 3, y: 4, rot: 0 });
     expect(a.last('furnitureState')!.furniture).toHaveLength(1);
 
@@ -345,7 +356,45 @@ describe('World', () => {
     expect(a.s.profile!.coins).toBe(coins);
   });
 
-  it('Pedido rápido daily RV gate: once per America/São_Paulo calendar day', async () => {
+  it('the hall-taught steps are done with the hall, silently, and are not part of the welcome chain', async () => {
+    const { world } = makeWorld();
+    const a = await client(world, 'Recem');
+    const p = a.s.profile!;
+    expect(TUTORIAL_STEPS.map((t) => t.id)).toEqual(['carlos', 'chapeu', 'cadeira']);
+    expect(p.desembarqueDone).toBe(false);
+    expect(Object.keys(p.tutorial).sort()).toEqual([...TUTORIAL_STEP_IDS].sort());
+    await a.send({ t: 'arrival', action: 'landed' });
+    expect(HALL_TUTORIAL_STEPS.every((id) => p.tutorial[id])).toBe(true);
+    // a chat in the Vila never sends a step signal for the hidden steps
+    await a.send({ t: 'chat', text: 'Oi, pessoal!' });
+    expect(a.all('tutorial')).toEqual([]);
+    expect(p.tutorial.meveum).toBe(false);
+    expect(p.tutorialRewarded).toBe(false);
+  });
+
+  it('an old save past the hall loads with the hall steps done; one whose chain is already done is paid the bonus once', async () => {
+    const old = { desembarqueDone: undefined, tutorial: { andar: false, sentar: true, acenar: false, conversar: false, carlos: true, meveum: false, chapeu: true, cadeira: true } } as unknown as StoredProfile;
+    normalizeProfile(old);
+    expect(HALL_TUTORIAL_STEPS.every((id) => old.tutorial[id])).toBe(true);
+    expect(old.tutorial.meveum).toBe(false);
+    const inHall = { desembarqueDone: false, tutorial: { andar: false, sentar: false, acenar: false, conversar: false, carlos: false, meveum: false, chapeu: false, cadeira: false } } as unknown as StoredProfile;
+    normalizeProfile(inHall);
+    expect(Object.values(inHall.tutorial).some(Boolean)).toBe(false);
+
+    const { world } = makeWorld();
+    const a = await client(world, 'Antiga');
+    const p = a.s.profile!;
+    Object.assign(p.tutorial, { carlos: true, chapeu: true, cadeira: true });
+    const coins = p.coins;
+    await a.send({ t: 'hello', token: p.token });
+    expect(p.tutorialRewarded).toBe(true);
+    expect(p.coins).toBe(coins + ECONOMY.tutorialBonus);
+    await a.send({ t: 'hello', token: p.token });
+    expect(p.coins).toBe(coins + ECONOMY.tutorialBonus);
+    expect(a.all('reward').filter((r) => r.amount === ECONOMY.tutorialBonus)).toHaveLength(1);
+  });
+
+  it('Pedido rápido daily RV gate: once per player day', async () => {
     const { world } = makeWorld();
     const a = await client(world, 'Ana', 'ela');
 
@@ -367,6 +416,13 @@ describe('World', () => {
     expect(second.payout).toBe(0);
     expect(second.dailyBlocked).toBe(true);
     expect(a.s.profile!.coins).toBe(coinsAfterFirst);
+
+    // an older save's São Paulo key that is not today's player day is yesterday's: it pays again (D1 rollover)
+    a.s.profile!.daily.pedidoRvGranted = { carlos: '1969-12-31' };
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    for (let i = 0; i < 5; i++) await a.send({ t: 'scene', action: 'choose', chip: 0 });
+    expect(a.last('scene')!.payout).toBe(ECONOMY.sceneMax);
+    expect(a.s.profile!.daily.pedidoRvGranted).toEqual({ carlos: '1970-01-01' });
   });
 
   it('refuses to buy without coins and only decorates your own kitnet', async () => {
@@ -1101,28 +1157,32 @@ describe('Admin panel', () => {
     if (roster?.phase === 'players') expect(roster.players.map((p) => p.name)).toEqual(['Admin']);
   });
 
-  it('requires the admin password to turn a Feira cart game on, then tells everyone', async () => {
+  it('ships the cart with Tapioca on, needs the admin password to switch a Feira cart game, then tells everyone', async () => {
     const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
     const a = await client(world, 'Admin');
     const b = await client(world, 'Lia');
     await a.send({ t: 'join', room: 'feira' });
     const entered = a.last('roomState');
-    expect(entered && entered.t === 'roomState' && entered.feiraCart).toMatchObject({ closed: true, game: null });
+    expect(entered && entered.t === 'roomState' && entered.feiraCart).toMatchObject({ closed: false, game: 'tapioca' });
 
-    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'on' });
+    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'off' });
     expect(a.last('admin')).toMatchObject({ phase: 'auth', ok: false });
 
     await a.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
     await a.send({ t: 'admin', action: 'feiraCart' });
-    const locked = a.last('admin');
-    expect(locked?.phase).toBe('feiraCart');
-    if (locked?.phase === 'feiraCart') {
-      expect(locked.featured).toBeNull();
-      expect(locked.games.map((g) => g.id)).toEqual(['tapioca', 'pastel', 'caldo']);
-      expect(locked.games.every((g) => g.mode === 'off')).toBe(true);
-      expect(locked.games.find((g) => g.id === 'pastel')).toMatchObject({ mode: 'off', implemented: true });
-      expect(locked.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: true });
+    const shipped = a.last('admin');
+    expect(shipped?.phase).toBe('feiraCart');
+    if (shipped?.phase === 'feiraCart') {
+      expect(shipped.featured).toBe('tapioca');
+      expect(shipped.games.map((g) => g.id)).toEqual(['tapioca', 'pastel', 'caldo']);
+      expect(shipped.games.find((g) => g.id === 'tapioca')).toMatchObject({ mode: 'on', implemented: true });
+      expect(shipped.games.find((g) => g.id === 'pastel')).toMatchObject({ mode: 'off', implemented: true });
+      expect(shipped.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: true });
     }
+
+    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'off' });
+    expect(a.last('admin')).toMatchObject({ phase: 'feiraCart', featured: null });
+    expect(b.last('feiraGame')).toMatchObject({ phase: 'cart', closed: true, game: null });
 
     await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'on' });
     expect(a.last('admin')).toMatchObject({ phase: 'feiraCart', featured: 'tapioca' });
@@ -1136,7 +1196,7 @@ describe('Admin panel', () => {
   });
 
   it('lets you walk the cart tiles while every game is off, then shows Pastel live to people already there and to a new joiner', async () => {
-    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca', feiraCart: memoryFeiraCart(emptyFeiraCartConfig()) });
     const a = await client(world, 'Admin');
     const b = await client(world, 'Lia');
     await a.send({ t: 'join', room: 'feira' });
@@ -1252,17 +1312,18 @@ describe('Admin panel', () => {
     const admin = await client(world, 'Jonny');
     const other = await client(world, 'Lia');
     const minute = world.gameMinuteNow();
-    const eastern = todayEastern(clock);
+    const eastern = feiraBoardDay(clock);
     games.state.day = eastern;
     games.state.scores = { [other.s.profile!.id]: { name: 'Lia', best: 80, game: 'tapioca', at: clock } };
     games.state.medals = {};
     const utc = today();
-    const sp = todaySaoPaulo();
-    other.s.profile!.correria = { stars: 1, shifts: 1, best: 10, date: utc, paid: 2 };
-    other.s.profile!.feira = { date: utc, n: 3 };
-    other.s.profile!.daily.pedidoRvGranted = { carlos: sp };
+    // every cap but the tatame bond counts the player's own day (playerDay.ts)
+    const day = profileDay(other.s.profile!, clock);
+    other.s.profile!.correria = { stars: 1, shifts: 1, best: 10, date: day, paid: 2 };
+    other.s.profile!.feira = { date: day, n: 3 };
+    other.s.profile!.daily.pedidoRvGranted = { carlos: day };
     other.s.profile!.bjj = normalizeBjj({ bondDay: utc, bondToday: 1 });
-    other.s.profile!.cartela = { stamps: 1, activityDay: { feira: eastern } };
+    other.s.profile!.cartela = { stamps: 1, activityDay: { feira: day } };
     const liaRecados = other.s.profile!.recados?.day;
     const liaSkies = other.all('sky').length;
     await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
@@ -1275,12 +1336,12 @@ describe('Admin panel', () => {
     expect(world.gameMinuteNow()).toBe(minute);
     expect(other.s.profile!.testDayOffset).toBeUndefined();
     expect(other.s.profile!.testClockOffsetMs).toBeUndefined();
-    expect(other.s.profile!.correria).toMatchObject({ date: utc, paid: 2 });
-    expect(other.s.profile!.feira).toEqual({ date: utc, n: 3 });
-    expect(other.s.profile!.daily.pedidoRvGranted).toEqual({ carlos: sp });
+    expect(other.s.profile!.correria).toMatchObject({ date: day, paid: 2 });
+    expect(other.s.profile!.feira).toEqual({ date: day, n: 3 });
+    expect(other.s.profile!.daily.pedidoRvGranted).toEqual({ carlos: day });
     expect(other.s.profile!.bjj?.bondDay).toBe(utc);
     expect(other.s.profile!.bjj?.bondToday).toBe(1);
-    expect(other.s.profile!.cartela?.activityDay.feira).toBe(eastern);
+    expect(other.s.profile!.cartela?.activityDay.feira).toBe(day);
     expect(other.s.profile!.recados?.day).toBe(liaRecados);
     expect(other.all('sky').length).toBe(liaSkies);
     expect(games.state.day).toBe(eastern);

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Phase 8a review screenshots + a full recado walk-through: the welcome tracker (Júlia's chain), the offer in Seu Carlos' dialogue, the tracker
- * mid-recado, the journal (with the Mochila), the "Entregar" chip, the thanks card and the heart-up toast, at desktop and phone size.
+ * mid-recado, the journal (with the Mochila once the bag has something), the "Entregar" chip and the thanks card, at desktop and phone size.
  *
  *   TB_TEST_OFFER=carlos_cafe_pra_nanda TB_TEST_CLOCK_OFFSET_MIN=<min> PORT=8805 TB_TEST_ROLL=1 pnpm start
  *   BASE_URL=http://localhost:8805 node scripts/lifesim-shots-p8a.mjs      # → docs/lifesim/shots/p8a/
@@ -40,14 +40,7 @@ async function interact(page, target) {
 const waitRoom = (page, id) => page.waitForFunction((id) => window.__tb.game.room?.room === id, id, { timeout: 20_000 });
 const box = async (page, key) => {
   const sel = `#dialogue-box[data-dialogue="${key}"]`;
-  for (let i = 0; i < 4; i++) {
-    await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
-    if (await page.$(sel)) return;
-    const cur = await page.getAttribute('#dialogue-box', 'data-dialogue');
-    if (!cur?.startsWith('idle-')) break;
-    await page.click('#dialogue-box [data-chip="0"]'); // Continuar — the learned line, then the talk
-    await sleep(350);
-  }
+  // one click, one box: a learned idle line leads the talk's first line, never a box of its own
   await page.waitForSelector(sel, { timeout: 25_000 });
 };
 const typed = (page) => page.waitForFunction(() => !document.querySelector('#dialogue-box .tw-rest')?.textContent, null, { timeout: 15_000 }).catch(() => {});
@@ -58,7 +51,7 @@ async function toWorld(page, vp) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await page.click('#intro-tab-register');
   await page.fill('#intro-email', `p8a+${vp.name}${Date.now().toString(36)}@exemplo.com`);
   await page.fill('#intro-password', 'pao-de-queijo-2026');
@@ -111,33 +104,29 @@ async function run(browser, vp) {
   await sleep(500);
   assert((await page.textContent('#dialogue-box')).includes('Pode deixar!'), 'offer chip: Pode deixar!');
   assert((await page.textContent('#dialogue-box')).includes('Agora não'), 'offer chip: Agora não');
-  assert(await page.$('#dialogue-box .dbx-hearts'), 'hearts next to the name tag');
+  // hearts and item rewards are found out on the done card: the offer shows the RV, the header the hearts only once there is a bond point
+  assert(!(await page.$('#dialogue-box .offer-reward .rd-heart')), 'the offer shows the RV reward only');
+  const bakerBond = await page.evaluate((b) => window.__tb.game.profile.bond?.[b] ?? 0, baker);
+  assert(!!(await page.$('#dialogue-box .dbx-hearts')) === bakerBond >= 1, 'hearts next to the name tag once there is a bond point');
   await shot(page, vp, 'offer_dialogue');
   await page.click('#dialogue-box [data-chip="0"]');
   await page.waitForSelector('#recado-tracker [data-recado="carlos_cafe_pra_nanda"]', { timeout: 8000 });
   await sleep(1700);
   await shot(page, vp, 'tracker_mid_recado');
 
-  // 3. the journal: offered / active / Mochila / friends
+  // 3. the journal: Em andamento / Hoje na vila (the Mochila waits for something in the bag, Amizades for a heart)
   await page.click('#btn-recados');
   await page.waitForSelector('[data-modal="recados"] .rj-card.active', { timeout: 5000 });
-  assert((await page.textContent('[data-modal="recados"]')).includes('Mochila'), 'journal has the Mochila');
+  assert(!(await page.$('[data-modal="recados"] #rj-mochila')), 'no Mochila while the bag is empty');
   await sleep(300);
   await shot(page, vp, 'journal');
   await page.keyboard.press('Escape');
   await sleep(300);
 
-  // 4. order café com leite through Pedido rápido (the recado's first step); it lands in the bag
+  // 4. order café com leite at the counter (the recado's first step); it lands in the bag
   await interact(page, { npc: baker });
-  await box(page, 'conversa');
-  await page.click('[data-action="pedido-rapido"]');
-  await box(page, 'pedido');
-  for (const chip of [0, 1, 3, 0, 0]) {
-    const before = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
-    await sleep(500);
-    await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${chip}"]`);
-    await page.waitForFunction((b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before, { timeout: 8000 });
-  }
+  await box(page, `counter-${baker}`);
+  await page.click('#dialogue-box .dbx-chip:has-text("café com leite")');
   await page.waitForFunction(() => (window.__tb.game.profile.bag?.cafe_com_leite ?? 0) >= 1, null, { timeout: 8000 });
   await page.keyboard.press('Escape');
   await sleep(400);
@@ -145,6 +134,7 @@ async function run(browser, vp) {
   assert(step1 === 1, `recado step 1 after ordering (got ${step1})`);
   await page.click('#btn-recados');
   await page.waitForSelector('[data-modal="recados"] .rj-item[data-item="cafe_com_leite"]', { timeout: 5000 });
+  assert((await page.textContent('[data-modal="recados"]')).includes('Mochila'), 'the Mochila shows once the bag has something');
   await sleep(900);
   await shot(page, vp, 'journal_bag');
   await page.keyboard.press('Escape');
@@ -182,14 +172,14 @@ async function run(browser, vp) {
     const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
     console.log('    nanda box:', key);
     if (key === 'talk-nanda') break;
-    await page.click(`#dialogue-box [data-chip="${key?.startsWith('idle-') ? '0' : '1'}"]`);
+    await page.click('#dialogue-box [data-chip="1"]');
     await sleep(400);
   }
   assert((await page.getAttribute('#dialogue-box', 'data-dialogue')) === 'talk-nanda', 'Nanda greets after the offers are declined');
   await page.keyboard.press('Escape');
   await sleep(300);
 
-  // 6. a heart-up toast (a real heart needs 10 points: lift Nanda's bond in the page for the picture)
+  // 6. a heart earned outside a recado has no toast (the done card carries a recado's hearts; the panel shows the count)
   await page.evaluate(() => {
     const g = window.__tb.game;
     g.profile = { ...g.profile, bond: { ...g.profile.bond, nanda: 9 } };
@@ -197,9 +187,8 @@ async function run(browser, vp) {
     g.profile = { ...g.profile, bond: { ...g.profile.bond, nanda: 11 } };
     g.emit('profile');
   });
-  await page.waitForSelector('.toast.reward', { timeout: 3000 });
-  await sleep(300);
-  await shot(page, vp, 'heart_up_toast');
+  await sleep(600);
+  assert(!(await page.$('.toast.reward')), 'no heart-up toast');
 
   assert(!errors.length, `no page errors: ${errors.join(' | ')}`);
   await ctx.close();

@@ -119,6 +119,8 @@ async function openAction(page, id) {
       if (await vis(id)) return page.click(id);
     }
   }
+  // a button the disclosure ladder still hides for this newcomer (Chapéus, Amigos, Créditos: SIMPLIFICATION-REVIEW §3): open its panel from it directly
+  if (await page.$(id)) return page.$eval(id, (b) => b.click());
   throw new Error(`action ${id} is not reachable`);
 }
 
@@ -133,7 +135,7 @@ async function boot(page, vp, { name = 'Jonny', shots = false, enter = true } = 
   await sleep(3500);
   if (shots) await snap(page, vp, 'ui_title_hero');
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await sleep(1800);
   if (shots) await snap(page, vp, 'ui_signin_card');
   await page.click('#intro-tab-register');
@@ -263,7 +265,7 @@ async function sectionPanels(browser, vp) {
   await snap(page, vp, 'dialogue_nanda');
   await close(page);
 
-  // padaria: Conversa, Pedido, Me vê um
+  // padaria: Conversa, Me vê um
   await interact(page, { portal: 'praca_padaria' });
   await waitRoom(page, 'padaria');
   await sleep(3000);
@@ -272,10 +274,6 @@ async function sectionPanels(browser, vp) {
   await openNpc(page, 'carlos', 'conversa');
   await sleep(1200);
   await snap(page, vp, 'dialogue_conversa');
-  await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
-  await sleep(900);
-  await snap(page, vp, 'dialogue_pedido');
   await close(page);
   await page.evaluate(() => window.__tb.net.send({ t: 'mg', action: 'start' }));
   await page.waitForSelector('#cr-order', { timeout: 8000 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DESEMBARQUE_EXIT, DESEMBARQUE_HOST, HOTSPOTS, ROOMS, buildGrid, isWalkable, snacksAt, wordForLine, wordForSign } from '@tudobem/shared';
-import { DESEMB_STEPS, RV_EXPLAINER, desembDone, desembGateHint, desembLeft, drankWater, firstRoom, nextDesembStep } from './desembarqueLogic';
+import { DESEMB_STEPS, desembDone, firstRoom, nextDesembStep } from './desembarqueLogic';
 
 const room = ROOMS.desembarque;
 
@@ -32,8 +32,8 @@ describe('the arrivals hall (desembarque)', () => {
 });
 
 describe('the guided tutorial', () => {
-  it('walks every topic of the onboarding, in order, ending at the door', () => {
-    expect(DESEMB_STEPS.map((s) => s.id)).toEqual(['andar', 'falar', 'diario', 'placa', 'chat', 'pegar', 'beber', 'dinheiro', 'mapa', 'fala', 'porta']);
+  it('walks five steps, in order, ending at the door', () => {
+    expect(DESEMB_STEPS.map((s) => s.id)).toEqual(['andar', 'falar', 'placa', 'chat', 'porta']);
     expect(DESEMB_STEPS.at(-1)!.guide).toMatchObject({ kind: 'portal', id: DESEMBARQUE_EXIT });
   });
 
@@ -63,16 +63,10 @@ describe('the guided tutorial', () => {
   it('goes one step at a time; a step done early is skipped when its turn comes', () => {
     expect(nextDesembStep(desembDone({}))?.id).toBe('andar');
     expect(nextDesembStep(desembDone({ andar: true }))?.id).toBe('falar');
-    expect(nextDesembStep(desembDone({ andar: true, chat: true, falar: true, diario: true }))?.id).toBe('placa');
+    expect(nextDesembStep(desembDone({ andar: true, chat: true, falar: true }))?.id).toBe('placa');
+    expect(nextDesembStep(desembDone({ andar: true, falar: true, placa: true, chat: true }))?.id).toBe('porta');
     const all = Object.fromEntries(DESEMB_STEPS.map((s) => [s.id, true]));
     expect(nextDesembStep(desembDone(all))).toBeNull();
-  });
-
-  it('counts the water as drunk only after it was in hand', () => {
-    expect(drankWater('agua', 'copo_vazio')).toBe(true);
-    expect(drankWater('agua', null)).toBe(true);
-    expect(drankWater(null, 'copo_vazio')).toBe(false);
-    expect(drankWater('agua', 'agua')).toBe(false);
   });
 
   it('sends a new account to the hall, then the airport; a returning player (no flag on the save) to neither', () => {
@@ -83,22 +77,14 @@ describe('the guided tutorial', () => {
     expect(firstRoom({})).toBeNull();
   });
 
-  it('says RV is earned by playing, never bought', () => {
-    const text = [RV_EXPLAINER.note.en, ...RV_EXPLAINER.lines.map((l) => l.en)].join(' ').toLowerCase();
-    expect(text).toContain('earn');
-    expect(text).toContain('never bought');
-    expect(text).not.toMatch(/\bbuy rv\b|purchase|\$\d/);
+  it('reads ≤150 words over its five cards', () => {
+    const words = DESEMB_STEPS.flatMap((s) => `${s.en} ${s.how}`.split(/\s+/)).length;
+    expect(words).toBeLessThanOrEqual(150);
   });
 
-  it('keeps the doors to the airport shut until every step before them is done, with a short PT + EN hint naming what is left', () => {
-    const none = desembGateHint(new Set());
-    expect(none?.pt).toBe(`Calma! Faltam ${DESEMB_STEPS.length - 1} passos antes do aeroporto.`);
-    expect(none?.en).toContain('Next: walk around.');
-    const allButMap = new Set(DESEMB_STEPS.filter((s) => s.id !== 'mapa' && s.id !== 'porta').map((s) => s.id));
-    expect(desembLeft(allButMap).map((s) => s.id)).toEqual(['mapa']);
-    expect(desembGateHint(allButMap)).toEqual({ pt: 'Quase lá! Só falta um passo: o mapa.', en: 'Almost there! One step left before the airport: open the map.' });
-    // the door itself is not something to do before the door
-    expect(desembGateHint(new Set(DESEMB_STEPS.filter((s) => s.id !== 'porta').map((s) => s.id)))).toBeNull();
-    for (const h of [none!, desembGateHint(allButMap)!]) expect(h.pt.length + h.en.length).toBeLessThan(160);
+  it('keeps an old save’s flags for steps that are gone from counting or getting in the way', () => {
+    const old = { andar: true, falar: true, diario: true, pegar: true, beber: true, dinheiro: true, mapa: true, fala: true } as Record<string, boolean>;
+    expect([...desembDone(old)]).toEqual(['andar', 'falar']);
+    expect(nextDesembStep(desembDone(old))?.id).toBe('placa');
   });
 });

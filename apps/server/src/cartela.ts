@@ -3,8 +3,8 @@ import {
   CARTELA_COPY,
   CARTELA_GOAL,
   normalizeCartela,
+  profileDay,
   stampsOnDay,
-  todayEastern,
   tryCartelaStamp,
   type CartelaActivity,
 } from '@tudobem/shared';
@@ -18,16 +18,17 @@ export interface CartelaDeps {
   store: ProfileStore;
   reward: (s: Session, amount: number, reason: { pt: string; en: string }) => void;
   pushProfile: (s: Session) => void;
-  /** Eastern calendar day for stamp limits (default: America/New_York). */
-  day?: () => string;
+  /** Test override of the player day stamp limits count on (the Testes day offset is added on top). Default: `profileDay`. */
+  day?: (p: StoredProfile) => string;
 }
 
 /** Server-side cartela: stamps from bairro activities, pays on the 7th, persists on the profile. */
 export class CartelaTracker {
   constructor(private readonly d: CartelaDeps) {}
 
-  private day() {
-    return this.d.day?.() ?? todayEastern(this.d.now());
+  /** The player's own day (playerDay.ts), shifted by a Testes day roll. */
+  private day(p: StoredProfile) {
+    return this.d.day ? addCalendarDays(this.d.day(p), p.testDayOffset ?? 0) : profileDay(p, this.d.now());
   }
 
   private of(p: StoredProfile) {
@@ -42,7 +43,7 @@ export class CartelaTracker {
   tryStamp(s: Session, activity: CartelaActivity): boolean {
     const p = s.profile;
     if (!p) return false;
-    const day = addCalendarDays(this.day(), p.testDayOffset ?? 0);
+    const day = this.day(p);
     const cur = this.of(p);
     const res = tryCartelaStamp(cur, activity, day);
     if (!res.ok) return false;

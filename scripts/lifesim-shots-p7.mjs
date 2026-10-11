@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Phase 7 review screenshots: the in-world dialogue box (Seu Carlos' Conversa and Pedido rápido, Nanda, Júlia), a sign card with its 👁 cue, and
- * the Caderno panel, at desktop and phone size.
+ * Phase 7 review screenshots: the in-world dialogue box (Seu Carlos' Conversa, Nanda, Júlia), a sign card with its 👁 cue, and
+ * the Diário, at desktop and phone size.
  *
  *   pnpm build && PORT=8802 TB_TEST_ROLL=1 pnpm start          # then, in another terminal:
  *   BASE_URL=http://localhost:8802 node scripts/lifesim-shots-p7.mjs          # → docs/lifesim/shots/p7/
@@ -37,14 +37,7 @@ async function interact(page, target) {
 const waitRoom = (page, id) => page.waitForFunction((id) => window.__tb.game.room?.room === id, id, { timeout: 15_000 });
 const box = async (page, key) => {
   const sel = `#dialogue-box[data-dialogue="${key}"]`;
-  for (let i = 0; i < 4; i++) {
-    await page.waitForSelector('#dialogue-box', { timeout: 20_000 });
-    if (await page.$(sel)) return;
-    const cur = await page.getAttribute('#dialogue-box', 'data-dialogue');
-    if (!cur?.startsWith('idle-')) break;
-    await page.click('#dialogue-box [data-chip="0"]'); // Continuar — the learned line, then the talk
-    await sleep(350);
-  }
+  // one click, one box: a learned idle line leads the talk's first line, never a box of its own
   await page.waitForSelector(sel, { timeout: 20_000 });
 };
 /** The line finished typing (45 chars/s): wait for the rest of it to be gone. */
@@ -57,7 +50,7 @@ async function toWorld(page, vp) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await page.click('#intro-tab-register');
   await page.fill('#intro-email', `p7+${vp.name}${Date.now().toString(36)}@exemplo.com`);
   await page.fill('#intro-password', 'pao-de-queijo-2026');
@@ -77,7 +70,7 @@ async function run(browser, vp) {
   page.on('pageerror', (e) => console.error('pageerror', String(e)));
   await toWorld(page, vp);
 
-  // Nanda: the greeting in the box (2 reply chips, "Ver chapéus")
+  // Nanda: the greeting in the box (2 reply chips; "Ver chapéus" waits for her last line)
   await interact(page, { npc: 'nanda' });
   await box(page, 'talk-nanda');
   await typed(page);
@@ -124,10 +117,6 @@ async function run(browser, vp) {
   await page.waitForSelector('.hotspot-card', { timeout: 20_000 });
   await sleep(500);
   await shot(page, vp, 'hotspot_card_cardapio');
-  await page.click('#hs-save');
-  await page.waitForSelector('[data-modal="caderno"]', { timeout: 5000 });
-  await sleep(500);
-  await shot(page, vp, 'caderno_saved');
   await page.keyboard.press('Escape');
   await sleep(500);
 
@@ -146,37 +135,14 @@ async function run(browser, vp) {
   await sleep(500);
   await shot(page, vp, 'conversa_turn');
 
-  await page.click('[data-action="pedido-rapido"]');
-  await box(page, 'pedido');
-  await typed(page);
-  await sleep(700);
-  await shot(page, vp, 'dialogue_carlos_pedido');
-  console.log('    pedido box height', await boxPct(page), '% of the screen');
-  await page.fill('#pedido-input', 'Bom dia, Seu Carlos!');
-  await page.press('#pedido-input', 'Enter');
-  await sleep(800);
-  await typed(page);
-  await page.click('#dialogue-box [data-chip="1"]');
-  await sleep(800);
-  await typed(page);
-  await page.click('#dialogue-box [data-chip="0"]');
-  await sleep(800);
-  await typed(page);
-  await sleep(400);
-  await shot(page, vp, 'dialogue_carlos_pedido_mid');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('#dialogue-box'));
 
-  // the Caderno with progress (the menu was read, the greeting heard)
-  await page.evaluate(() => window.__tb.net.send({ t: 'heard', cardIds: ['lex.padaria.coxinha', 'lex.padaria.cafe', 'lex.social.oi', 'lex.social.tudo_bem'] }));
-  await sleep(500);
+  // the Diário after the menu and the greeting (the Caderno spread is gone: the Diário is the one word home)
   await page.click('#btn-caderno');
   await page.waitForSelector('[data-modal="caderno"]', { timeout: 5000 });
   await sleep(500);
-  await shot(page, vp, 'caderno');
-  await page.click('[data-cad-tab="social"]');
-  await sleep(300);
-  await shot(page, vp, 'caderno_social');
+  await shot(page, vp, 'diario');
   console.log('  artMissing:', JSON.stringify(await page.evaluate(() => window.__tb.artMissing)));
   await ctx.close();
 }

@@ -113,16 +113,30 @@ export const DEFAULT_APPEARANCE: Appearance = {
   idle: 'solto',
 };
 
+/** Júlia's welcome chain, the one Vila checklist the player sees. The bonus pays once when every step here is done. */
 export const TUTORIAL_STEPS: { id: TutorialStep; pt: string; en: string }[] = [
-  { id: 'andar', pt: 'Ande pela praça', en: 'Walk around the praça, the town square (click the ground)' },
-  { id: 'sentar', pt: 'Sente num banco', en: 'Sit on a bench (click it)' },
-  { id: 'acenar', pt: 'Dê um oi', en: 'Wave hello (Oi button)' },
-  { id: 'conversar', pt: 'Mande uma mensagem', en: 'Send a chat message' },
   { id: 'carlos', pt: 'Tome café com o Seu Carlos', en: 'Have breakfast with Seu Carlos (Padaria)' },
-  { id: 'meveum', pt: 'Jogue a “Correria no Balcão”', en: 'Play “Correria no Balcão”, the bakery counter game' },
   { id: 'chapeu', pt: 'Use um chapéu', en: 'Get and wear a hat (Nanda’s stall)' },
   { id: 'cadeira', pt: 'Coloque uma cadeira na kitnet', en: 'Place a chair in your kitnet' },
 ];
+
+/** Steps the arrivals hall already taught. Kept in every save's `tutorial` record, never shown: done when the hall is. */
+export const HALL_TUTORIAL_STEPS: readonly TutorialStep[] = ['andar', 'sentar', 'acenar', 'conversar'];
+
+/** Every key of a profile's `tutorial` record: the chain, the hall steps and `meveum` (the Correria has its own practice). */
+export const TUTORIAL_STEP_IDS: readonly TutorialStep[] = ['andar', 'sentar', 'acenar', 'conversar', 'carlos', 'meveum', 'chapeu', 'cadeira'];
+
+/** Ticks the hall-taught steps once the hall is done (a missing `desembarqueDone` is an old save, already home). Returns true when it changed something. */
+export function completeHallSteps(p: { tutorial: Record<TutorialStep, boolean>; desembarqueDone?: boolean }): boolean {
+  if (p.desembarqueDone === false) return false;
+  let changed = false;
+  for (const id of HALL_TUTORIAL_STEPS) {
+    if (p.tutorial[id] === true) continue;
+    p.tutorial[id] = true;
+    changed = true;
+  }
+  return changed;
+}
 
 export const ECONOMY = {
   startingCoins: 10,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS, ROOM_IDS } from '@tudobem/shared';
-import { doorTagsFor, exitLine } from './wayfinding';
+import { doorTagsFor } from './wayfinding';
 import { HOW_TO_PLAY } from './howToPlayData';
 import { shouldReveal } from './diaryWordQueue';
 
@@ -35,7 +35,7 @@ describe('wayfinding: every room says where its doors go', () => {
   it('names the arrivals hall’s door: on to the airport', () => {
     const [tag] = doorTagsFor(ROOMS.desembarque);
     expect(tag).toMatchObject({ to: 'aeroporto', en: 'On to the airport' });
-    expect(exitLine([tag!])).toContain('Siga para o aeroporto');
+    expect(tag!.pt).toContain('Siga para o aeroporto');
   });
 });
 
@@ -65,9 +65,17 @@ describe('how to play', () => {
     expect(new Set(HOW_TO_PLAY.map((g) => g.id)).size).toBe(HOW_TO_PLAY.length);
   });
 
+  it('a place card never opens by itself and is at most three lines (the pet shop’s command sheet is a list of words, not rules)', () => {
+    for (const g of HOW_TO_PLAY.filter((x) => x.kind === 'place')) {
+      expect(g.autoOpen, g.id).toBe(false);
+      if (g.id !== 'petshop') expect(g.steps.length, g.id).toBeLessThanOrEqual(3);
+    }
+  });
+
   it('has no card for the bakery game: it teaches by doing (one coach mark per new action), and no card mentions "Quanto é?" there', () => {
     expect(HOW_TO_PLAY.find((g) => g.id === 'correria')).toBeUndefined();
-    expect(HOW_TO_PLAY.find((g) => g.id === 'balcao')!.steps.join(' ')).toMatch(/vitrine/);
+    // the counter card is about ordering only: the bakery game is not in it
+    expect(HOW_TO_PLAY.find((g) => g.id === 'balcao')!.steps.join(' ')).not.toMatch(/Correria|vitrine/);
   });
 
   it('fishing has only the "?" card: it never opens by itself, and it carries the three beats in Portuguese with no digits', () => {
@@ -77,7 +85,16 @@ describe('how to play', () => {
     expect(pesca.selector).toBe('#pesca-root');
     expect(pesca.goal).toMatch(/Segura pra lançar, solta\. Fisgou\? Toca\. Segura pra puxar, solta quando ele corre\./);
     expect([pesca.goal, ...pesca.steps].join(' ')).not.toMatch(/\d/);
-    for (const g of HOW_TO_PLAY) if (g.id !== 'pesca') expect(g.autoOpen, g.id).toBeUndefined();
+    // the cart games teach by doing too (C2) and every place card waits for the "?"; the other games still open their card once
+    const quiet = ['tapioca', 'pastel', 'caldo', ...HOW_TO_PLAY.filter((g) => g.kind === 'place').map((g) => g.id)];
+    for (const id of quiet) expect(HOW_TO_PLAY.find((g) => g.id === id)!.autoOpen, id).toBe(false);
+    for (const g of HOW_TO_PLAY) if (!quiet.includes(g.id)) expect(g.autoOpen, g.id).toBeUndefined();
+  });
+
+  it('the pet shop card is only the "?" command sheet: five short lines, never opens by itself', () => {
+    const shop = HOW_TO_PLAY.find((g) => g.id === 'petshop')!;
+    expect(shop.autoOpen).toBe(false);
+    expect(shop.steps).toEqual(['senta (sit)', 'deita (lie down)', 'vem (come)', 'busca (fetch)', 'brinca (play)']);
   });
 
   it('never makes the jiu-jitsu roll a quiz', () => {

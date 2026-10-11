@@ -6,15 +6,18 @@
  * with the picture on it. The server answers with what the print says (a new word, a word already in the diary, or just "Foto guardada.").
  * A new word then bursts out of the print itself (ui/photoFind.ts), like a word found on a sign, and is written on it; a print with no new
  * word just flies into the Diário button. None of these layers takes the pointer, so the next click is the next shot.
+ * The full "Nova palavra!" card is for the first three words of a session; after that a word flies into the Diário on its own and the
+ * button's badge counts it (the Diário is where it is read).
  */
 import { PHOTO_MAX_CHARS, pickPhotoUrl } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en } from './dom';
 import { ambience } from '../ambience';
-import { WordQueue, cardMs, momentsOfShot, type QueuedWord, type WordMoment } from './diaryWordQueue';
-import { flyWord } from './wordFlight';
+import { WordQueue, cardMs, momentsOfShot, wantsFullCard, type QueuedWord, type WordMoment } from './diaryWordQueue';
+import { FLY_MS, LIFT_MS, flyWord } from './wordFlight';
 import { miniBook, revealJournal, wantsReveal } from './journalReveal';
 import { canPhotoFind, playPhotoFind } from './photoFind';
+import { oneWordCard } from './airportTutorialLogic';
 import { cameraFrameAt, clientRectToCanvas } from './viewfinder';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -152,6 +155,59 @@ export function flyInto(el: HTMLElement, targetId = 'btn-caderno', after?: () =>
 /** A word read this long ago is still flown in from where it was; older (it waited behind a game or another card), the card just pops. */
 const FROM_FRESH_MS = 2500;
 
+/** Full new-word cards shown this session (page load). */
+let fullCards = 0;
+/** A word is flying into the Diário on its own: the next one waits for it. */
+let flying = false;
+
+/** The Diário button, or the menu it sits behind on a phone. */
+function diaryButton(): HTMLElement | null {
+  for (const id of ['btn-caderno', 'btn-burger']) {
+    const el = document.getElementById(id);
+    if (el && el.getBoundingClientRect().width > 0) return el;
+  }
+  return null;
+}
+
+/**
+ * After the first cards of a session: the word itself flies into the Diário (from the line it was read in, or from the middle of the screen)
+ * and the button bumps; the badge counts it. No card, nothing to close.
+ */
+function flyToDiary(m: QueuedWord<HTMLElement>) {
+  const target = diaryButton();
+  let done = false;
+  const next = () => {
+    if (done) return;
+    done = true;
+    flying = false;
+    if (m.print?.isConnected) flyInto(m.print);
+    window.clearTimeout(pumping);
+    pumping = window.setTimeout(pump, 120);
+  };
+  ambience.sting('caderno');
+  if (!target || reduceMotion()) return next();
+  const fresh = m.from && performance.now() - m.from.at < FROM_FRESH_MS ? m.from : null;
+  const cs = getComputedStyle(document.body);
+  const size = 26;
+  const w = Math.max(60, m.pt.length * size * 0.6);
+  const src = fresh ?? { rect: new DOMRect(window.innerWidth / 2 - w / 2, window.innerHeight * 0.42 - size / 2, w, size * 1.2), text: m.pt, fontFamily: cs.fontFamily, fontSize: size, fontWeight: '800', at: performance.now() };
+  flying = true;
+  // the chip can be dropped on the way (a room change clears the layer): the queue never waits on it for long
+  window.setTimeout(next, LIFT_MS + FLY_MS + 800);
+  flyWord(
+    src,
+    () => target.getBoundingClientRect(),
+    () => 12,
+    () => {
+      target.classList.remove('bump');
+      void target.offsetWidth;
+      target.classList.add('bump');
+      window.setTimeout(() => target.classList.remove('bump'), 500);
+      next();
+    },
+  );
+}
+
 /**
  * The new-word card over the world. It never blocks the world: only its button takes the pointer. A shot's cards hand over one after another.
  * A word read in a line of dialogue (`from`) lifts off that line and flies into the card's empty slot, and the card then goes into the Diário.
@@ -174,6 +230,9 @@ function celebrate(m: QueuedWord<HTMLElement>) {
     });
     return;
   }
+  // the first words of a session get the card; after that the word flies into the Diário on its own
+  if (!wantsFullCard(fullCards)) return flyToDiary(m);
+  fullCards += 1;
   document.getElementById('photo-celebrate')?.remove();
   const from = m.from && performance.now() - m.from.at < FROM_FRESH_MS && !reduceMotion() ? m.from : null;
   let timer = 0;
@@ -257,7 +316,7 @@ export function celebrateWords(words: readonly WordMoment[]) {
 function pump() {
   window.clearTimeout(pumping);
   if (!queue.length) return;
-  const next = queue.take(!!document.getElementById('photo-celebrate'), gameOn());
+  const next = queue.take(!!document.getElementById('photo-celebrate') || flying, gameOn());
   if (!next) {
     pumping = window.setTimeout(pump, 400);
     return;
@@ -274,8 +333,10 @@ export function showPhoto(m: ShotMsg) {
     pending = null;
   }
   const words = m.ok ? (m.words?.length ? m.words : [m]) : [];
+  // the plane at the gate is one thing: a shot of its parts gives one card with all their words (no burst: that shows one word)
+  const oneCard = m.ok && words.length > 1 && game.room?.room === 'aeroporto';
   // a new word keeps the print's caption a secret: the word bursts out of the picture and is written there (ui/photoFind.ts)
-  const finding = m.ok && canPhotoFind(print);
+  const finding = m.ok && !oneCard && canPhotoFind(print);
   if (print) {
     print.classList.remove('developing');
     if (finding) print.classList.add('charged');
@@ -292,7 +353,7 @@ export function showPhoto(m: ShotMsg) {
   }
   if (m.ok) {
     // every word the shot taught, in order; the print flies into the Diário when the last of them has been shown
-    queue.push(momentsOfShot(words, print ?? undefined));
+    queue.push(oneCard ? [{ ...oneWordCard(words), index: 1, total: 1, ...(print ? { print } : {}) }] : momentsOfShot(words, print ?? undefined));
     pump();
     return;
   }

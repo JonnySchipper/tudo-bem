@@ -22,6 +22,7 @@ import {
   type DiaryPhoto,
   type DiarySource,
   type DiaryWord,
+  type PrivateProfile,
 } from '@tudobem/shared';
 
 /** Colour and emblem of each chapter (the index tab, the sticker border, the chapter title). Unknown areas get the last one. */
@@ -259,6 +260,29 @@ export function journalModel(input: JournalInput): JournalModel {
   };
 }
 
+// ---------------------------------------------------------------- what the book shows yet
+
+/** Words a chapter needs before its sorts, source filters and "Mostrar o que falta" appear. */
+export const CHAPTER_TOOLS_MIN = 8;
+
+/**
+ * The regular player's parts of the Início (the streak / due / XP row, the mastery tier bar, the Feira medals) show once the diary has
+ * 25 words, an Escola lesson is finished, or the gi is owned. A local stand-in for stage S3 of the disclosure ladder.
+ */
+export function journalShows(profile: Pick<PrivateProfile, 'diary' | 'escola' | 'giOwned'> | null | undefined): boolean {
+  if (!profile) return false;
+  return normalizeDiary(profile.diary).length >= 25 || (profile.escola?.lessons ?? 0) >= 1 || profile.giOwned === true;
+}
+
+/** The chapters with an index tab (and a row on the Início): those with at least one word found. */
+export const shownChapters = (m: Pick<JournalModel, 'chapters'>): JournalChapter[] => m.chapters.filter((c) => c.earned > 0);
+
+/** The chapter's sorts, source filters and "Mostrar o que falta" are on its page. */
+export const chapterTools = (c: Pick<JournalChapter, 'earned'>): boolean => c.earned >= CHAPTER_TOOLS_MIN;
+
+/** The filter a chapter's grid uses: the stored one once the tools show, before that the album with its next gaps (the search still works). */
+export const chapterFilter = (c: Pick<JournalChapter, 'earned'>, f: JournalFilter): JournalFilter => (chapterTools(c) ? f : { ...DEFAULT_FILTER, query: f.query });
+
 // ---------------------------------------------------------------- looking through a chapter
 
 export type JournalSort = 'album' | 'recent' | 'az' | 'mastery';
@@ -275,6 +299,9 @@ export interface JournalFilter {
 
 export const DEFAULT_FILTER: JournalFilter = { source: 'all', sort: 'album', query: '', missing: true };
 
+/** Empty slots a chapter shows in album order: the next few still to find (lowest numbers first), not every one. */
+export const GAPS_SHOWN = 6;
+
 /** A query matches a word's Portuguese or its English gloss, accents and case aside. Empty matches everything. */
 export function matchesQuery(w: Pick<JournalWord, 'pt' | 'en'>, query: string): boolean {
   const q = diaryKey(query);
@@ -285,13 +312,14 @@ export function matchesQuery(w: Pick<JournalWord, 'pt' | 'en'>, query: string): 
 const collator = typeof Intl !== 'undefined' ? new Intl.Collator('pt-BR', { sensitivity: 'base' }) : null;
 
 /**
- * The words a chapter shows under a filter. A search never reveals a word not yet found. Album order keeps the empty slots (when
- * `missing`); the other orders list earned stickers only.
+ * The words a chapter shows under a filter. A search never reveals a word not yet found. Album order keeps the next GAPS_SHOWN empty
+ * slots (when `missing`); the other orders list earned stickers only.
  */
 export function filterWords(words: readonly JournalWord[], f: JournalFilter): JournalWord[] {
   const searching = diaryKey(f.query) !== '';
   const keepMissing = f.missing && f.sort === 'album' && !searching;
-  const out = words.filter((w) => (f.source === 'all' || w.source === f.source) && (w.earned ? matchesQuery(w, f.query) : keepMissing));
+  let gaps = 0;
+  const out = words.filter((w) => (f.source === 'all' || w.source === f.source) && (w.earned ? matchesQuery(w, f.query) : keepMissing && gaps++ < GAPS_SHOWN));
   if (f.sort === 'recent') out.sort((a, b) => b.order - a.order);
   else if (f.sort === 'az') out.sort((a, b) => (collator ? collator.compare(a.pt, b.pt) : a.pt.localeCompare(b.pt)));
   else if (f.sort === 'mastery') out.sort((a, b) => b.box - a.box || a.no - b.no);

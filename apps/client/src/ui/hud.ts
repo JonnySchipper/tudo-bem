@@ -3,12 +3,13 @@ import {
   CRESTS,
   PADARIA_SIZE_NAMES,
   CARTELA_GOAL,
+  CHAT_HINTS,
   classifyChat,
   MAX_CHAT_LEN,
   MISSION_COPY,
   MISSION_STEPS,
   stampsOnDay,
-  todayEastern,
+  viewerProfileDay,
   currentStreak,
   localDay,
   normalizeBjj,
@@ -32,7 +33,10 @@ import { openFeedback } from './feedback';
 import { openAccount } from './account';
 import { tierIcon, tierName } from './plate';
 import { wireHudNote } from './hudNotes';
-import { CARTELA_RULE, hudShows } from './hudNotesData';
+import { CARTELA_RULE } from './hudNotesData';
+import { atLeast, hudShows, stage } from './disclosure';
+import { chatChips, chatChipsShown } from './chatChips';
+import { clock } from '../gameClock';
 import { showSupportButton } from './supportGate';
 import { fetchPublicConfig } from '../auth/config';
 
@@ -100,6 +104,9 @@ export function holdCartelaChip(stamps: number, ms: number) {
   }, ms);
 }
 
+/** How many toasts stack at once: 2 before the regular stage (S3), then 3. */
+export const toastStackMax = (): number => (game.profile && atLeast(stage(game.profile), 'S3') ? 3 : 2);
+
 export function toast(level: NoticeLevel, pt: string, enText?: string, amount?: number) {
   const el = h(
     'div',
@@ -109,7 +116,8 @@ export function toast(level: NoticeLevel, pt: string, enText?: string, amount?: 
     enText ? en(enText) : null,
   );
   toastsEl.append(el);
-  while (toastsEl.children.length > 3) toastsEl.firstElementChild?.remove();
+  // a newcomer's stack is two deep (the oldest makes way); a regular's three
+  while (toastsEl.children.length > toastStackMax()) toastsEl.firstElementChild?.remove();
   placeHud();
   setTimeout(() => {
     el.remove();
@@ -132,9 +140,10 @@ export function missionBanner() {
 
 /**
  * One slim HUD (V4). Top left: the brand, where you are and the clock, in one plate. Top right: the RV coin, the Verde plate and a bar of pixel
- * icons (Mapa, Recados, Diário, Chapéus, Amigos) plus a gear for Música / Voz / Créditos / Sair, and a Fala chip for feedback; the labels (Portuguese with the English gloss)
- * show on hover and focus. On a phone (<= 640 px wide, or a landscape phone under 520 px tall) the same buttons become a drawer behind one ☰,
- * and the emote row hides behind a smiley next to the chat field. Ids are the old ones (`btn-map`, `btn-music`, ...).
+ * icons (Mapa, Recados, Diário, Chapéus, Amigos) plus a gear for Música / Voz / Inglês / Fala / Créditos / Sair; the labels (Portuguese with
+ * the English gloss) show on hover and focus. What shows when follows the disclosure ladder (disclosure.ts). On a phone (<= 640 px wide, or a
+ * landscape phone under 520 px tall) the same buttons become a drawer behind one ☰, and the emote row hides behind a smiley next to the chat
+ * field (on desktop too, until the resident stage). Ids are the old ones (`btn-map`, `btn-music`, ...).
  */
 export function buildHud(actions: HudActions) {
   const root = ui();
@@ -206,6 +215,23 @@ export function buildHud(actions: HudActions) {
     billingReady = c.billingReady;
     refresh();
   });
+  // Fala (feedback): a gear entry, not a slab on the strip; the id stays `btn-feedback` for the scripts
+  const feedbackBtn = h(
+    'button',
+    {
+      class: 'hud-btn hud-fala',
+      id: 'btn-feedback',
+      type: 'button',
+      'aria-haspopup': 'dialog',
+      'aria-label': `${FEEDBACK_COPY.title.pt} (${FEEDBACK_COPY.button.en})`,
+      onclick: () => {
+        closeMenus();
+        openFeedback();
+      },
+    },
+    h('i', { class: 'fala-bubble', 'aria-hidden': 'true' }),
+    h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, FEEDBACK_COPY.button.pt), h('i', { class: 'hud-gloss' }, FEEDBACK_COPY.button.en)),
+  );
   const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
   // Account settings sit next to Sair: only a signed-in multiplayer session has an account to manage.
   const accountBtn = actions.logout ? btn('btn-account', 'gear', 'Conta', 'Account', openAccount) : null;
@@ -216,6 +242,7 @@ export function buildHud(actions: HudActions) {
     musicBtn,
     soundBtn,
     englishBtn,
+    feedbackBtn,
     supportBtn,
     guideBtn,
     tutorialBtn,
@@ -248,22 +275,6 @@ export function buildHud(actions: HudActions) {
     friendsBtn,
     gearWrap,
   );
-  const feedbackBtn = h(
-    'button',
-    {
-      class: 'hud-feedback hud-slab',
-      id: 'btn-feedback',
-      type: 'button',
-      'aria-haspopup': 'dialog',
-      'aria-label': `${FEEDBACK_COPY.title.pt} (${FEEDBACK_COPY.button.en})`,
-      onclick: () => {
-        closeMenus();
-        openFeedback();
-      },
-    },
-    h('i', { class: 'fala-bubble', 'aria-hidden': 'true' }),
-    h('span', { class: 'hud-feedback-words' }, h('b', { class: 'pt' }, FEEDBACK_COPY.button.pt), h('i', { class: 'hud-gloss' }, FEEDBACK_COPY.button.en)),
-  );
   const burger = h('button', { class: 'hud-btn hud-burger hud-slab', id: 'btn-burger', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'hud-actions', 'aria-label': 'Menu (Menu)' }, icon('burger', 32));
   const scrim = h('div', { class: 'hud-scrim', 'aria-hidden': 'true' });
 
@@ -288,7 +299,6 @@ export function buildHud(actions: HudActions) {
       'div',
       { class: 'hud-right' },
       h('div', { class: 'hud-stats hud-slab' }, beltEl, plate, goalChip, h('span', { class: 'hud-rv', id: 'hud-rv', title: 'Reais virtuais (RV): the game’s play money, earned by playing' }, icon('rv', 16), coins)),
-      feedbackBtn,
       burger,
       actionsNav,
     ),
@@ -336,16 +346,21 @@ export function buildHud(actions: HudActions) {
   const input = h('input', { type: 'text', maxLength: MAX_CHAT_LEN, placeholder: 'Diga oi! (Say hi — Portuguese or English)', 'aria-label': 'Conversa (Chat)', id: 'chat-input' });
 const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.placeholder = phMq.matches ? 'Diga oi! (Say hi)' : 'Diga oi! (Say hi — Portuguese or English)');  setPh();  phMq.addEventListener('change', setPh);
   const hint = h('span', { class: 'hint' }, 'Enter ↵');
-  const send = () => {
-    const text = input.value.trim();
-    if (!text) return;
+  /** One chat line out: the same path for the typed text and the quick replies (safety first, then the server). */
+  const sendLine = (text: string): boolean => {
     const v = classifyChat(text);
     if (v.action === 'block' || v.action === 'escalate') {
       toast('block', v.note?.pt ?? 'Mensagem bloqueada.', v.note?.en);
       if (v.action === 'escalate') actions.chat(text);
-      return;
+      return false;
     }
     actions.chat(text);
+    return true;
+  };
+  const send = () => {
+    const text = input.value.trim();
+    if (!text) return;
+    if (!sendLine(text)) return;
     input.value = '';
     hint.textContent = 'Enter ↵';
     hint.className = 'hint';
@@ -361,7 +376,8 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       hint.textContent = `${input.value.length}/${MAX_CHAT_LEN}`;
       hint.className = 'hint';
     } else {
-      hint.textContent = v.action === 'warn' ? 'Vai com aviso · Sends with a warning' : v.action === 'escalate' ? 'Vai pra revisão · Goes to review' : 'Não pode · Not allowed';
+      const line = v.action === 'warn' ? CHAT_HINTS.warn : CHAT_HINTS.block;
+      hint.textContent = `${line.pt} · ${line.en}`;
       hint.className = 'hint warn';
       hint.title = v.note?.en ?? '';
     }
@@ -384,6 +400,18 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       },
       bi(pt, e),
     );
+  // quick replies (S1 and later): each sends a real chat line, so a typed greeting and a tapped one count the same
+  const chipsEl = h('div', { class: 'chat-chips', id: 'chat-chips', style: 'display:none' });
+  let chipsKey = '';
+  const paintChips = () => {
+    chipsEl.style.display = chatChipsShown(game.profile) ? '' : 'none';
+    const lines = chatChips(clock.minutes());
+    const key = lines.map((c) => c.pt).join('|');
+    if (key === chipsKey) return; // the hour's greeting changes a few times a day: repaint only then
+    chipsKey = key;
+    chipsEl.replaceChildren(...lines.map((c) => h('button', { type: 'button', 'data-chip': c.pt, title: c.en, onclick: () => void sendLine(c.pt) }, c.pt)));
+  };
+  window.setInterval(paintChips, 15_000);
   const standBtn = h('button', { onclick: actions.stand, id: 'btn-stand', style: 'display:none' }, bi('Levantar', 'Stand up'));
   const carryBtn = h('button', {
     type: 'button',
@@ -412,6 +440,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       parrotBtn,
       parrotToggle,
     ),
+    chipsEl,
     h('div', { class: 'chatbar' }, emoteToggle, carryBtn, input, hint, sendBtn),
   );
 
@@ -444,20 +473,28 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       const all = [...game.avatars.values()].filter((a) => !a.pub.npc); // the neighbours are not people in the room (the seat count is players)
       const count = all.filter((a) => !a.pub.cpu).length;
       const neighbors = all.length - count;
-      roomName.replaceChildren(h('span', { class: 'room-name' }, ...(r.instanceName.includes(' · ') ? [r.instanceName.split(' · ')[0]!, h('span', { class: 'room-inst' }, ` · ${r.instanceName.split(' · ').slice(1).join(' · ')}`)] : [r.instanceName])), h('small', null, `${roomGloss(r)} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
+      roomName.replaceChildren(h('span', { class: 'room-name' }, ...(r.instanceName.includes(' · ') ? [r.instanceName.split(' · ')[0]!, h('span', { class: 'room-inst' }, ` · ${r.instanceName.split(' · ').slice(1).join(' · ')}`)] : [r.instanceName])), h('small', null, p && !hudShows(p).roomCounts ? roomGloss(r) : `${roomGloss(r)} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
       document.title = `Tudo Bem · ${r.instanceName}`;
     }
+    paintChips();
     if (p) {
       paintHudBelt(p.bjj);
-      const shows = hudShows(p);
+      // the disclosure ladder (disclosure.ts): each element waits for the stage at which it means something
+      const shows = hudShows(p, { solo: game.solo, ownKitnet: game.isOwnKitnet });
       beltEl.style.display = shows.belt ? '' : 'none';
       plate.style.display = shows.plate ? '' : 'none';
       drawerPlateChip.style.display = shows.plate ? '' : 'none';
       cartelaPill.style.display = shows.cartela ? '' : 'none';
       cartelaPill.title = `${CARTELA_COPY.title.en}: ${CARTELA_RULE}`;
-      for (const b of [recadosBtn, lookBtn, wardrobeBtn, friendsBtn]) b.style.display = shows.vila ? '' : 'none';
-      // the first time the Vila's menu opens up: the look picked on the plane can be changed now (once per profile)
-      if (shows.vila) {
+      recadosBtn.style.display = shows.favores ? '' : 'none';
+      lookBtn.style.display = shows.look ? '' : 'none';
+      wardrobeBtn.style.display = shows.hats ? '' : 'none';
+      friendsBtn.style.display = shows.friends ? '' : 'none';
+      for (const b of [guideBtn, tutorialBtn, creditsBtn]) b.style.display = shows.gearExtras ? '' : 'none';
+      // on desktop the emote row waits behind the smiley (as on a phone) until the player is a resident
+      bottombar.classList.toggle('emotes-tucked', !shows.emotesOpen);
+      // the first time Visual turns up: the look picked on the plane can be changed now (once per profile)
+      if (shows.look) {
         const key = `tb_look_hint_${p.id}`;
         try {
           if (!localStorage.getItem(key)) {
@@ -494,7 +531,8 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
         h('span', { class: 'hud-chip-text' }, `${MISSION_COPY.header.pt} ${done}/${MISSION_STEPS.length}`),
         h('span', { class: 'mini-steps', 'aria-hidden': 'true' }, ...MISSION_STEPS.map((s) => h('span', { class: `mini ${m?.steps[s.id] ? 'done' : ''}`, title: s.pt }, icon(s.id, 16)))),
       );
-      const day = todayEastern();
+      // the server's day for this profile (its stored offset), so the chip's "today" matches the stamps
+      const day = viewerProfileDay(p);
       const cst = p.cartela;
       // a full card stays full on the chip while the payout banner plays; then the chip turns over to the fresh card
       const cStamps = cartelaHeld ?? cst?.stamps ?? 0;
@@ -515,7 +553,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       parrotToggle.style.display = p.parrotOwned ? '' : 'none';
       parrotToggle.replaceChildren(bi(p.parrotEquipped ? 'Guardar papagaio' : 'Chamar papagaio', p.parrotEquipped ? 'Hide parrot' : 'Show parrot'));
       cameraBtn.style.display = p.hasCamera ? '' : 'none';
-      supportBtn.style.display = showSupportButton(billingReady, p.subscription, Date.now()) ? '' : 'none';
+      supportBtn.style.display = shows.gearExtras && showSupportButton(billingReady, p.subscription, Date.now()) ? '' : 'none';
       cameraBtn.classList.toggle('on', game.cameraOn && !!p.hasCamera);
     }
     decorBtn.style.display = game.isOwnKitnet ? '' : 'none';

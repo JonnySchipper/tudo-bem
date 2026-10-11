@@ -44,28 +44,32 @@ async function enterPraça() {
 
 try {
   await enterPraça();
+  // the Cartela chip is a regular's (three recados done) and waits for the first stamp (SIMPLIFICATION-REVIEW §3); the empty card opens from it directly
   await page.evaluate(() => {
+    window.__tb.game.profile.recadosDoneTotal = 3;
     window.__tb.game.profile.cartela = { stamps: 0, activityDay: {} };
     window.__tb.game.emit('profile');
   });
-  await page.click('#cartela-pill');
+  await page.$eval('#cartela-pill', (b) => b.click());
   await page.waitForSelector('[data-modal="cartela"]', { timeout: 5000 });
   await shot('cartela-empty');
   await page.keyboard.press('Escape');
 
   await page.evaluate(() => {
-    const day = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/New_York' });
+    // the player's own day (packages/shared/src/playerDay.ts), the browser's calendar date
+    const day = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
     window.__tb.game.profile.cartela = { stamps: 3, activityDay: { tatame: day, balcao: day, feira: day } };
     window.__tb.game.emit('profile');
   });
-  await page.click('#cartela-pill');
+  await page.$eval('#cartela-pill', (b) => b.click());
   await page.waitForSelector('[data-modal="cartela"]', { timeout: 5000 });
   await shot('cartela-partial');
   await page.keyboard.press('Escape');
 
   await page.evaluate(() => {
     window.__tb.cartelaBanner(7);
-    const day = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/New_York' });
+    // the player's own day (packages/shared/src/playerDay.ts), the browser's calendar date
+    const day = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
     window.__tb.game.profile.cartela = { stamps: 0, activityDay: { tatame: day, balcao: day, feira: day, conversa: day } };
     window.__tb.game.emit('profile');
   });

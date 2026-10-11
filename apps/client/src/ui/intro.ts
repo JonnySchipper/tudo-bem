@@ -50,9 +50,9 @@ function brandLogo(kind: 'stacked' | 'banner') {
 }
 
 /**
- * Title-screen gate: Praça + parrot flock beat, then sign-in / register or continue as Phase 0 guest.
+ * Title-screen gate: Praça + parrot flock beat, then sign-in / register or (solo builds) continue as a guest.
  * Resolves when the player may connect to the world socket. `guestEntersWorld: false` (the multiplayer
- * server) keeps the guest CTA but steers it to Criar conta instead of resolving.
+ * server, account-only) leaves the guest CTA out.
  */
 export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: boolean } = {}): Promise<IntroGateResult> {
   if (introAlreadyPassed()) {
@@ -184,14 +184,17 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       { type: 'button', class: 'intro-admin-door', id: 'intro-admin-door', style: 'display:none', 'aria-label': 'Admin' },
       'Admin',
     );
-    const guest = h(
-      'button',
-      { type: 'button', class: 'intro-guest', id: 'intro-guest' },
-      h('span', { class: 'intro-guest-pt' }, 'Explorar como visitante', h('span', { class: 'intro-guest-arrow', 'aria-hidden': 'true' }, '→')),
-      guestEntersWorld
-        ? h('span', { class: 'intro-guest-sub' }, 'Conheça a praça sem conta', h('span', { class: 'en' }, 'Try the square without an account'))
-        : h('span', { class: 'intro-guest-sub' }, 'Pra jogar com a galera, crie uma conta', h('span', { class: 'en' }, 'To play with others, create an account')),
-    );
+    // Multiplayer is account-only (the server answers authRequired): the visitor door is only in solo builds.
+    const guest = guestEntersWorld
+      ? h(
+          'button',
+          { type: 'button', class: 'intro-guest', id: 'intro-guest' },
+          h('span', { class: 'intro-guest-pt' }, 'Explorar como visitante', h('span', { class: 'intro-guest-arrow', 'aria-hidden': 'true' }, '→')),
+          h('span', { class: 'intro-guest-sub' }, 'Conheça a praça sem conta', h('span', { class: 'en' }, 'Try the square without an account')),
+        )
+      : null;
+    // "ou / or" sits over the other ways in: the visitor door (solo) or Google (when configured)
+    const orRule = h('div', { class: 'intro-or', 'aria-hidden': 'true', style: guest ? undefined : 'display:none' }, h('span', null, 'ou / or'));
 
     const setError = (pt: string, enText: string) => {
       err.style.display = 'block';
@@ -332,6 +335,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       }
       if (cfg.googleClientId) {
         googleHost.style.display = '';
+        orRule.style.display = '';
         const off = mountGoogleSignIn(googleHost, cfg.googleClientId, async (credential) => {
           clearError();
           const result = await signInWithGoogle(credential);
@@ -342,14 +346,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       }
     });
 
-    guest.addEventListener('click', () => {
-      if (guestEntersWorld) return finish({ mode: 'guest' });
-      // Multiplayer is account-only (the server answers authRequired); visitors are pointed at Criar conta.
-      mode = 'register';
-      syncTabs();
-      setError('Pra entrar na Praça com a galera, crie sua conta — é rapidinho.', 'To join the shared Praça, create an account — it only takes a moment.');
-      email.focus({ preventScroll: true });
-    });
+    guest?.addEventListener('click', () => finish({ mode: 'guest' }));
 
     const tabsEl = h('div', { class: 'intro-tabs', role: 'tablist', 'aria-label': 'Entrar ou criar conta (Log in or sign up)' }, h('span', { class: 'intro-tab-thumb', 'aria-hidden': 'true' }), tabLogin, tabRegister);
 
@@ -364,10 +361,10 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       h('div', { class: 'intro-actions' }, submit),
       consent,
       forgot,
-      h('div', { class: 'intro-or', 'aria-hidden': 'true' }, h('span', null, 'ou / or')),
+      orRule,
       googleHost,
       guest,
-      h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.', en('Phase 0 · your account keeps your avatar, your RV and your kitnet.', true), adminDoor),
+      h('p', { class: 'intro-legal' }, adminDoor),
     );
 
     form.addEventListener('submit', async (e) => {

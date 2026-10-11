@@ -94,14 +94,26 @@ function lineFor(flavor: CaldoFlavor, ice: CaldoIce, polite: boolean): Bilingual
   };
 }
 
-/** Every order a seed deals, in arrival order. Pure. */
-export function caldoOrders(seed: number): CaldoOrder[] {
+/** The flavours of a player's 1st Caldo run (`PrivateProfile.feiraRuns.caldo` is 0): three bottles, not seven. */
+export const CALDO_FIRST_FLAVORS = ['limao', 'abacaxi', 'maracuja'] as const satisfies readonly CaldoFlavor[];
+
+/** The bottles on the counter and the flavours asked for, by runs already played. `runs` undefined is the full game. */
+export function caldoFlavors(runs?: number): readonly CaldoFlavor[] {
+  return runs !== undefined && Number.isFinite(runs) && runs < 1 ? CALDO_FIRST_FLAVORS : CALDO_FLAVORS;
+}
+
+/**
+ * Every order a seed deals, in arrival order. Pure. `runs` (see `caldoFlavors`) only narrows the flavours: arrival
+ * times and patience come from the seed alone, so the server scores the same run without it.
+ */
+export function caldoOrders(seed: number, runs?: number): CaldoOrder[] {
+  const flavors = caldoFlavors(runs);
   const rng = mulberry32(seed >>> 0);
   const out: CaldoOrder[] = [];
   let at = FIRST_AT;
   const recent: string[] = [];
   for (let i = 0; i < CALDO_CUSTOMERS; i++) {
-    const flavor = CALDO_FLAVORS[Math.floor(rng() * CALDO_FLAVORS.length)]!;
+    const flavor = flavors[Math.floor(rng() * flavors.length)]!;
     const ice: CaldoIce = rng() < 0.62 ? 'gelo' : 'puro';
     const who = feiraFreshFace(FEIRA_REGULARS[Math.floor(rng() * FEIRA_REGULARS.length)]!, recent);
     const polite = rng() < 0.7;

@@ -1,11 +1,10 @@
 /**
  * Wayfinding: every room says where its doors go. Each door, and each walk-off edge of the open-air areas, gets a tag in the world with
  * the destination in Portuguese over a small English line (the pixel view draws them with the nameplates, `WorldScene`). The first time
- * you stand in a room its tags glow for a while and a banner under the top bar lists the ways out; after that they sit quietly.
- * Pure parts (`doorTagsFor`, `exitLine`) are tested; the banner is DOM.
+ * you stand in a room its tags glow for a while; after that they sit quietly. Every room's tags glow on a first visit, so there is no
+ * separate "ways out" banner. `doorTagsFor` is pure and tested.
  */
 import type { RoomDef, RoomId } from '@tudobem/shared';
-import { h, ui } from './dom';
 
 export interface DoorTag {
   key: string;
@@ -55,14 +54,6 @@ export function doorTagsFor(room: RoomDef): DoorTag[] {
   });
 }
 
-/** The banner's list of ways out ("← Praça · Square"), at most four. */
-export function exitLine(tags: readonly DoorTag[]): string {
-  return tags
-    .slice(0, 4)
-    .map((t) => `${t.pt} (${t.en})`)
-    .join('   ');
-}
-
 const seenKey = (pid: string | undefined, room: RoomId) => `tb_room_seen:${pid ?? 'guest'}:${room}`;
 /** How long a fresh room's tags glow. */
 export const FRESH_MS = 20_000;
@@ -71,9 +62,9 @@ let freshUntil = 0;
 /** Are this room's door tags still in their first-visit glow? */
 export const doorsFresh = (): boolean => performance.now() < freshUntil;
 
-/** First visit to a room: the tags glow and a banner names the ways out. The tutorial rooms have their own guidance and skip it. */
-export function showRoomIntro(room: RoomId, tags: readonly DoorTag[], pid: string | undefined): void {
-  document.getElementById('room-intro')?.remove();
+/** First visit to a room: its door tags glow for a while. The tutorial rooms have their own guidance and skip it. */
+export function noteRoomVisit(room: RoomId, tags: readonly DoorTag[], pid: string | undefined): void {
+  freshUntil = 0;
   if (room === 'desembarque' || room === 'aeroporto' || room === 'andar' || !tags.length) return;
   let seen = false;
   try {
@@ -82,13 +73,5 @@ export function showRoomIntro(room: RoomId, tags: readonly DoorTag[], pid: strin
   } catch {
     /* private mode: every visit is a first one */
   }
-  if (seen) {
-    freshUntil = 0;
-    return;
-  }
-  freshUntil = performance.now() + FRESH_MS;
-  const el = h('div', { class: 'room-intro', id: 'room-intro', role: 'status' }, h('b', null, 'Ways out · Saídas'), h('br'), exitLine(tags));
-  ui().append(el);
-  window.setTimeout(() => el.classList.add('leaving'), 9000);
-  window.setTimeout(() => el.remove(), 9700);
+  if (!seen) freshUntil = performance.now() + FRESH_MS;
 }

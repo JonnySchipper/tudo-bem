@@ -84,20 +84,8 @@ export function applyAdminBelt(prev: Partial<BjjProgress> | null | undefined, cm
   return { ok: true, bjj: normalizeBjj({ ...cur, wins: winsForRank(belt, stripes) }) };
 }
 
-/**
- * Shift a `YYYY-MM-DD` key by whole calendar days.
- * UTC date math, so a daylight-saving boundary does not skip or repeat a day.
- */
-export function addCalendarDays(iso: string, days: number): string {
-  const n = Math.trunc(Number.isFinite(days) ? days : 0);
-  if (!n || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-  const y = Number(iso.slice(0, 4));
-  const m = Number(iso.slice(5, 7));
-  const d = Number(iso.slice(8, 10));
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + n);
-  return dt.toISOString().slice(0, 10);
-}
+/** Calendar-key arithmetic lives with the one day boundary (playerDay.ts); re-exported for the Testes callers. */
+export { addCalendarDays } from './playerDay.js';
 
 /** `room` is one of the teleporter rooms (not the academy floor). */
 export function asAdminRoom(room: RoomId): AdminTestRoom | null {

@@ -4,6 +4,7 @@ import {
   REGULAR_NPCS,
   UNLOCKS,
   addCalendarDays,
+  profileDay,
   cardById,
   frontOf,
   hearts,
@@ -12,19 +13,15 @@ import {
   newShift,
   newUnlocks,
   normalizeCorreria,
-  noteLesson,
   npcDefById,
   menuLadder,
   payBump,
-  pendingLesson,
   sanitizeAct,
   shiftAct,
   shiftAdvance,
-  shiftItemPool,
   shiftSnapshot,
   summarizeShift,
   unlockedFor,
-  whereRequired,
   type Bilingual,
   type CEvent,
   type ClientMsg,
@@ -32,9 +29,10 @@ import {
   type NpcId,
   type Shift,
   type ShiftSummary,
+  sameOrFutureDay,
 } from '@tudobem/shared';
 import type { Session } from './world.js';
-import { today, type ProfileStore } from './store.js';
+import type { ProfileStore } from './store.js';
 
 /** A shift in progress on a session. The pure rules are `@tudobem/shared` `correria.ts`; this owns the clock, the sockets and the profile. */
 export interface CorreriaRun {
@@ -47,7 +45,7 @@ export interface CorreriaRun {
 
 export interface CorreriaDeps {
   now: () => number;
-  /** UTC day (YYYY-MM-DD) the paid-shift cap uses. Defaults to the real UTC date. */
+  /** Test override of the day (YYYY-MM-DD) the paid-shift cap counts on; the Testes day offset is added on top. Default: `profileDay`. */
   today?: () => string;
   schedule: (fn: () => void, ms: number) => void;
   store: ProfileStore;
@@ -137,25 +135,17 @@ export class CorreriaEngine {
       return this.d.err(s, 'mg', 'O jogo fica no balcão da padaria.', 'The game is at the bakery counter.');
     }
     s.scene = undefined;
-    const rawTaught = !!(p.correria && Array.isArray((p.correria as { taught?: unknown }).taught));
     p.correria = normalizeCorreria(p.correria);
     const stars = p.correria.stars;
     const clk = this.d.clock();
     const regulars = REGULAR_NPCS.map((npc) => ({ npc, hearts: hearts(p.bond?.[npc] ?? 0) })).filter((r) => r.hearts >= 1 && npcDefById(r.npc));
     const menuIds = this.d.ownedMenu?.(s);
-    const pool = shiftItemPool({ shifts: p.correria.shifts, menuIds });
-    const taughtBefore = [...(p.correria.taught ?? [])];
-    const lesson = pendingLesson(pool.map((i) => i.id), taughtBefore, whereRequired(pool.length));
-    const nextTaught = noteLesson(taughtBefore, lesson);
-    p.correria.taught = nextTaught;
-    if (!rawTaught || nextTaught.join('\n') !== taughtBefore.join('\n')) this.d.store.save(p.id);
     const shift = newShift({
       seed: (this.d.now() ^ (Math.random() * 1e9)) >>> 0,
       level: levelForStars(stars),
-      unlocked: unlockedFor(stars),
+      unlocked: unlockedFor(stars, p.correria.shifts),
       shifts: p.correria.shifts,
       menuIds,
-      lesson,
       bump: payBump(p.correria.shifts, menuIds),
       saturday: clk.saturday,
       minute: clk.minute,
@@ -215,7 +205,7 @@ export class CorreriaEngine {
 
   // ------------------------------------------------------------------ the end
 
-  private summaryToEnd(s: Session, sum: ShiftSummary, coins: number, dailyBlocked: boolean, before: number, wordsNew: Bilingual[], menuNote: Bilingual | null, menuIds?: readonly string[]): CorreriaEnd {
+  private summaryToEnd(s: Session, sum: ShiftSummary, coins: number, dailyBlocked: boolean, before: number, shiftsBefore: number, wordsNew: Bilingual[], menuNote: Bilingual | null, menuIds?: readonly string[]): CorreriaEnd {
     const p = s.profile!;
     const cp = normalizeCorreria(p.correria);
     return {
@@ -230,7 +220,7 @@ export class CorreriaEngine {
       coins,
       dailyBlocked,
       words: wordsNew,
-      newUnlocks: newUnlocks(before, cp.stars).map((u) => ({ id: u.id, pt: u.pt, en: u.en })),
+      newUnlocks: newUnlocks(before, cp.stars, shiftsBefore, cp.shifts).map((u) => ({ id: u.id, pt: u.pt, en: u.en })),
       totalStars: cp.stars,
       level: levelForStars(cp.stars),
       regulars: sum.regulars.map((k) => npcDefById(k.replace('npc:', '') as NpcId)?.name ?? k),
@@ -247,11 +237,11 @@ export class CorreriaEngine {
     const sum = summarizeShift(run.shift);
     const cp = (p.correria = normalizeCorreria(p.correria));
     const before = cp.stars;
-    const day = addCalendarDays(this.d.today?.() ?? today(), p.testDayOffset ?? 0);
-    if (cp.date !== day) {
-      cp.date = day;
-      cp.paid = 0;
-    }
+    const shiftsBefore = cp.shifts;
+    // the player's own day (playerDay.ts); an earlier stored key rolls over, a later one (an older UTC key) counts as today
+    const day = this.d.today ? addCalendarDays(this.d.today(), p.testDayOffset ?? 0) : profileDay(p, this.d.now());
+    if (!sameOrFutureDay(cp.date, day)) cp.paid = 0;
+    cp.date = day;
     const known = (id: string) => (p.caderno?.[id]?.seen ?? 0) > 0 || (p.caderno?.[id]?.heard ?? 0) > 0 || (p.caderno?.[id]?.used ?? 0) > 0;
     const wordsNew = sum.words.filter((id) => !known(id) && cardById(id)).map((id) => ({ pt: cardById(id)!.form, en: cardById(id)!.gloss_en }));
     let coins = 0;
@@ -276,7 +266,7 @@ export class CorreriaEngine {
       if (!abandoned) this.d.shiftWon?.(s, sum.items);
     }
     this.d.pushProfile(s);
-    const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, wordsNew, run.shift.ctx.bump ?? null, run.shift.ctx.menuIds);
+    const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, shiftsBefore, wordsNew, run.shift.ctx.bump ?? null, run.shift.ctx.menuIds);
     const carlos: Bilingual =
       sum.served === 0
         ? { pt: 'Turno encerrado. Dessa vez não deu RV — pode começar de novo quando quiser.', en: 'Shift closed. No RV this time — you can start again whenever you want.' }

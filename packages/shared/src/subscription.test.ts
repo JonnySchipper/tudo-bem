@@ -138,7 +138,7 @@ describe('subscription entitlements', () => {
 });
 
 describe('subscription perks do not touch learning, money, plates, stripes or belts', () => {
-  it('leaves coins, Feira score, streak, words, nameplate, stripes and belt alone', () => {
+  it('leaves coins, streak, words, nameplate, stripes and belt alone', () => {
     const p = profile({ pet: 'dog', bubbleStyle: 'sol' });
     const before = learningRankOf(p);
     const coins = p.coins;
@@ -160,7 +160,7 @@ describe('subscription perks do not touch learning, money, plates, stripes or be
     applyBillingTransition(anaPaid, { eventId: 'pay', kind: 'payment_success', now: NOW });
     expect(learningRankOf(anaPaid)).toEqual(ana);
     expect(learningLeaderboard([learningRankOf(anaPaid), beto], 'streak').map((r) => r.id)).toEqual(withSub.map((r) => r.id));
-    expect(learningLeaderboard([ana, beto], 'feiraScore').map((r) => r.feiraScore)).toEqual([3, 3]);
+    expect(Object.keys(ana)).not.toContain('feiraScore');
   });
 
   it('does not gate lessons, the caderno, the feira or streaks — only the preview flag', () => {

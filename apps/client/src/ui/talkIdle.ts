@@ -1,6 +1,7 @@
 /**
- * The line a click-to-talk opens with. An idle line whose conversation word is still unlearned is said in the dialogue box,
- * as that talk's first line. Neighbours chatting on their own are not this: those bubbles teach nothing.
+ * The line a click-to-talk opens with. An idle line whose conversation word is still unlearned leads the first line of the one box that
+ * click opens (the greeting, a hand-over, an errand: `leadNextBox` in dialogue.ts), never a box of its own. Neighbours chatting on their own
+ * are not this: those bubbles teach nothing.
  */
 import { localizeGreeting, unheardIdleLine, type Bilingual } from '@tudobem/shared';
 

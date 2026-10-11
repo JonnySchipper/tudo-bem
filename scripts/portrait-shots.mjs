@@ -112,7 +112,7 @@ async function run(browser, vp) {
   await page.goto(`${BASE}?notype=1`);
   await page.click('#intro-enter', { timeout: 20_000 });
   await page.click('#intro-skip', { timeout: 12_000 });
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await page.click('#intro-tab-register');
   await page.fill('#intro-email', `portraits+${vp.name}${Date.now().toString(36)}@exemplo.com`);
   await page.fill('#intro-password', 'pao-de-queijo-2026');
@@ -164,7 +164,7 @@ async function run(browser, vp) {
         await talk(page, 'carlos');
         continue;
       }
-      await page.click(`#dialogue-box [data-chip="${k.startsWith('idle-') ? '0' : '1'}"]`);
+      await page.click('#dialogue-box [data-chip="1"]');
       await sleep(500);
     }
     const k = await key(page);
@@ -201,8 +201,7 @@ async function run(browser, vp) {
       await dismissCards(page);
       const k = await key(page);
       console.log('    nanda box:', k);
-      if (k?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]');
-      else if (k?.startsWith('offer-')) await page.click('#dialogue-box [data-chip="1"]');
+      if (k?.startsWith('offer-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(400);
     }
     await typed(page);
@@ -224,8 +223,7 @@ async function run(browser, vp) {
       await page.waitForSelector('#dialogue-box', { timeout: 8000 });
       const k = await key(page);
       if (k === 'feira') break;
-      if (k?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]');
-      else if (k?.startsWith('offer-') || k?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
+      if (k?.startsWith('offer-') || k?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(350);
     }
     await page.waitForSelector('#dialogue-box[data-dialogue="feira"]', { timeout: 8000 });

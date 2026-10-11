@@ -49,9 +49,9 @@ try {
   await sleep(1200);
   assert(await page.isVisible('#solo-pill'), 'the solo pill shows (HUD, top left)');
 
-  // tutorial: the welcome chain's first step is "Ande pela praça"
+  // tutorial: the hall-taught steps (walking among them) are done once the hall is; the welcome chain starts at the padaria
   await page.evaluate(() => window.__tb.walkTo(24, 12));
-  await waitFor(page, () => window.__tb.game.profile?.tutorial?.andar === true, null, 20_000, 'tutorial: andar (walk around)');
+  await waitFor(page, () => window.__tb.game.profile?.tutorial?.andar === true, null, 20_000, 'tutorial: andar (done with the hall)');
   log('tutorial step done: andar');
   await shot('tutorial');
 
@@ -67,20 +67,23 @@ try {
   await shot('journal');
   await page.keyboard.press('Escape');
 
-  // first-time help: a panel's "?" reads its How it works card, and Ajustes → Guia brings back the Vila guide
-  await page.click('#cartela-pill');
-  await page.waitForSelector('[data-modal="cartela"]', { timeout: 5000 });
-  await page.click('#howto-help');
-  await page.waitForSelector('#howto-card[data-game="cartela"]', { timeout: 4000 });
+  // first-time help: the one "?" reads a panel's How it works card, and out in the Vila it brings back the Vila guide
+  // (a newcomer has no Cartela chip and no Ajustes → Guia yet: SIMPLIFICATION-REVIEW §3)
+  if (!(await page.$('[data-modal="recados"]'))) await page.click('#btn-recados');
+  await page.waitForSelector('[data-modal="recados"]', { timeout: 5000 });
+  await sleep(600);
+  if (!(await page.$('#howto-card[data-game="recados"]'))) await page.click('#howto-help');
+  await page.waitForSelector('#howto-card[data-game="recados"]', { timeout: 4000 });
   await page.click('#howto-ok');
   await page.keyboard.press('Escape');
-  await page.click('#btn-menu');
-  await page.click('#btn-guide');
+  await page.waitForSelector('[data-modal="recados"]', { state: 'detached', timeout: 4000 });
+  assert(!(await page.isVisible('#cartela-pill')), 'a newcomer sees no Cartela chip');
+  await page.click('#howto-help');
   await page.waitForSelector('#vila-guide', { timeout: 4000 });
   await shot('guide');
   await page.click('#vila-guide-ok');
   await page.waitForSelector('#vila-guide', { state: 'detached', timeout: 4000 });
-  log('How it works (Cartela) and the Vila guide open on demand');
+  log('How it works (Favores) and the Vila guide open from the one ? button');
 
   // the feira at the Hortifrúti corner (any hour): it is at the banca on the rua, so walk off the praça's north edge first
   await goArea(page, 'rua');

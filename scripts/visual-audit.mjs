@@ -18,7 +18,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { findChrome } from './lib/chrome.mjs';
 import { requirePinnedClock } from './lib/clock-pin.mjs';
-import { openNpc, passIdle } from './lib/npc.mjs';
+import { openNpc } from './lib/npc.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
@@ -94,7 +94,7 @@ async function boot(page, vp, { name = 'Jonny', shots = false, extra = '' } = {}
   await sleep(3500);
   if (shots) await snap(page, vp, 'ui_title_hero');
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await sleep(1800);
   if (shots) await snap(page, vp, 'ui_signin_card');
   await page.click('#intro-tab-register');
@@ -222,7 +222,7 @@ async function sectionInteriors(browser, vp) {
 }
 
 // ---------------------------------------------------------------- 4. UI screens
-const PHONE_UI = new Set(['title_enter', 'title_hero', 'signin_card', 'signup_card', 'avatar_creator', 'avatar_creator_bottom', 'hud_idle_praca', 'dialogue_carlos_pedido', 'dialogue_carlos_conversa', 'tracker_mid_recado', 'meveum', 'feira_price', 'feira_payment_tray']);
+const PHONE_UI = new Set(['title_enter', 'title_hero', 'signin_card', 'signup_card', 'avatar_creator', 'avatar_creator_bottom', 'hud_idle_praca', 'dialogue_carlos_conversa', 'tracker_mid_recado', 'meveum', 'feira_price', 'feira_payment_tray']);
 
 /** Click a HUD action, opening the phone drawer / settings popover first when its button is hidden (the desktop bar shows them all). */
 async function press(page, sel) {
@@ -273,7 +273,8 @@ async function sectionUi(browser, vp) {
   await sleep(1200);
   await ui('map_panel');
   await close();
-  await press(page, '#btn-credits');
+  // Créditos waits for the resident stage in Ajustes (SIMPLIFICATION-REVIEW §3): a newcomer's audit presses the button itself
+  await page.$eval('#btn-credits', (b) => b.click());
   await page.waitForSelector('[data-modal="credits"] .credits-panel', { timeout: 5000 });
   await sleep(500);
   await ui('credits');
@@ -320,7 +321,7 @@ async function sectionUi(browser, vp) {
   await ui('feira_payment_tray');
   await close();
 
-  // padaria: the recado offer, the tracker, Conversa, Pedido, Me vê um
+  // padaria: the recado offer, the tracker, Conversa, Me vê um
   await pin(page, '12:00');
   await interact(page, { portal: 'praca_padaria' });
   await waitRoom(page, 'padaria');
@@ -329,7 +330,6 @@ async function sectionUi(browser, vp) {
   await sleep(4000);
   await interact(page, { npc: 'carlos' });
   await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
-  await passIdle(page);
   let key = await page.getAttribute('#dialogue-box', 'data-dialogue');
   if (key === 'offer-carlos') {
     await sleep(1200);
@@ -344,14 +344,9 @@ async function sectionUi(browser, vp) {
   }
   await interact(page, { npc: 'carlos' });
   await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
-  await passIdle(page);
   await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 25_000 });
   await sleep(1200);
   await ui('dialogue_carlos_conversa');
-  await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
-  await sleep(900);
-  await ui('dialogue_carlos_pedido');
   await close();
   await page.evaluate(() => window.__tb.net.send({ t: 'mg', action: 'start' }));
   await page.waitForSelector('#cr-order', { timeout: 8000 });

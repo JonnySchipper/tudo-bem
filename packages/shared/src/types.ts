@@ -105,7 +105,7 @@ export interface PublicAvatar {
   bubbleStyle?: import('./subscription.js').BubbleStyle;
   /**
    * Live "Fada da Feira" crown: today's top Feira-cart score. A display overlay only —
-   * it is not a belt, a nameplate tier, or a stripe, and it clears at midnight ET.
+   * it is not a belt, a nameplate tier, or a stripe, and it clears when the board day (UTC) rolls.
    */
   feiraCrown?: boolean;
   /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
@@ -156,7 +156,7 @@ export interface CorreriaProgress {
   stars: number;
   shifts: number;
   best: number;
-  /** The real day (YYYY-MM-DD) `paid` counts shifts of: only the first few shifts a day pay RV. */
+  /** The player day (YYYY-MM-DD, playerDay.ts `profileDay`) `paid` counts shifts of: only the first few shifts a day pay RV. */
   date?: string;
   paid?: number;
   /** Lesson ids already shown (item ids, plus `where`). Server-owned; a missing list on an old save means they already played the wide counter. */
@@ -224,6 +224,8 @@ export interface PrivateProfile {
   bag?: Record<string, number>;
   /** Recados state: today's offer, the ones in progress, the ones finished today (Phase 8). */
   recados?: RecadoState;
+  /** Recados finished, ever (`recados.done` is only today's): the disclosure ladder reads it. Defaulted on load from today's list. */
+  recadosDoneTotal?: number;
   /** NPC friendship points 0-100 (10 = 1 heart). */
   bond?: Partial<Record<NpcId, number>>;
   /** NPCs whose 6-heart furniture gift was already handed over (once each). */
@@ -232,7 +234,7 @@ export interface PrivateProfile {
   caderno?: Record<string, { seen: number; heard: number; used: number; firstAt: number }>;
   /** Caderno groups whose one-time RV has already been paid. */
   cadernoPaid?: string[];
-  /** Feira purchases that paid RV on `date` (real day, YYYY-MM-DD); the reward has a daily limit (Phase 9). */
+  /** Feira purchases that paid RV on `date` (player day, YYYY-MM-DD, `profileDay`); the reward has a daily limit (Phase 9). */
   feira?: { date: string; n: number };
   /** Bate-papos (pre-made conversations, papos.ts) talked through to the end, by id. Defaulted to [] on load. */
   papos?: string[];
@@ -265,10 +267,16 @@ export interface PrivateProfile {
   /** Beta founder badge on the overhead nameplate. Absent on old saves until normalized (treated as true). */
   founder?: boolean;
   /**
-   * Permanent Feira medals (gold / silver / bronze), newest last. Written by the server when an ET day
+   * Permanent Feira medals (gold / silver / bronze), newest last. Written by the server when a board day
    * finalizes; the diary lists them. Absent on saves from before the cart games.
    */
   feiraMedals?: { day: string; game: string; medal: 'gold' | 'silver' | 'bronze'; score: number }[];
+  /**
+   * Feira cart runs the server accepted, per game id (`tapioca`, `pastel`, `caldo`). The cart games stage their
+   * rules on it (Pastel combos from the 3rd run, no burnt block or fire in the 1st; Caldo's short flavour list in the
+   * 1st) and the Tapioca practice is skipped once a run is on it. Absent means none.
+   */
+  feiraRuns?: Partial<Record<string, number>>;
   /** Permanent subscription founder badge. Absent means false. Never revoked. */
   founderBadge?: boolean;
   /** Permanent founders banner already granted. The item itself lives in `furniture`. */
@@ -306,10 +314,10 @@ export interface PrivateProfile {
    */
   testClockOffsetMs?: number;
   /**
-   * Feira cart paid runs for a test profile, keyed by their own calendar day.
-   * The public board's paid map is not used.
+   * Feira cart runs that paid RV on `day` (player day, YYYY-MM-DD, `profileDay`). Every profile counts its own;
+   * the public board only ranks scores. Absent means none today.
    */
-  testFeiraPaid?: { day: string; n: number };
+  feiraPaid?: { day: string; n: number };
   /**
    * Admin test: the HUD plate and the overhead nameplate stay Verde.
    * The earned escola tier is kept and comes back when this is off.

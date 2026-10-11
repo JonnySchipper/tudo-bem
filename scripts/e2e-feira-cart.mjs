@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Feira cart games are off until an admin turns one on. With every game off, the cart and the FEIRA sign
- * are not in the world. Turning Pastel on from the credits admin door puts them back without a reload.
+ * The Feira cart ships with one game, Tapioca, every day (C2). With every game switched off from the credits admin
+ * door, the cart and the FEIRA sign are not in the world. Turning Pastel on puts them back without a reload. The script
+ * leaves the shipped default behind (Tapioca on, Pastel and Caldo off) for the scripts that run after it.
  *
  *   node scripts/e2e-feira-cart.mjs   (BASE_URL, CHROME_PATH)
  *   Writes 1280x800 shots to docs/lifesim/shots/feira-games/ when SHOTS=1 (default).
@@ -32,7 +33,7 @@ async function enter(page) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await page.click('#intro-tab-register');
   await page.fill('#intro-email', `cart+${Date.now().toString(36)}@exemplo.com`);
   await page.fill('#intro-password', PASSWORD);
@@ -47,18 +48,27 @@ async function enter(page) {
   await sleep(600);
 }
 
-async function enablePastel(page) {
+let signedIn = false;
+
+/** Set the cart games from the admin panel: `{ tapioca: false, pastel: true }`. Games not named are left as they are. */
+async function setCart(page, want) {
   await page.click('#btn-menu').catch(() => page.click('#btn-burger'));
-  await page.click('#btn-credits');
+  // Créditos waits for the resident stage in Ajustes (SIMPLIFICATION-REVIEW §3): press the button itself
+  await page.$eval('#btn-credits', (b) => b.click());
   await page.waitForSelector('#credits-admin-door', { timeout: 8_000 });
   await page.click('#credits-admin-door');
-  await page.waitForSelector('#admin-password', { timeout: 8_000 });
-  await page.fill('#admin-password', ADMIN);
-  await page.click('#admin-login-go');
-  await page.waitForSelector('#admin-feira-pastel', { timeout: 8_000 });
-  const on = await page.getAttribute('#admin-feira-pastel', 'aria-checked');
-  if (on !== 'true') await page.click('#admin-feira-pastel');
-  await page.waitForFunction(() => document.querySelector('#admin-feira-pastel')?.getAttribute('aria-checked') === 'true');
+  if (!signedIn) {
+    await page.waitForSelector('#admin-password', { timeout: 8_000 });
+    await page.fill('#admin-password', ADMIN);
+    await page.click('#admin-login-go');
+    signedIn = true;
+  }
+  for (const [id, on] of Object.entries(want)) {
+    const sel = `#admin-feira-${id}`;
+    await page.waitForSelector(sel, { timeout: 8_000 });
+    if ((await page.getAttribute(sel, 'aria-checked')) !== String(on)) await page.click(sel);
+    await page.waitForFunction(([s, v]) => document.querySelector(s)?.getAttribute('aria-checked') === v, [sel, String(on)]);
+  }
   await page.keyboard.press('Escape');
   await sleep(300);
 }
@@ -91,6 +101,7 @@ async function main() {
   page.on('pageerror', (e) => errors.push(String(e)));
   try {
     await enter(page);
+    await setCart(page, { tapioca: false, pastel: false, caldo: false });
     await page.evaluate(() => window.__tb.renderer.setShot('cam:22,8,3'));
     await waitFor(
       page,
@@ -144,7 +155,7 @@ async function main() {
       log('shot', '1280x800-carts-off.png');
     }
 
-    await enablePastel(page);
+    await setCart(page, { pastel: true });
     await waitFor(
       page,
       () => {
@@ -181,6 +192,13 @@ async function main() {
     const featured = await page.textContent('#feira-cart-game');
     assert((featured ?? '').includes('Pastel'), `expected Pastel, got ${featured}`);
     assert(errors.length === 0, errors.join('\n'));
+    // back to the shipped default: one cart game, Tapioca (close the cart panel first: it covers the gear)
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#feira-cart-play', { state: 'hidden', timeout: 5_000 });
+    await setCart(page, { tapioca: true, pastel: false });
+    await page.evaluate(() => window.__tb.interact({ prop: 'carrinho_jogos' }));
+    await page.waitForSelector('#feira-cart-play', { timeout: 8_000 });
+    assert(((await page.textContent('#feira-cart-game')) ?? '').includes('Tapioca'), 'the shipped default is not Tapioca');
     log('feira cart hide ok');
   } finally {
     await browser.close();

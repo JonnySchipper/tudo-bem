@@ -4,6 +4,8 @@ import { entriesFromProfiles, Leaderboards } from './leaderboards.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 
 const ids = (...n: number[]) => n.map((i) => DIARY_WORDS[i]!.id);
+/** Noon UTC of a day key: the same calendar day for every offset from UTC-12 to UTC+11. */
+const noon = (day: string) => Date.parse(`${day}T12:00:00Z`);
 
 function profile(partial: Partial<StoredProfile> & Pick<StoredProfile, 'id' | 'name'>): StoredProfile {
   return {
@@ -52,7 +54,7 @@ describe('leaderboards server', () => {
         escola: { words: {}, xp: 0, lessons: 0, perfect: 0, goal: 10, dayXp: 0, streak: 3, best: 3, freezes: 0, tier: 'verde', lastDay: '2026-10-01' },
       }),
     ];
-    const { words, streak } = entriesFromProfiles(profiles, today);
+    const { words, streak } = entriesFromProfiles(profiles, noon(today));
     expect(rankBoard(words, '1').map((r) => r.name)).toEqual(['Caio', 'Ana', 'Bia']);
     expect(currentStreak(normalizeEscola(profiles[2]!.escola, profiles[2]!.diary), today)).toBe(0);
     expect(rankBoard(streak, '3').map((r) => [r.name, r.score])).toEqual([
@@ -77,7 +79,7 @@ describe('leaderboards server', () => {
       pet: 'dog',
       bubbleStyle: 'festa',
     });
-    const { words, streak } = entriesFromProfiles([paying, plain], today);
+    const { words, streak } = entriesFromProfiles([paying, plain], noon(today));
     expect(words.map((r) => r.score)).toEqual([2, 2]);
     expect(streak.map((r) => r.score)).toEqual([4, 4]);
     expect(rankBoard(words, undefined).map((r) => r.score)).toEqual([2, 2]);
@@ -101,6 +103,13 @@ describe('leaderboards server', () => {
     expect(msg.words[10]!.rank).toBeGreaterThan(10);
   });
 
+  it('ranks words and streak only (no feira purchase board)', () => {
+    const store = new ProfileStore(null);
+    store.add(profile({ id: 'a', name: 'Ana', diary: ids(1, 2), feira: { date: '2026-10-08', n: 4 } }));
+    const msg = new Leaderboards(store, () => 1).msgFor('a');
+    expect(Object.keys(msg).sort()).toEqual(['at', 'streak', 't', 'words']);
+  });
+
   it('maybeMentionStreak fires at most once per day and needs a leader', () => {
     const store = new ProfileStore(null);
     store.add(
@@ -114,7 +123,7 @@ describe('leaderboards server', () => {
     const viewer = profile({ id: 'v', name: 'Voce', diary: [] });
     store.add(viewer);
     // Ana's last lesson is 2026-10-08. Pin that calendar day: currentStreak lapses once the real date moves on.
-    const always = new Leaderboards(store, () => 0, () => '2026-10-08');
+    const always = new Leaderboards(store, () => 0, () => noon('2026-10-08'));
     const s = { profile: viewer, send: () => {} } as never;
     const line = always.maybeMentionStreak(s as never, 'carlos');
     expect(line?.pt).toContain('Ana');
@@ -127,16 +136,46 @@ describe('leaderboards server', () => {
     const escola = { words: {}, xp: 0, lessons: 0, perfect: 0, goal: 10 as const, dayXp: 0, streak: 40, best: 40, freezes: 0, tier: 'verde' as const, lastDay: today };
     const player = profile({ id: '1', name: 'Ana', diary: ids(0, 1), escola: { ...escola, streak: 2, best: 2 } });
     const admin = profile({ id: '2', name: 'Jonny', diary: ids(...Array.from({ length: 30 }, (_, i) => i)), escola, testUser: true });
-    const { words, streak } = entriesFromProfiles([admin, player], today);
+    const { words, streak } = entriesFromProfiles([admin, player], noon(today));
     expect(words.map((r) => r.name)).toEqual(['Ana']);
     expect(streak.map((r) => r.name)).toEqual(['Ana']);
     const store = new ProfileStore(null);
     store.add(player);
     store.add(admin);
-    const board = new Leaderboards(store, () => 0, () => today).msgFor('1');
+    const board = new Leaderboards(store, () => 0, () => noon(today)).msgFor('1');
     expect(board.words.map((r) => r.name)).toEqual(['Ana']);
     expect(board.streak.map((r) => r.name)).toEqual(['Ana']);
     expect(board.words.some((r) => r.id === '2')).toBe(false);
+  });
+
+  it('reads each streak on its owner’s own day, the day the Escola counted it on (D1)', () => {
+    // 2026-10-09 01:00 UTC: São Paulo (UTC-3) is still on 10-08, Tokyo (UTC+9) on 10-09
+    const at = Date.parse('2026-10-09T01:00:00.000Z');
+    const base = { words: {}, xp: 0, lessons: 0, perfect: 0, goal: 10 as const, dayXp: 0, freezes: 0, tier: 'verde' as const };
+    const profiles = [
+      // last lesson on her 10-07: on her 10-08 the streak is alive (a São Paulo calendar would agree; UTC would say it lapsed)
+      profile({ id: '1', name: 'Ana', diary: ids(0), escola: { ...base, streak: 5, best: 5, lastDay: '2026-10-07', tz: -180 } }),
+      // last lesson on his 10-08: alive on his 10-09
+      profile({ id: '2', name: 'Kai', diary: ids(0), escola: { ...base, streak: 3, best: 3, lastDay: '2026-10-08', tz: 540 } }),
+      // no offset reported yet: UTC, 10-09, and the last lesson was 10-07, so it lapsed
+      profile({ id: '3', name: 'Rui', diary: ids(0), escola: { ...base, streak: 9, best: 9, lastDay: '2026-10-07' } }),
+    ];
+    const { streak } = entriesFromProfiles(profiles, at);
+    expect(streak.map((r) => [r.name, r.score])).toEqual([
+      ['Ana', 5],
+      ['Kai', 3],
+      ['Rui', 0],
+    ]);
+  });
+
+  it('a lastDay from another zone is never a reset: a key one day off is yesterday, and the streak stands (D1 rollover)', () => {
+    // the Escola already keyed on the player day; a streak written on a zone ahead (10-09) still stands on 10-08
+    const at = Date.parse('2026-10-09T01:00:00.000Z');
+    const base = { words: {}, xp: 0, lessons: 0, perfect: 0, goal: 10 as const, dayXp: 0, freezes: 0, tier: 'verde' as const };
+    const ahead = profile({ id: '1', name: 'Ana', diary: ids(0), escola: { ...base, streak: 4, best: 4, lastDay: '2026-10-09', tz: -180 } });
+    const behind = profile({ id: '2', name: 'Bia', diary: ids(0), escola: { ...base, streak: 6, best: 6, lastDay: '2026-10-07', tz: -180 } });
+    const { streak } = entriesFromProfiles([ahead, behind], at);
+    expect(streak.map((r) => r.score)).toEqual([4, 6]);
   });
 
   it('maybeMentionStreak skips when no streak leader', () => {

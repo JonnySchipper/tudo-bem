@@ -58,6 +58,9 @@ export interface SceneView {
 }
 
 const obrigad = (c: SceneCtx) => (c.pronoun === 'ela' ? 'obrigada' : 'obrigado');
+/** Seu Carlos's counter greeting; also what the padaria door answers while the player is far from owning anything. */
+export const CARLOS_POIS_NAO: Bilingual = { pt: 'Pois não. O que vai ser hoje?', en: 'Yes? What’ll it be today?' };
+
 const fixed = (pt: string, en: string) => ({ pt: () => pt, en: () => en });
 
 export const PRICES: Record<string, number> = {
@@ -121,7 +124,7 @@ const NODES: Record<string, NodeDef> = {
   },
   pedido: {
     cards: ['lex.padaria.pois_nao', 'lex.padaria.o_que_vai_ser', 'lex.padaria.me_ve', 'lex.padaria.por_favor', 'lex.padaria.pao_na_chapa', 'lex.padaria.cafe_com_leite'],
-    line: () => ({ pt: 'Pois não. O que vai ser hoje?', en: 'Yes? What’ll it be today?' }),
+    line: () => CARLOS_POIS_NAO,
     chips: [
       { ...fixed('Me vê um pão na chapa, por favor.', 'I’ll take a pão na chapa (grilled buttered bread), please.'), score: 3, next: 'bebida', set: { food: 'pao_na_chapa' } },
       { ...fixed('Um café com leite, por favor.', 'A coffee with milk, please.'), score: 3, next: 'comida', set: { drink: 'cafe_com_leite' }, accepts: ['me ve um cafe com leite'] },
@@ -331,12 +334,10 @@ export const TYPED_MISS_HINT: Bilingual = {
   en: 'I did not quite get that. For a real chat, close this and click me again.',
 };
 
-/** Scene clear payout (GDD §10.2: 6–14 RV) with daily decay per NPC. */
+/** Scene clear payout (GDD §10.2: 6–14 RV): the full amount for `ECONOMY.sceneFullPerDay` clears a day per NPC, then nothing (no halving). */
 export function scenePayout(scores: number[], clearsToday: number): number {
   if (!scores.length) return 0;
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
   const base = ECONOMY.sceneMin + Math.round(((ECONOMY.sceneMax - ECONOMY.sceneMin) * Math.max(0, avg - 1)) / 2);
-  if (clearsToday < ECONOMY.sceneFullPerDay) return base;
-  if (clearsToday < ECONOMY.sceneFullPerDay + 2) return Math.max(1, Math.floor(base / 2));
-  return 0;
+  return clearsToday < ECONOMY.sceneFullPerDay ? base : 0;
 }

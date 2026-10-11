@@ -1,10 +1,10 @@
 /**
  * Persisted on/off switch for the Feira cart games (`feiraCart.json` beside the profiles).
- * Missing file = every game off. A later schedule lives on the same row (`mode: 'rotation'` + `schedule`).
+ * Nothing stored = the shipped default (`defaultFeiraCartConfig`: Tapioca on, the others off). Once an admin
+ * switches anything, the stored config wins. A later schedule lives on the same row (`mode: 'rotation'` + `schedule`).
  * Browser-safe: no `fs` and no `process` (the solo build constructs a memory store).
  */
 import {
-  emptyFeiraCartConfig,
   feiraCartAdminView,
   normalizeFeiraCartConfig,
   withFeiraCartMode,
@@ -48,9 +48,9 @@ export class FeiraCartStore {
   }
 }
 
-/** In-memory store for tests and the solo build. Starts off unless `raw` says otherwise. */
+/** In-memory store for tests and the solo build. Starts on the shipped default unless `raw` says otherwise (`emptyFeiraCartConfig()` = all off). */
 export function memoryFeiraCart(raw?: unknown): FeiraCartStore {
-  let blob: unknown = raw ?? emptyFeiraCartConfig();
+  let blob: unknown = raw;
   return new FeiraCartStore(
     () => blob,
     (cfg) => {

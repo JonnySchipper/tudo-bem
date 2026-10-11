@@ -1,17 +1,12 @@
 /**
- * The card a sign opens (HOWTO Phase 7 step 2): the full Portuguese text large, 🔊, the English gloss, and "Guardar no caderno". Opening it is
+ * The card a sign opens (HOWTO Phase 7 step 2): the full Portuguese text large, 🔊, the English gloss. Opening it is
  * what tells the server (`read`, see main.ts): the words on the sign count as seen, and a recado's `ler` step advances.
  */
 import { hotspotTitle, moneyPt, type HotspotDef } from '@tudobem/shared';
 import { h, en, bi } from './dom';
 import { openModal } from './modal';
 import { speak } from '../audio';
-import { heardIds, noteHeard } from './heard';
-
-export interface HotspotCardOpts {
-  /** "Guardar no caderno": the words are already counted as seen by the read; this takes the player to them. */
-  onSave: (cardIds: string[]) => void;
-}
+import { noteHeard } from './heard';
 
 /** The text read aloud: the lines as sentences, prices as words ("R$ 3,50" -> "três reais e cinquenta centavos"). */
 export const spokenText = (s: Pick<HotspotDef, 'pt'>): string =>
@@ -31,8 +26,7 @@ const cords = () => {
   return el;
 };
 
-export function openHotspotCard(hs: HotspotDef, opts: HotspotCardOpts): void {
-  const cards = heardIds(hs.pt, hs.cards ?? []);
+export function openHotspotCard(hs: HotspotDef): void {
   const menu = hs.pt.split('\n').some((l) => PRICED.test(l));
   const lines = (text: string, cls: string) =>
     text.split('\n').flatMap((l, i, all) => {
@@ -45,26 +39,6 @@ export function openHotspotCard(hs: HotspotDef, opts: HotspotCardOpts): void {
       // the sign's name, then a painted rule, then the rest
       return i === 0 && !priced && all.length > 1 && cls === 'hs-pt' ? [line, h('div', { class: 'hs-rule', 'aria-hidden': 'true' })] : [line];
     });
-  let saved = false;
-  const save = cards.length
-    ? h(
-        'button',
-        {
-          class: 'primary',
-          id: 'hs-save',
-          onclick: (e: Event) => {
-            if (saved) return;
-            saved = true;
-            const b = e.currentTarget as HTMLButtonElement;
-            b.disabled = true;
-            b.replaceChildren(bi('Guardado ✓', 'Saved'));
-            opts.onSave(cards);
-          },
-        },
-        h('span', { class: 'hs-save-icon', 'aria-hidden': 'true' }, '📒'),
-        bi('Guardar no caderno', 'Save to notebook'),
-      )
-    : null;
   const listen = h(
     'button',
     { id: 'hs-listen', 'aria-label': 'Ouvir (Listen)', onclick: () => (speak(spokenText(hs), { force: true }), noteHeard(hs.pt, hs.cards ?? [])) },
@@ -90,7 +64,6 @@ export function openHotspotCard(hs: HotspotDef, opts: HotspotCardOpts): void {
       ),
       h('div', { class: 'hs-actions' }, listen),
       h('div', { class: 'hs-gloss', lang: 'en' }, h('span', { class: 'hs-gloss-tag' }, 'EN', h('span', null, 'Tradução · Translation')), ...lines(hs.en, 'hs-en')),
-      save ? h('div', { class: 'hs-save' }, save) : null,
     ),
   );
 }

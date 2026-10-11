@@ -1,8 +1,9 @@
 /**
- * Cartela de carimbos: four bairro activities, at most one stamp each per America/New_York calendar day,
- * seven stamps pay once (then a fresh card). Progress survives logout on the profile.
+ * Cartela de carimbos: four bairro activities, at most one stamp each per player day (playerDay.ts, the player's own
+ * calendar day), seven stamps pay once (then a fresh card). Progress survives logout on the profile.
  */
 import { ROLL_RV_LOSS } from './academia.js';
+import { sameOrFutureDay } from './playerDay.js';
 import type { Bilingual } from './types.js';
 
 export const CARTELA_GOAL = 7;
@@ -18,15 +19,14 @@ export const CARTELA_ACTIVITIES: readonly CartelaActivity[] = ['tatame', 'balcao
 export interface CartelaState {
   /** Stamps on the current card (0–6 until the 7th pays and resets). */
   stamps: number;
-  /** Last Eastern calendar day (YYYY-MM-DD) each activity earned a stamp. */
+  /**
+   * Last player day (YYYY-MM-DD) each activity earned a stamp. Saves from before the player day hold New York or UTC keys:
+   * an earlier key means "not stamped today", a later one counts as today (`sameOrFutureDay`); the stamps on the card are kept.
+   */
   activityDay: Partial<Record<CartelaActivity, string>>;
 }
 
 export const freshCartela = (): CartelaState => ({ stamps: 0, activityDay: {} });
-
-export function todayEastern(nowMs = Date.now()): string {
-  return new Date(nowMs).toLocaleDateString('sv-SE', { timeZone: 'America/New_York' });
-}
 
 export function normalizeCartela(raw: unknown): CartelaState {
   const r = raw as CartelaState | undefined;
@@ -41,18 +41,18 @@ export function normalizeCartela(raw: unknown): CartelaState {
 }
 
 export function stampsOnDay(st: CartelaState, day: string): number {
-  return CARTELA_ACTIVITIES.filter((a) => st.activityDay[a] === day).length;
+  return CARTELA_ACTIVITIES.filter((a) => sameOrFutureDay(st.activityDay[a], day)).length;
 }
 
 export function activityStampedToday(st: CartelaState, activity: CartelaActivity, day: string): boolean {
-  return st.activityDay[activity] === day;
+  return sameOrFutureDay(st.activityDay[activity], day);
 }
 
 export type CartelaStampResult =
   | { ok: false }
   | { ok: true; next: CartelaState; paid: boolean; reward: number };
 
-/** Try to add one stamp for `activity` on Eastern calendar day `day`. */
+/** Try to add one stamp for `activity` on player day `day`. */
 export function tryCartelaStamp(st: CartelaState, activity: CartelaActivity, day: string): CartelaStampResult {
   const base = normalizeCartela(st);
   if (activityStampedToday(base, activity, day)) return { ok: false };

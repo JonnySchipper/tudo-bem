@@ -1,6 +1,7 @@
 import type { Bilingual, RoomId, Tile } from './types.js';
 import { OFFSTAGE_NPCS, ROOMS, type NpcId } from './rooms.js';
 import { greetingFor, type Greeting } from './clock.js';
+import { numberEn, numberPt } from './numbers.js';
 import { bakerOnDuty, sameNpcRole, scheduleAt, SCHEDULES } from './schedules.js';
 import { MG_ITEMS, type Rng } from './meveum.js';
 import { hotspotById } from './hotspots.js';
@@ -256,6 +257,19 @@ export function offerFor(
   return out;
 }
 
+/**
+ * The recados the bond filter of `offerFor` holds back right now: playable (flag on), not in `skip` (finished today, active), but the giver's
+ * friendship is still under `minBond`. The Favores panel shows them greyed ("Fale mais com …"); the offer itself is unchanged.
+ */
+export function withheldByBond(
+  bond: BondMap | undefined,
+  skip: readonly string[] = [],
+  defs: readonly RecadoDef[] = RECADOS,
+  flags: Readonly<Record<RecadoFlag, boolean>> = RECADO_FLAGS,
+): RecadoDef[] {
+  return defs.filter((d) => recadoEnabled(d, flags) && (bond?.[d.giver] ?? 0) < d.minBond && !skip.includes(d.id));
+}
+
 /** Roll the day over: same state if it is still `day`, otherwise a fresh offer (active recados carry over). Never mutates. */
 export function rollRecadoDay(
   profile: { bond?: BondMap; recados?: RecadoState },
@@ -331,33 +345,73 @@ export const npcName = (id: NpcId): string =>
 
 const itemName = (id: string): Bilingual => itemById(id)?.name ?? { pt: id, en: id };
 
-// needs_br: true (templated step lines)
-/** One-line instruction for a step, for the tracker and the step-done notice. */
+// needs_br: true (templated step lines; panel text only, never spoken)
+
+/** Women who go by a bare first name take "a" in a sentence ("com a Júlia"); a title (Seu, Dona, Tia...) stands alone ("com Seu Carlos"). */
+const BARE_NAME_WITH_A: ReadonlySet<NpcId> = new Set<NpcId>(['nanda', 'julia', 'celia']);
+/** "a Júlia" / "Seu Carlos": the NPC as the object of "fale com" / "cumprimente". */
+const npcObject = (id: NpcId): string => (BARE_NAME_WITH_A.has(id) ? `a ${npcName(id)}` : npcName(id));
+/** "pro Seu Carlos" / "pra Nanda" / "pra Dona Graça": the NPC as the receiver. */
+const npcReceiver = (id: NpcId): string => {
+  const name = npcName(id);
+  return name.startsWith('Seu ') ? `pro ${name}` : `pra ${name}`;
+};
+
+/** Plural of an item name as the shelf and the feira write it: the first word takes the "s" ("cafés com leite"). */
+const PLURAL_WORD: Record<string, string> = { pão: 'pães', pastel: 'pastéis', jornal: 'jornais', 'misto-quente': 'mistos-quentes', flores: 'flores' };
+export function itemPlural(namePt: string): string {
+  const [first = '', ...rest] = namePt.split(' ');
+  const plural = PLURAL_WORD[first] ?? (/[aeiouãáé]$/.test(first) ? `${first}s` : first);
+  return [plural, ...rest].join(' ');
+}
+
+/** "um café com leite" / "dois pães de queijo": an item as something you ask for. */
+function itemCount(id: string, qty: number): Bilingual {
+  const it = itemById(id);
+  if (!it) return { pt: id, en: id };
+  if (qty <= 1) return { pt: itemWithArticle(id), en: `the ${it.name.en}` };
+  // "flores" is the one plural noun on the list, and it is feminine
+  return { pt: `${numberPt(qty, it.gender === 'm' ? 'm' : 'f')} ${itemPlural(it.name.pt)}`, en: `${numberEn(qty)} orders of ${it.name.en}` };
+}
+
+/** "o café com leite" / "os dois pães de queijo": an item you already hold, as something you carry. */
+function itemHeld(id: string, qty: number): Bilingual {
+  const it = itemById(id);
+  if (!it) return { pt: id, en: id };
+  if (qty > 1) return { pt: `${numberPt(qty, it.gender === 'm' ? 'm' : 'f')} ${itemPlural(it.name.pt)}`, en: `${numberEn(qty)} orders of ${it.name.en}` };
+  const article = it.gender === 'pl' ? 'as' : it.gender === 'f' ? 'a' : 'o';
+  return { pt: `${article} ${it.name.pt}`, en: `the ${it.name.en}` };
+}
+
+/** One-line instruction for a step, for the tracker and the step-done notice. A plain sentence. */
 export function describeStep(step: RecadoStep): Bilingual {
   switch (step.kind) {
     case 'falar':
-      return { pt: `Fale com ${npcName(step.npc)}.`, en: `Talk to ${npcName(step.npc)}.` };
+      return { pt: `Fale com ${npcObject(step.npc)}.`, en: `Talk to ${npcName(step.npc)}.` };
     case 'pedir': {
-      const it = itemName(step.itemId);
-      return { pt: `Peça ${step.qty}× ${it.pt} (${npcName(step.npc)}).`, en: `Order ${step.qty}× ${it.en} (${npcName(step.npc)}).` };
+      const what = itemCount(step.itemId, step.qty);
+      return { pt: `Peça ${what.pt} ${npcReceiver(step.npc)}.`, en: `Ask ${npcName(step.npc)} for ${what.en}.` };
     }
     case 'entregar': {
-      const it = itemName(step.itemId);
-      return { pt: `Entregue ${step.qty}× ${it.pt} pra ${npcName(step.npc)}.`, en: `Hand ${step.qty}× ${it.en} to ${npcName(step.npc)}.` };
+      const what = itemHeld(step.itemId, step.qty);
+      return { pt: `Leve ${what.pt} ${npcReceiver(step.npc)}.`, en: `Take ${what.en} to ${npcName(step.npc)}.` };
     }
     case 'ir':
       return { pt: `Vá para: ${ROOMS[step.room].name}.`, en: `Go to: ${ROOMS[step.room].gloss}.` };
     case 'ler': {
       const h = hotspotById(step.hotspotId);
-      return h ? { pt: `Leia a placa: ${h.pt}`, en: `Read the sign: ${h.en}` } : { pt: 'Leia a placa.', en: 'Read the sign.' };
+      // a short sign reads whole ("PADARIA DO SEU CARLOS"); a long one (a menu) is named by its first line
+      const oneLine = (t: string): string => (t.length <= 32 ? t.replace(/\s*\n\s*/g, ' ') : t.split('\n')[0]!).trim();
+      const sign = h && oneLine(h.pt);
+      const signEn = h && oneLine(h.en);
+      return sign ? { pt: `Leia a placa “${sign}”.`, en: `Read the sign “${signEn ?? sign}”.` } : { pt: 'Leia a placa.', en: 'Read the sign.' };
     }
     case 'cumprimentar': {
-      const who = step.npc ? npcName(step.npc) : 'alguém';
+      const who = step.npc ? npcObject(step.npc) : 'alguém';
       const whoEn = step.npc ? npcName(step.npc) : 'someone';
-      // the greeting is said in the chat (a wave does not count): the line says so, or nobody finds out how
       return step.timeCorrect
-        ? { pt: `Cumprimente ${who} no chat: bom dia, boa tarde ou boa noite, conforme a hora.`, en: `Greet ${whoEn} in the chat: bom dia, boa tarde or boa noite, to match the time.` }
-        : { pt: `Cumprimente ${who}: chegue perto e diga “Oi!” no chat.`, en: `Greet ${whoEn}: walk up and say “Oi!” in the chat.` };
+        ? { pt: `Cumprimente ${who} do jeito certo pra hora.`, en: `Greet ${whoEn} the right way for the time of day.` }
+        : { pt: `Cumprimente ${who}.`, en: `Greet ${whoEn}.` };
     }
   }
 }

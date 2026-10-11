@@ -6,14 +6,14 @@
  *
  * The server owns the shift (apps/server/src/correria.ts) and judges every step; this file sends the player's taps and draws what comes back.
  */
-import { JUICE, MG_ITEMS, nextPadariaUpgrade, juiceVerdict, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MenuLadderView, type MgServerMsg } from '@tudobem/shared';
+import { JUICE, MG_ITEMS, nextPadariaUpgrade, juiceVerdict, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MgServerMsg } from '@tudobem/shared';
 import { game } from '../state';
 import { h } from './dom';
 import { speak, stopSpeaking } from '../audio';
 import { ambience } from '../ambience';
 import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
 import { correriaFeed, type CounterHandlers } from '../render/pixel/correriaFeed';
-import { cueFor, endModel, frontOf, glossOn, hud, ladderEnd, ladderNext, ladderStrip, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
+import { cueFor, endModel, frontOf, glossOn, hud, modChips, orderMirror, patienceFrac, trayChips, type EndNext } from './correriaLogic';
 import { COACH_KEY, coachDone, coachMark, readCoach, type CoachMark } from './correriaPracticeLogic';
 
 export interface CorreriaActions {
@@ -201,7 +201,7 @@ export class CorreriaUI {
       e.preventDefault();
       this.act({ a: 'serve' });
     } else if (e.key === 'c' || e.key === 'C') this.act({ a: 'clear' });
-    else if (e.key === 'r' || e.key === 'R') this.act({ a: 'replay' });
+    // R only turns furniture (SIMPLIFICATION-REVIEW B8): the replay is the on-screen button
   };
 
   private act(x: CAct): void {
@@ -212,6 +212,8 @@ export class CorreriaUI {
   private toggleEn(): void {
     if (this.snap && glossOn(this.snap.level, false)) return;
     this.showEn = !this.showEn;
+    // one English setting: the gear's Inglês and the dialogue's Mostrar inglês are the same flag
+    game.englishHelp = this.showEn;
     writeShowEnglish(this.showEn);
     this.syncEn();
     this.mirrorSig = '';
@@ -311,32 +313,6 @@ export class CorreriaUI {
     this.freshShown = true;
     const names = (snap.ladder?.fresh ?? []).map((id) => MG_ITEMS.find((i) => i.id === id)?.card).filter((c) => !!c);
     if (names.length) this.flash({ pt: `✨ Novo no cardápio: ${names.map((c) => c.form).join(', ')}`, en: `New on the menu: ${names.map((c) => c.gloss_en).join(', ')}` }, false, 3600);
-  }
-
-  /** The menu as a row of chips: open, NOVO, and the next one locked with its countdown (the end card only). */
-  private ladderEl(l: MenuLadderView | undefined): HTMLElement | null {
-    const chips = ladderStrip(l);
-    if (!chips.length) return null;
-    const next = ladderNext(l);
-    return h(
-      'div',
-      { class: 'cr-ladder' },
-      h(
-        'ol',
-        { 'aria-label': 'Cardápio (Menu)' },
-        ...chips.map((c) =>
-          h(
-            'li',
-            { class: `cr-ladder-item ${c.state}`, 'data-item': c.id },
-            c.state === 'next' ? h('span', { class: 'lock', 'aria-hidden': 'true' }, '🔒') : null,
-            h('span', { class: 'pt' }, c.pt),
-            h('span', { class: 'en' }, c.en),
-            c.state === 'new' ? h('b', { class: 'tag' }, 'NOVO') : null,
-          ),
-        ),
-      ),
-      next ? h('p', { class: 'cr-ladder-next' }, next.pt, h('span', { class: 'gloss' }, next.en)) : null,
-    );
   }
 
   private onEvent(e: CEvent, snap: CorreriaSnap): void {
@@ -618,13 +594,11 @@ export class CorreriaUI {
     );
   }
 
-  /** What the next shift brings: the item it opens (gold), or the countdown to the next one, over the menu strip. A full menu is one line. */
-  private endLadder(l: MenuLadderView | undefined): HTMLElement | null {
-    const { fresh, next } = ladderEnd(l);
-    if (l && !l.next && !fresh && next) return h('p', { class: 'cr-end-daily cr-end-full' }, `🏆 ${next.pt}`, h('span', { class: 'gloss' }, next.en));
-    const strip = this.ladderEl(l);
-    if (!strip) return null;
-    return h('div', { class: `cr-end-ladder${fresh ? ' grew' : ''}`, id: 'cr-end-ladder' }, fresh ? h('p', { class: 'cr-end-fresh' }, `✨ ${fresh.pt}`, h('span', { class: 'gloss' }, fresh.en)) : null, strip);
+  /** The one "next" line: what the next shift brings (an unlock or item in gold), else the countdown to the next item. */
+  private nextEl(next: EndNext | null): HTMLElement | null {
+    if (!next) return null;
+    const gold = next.tone === 'new';
+    return h('p', { class: gold ? 'cr-end-fresh' : 'cr-end-daily cr-end-full', id: 'cr-end-next' }, `${gold ? '✨' : '🏆'} ${next.pt}`, h('span', { class: 'gloss' }, next.en));
   }
 
   private onEnd(m: Extract<MgServerMsg, { phase: 'end' }>): void {
@@ -643,14 +617,9 @@ export class CorreriaUI {
         ? null
         : h('div', { class: 'cr-end-head' }, h('div', { class: 'big' }, model.big), h('div', { class: 'stars', 'data-stars': String(m.end.stars) }, model.stars)),
       h('p', { class: 'cr-end-note' }, h('span', { class: 'pt' }, `“${m.carlos.pt}”`), h('span', { class: 'en' }, m.carlos.en)),
-      lost
-        ? null
-        : h('div', { class: 'cr-end-rows' }, ...model.rows.map((r) => h('div', { class: 'row' }, h('span', { class: 'k' }, r.label.pt, h('span', { class: 'en' }, r.label.en)), h('b', null, r.value)))),
       !lost && m.end.dailyBlocked ? h('p', { class: 'cr-end-daily' }, 'RV de hoje: já pagamos os turnos do dia. As estrelas contam!', h('span', { class: 'en' }, 'Today’s paid shifts are used up. The stars still count!')) : null,
-      !lost ? this.endLadder(m.end.ladder) : null,
-      !lost && model.words.length ? h('div', { class: 'cr-end-words' }, h('b', null, 'Palavras novas no Caderno'), ...model.words.map((w) => h('span', { class: 'cr-chip' }, w.pt, h('span', { class: 'en' }, w.en)))) : null,
-      !lost ? this.ownerNext() : null,
-      !lost && model.unlocks.length ? h('div', { class: 'cr-end-unlock' }, h('b', null, 'Novidade no balcão! ✨'), ...model.unlocks.map((u) => h('span', null, u.pt, h('span', { class: 'en' }, u.en)))) : null,
+      !lost && model.words.length ? h('div', { class: 'cr-end-words' }, h('b', null, 'Palavras novas no Diário'), ...model.words.map((w) => h('span', { class: 'cr-chip' }, w.pt, h('span', { class: 'en' }, w.en)))) : null,
+      !lost ? this.ownerNext() ?? this.nextEl(model.next) : null,
       h(
         'div',
         { class: 'cr-end-actions' },

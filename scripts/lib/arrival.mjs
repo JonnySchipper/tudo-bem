@@ -6,7 +6,6 @@
 export async function finishArrival(page) {
   await skipFlight(page);
   await page.waitForFunction(() => window.__tb?.game?.profile && window.__tb.game.room, null, { timeout: 20_000 });
-  await quietFirstTimeCards(page);
   const needs = await page.evaluate(() => window.__tb.game.profile.arrivalIntroDone === false);
   // a brand-new account starts in the arrivals hall (the guided tutorial): mark it done and go on to the airport
   const hall = await page.evaluate(() => window.__tb.game.profile.desembarqueDone === false);
@@ -16,10 +15,7 @@ export async function finishArrival(page) {
       window.__tb.net.send({ t: 'arrival', action: 'landed' });
       window.__tb.net.send({ t: 'join', room: 'aeroporto' });
     });
-    // showAirportNext() is scheduled 700ms after desembarque → aeroporto; dismiss before praça clicks.
-    await page.waitForSelector('#aero-next-ok', { state: 'visible', timeout: 8_000 });
-    await page.click('#aero-next-ok');
-    await page.waitForFunction(() => !document.getElementById('aero-next'), null, { timeout: 5_000 });
+    await page.waitForFunction(() => window.__tb.game.profile.desembarqueDone === true, null, { timeout: 8_000 });
   }
   if (needs) {
     await page.waitForFunction(() => window.__tb.game.room?.room === 'aeroporto', null, { timeout: 10_000 });
@@ -33,7 +29,6 @@ export async function finishArrival(page) {
   if (room === 'aeroporto' || room === 'desembarque') await page.evaluate(() => window.__tb.net.send({ t: 'join', room: 'praca' }));
   await page.waitForFunction(() => window.__tb.game.room?.room === 'praca', null, { timeout: 10_000 });
   await dismissWordCards(page);
-  if (await page.$('#aero-next-ok')) await page.click('#aero-next-ok');
 }
 
 /** Click through the new-word cards in the page. Night phase A only has a few seconds before 21:00, so this does not wait on Playwright. */
@@ -61,19 +56,4 @@ export async function skipFlight(page) {
   if (!(await page.$('.flight-intro .fl-skip'))) return;
   await page.click('.flight-intro .fl-skip');
   await page.waitForFunction(() => !document.querySelector('.flight-intro'), null, { timeout: 8_000 });
-}
-
-/**
- * The first-time cards a new player meets in the Vila (the Vila guide, and the "How it works" cards over panels such as Recados or the
- * Cartela) sit over the screen until "Got it". Play paths that are about something else mark them seen, as a returning player would have.
- * The minigames' "How to play" cards are left alone: their e2e reads them. Ids: apps/client/src/ui/howToPlayData.ts (kind: 'place').
- */
-export const PLACE_CARDS = ['balcao', 'papo', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira'];
-
-export async function quietFirstTimeCards(page) {
-  await page.evaluate((ids) => {
-    const id = window.__tb.game.profile.id;
-    localStorage.setItem(`tb_vila_guia:${id}`, '1');
-    for (const g of ids) localStorage.setItem(`tb_howto:${id}:${g}`, '1');
-  }, PLACE_CARDS);
 }

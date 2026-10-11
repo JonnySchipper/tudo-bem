@@ -1,7 +1,7 @@
 /**
  * Padaria ownership RV prices (MASTER PLAN, locked 2026-10-05).
  *
- * Baseline: a 2★ paid Correria shift = 20 RV (inside the 3-per-day UTC cap).
+ * Baseline: a 2★ paid Correria shift = 20 RV (inside the 3-per-day cap, counted on the player's own day).
  */
 
 /** Paid Correria shift payout by star grade (uses a daily cap slot even at 1★). */
@@ -40,3 +40,33 @@ export const PADARIA_SIZE_RV = {
   padaria: 1500,
   restaurante: 3000,
 } as const;
+
+/** The padaria door's savings meter and the Fundar copy wait until the player has seen this much RV (SIMPLIFICATION-REVIEW D3). */
+export const PADARIA_DOOR_METER_MIN_RV = 300;
+
+/** Does the padaria door show its meter and Fundar copy? Owners always see their own door; everyone else waits for 300 RV. */
+export function padariaDoorShowsMeter(coins: number, owned: boolean): boolean {
+  return owned || coins >= PADARIA_DOOR_METER_MIN_RV;
+}
+
+/**
+ * Beta flag (SIMPLIFICATION-REVIEW D3): endgame options kept out of the beta build's menus. The rules and prices stay; only the
+ * menus read these. Flip a key to false to bring the option back.
+ */
+export const BETA_HIDE = {
+  /** The Restaurante size (3000 RV) in the owner menu. */
+  padariaSize3: true,
+  /** House gear (chapa, garrafa) in the owner menu. */
+  padariaGear: true,
+  /** Sign, trim and décor tiers in the owner menu. */
+  padariaDecor: true,
+  /** The crest and gi editor of a player academy (its owner sees the team card instead). */
+  academyLook: true,
+} as const;
+
+export type BetaHide = { readonly [K in keyof typeof BETA_HIDE]: boolean };
+
+/** What the padaria owner menu lists: the size tiers, and whether the gear and décor shelves are drawn. */
+export function padariaOwnerMenu(hide: BetaHide = BETA_HIDE): { sizes: readonly (1 | 2 | 3)[]; gear: boolean; decor: boolean } {
+  return { sizes: hide.padariaSize3 ? [1, 2] : [1, 2, 3], gear: !hide.padariaGear, decor: !hide.padariaDecor };
+}

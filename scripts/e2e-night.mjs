@@ -63,7 +63,7 @@ async function main() {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await page.click('#intro-tab-register');
   await page.fill('#intro-email', `noite+${Date.now().toString(36)}@exemplo.com`);
   await page.fill('#intro-password', PASSWORD);
@@ -132,14 +132,16 @@ async function main() {
       await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
       const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
       if (key === 'counter-graca') break;
-      if (key?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]'); // Continuar — the learned line
-      else if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
+      if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(350);
     }
     await page.waitForSelector('#dialogue-box[data-dialogue="counter-graca"]', { timeout: 12_000 });
     const name = ((await page.textContent('#dialogue-box[data-dialogue="counter-graca"] .npc-name')) ?? '').trim();
     assert(name === 'Dona Graça', `the counter is Dona Graça's at night (${name})`);
-    await page.click('#dialogue-box[data-dialogue="counter-graca"] [data-chip="0"]');
+    // the counter lists its chips cheapest first until the first order (SIMPLIFICATION-REVIEW E2), so pick the coxinha by name
+    const coxinhaChip = page.locator('#dialogue-box[data-dialogue="counter-graca"] [data-chip]', { hasText: 'coxinha' }).first();
+    assert((await coxinhaChip.count()) === 1, 'the coxinha is on Dona Graça\'s counter');
+    await coxinhaChip.click();
     await waitFor(page, () => window.__tb.game.self?.pub.carry === 'coxinha', null, 8000, 'carrying the coxinha');
     const afterScene = await page.evaluate(() => window.__tb.game.profile);
     assert(afterScene.tutorial.carlos, 'ordering at the counter completed the padaria step with Dona Graça');

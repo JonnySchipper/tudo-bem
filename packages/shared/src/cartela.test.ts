@@ -6,16 +6,16 @@ import {
   freshCartela,
   normalizeCartela,
   stampsOnDay,
-  todayEastern,
   tryCartelaStamp,
   type CartelaState,
 } from './cartela.js';
+import { playerDay } from './playerDay.js';
 
 const DAY = '2026-10-03';
 const NEXT = '2026-10-04';
 
 describe('cartela stamps', () => {
-  it('allows one stamp per activity per ET day', () => {
+  it('allows one stamp per activity per player day', () => {
     let st = freshCartela();
     const first = tryCartelaStamp(st, 'tatame', DAY);
     expect(first).toMatchObject({ ok: true, paid: false });
@@ -33,7 +33,7 @@ describe('cartela stamps', () => {
     expect(a.next).toEqual(b.ok ? (b as { next: CartelaState }).next : a.next);
   });
 
-  it('allows the same activity again on a new ET day', () => {
+  it('allows the same activity again on a new player day', () => {
     let st = freshCartela();
     st = tryCartelaStamp(st, 'conversa', DAY).next;
     expect(activityStampedToday(st, 'conversa', DAY)).toBe(true);
@@ -69,13 +69,23 @@ describe('cartela stamps', () => {
     });
   });
 
-  it('todayEastern uses America/New_York', () => {
-    // 2026-10-03 04:00 UTC is still 2026-10-02 in New York (EDT)
-    expect(todayEastern(Date.parse('2026-10-03T03:59:00.000Z'))).toBe('2026-10-02');
-    expect(todayEastern(Date.parse('2026-10-03T04:00:00.000Z'))).toBe('2026-10-03');
+  it('a New York key from an older save is yesterday on the player day: the card keeps its stamps and the activity stamps again', () => {
+    // stamped "tatame" late on 2026-10-02 in New York; the player is in São Paulo (UTC-3), where it is already 10-03 at 03:30 UTC
+    const old = { stamps: 3, activityDay: { tatame: '2026-10-02', feira: '2026-10-02' } };
+    const today = playerDay(Date.parse('2026-10-03T03:30:00.000Z'), -180);
+    expect(today).toBe('2026-10-03');
+    expect(stampsOnDay(old, today)).toBe(0);
+    const res = tryCartelaStamp(old, 'tatame', today);
+    expect(res.ok && res.next.stamps).toBe(4);
+    expect(res.ok && res.next.activityDay.tatame).toBe(today);
+    // a key from a zone ahead of the player's (a later day) is today: no second stamp now, and the card is kept
+    const ahead = { stamps: 5, activityDay: { balcao: '2026-10-04' } };
+    expect(stampsOnDay(ahead, today)).toBe(1);
+    expect(tryCartelaStamp(ahead, 'balcao', today).ok).toBe(false);
+    expect(tryCartelaStamp(ahead, 'tatame', today)).toMatchObject({ ok: true, next: { stamps: 6 } });
   });
 
-  it('caps at four stamps per ET day across activities', () => {
+  it('caps at four stamps per player day across activities', () => {
     let st = freshCartela();
     for (const a of ['tatame', 'balcao', 'feira', 'conversa'] as const) {
       const r = tryCartelaStamp(st, a, DAY);

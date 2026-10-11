@@ -438,97 +438,6 @@ html.px-ui .dbx {
   content: none;
 }
 
-/* ---- Pedido rápido: the ticket becomes a compact strip, the payout and the daily gate stay */
-.dbx .pedido-extras {
-  display: grid;
-  gap: 6px;
-}
-
-.dbx .pedido-ticket {
-  transform: none;
-  background: #fffdf6;
-  border: 2px solid var(--dbx-ink);
-  border-radius: 0;
-  box-shadow: none;
-  padding: 4px 6px;
-}
-
-.dbx .pedido-ticket::before,
-.dbx .ticket-header,
-.dbx .ticket-dashes {
-  display: none;
-}
-
-.dbx .ticket-items {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.dbx .ticket-item {
-  grid-template-columns: 22px minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  gap: 0 6px;
-  padding: 2px 6px;
-  border-radius: 0;
-  min-width: 0;
-}
-
-.dbx .ticket-item .item-icon {
-  grid-row: 1 / span 2;
-  font-size: 1.15em;
-}
-
-.dbx .ticket-item .item-label {
-  font-size: 0.66em;
-  line-height: 1.1;
-}
-
-.dbx .ticket-item .item-value,
-.dbx .ticket-item .item-placeholder {
-  font-size: 0.86em;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-}
-
-.dbx .ticket-item .item-value .en {
-  display: none;
-}
-
-.dbx .pedido-score {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-  text-align: left;
-  padding: 1px 9px;
-  border-radius: 0;
-  border-width: 2px;
-  font-size: 0.86em;
-  align-self: flex-start;
-}
-
-.dbx .pedido-score .score-stars {
-  color: var(--mustard);
-  letter-spacing: 1px;
-}
-
-.dbx .pedido-score .score-text {
-  font-weight: 800;
-}
-
-.dbx .pedido-payout {
-  border-radius: 0;
-  border: 2px solid var(--sp-green);
-  padding: 3px 10px;
-  font-weight: 800;
-}
-
-.dbx .daily-blocked {
-  border-radius: 0;
-  border: 2px solid var(--mustard);
-  padding: 3px 10px;
-}
-
 /* ---- Conversa: the conta (score card) as a flat pixel paper */
 .dbx .conversa-score-card {
   transform: none;
@@ -605,7 +514,7 @@ html.px-ui .dbx {
   font-size: 0.72em;
 }
 
-/* ---- phones: the portrait shrinks to 1x (pixel-ui.css), chips and the ticket take the full width under it */
+/* ---- phones: the portrait shrinks to 1x (pixel-ui.css), chips take the full width under it */
 @media (max-width: 640px) {
   .dbx {
     grid-template-columns: 64px minmax(0, 1fr);
@@ -648,20 +557,6 @@ html.px-ui .dbx {
 
   .dbx .dbx-en-toggle .sw {
     font-size: 1rem;
-  }
-
-  .dbx .ticket-items {
-    gap: 4px;
-  }
-
-  .dbx .ticket-item {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: none;
-    padding: 2px 4px;
-  }
-
-  .dbx .ticket-item .item-icon {
-    display: none;
   }
 
   .dbx .conversa-score-card {
@@ -976,9 +871,6 @@ html.px-ui .dbx {
   .dbx-below {
     gap: 3px;
   }
-  .dbx .pedido-extras {
-    gap: 3px;
-  }
   .dbx .dbx-chips {
     gap: 3px;
   }
@@ -996,19 +888,6 @@ html.px-ui .dbx {
   }
   .dbx .dbx-chip .en {
     font-size: 0.74em;
-  }
-  .dbx .pedido-ticket {
-    padding: 2px 4px;
-  }
-  .dbx .ticket-item {
-    padding: 1px 3px;
-  }
-  .dbx .ticket-item .item-label {
-    font-size: 0.6em;
-  }
-  .dbx .ticket-item .item-value,
-  .dbx .ticket-item .item-placeholder {
-    font-size: 0.8em;
   }
   .dbx .dbx-input input {
     padding: 4px 8px;
@@ -1069,7 +948,6 @@ html.px-ui .dbx {
   }
   .dbx-body,
   .dbx-below,
-  .dbx .pedido-extras,
   .dbx .dbx-chips {
     gap: 3px;
   }
@@ -1263,6 +1141,43 @@ html.px-ui .dbx {
   font-size: 0.85em;
   white-space: nowrap;
   min-width: max-content;
+}
+
+/* the house counter of an owned padaria: the whole menu on the board (no key numbers: the one chip is "Agora não"); a longer
+   menu than a cart's, so every tile is the phone's: the item on the left, the name over the price tag */
+.snack-cart-padaria .snack-pick {
+  flex-basis: 180px;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 2px;
+}
+
+.snack-cart-padaria .snack-bag {
+  grid-row: span 2;
+}
+
+.snack-cart-padaria .snack-price {
+  justify-self: start;
+}
+
+.snack-cart-padaria .snack-cart-row {
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+.snack-bag:empty {
+  width: 48px;
+  height: 48px;
+}
+
+@media (max-width: 640px) {
+  .snack-cart-padaria .snack-pick {
+    flex-basis: 140px;
+  }
+  .snack-bag:empty {
+    width: 32px;
+    height: 32px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

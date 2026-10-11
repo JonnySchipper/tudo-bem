@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { DIARY_AREAS, DIARY_WORDS, ESCOLA_MAX_BOX, freshEscola } from '@tudobem/shared';
-import { DEFAULT_FILTER, FIRST_VISIT_FRESH_MAX, filterWords, journalModel, markWord, masteryOf, matchesQuery, searchAll, seenOnFirstVisit, type JournalWord } from './journalView';
+import {
+  CHAPTER_TOOLS_MIN,
+  DEFAULT_FILTER,
+  FIRST_VISIT_FRESH_MAX,
+  GAPS_SHOWN,
+  chapterFilter,
+  chapterTools,
+  filterWords,
+  journalModel,
+  journalShows,
+  markWord,
+  masteryOf,
+  matchesQuery,
+  searchAll,
+  seenOnFirstVisit,
+  shownChapters,
+  type JournalWord,
+} from './journalView';
 
 const NOW = Date.UTC(2026, 9, 9, 12);
 const model = (diary: string[], extra: Partial<Parameters<typeof journalModel>[0]> = {}) => journalModel({ diary, escola: undefined, seen: diary.length, now: NOW, ...extra });
@@ -108,13 +125,24 @@ describe('looking through a chapter', () => {
     return chapter(model(['diary.chegada.torre', 'diary.chegada.mala', 'diary.chegada.passaporte', 'diary.chegada.bemvindo'], { escola }), 'chegada').words;
   };
 
-  it('keeps the empty slots in album order, and lists only stickers in the other orders', () => {
+  it('keeps the next empty slots in album order, and lists only stickers in the other orders', () => {
     const all = words();
-    expect(filterWords(all, DEFAULT_FILTER)).toHaveLength(all.length);
+    expect(filterWords(all, DEFAULT_FILTER)).toHaveLength(all.filter((w) => w.earned).length + Math.min(GAPS_SHOWN, all.filter((w) => !w.earned).length));
     expect(filterWords(all, { ...DEFAULT_FILTER, missing: false }).every((w) => w.earned)).toBe(true);
     expect(filterWords(all, { ...DEFAULT_FILTER, sort: 'recent' }).map((w) => w.pt)).toEqual(['bem-vindo', 'passaporte', 'mala', 'torre'].map((pt) => all.find((w) => w.pt.toLowerCase() === pt)?.pt ?? pt));
     expect(filterWords(all, { ...DEFAULT_FILTER, sort: 'az' }).map((w) => w.pt)[0]).toBe(filterWords(all, { ...DEFAULT_FILTER, sort: 'az' }).map((w) => w.pt).sort((a, b) => a.localeCompare(b, 'pt-BR'))[0]);
     expect(filterWords(all, { ...DEFAULT_FILTER, sort: 'mastery' }).slice(0, 2).map((w) => w.id)).toEqual(['diary.chegada.torre', 'diary.chegada.mala']);
+  });
+
+  it('shows only the next GAPS_SHOWN empty slots, the lowest numbers first, with every sticker', () => {
+    const all = words();
+    const gaps = all.filter((w) => !w.earned);
+    expect(gaps.length).toBeGreaterThan(GAPS_SHOWN);
+    const shown = filterWords(all, DEFAULT_FILTER);
+    expect(shown.filter((w) => !w.earned).map((w) => w.id)).toEqual(gaps.slice(0, GAPS_SHOWN).map((w) => w.id));
+    expect(shown.filter((w) => w.earned)).toHaveLength(4);
+    // still in album order
+    expect(shown.map((w) => w.no)).toEqual([...shown.map((w) => w.no)].sort((a, b) => a - b));
   });
 
   it('filters by source', () => {
@@ -136,6 +164,51 @@ describe('looking through a chapter', () => {
     const m = model(['diary.chegada.mala', 'diary.padaria.bolo', 'diary.padaria.cafezinho']);
     expect(searchAll(m, 'CAF').map((w) => w.id)).toEqual(['diary.padaria.cafezinho']);
     expect(searchAll(m, '')).toEqual([]);
+  });
+});
+
+describe('what the book shows yet', () => {
+  const inArea = (area: string, n: number) => DIARY_WORDS.filter((w) => w.area === area).slice(0, n).map((w) => w.id);
+
+  it('a chapter has a tab only once it holds a word', () => {
+    expect(shownChapters(model([]))).toEqual([]);
+    const m = model(['diary.chegada.mala', 'diary.padaria.bolo', 'diary.chegada.passaporte']);
+    expect(shownChapters(m).map((c) => c.id)).toEqual(['chegada', 'padaria']);
+  });
+
+  it('the Início stats, tier bar and medals wait for a regular: 25 words, an Escola lesson, or the gi', () => {
+    expect(journalShows(undefined)).toBe(false);
+    expect(journalShows({ diary: [] })).toBe(false);
+    const words = DIARY_WORDS.map((w) => w.id);
+    expect(journalShows({ diary: words.slice(0, 24) })).toBe(false);
+    expect(journalShows({ diary: words.slice(0, 25) })).toBe(true);
+    // the same word twice is one word
+    expect(journalShows({ diary: [...words.slice(0, 12), ...words.slice(0, 13)] })).toBe(false);
+    expect(journalShows({ diary: [], escola: { ...freshEscola(), lessons: 1 } })).toBe(true);
+    expect(journalShows({ diary: [], escola: freshEscola() })).toBe(false);
+    expect(journalShows({ diary: [], giOwned: true })).toBe(true);
+    expect(journalShows({ diary: [], giOwned: false })).toBe(false);
+  });
+
+  it('a chapter\'s sorts, source filters and "Mostrar o que falta" wait for CHAPTER_TOOLS_MIN words', () => {
+    const few = chapter(model(inArea('praca', CHAPTER_TOOLS_MIN - 1)), 'praca');
+    const enough = chapter(model(inArea('praca', CHAPTER_TOOLS_MIN)), 'praca');
+    expect(enough.earned).toBe(CHAPTER_TOOLS_MIN);
+    expect(chapterTools(few)).toBe(false);
+    expect(chapterTools(enough)).toBe(true);
+    // a filter left over from the session does not apply while the tools are hidden; the search still does
+    const stored = { source: 'camera', sort: 'az', query: 'x', missing: false } as const;
+    expect(chapterFilter(few, stored)).toEqual({ ...DEFAULT_FILTER, query: 'x' });
+    expect(chapterFilter(enough, stored)).toEqual(stored);
+  });
+
+  it('a diary of 3 words: one or two chapter tabs, no tools, the next empty slots', () => {
+    const m = model(['diary.chegada.mala', 'diary.chegada.passaporte', 'diary.padaria.bolo']);
+    expect(shownChapters(m).length).toBeLessThanOrEqual(2);
+    const c = chapter(m, 'chegada');
+    expect(chapterTools(c)).toBe(false);
+    const grid = filterWords(c.words, chapterFilter(c, DEFAULT_FILTER));
+    expect(grid.filter((w) => !w.earned).length).toBeLessThanOrEqual(GAPS_SHOWN);
   });
 });
 

@@ -38,7 +38,7 @@ async function enter(page, name) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
   await page.click('#intro-tab-register');
   await page.fill('#intro-email', `praia+${name.toLowerCase()}${Date.now().toString(36)}@exemplo.com`);
   await page.fill('#intro-password', 'pao-de-queijo-2026');
@@ -66,7 +66,8 @@ async function openHud(page, sel) {
   if (await burger.isVisible()) {
     if ((await burger.getAttribute('aria-expanded')) !== 'true') await burger.click();
   } else if ((await page.getAttribute('#btn-menu', 'aria-expanded')) !== 'true') await page.click('#btn-menu');
-  await page.click(sel);
+  // the gear's Créditos / Apoiar wait for the resident stage (SIMPLIFICATION-REVIEW §3): press the button itself
+  await page.$eval(sel, (b) => b.click());
 }
 
 /** The credits admin door: sign in and give this player RV (the host pays the party boat). */

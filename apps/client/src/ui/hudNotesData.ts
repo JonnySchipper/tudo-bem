@@ -54,17 +54,5 @@ export const HUD_NOTES: Record<HudNoteId, HudNote> = {
 /** The Cartela rules in one line, for the chip's tooltip. */
 export const CARTELA_RULE = `One stamp per activity per day (up to ${CARTELA_MAX_STAMPS_PER_DAY}). ${CARTELA_GOAL} stamps pay ${CARTELA_REWARD} RV. Click for the card.`;
 
-/**
- * What the top bar shows. The arrivals hall and the airport show only what their guided steps teach (money, the Diário, the map, the camera);
- * the rest arrives with the Vila. The belt waits for a gi: it means nothing before the first training.
- */
-export function hudShows(p: { desembarqueDone?: boolean; arrivalIntroDone?: boolean; giOwned?: boolean; testUser?: boolean }): {
-  belt: boolean;
-  plate: boolean;
-  goal: boolean;
-  cartela: boolean;
-  vila: boolean;
-} {
-  const intro = p.desembarqueDone === false || p.arrivalIntroDone === false;
-  return { belt: !!p.giOwned || !!p.testUser, plate: !intro, goal: !intro, cartela: p.arrivalIntroDone !== false, vila: !intro };
-}
+/** What the top bar shows lives with the disclosure ladder (ui/disclosure.ts); re-exported here for the old import path. */
+export { hudShows } from './disclosure';

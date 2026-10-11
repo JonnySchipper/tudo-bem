@@ -70,7 +70,6 @@ async function waitHealthy() {
 const PIECES = {
   plate: '#hud-top .hud-left',
   stats: '#hud-top .hud-stats',
-  fala: '#btn-feedback',
   icons: '#hud-actions',
   burger: '#btn-burger',
   mission: '#mission-pill',
@@ -177,7 +176,7 @@ try {
     await page.click('#intro-enter');
     await page.waitForSelector('#intro-skip', { timeout: 12_000 });
     await page.click('#intro-skip');
-    await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+    await page.waitForSelector('#intro-submit', { state: 'visible', timeout: 12_000 });
     await page.click('#intro-tab-register');
     await page.fill('#intro-email', `scale+${size}-${Date.now().toString(36)}@exemplo.com`);
     await page.fill('#intro-password', 'pao-de-queijo-2026');
@@ -218,8 +217,7 @@ try {
       await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
       const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
       if (key === 'counter-carlos') break;
-      if (key?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]');
-      else if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
+      if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(400);
     }
     await page.evaluate(() => document.querySelector('.toasts')?.replaceChildren());
