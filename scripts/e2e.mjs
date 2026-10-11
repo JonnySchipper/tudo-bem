@@ -57,15 +57,21 @@ const profile = (page) => page.evaluate(() => window.__tb.game.profile);
 /** D12: the padaria's baker at the game clock the server runs (Seu Carlos 06:00-22:00, Dona Graça 22:00-06:00). The e2e must pass at any hour. */
 const bakerNow = (page) => page.evaluate(() => (window.__tb.clock.minutes() >= 360 && window.__tb.clock.minutes() < 1320 ? { id: 'carlos', name: 'Seu Carlos' } : { id: 'graca', name: 'Dona Graça' }));
 
-/** Tap a floor tile (pointer events — the world listens on pointerup, not click). */
+/**
+ * Tap a floor tile (pointer events — the world listens on pointerup, not click). The point is read and the events dispatched in one page
+ * turn: the camera eases after a walk (for seconds on a slow headless frame rate), so a point read a round trip earlier lands on the wrong tile.
+ */
 async function clickTile(page, x, y, lift = 0) {
-  const p = await page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [x, y]);
-  const scale = await page.evaluate(() => window.__tb.renderer.cam.scale);
-  const px = p.px;
-  const py = p.py - lift * scale;
-  const canvas = page.locator('canvas#world');
-  await canvas.dispatchEvent('pointerdown', { pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, clientX: px, clientY: py });
-  await canvas.dispatchEvent('pointerup', { pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, clientX: px, clientY: py });
+  await page.evaluate(
+    ([x, y, lift]) => {
+      const p = window.__tb.tileToClient(x, y);
+      const at = { pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, bubbles: true, clientX: p.px, clientY: p.py - lift * window.__tb.renderer.cam.scale };
+      const canvas = document.querySelector('canvas#world');
+      canvas.dispatchEvent(new PointerEvent('pointerdown', at));
+      canvas.dispatchEvent(new PointerEvent('pointerup', at));
+    },
+    [x, y, lift],
+  );
 }
 
 /**

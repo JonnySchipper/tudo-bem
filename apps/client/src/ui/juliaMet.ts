@@ -4,6 +4,7 @@
  */
 import { juliaAlreadyMet, juliaMetKey } from '@tudobem/shared';
 import { game } from '../state';
+import { atLeast, stage, type DisclosureProfile } from './disclosure';
 
 function remembered(profileId: string | undefined): boolean {
   if (!profileId || typeof localStorage === 'undefined') return false;
@@ -14,10 +15,23 @@ function remembered(profileId: string | undefined): boolean {
   }
 }
 
-/** True once this profile has met her: bond already saved, or the intro was shown on this browser. */
+/** The profile fields that show Júlia was met. */
+export type JuliaMetProfile = DisclosureProfile & { bond?: Partial<Record<string, number>> };
+
+/**
+ * Pure: met once the bond is saved or this browser played the intro, and also on a profile that is plainly past her (a resident, a recado
+ * ever finished, or Seu Carlos done), so a veteran on a new browser is not sent back to her.
+ */
+export function metJulia(p: JuliaMetProfile | null | undefined, rememberedHere: boolean): boolean {
+  if (juliaAlreadyMet({ bond: p?.bond?.julia, remembered: rememberedHere })) return true;
+  if (!p) return false;
+  return atLeast(stage(p), 'S2') || (p.recadosDoneTotal ?? 0) > 0 || p.tutorial?.carlos === true;
+}
+
+/** True once this profile has met her (`metJulia` on the current profile and this browser's flag). */
 export function profileMetJulia(): boolean {
   const p = game.profile;
-  return juliaAlreadyMet({ bond: p?.bond?.julia, remembered: remembered(p?.id) });
+  return metJulia(p, remembered(p?.id));
 }
 
 /** Call when the introduction is about to play, so the next talk on this profile skips it. */

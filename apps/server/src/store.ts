@@ -301,15 +301,35 @@ function normalizeFeira(raw: unknown): StoredProfile['feira'] {
   return r && typeof r.date === 'string' && typeof r.n === 'number' && Number.isFinite(r.n) && r.n >= 0 ? { date: r.date.slice(0, 10), n: Math.min(99, Math.floor(r.n)) } : undefined;
 }
 
+/** Recados a player needs for the Regular stage (`S3_RECADOS` in the client's disclosure ladder). */
+export const VETERAN_RECADOS = 3;
+
+/**
+ * The lifetime recado count (`recadosDoneTotal`). It arrived after the recados, and `recados.done` holds only today's: a save from before
+ * it that shows it has lived here (the welcome bonus, Seu Carlos, a heart with anyone, a Cartela stamp, a hat) starts as a regular, so a
+ * veteran never drops back down the disclosure ladder; any other old save starts from today's list. Reads normalized `recados`, `bond`,
+ * `cartela` and `tutorial`.
+ */
+function normalizeRecadosDoneTotal(p: StoredProfile): number {
+  const today = p.recados?.done.length ?? 0;
+  const raw = p.recadosDoneTotal;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return Math.max(0, Math.floor(raw), today);
+  const lived =
+    p.tutorialRewarded === true ||
+    p.tutorial?.carlos === true ||
+    Object.values(p.bond ?? {}).some((v) => (v ?? 0) >= 10) ||
+    (p.cartela?.stamps ?? 0) > 0 ||
+    Object.keys(p.cartela?.activityDay ?? {}).length > 0 ||
+    (Array.isArray(p.hats) && p.hats.length > 0);
+  return Math.max(today, lived ? VETERAN_RECADOS : 0);
+}
+
 /** Default the optional Phase 8 fields so saves from before them load unchanged. Idempotent. */
 export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.bag = normalizeBag(p.bag);
   p.bond = normalizeBond(p.bond);
   p.bondGifts = normalizeBondGifts(p.bondGifts);
   p.recados = normalizeRecados(p.recados);
-  // the lifetime recado count arrived after the recados: an old save starts from today's list
-  const total = typeof p.recadosDoneTotal === 'number' && Number.isFinite(p.recadosDoneTotal) ? Math.floor(p.recadosDoneTotal) : 0;
-  p.recadosDoneTotal = Math.max(0, total, p.recados.done.length);
   p.caderno = normalizeCaderno(p.caderno);
   p.cadernoPaid = normalizeCadernoPaid(p.cadernoPaid);
   p.papos = normalizePapos(p.papos);
@@ -341,6 +361,7 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.film = normalizeFilm(p.film);
   p.photos = normalizePhotos(p.photos);
   p.cartela = normalizeCartela(p.cartela);
+  p.recadosDoneTotal = normalizeRecadosDoneTotal(p);
   const parrotColors = ownedParrotColorIds(p);
   p.parrotColors = parrotColors;
   if (p.parrotOwned || parrotColors.length > 0) {

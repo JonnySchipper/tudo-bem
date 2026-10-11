@@ -117,7 +117,7 @@ import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { openLeaderboards } from './ui/leaderboards';
-import { checkersOpens, placarOpens } from './ui/s3Doors';
+import { checkersOpens, placarOpens, propIsScenery } from './ui/s3Doors';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
 import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
@@ -774,9 +774,10 @@ function updateGuides() {
   }
   // the kitnet guide's floor steps: a free tile for the piece in hand, or the piece to rotate
   if (r.room === 'kitnet') add(kitnetWorldGuide());
-  // the Vila's first stop is Júlia (the bus toast sends you to her): until you have met her, exactly one arrow, to her or the way to her
+  // the Vila's first stop is Júlia (the bus toast sends you to her): until you have met her, exactly one arrow, to her or the way to her;
+  // a favor in hand wins (its arrow is the one)
   if (p.arrivalIntroDone !== false && !profileMetJulia()) {
-    if (!renderer.guides.length) add(juliaGuide(r.room));
+    if (!renderer.guides.length) add(game.board?.active.length ? recadoGuide() : juliaGuide(r.room));
     return;
   }
   if (r.room === 'rua') {
@@ -1208,6 +1209,7 @@ net.on((m: ServerMsg) => {
       const p = game.profile;
       const shown = !!p && hudShows(p).cartela;
       const appears = !shown && !!p && hudShows({ ...p, cartela: { stamps: Math.max(1, m.stamps), activityDay: p.cartela?.activityDay ?? {} } }).cartela;
+      cartelaPaidBanner = m.paid && (shown || appears);
       if (!shown && !appears) break;
       if (m.paid) {
         // the profile that follows already holds the fresh card: keep the chip full while the banner plays (the reward toast follows)
@@ -1228,11 +1230,12 @@ net.on((m: ServerMsg) => {
       if (m.reason.pt === MISSION_COPY.done.pt) {
         missionBanner();
         ambience.sting('mission');
-      } else if (m.reason.pt === CARTELA_COPY.paid.pt) {
-        // the payout banner already shows the card and the RV; the coin counter ticks when it leaves (at once while the chip is hidden)
-        const wait = game.profile && hudShows(game.profile).cartela ? CARTELA_BANNER_MS : 300;
-        window.setTimeout(() => document.getElementById('coins')?.classList.add('tick'), wait - 300);
-        window.setTimeout(() => document.getElementById('coins')?.classList.remove('tick'), wait + 400);
+      } else if (m.reason.pt === CARTELA_COPY.paid.pt && cartelaPaidBanner) {
+        // the payout banner already shows the card and the RV; the coin counter ticks when it leaves (while the chip is hidden there
+        // was no banner, and this falls through to the normal reward toast)
+        cartelaPaidBanner = false;
+        window.setTimeout(() => document.getElementById('coins')?.classList.add('tick'), CARTELA_BANNER_MS - 300);
+        window.setTimeout(() => document.getElementById('coins')?.classList.remove('tick'), CARTELA_BANNER_MS + 400);
       } else if (m.reason.pt.startsWith('Favor: ') || m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
       else if (rewardOnCard(m.reason.pt)) {
         // an end card (or the thanks card's Vizinho do dia line) already shows this RV: the coin counter ticks, no toast
@@ -1299,6 +1302,7 @@ net.on((m: ServerMsg) => {
       game.incoming = m.incoming;
       game.blockedPeople = m.blocked ?? [];
       game.emit('friends');
+      game.emit('hud'); // a pending request can bring Amigos in before S2
       break;
     case 'friendRequest':
       toast('info', `${m.fromName} quer ser seu amigo!`, `${m.fromName} sent a friend request — open “Amigos” to accept.`);
@@ -1318,6 +1322,9 @@ net.on((m: ServerMsg) => {
       break;
   }
 });
+
+/** The last Cartela payout played its banner (the chip was or became visible): its RV is on the banner, not in a toast. */
+let cartelaPaidBanner = false;
 
 function npcSay(id: string, line: { pt: string; en: string }) {
   game.npcBubbles.set(id, { text: line.pt, gloss: line.en, at: now() });
@@ -1614,8 +1621,8 @@ function handleClickInner(hit: Hit | null) {
     case 'prop': {
       const p: PropDef = hit.prop;
       if (game.cameraOn) break;
-      // the kiosk is scenery until the Missão do dia means something (S3)
-      const scenery = p.action === 'kiosk' && !(game.profile && kioskShown(game.profile));
+      // the kiosk, the Placar and the checkers board are scenery until they mean something (S3)
+      const scenery = propIsScenery(p.action, game.profile);
       if (p.action && p.interact && !scenery) {
         markTap('target', { tile: p.interact });
         walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });

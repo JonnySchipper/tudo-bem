@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { atLeast, hudShows, kioskShown, recadosDone, stage, type DisclosureProfile } from './disclosure';
 
 const words = (n: number) => Array.from({ length: n }, (_, i) => `w${i}`);
-const vila: DisclosureProfile = { desembarqueDone: true, arrivalIntroDone: true, tutorial: { carlos: false }, recados: { done: [] }, diary: [], escola: { lessons: 0 }, giOwned: false, hats: [] };
+const vila: DisclosureProfile = { desembarqueDone: true, arrivalIntroDone: true, tutorial: { carlos: false }, recados: { done: [] }, recadosDoneTotal: 0, diary: [], escola: { lessons: 0 }, giOwned: false, hats: [] };
 const resident: DisclosureProfile = { ...vila, tutorial: { carlos: true }, recadosDoneTotal: 1 };
 const regular: DisclosureProfile = { ...resident, recadosDoneTotal: 3 };
 
@@ -37,6 +37,27 @@ describe('stage', () => {
     expect(stage({ ...vila, giOwned: true })).toBe('S3');
   });
 
+  it('a finished welcome chain is at least S2', () => {
+    expect(stage({ ...vila, tutorialRewarded: true })).toBe('S2');
+    expect(stage({ ...regular, tutorialRewarded: true })).toBe('S3');
+    expect(stage({ ...vila, tutorialRewarded: true, desembarqueDone: false })).toBe('S0');
+  });
+
+  it('a save without the lifetime count that has a stamp or a hat is a regular; with the count, the count decides', () => {
+    const legacy: DisclosureProfile = { ...vila, recadosDoneTotal: undefined };
+    expect(stage(legacy)).toBe('S1');
+    expect(stage({ ...legacy, hats: ['bone'] })).toBe('S3');
+    expect(stage({ ...legacy, cartela: { stamps: 1, activityDay: {} } })).toBe('S3');
+    expect(stage({ ...legacy, cartela: { stamps: 0, activityDay: { feira: '2026-09-01' } } })).toBe('S3');
+    // a newcomer's hat step and first Feira visit do not skip the ladder
+    expect(stage({ ...vila, hats: ['bone'], cartela: { stamps: 1, activityDay: { feira: '2026-10-10' } } })).toBe('S1');
+    expect(stage({ ...vila, recadosDoneTotal: 3 })).toBe('S3');
+    // the veteran the server seeded (VETERAN_RECADOS): Chapéus, the kiosk and the Cartela chip are back
+    const veteran: DisclosureProfile = { ...vila, tutorial: { carlos: true }, tutorialRewarded: true, recadosDoneTotal: 3, hats: ['bone'], cartela: { stamps: 2, activityDay: {} } };
+    expect(hudShows(veteran)).toMatchObject({ stage: 'S3', hats: true, cartela: true });
+    expect(kioskShown(veteran)).toBe(true);
+  });
+
   it('counts recados over every day, falling back on today’s list for an old save', () => {
     expect(recadosDone({ recados: { done: ['a', 'b'] } })).toBe(2);
     expect(recadosDone({ recadosDoneTotal: 7, recados: { done: [] } })).toBe(7);
@@ -67,6 +88,14 @@ describe('hudShows: the §3 table', () => {
     expect(s).toMatchObject({ stage: 'S2', look: true, roomCounts: true, emotesOpen: true, gearExtras: true, friends: true });
     expect(hudShows(resident, { solo: true }).friends).toBe(false);
     expect(s).toMatchObject({ plate: false, goal: false, cartela: false });
+  });
+
+  it('Amigos shows before S2 while a friend request waits (multiplayer only)', () => {
+    expect(hudShows(vila, { solo: false }).friends).toBe(false);
+    expect(hudShows(vila, { solo: false, friendRequests: 0 }).friends).toBe(false);
+    expect(hudShows(vila, { solo: false, friendRequests: 1 }).friends).toBe(true);
+    expect(hudShows(vila, { solo: true, friendRequests: 1 }).friends).toBe(false);
+    expect(hudShows({ desembarqueDone: false, arrivalIntroDone: false }, { friendRequests: 1 }).friends).toBe(false);
   });
 
   it('Chapéus waits for S2 and a hat (or the hat step at Nanda’s stall)', () => {
