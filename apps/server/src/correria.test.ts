@@ -219,7 +219,7 @@ describe('Correria no Balcão, server side', () => {
     expect(evs(a).at(-1) && [...evs(a)].reverse().find((e) => e.k === 'serve')).toMatchObject({ outcome: 'segunda' });
   });
 
-  it('paid shifts count on the player day: an older UTC key is yesterday (stars and shifts stay), today\'s key holds the cap (D1)', async () => {
+  it('paid shifts count on the player day: an older UTC key ahead of it is today (the cap holds), an earlier key rolls over (D1)', async () => {
     // 02:00 UTC on 10-09 is 23:00 on 10-08 in São Paulo (UTC-3)
     clock = Date.parse('2026-10-09T02:00:00.000Z');
     const world = makeWorld();
@@ -228,23 +228,24 @@ describe('Correria no Balcão, server side', () => {
     await a.send({ t: 'createProfile', name: `Ana${n++}`, pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
     await a.send({ t: 'join', room: 'padaria' });
     const p = a.s.profile!;
-    // the older server counted 10-09 (UTC) and every paid shift of it was used
+    // the older server counted 10-09 (UTC, a day ahead of her evening) and every paid shift of it was used: still today, no RV
     p.correria = { stars: 6, shifts: 4, best: 50, date: '2026-10-09', paid: DAILY_PAID_SHIFTS };
     await a.send({ t: 'mg', action: 'start' });
     await playShiftOut(world, a);
     const first = endOf(a)!;
-    expect(first.end.coins).toBeGreaterThan(0);
-    expect(p.correria).toMatchObject({ date: '2026-10-08', paid: 1, shifts: 5 });
+    expect(first.end.coins).toBe(0);
+    expect(first.end.dailyBlocked).toBe(true);
+    // written back as her day, so it rolls over once, at her midnight
+    expect(p.correria).toMatchObject({ date: '2026-10-08', paid: DAILY_PAID_SHIFTS, shifts: 5 });
     expect(p.correria!.stars).toBeGreaterThanOrEqual(6);
-    // the same player day with the cap used: the shift counts, the RV does not
-    p.correria!.paid = DAILY_PAID_SHIFTS;
+    // an earlier day's key with the cap used rolls over: the shift pays (stars and shifts stay)
+    p.correria!.date = '2026-10-07';
     a.inbox.length = 0;
     await a.send({ t: 'mg', action: 'start' });
     await playShiftOut(world, a);
     const second = endOf(a)!;
-    expect(second.end.coins).toBe(0);
-    expect(second.end.dailyBlocked).toBe(true);
-    expect(p.correria).toMatchObject({ date: '2026-10-08', paid: DAILY_PAID_SHIFTS, shifts: 6 });
+    expect(second.end.coins).toBeGreaterThan(0);
+    expect(p.correria).toMatchObject({ date: '2026-10-08', paid: 1, shifts: 6 });
   });
 
   it('a whole shift: 9 customers on the first, 15 after, stars and RV paid once, the tutorial step, the Caderno and the daily gate', async () => {

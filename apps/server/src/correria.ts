@@ -29,6 +29,7 @@ import {
   type NpcId,
   type Shift,
   type ShiftSummary,
+  sameOrFutureDay,
 } from '@tudobem/shared';
 import type { Session } from './world.js';
 import type { ProfileStore } from './store.js';
@@ -237,12 +238,10 @@ export class CorreriaEngine {
     const cp = (p.correria = normalizeCorreria(p.correria));
     const before = cp.stars;
     const shiftsBefore = cp.shifts;
-    // the player's own day (playerDay.ts); a stored key that is not today's (older saves kept UTC keys) rolls over
+    // the player's own day (playerDay.ts); an earlier stored key rolls over, a later one (an older UTC key) counts as today
     const day = this.d.today ? addCalendarDays(this.d.today(), p.testDayOffset ?? 0) : profileDay(p, this.d.now());
-    if (cp.date !== day) {
-      cp.date = day;
-      cp.paid = 0;
-    }
+    if (!sameOrFutureDay(cp.date, day)) cp.paid = 0;
+    cp.date = day;
     const known = (id: string) => (p.caderno?.[id]?.seen ?? 0) > 0 || (p.caderno?.[id]?.heard ?? 0) > 0 || (p.caderno?.[id]?.used ?? 0) > 0;
     const wordsNew = sum.words.filter((id) => !known(id) && cardById(id)).map((id) => ({ pt: cardById(id)!.form, en: cardById(id)!.gloss_en }));
     let coins = 0;

@@ -60,18 +60,18 @@ describe('the player day on the server (D1)', () => {
     expect(later.s.profile!.escola?.tz).toBe(-180);
   });
 
-  it('the kiosk mission: a UTC key from an older save is yesterday (a fresh mission), today’s key is kept', async () => {
+  it('the kiosk mission: a UTC key from an older save, ahead of the player day, is today (kept); an earlier key rolls over', async () => {
     clock = Date.parse('2026-10-09T02:00:00.000Z');
     const world = makeWorld();
     const c = await player(world, -180);
     const p = c.s.profile!;
-    // finished and paid on the old server (UTC) day 10-09; the player's own day is still 10-08
+    // finished and paid on the old server (UTC) day 10-09; the player's own day is still 10-08: the same day, not paid twice
     p.mission = { ...freshMission('2026-10-09'), taken: true, steps: { cumprimenta: true, pede: true, monta: true }, rewarded: true };
     await c.send({ t: 'mission', action: 'take' });
-    expect(p.mission).toMatchObject({ date: '2026-10-08', taken: true, rewarded: false, steps: { cumprimenta: false, pede: false, monta: false } });
-    // the same player day keeps the mission as it is
-    p.mission = { ...freshMission('2026-10-08'), taken: true, steps: { cumprimenta: true, pede: true, monta: true }, rewarded: true };
+    expect(p.mission).toMatchObject({ date: '2026-10-08', taken: true, rewarded: true });
+    // an earlier day's mission rolls over
+    p.mission = { ...freshMission('2026-10-07'), taken: true, steps: { cumprimenta: true, pede: true, monta: true }, rewarded: true };
     await c.send({ t: 'mission', action: 'take' });
-    expect(p.mission).toMatchObject({ date: '2026-10-08', rewarded: true });
+    expect(p.mission).toMatchObject({ date: '2026-10-08', taken: true, rewarded: false, steps: { cumprimenta: false, pede: false, monta: false } });
   });
 });

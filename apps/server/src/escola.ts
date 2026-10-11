@@ -53,6 +53,7 @@ import {
   type RoomId,
   type StrengthenedWord,
   type Tile,
+  sameOrFutureDay,
 } from '@tudobem/shared';
 import type { ProfileStore, StoredProfile } from './store.js';
 import type { Session } from './world.js';
@@ -301,7 +302,7 @@ export class EscolaTracker {
     const st = escolaOf(p);
     const today = addCalendarDays(localDay(this.d.now(), st.tz), p.testDayOffset ?? 0);
     const m = st.mission;
-    if (!m || m.done || m.day !== today || m.area !== word.area) return;
+    if (!m || m.done || !sameOrFutureDay(m.day, today) || m.area !== word.area) return;
     m.done = true;
     addXp(st, today, ESCOLA_XP.mission);
     this.d.store.save(p.id);
@@ -350,7 +351,8 @@ export class EscolaTracker {
     p.nameplate = p.verdeMode ? 'verde' : tier;
     let mission = null;
     if (!partial) {
-      if (st.mission?.day !== today) {
+      if (st.mission && sameOrFutureDay(st.mission.day, today)) st.mission.day = today;
+      else {
         const pick = pickMission(p.diary, today);
         st.mission = pick ? { day: today, area: pick.area, done: false } : undefined;
       }

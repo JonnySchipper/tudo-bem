@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { COUNTER_MENU } from './padaria.js';
+import { COUNTER_ITEMS } from './padaria.js';
 import { STREET_SNACKS } from './streetSnacks.js';
 import { CARRY, carryAction, carryOf, carryTossNotice } from './carry.js';
 
 describe('carry', () => {
   it('classifies every snack and counter item, and the empty it leaves', () => {
     expect(STREET_SNACKS.map((s) => s.id).every((id) => carryOf(id) && carryOf(id)!.kind !== 'trash')).toBe(true);
-    expect(COUNTER_MENU.every((id) => carryOf(id) && carryOf(id)!.kind !== 'trash')).toBe(true);
+    expect(COUNTER_ITEMS.every((id) => carryOf(id) && carryOf(id)!.kind !== 'trash')).toBe(true);
 
     expect(carryOf('pipoca_salgada')).toMatchObject({ kind: 'food', leaves: 'saquinho_vazio' });
     expect(carryOf('pipoca_doce')?.leaves).toBe('saquinho_vazio');
@@ -30,7 +30,7 @@ describe('carry', () => {
     expect(carryOf('picole')).toMatchObject({ kind: 'food', leaves: 'palito_picole' });
     expect(carryOf('milho_verde')).toMatchObject({ kind: 'food', leaves: 'sabugo' });
     for (const id of ['palito_vazio', 'palito_picole', 'sabugo'] as const) expect(carryOf(id)).toMatchObject({ kind: 'trash', leaves: null });
-    expect(Object.keys(CARRY)).toHaveLength(22);
+    expect(Object.keys(CARRY)).toHaveLength(23);
   });
 
   it('labels Comer, Beber, and Jogar fora, and ignores cosmetics', () => {

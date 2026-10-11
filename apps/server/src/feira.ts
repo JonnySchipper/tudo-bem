@@ -19,6 +19,7 @@ import {
   type RoomId,
   type Tile,
   type VendorId,
+  sameOrFutureDay,
 } from '@tudobem/shared';
 import type { ProfileStore } from './store.js';
 import type { Session } from './world.js';
@@ -120,9 +121,9 @@ export class FeiraCounter {
     const from: NpcId = v === 'banca' || v === 'rosa' ? ownerOf(id) : VENDORS[v].npc;
     this.d.ordered(s, from, [{ itemId: id, qty: n }]);
     let rv = 0;
-    // the player's own day (playerDay.ts); older saves kept UTC keys, and a key that is not today's rolls over
+    // the player's own day (playerDay.ts); an earlier stored key rolls over, a later one (an older UTC key) counts as today
     const today = profileDay(p, this.d.now());
-    const st = p.feira?.date === today ? p.feira : { date: today, n: 0 };
+    const st = p.feira && sameOrFutureDay(p.feira.date, today) ? { date: today, n: p.feira.n } : { date: today, n: 0 };
     if (st.n < FEIRA_RV_PER_DAY) {
       st.n += 1;
       rv = verdict.kind === 'exact' ? FEIRA_RV_EXACT : FEIRA_RV_CHANGE;

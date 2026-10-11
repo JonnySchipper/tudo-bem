@@ -6,11 +6,10 @@ import {
   freshCartela,
   normalizeCartela,
   stampsOnDay,
-  todayEastern,
   tryCartelaStamp,
   type CartelaState,
 } from './cartela.js';
-import { playerDay, viewerDay } from './playerDay.js';
+import { playerDay } from './playerDay.js';
 
 const DAY = '2026-10-03';
 const NEXT = '2026-10-04';
@@ -70,12 +69,6 @@ describe('cartela stamps', () => {
     });
   });
 
-  it('todayEastern is now the viewer\'s own day (the old name the client still imports)', () => {
-    const t = Date.parse('2026-10-03T03:59:00.000Z');
-    expect(todayEastern(t)).toBe(viewerDay(t));
-    expect(todayEastern(t)).toBe(playerDay(t, -new Date(t).getTimezoneOffset()));
-  });
-
   it('a New York key from an older save is yesterday on the player day: the card keeps its stamps and the activity stamps again', () => {
     // stamped "tatame" late on 2026-10-02 in New York; the player is in São Paulo (UTC-3), where it is already 10-03 at 03:30 UTC
     const old = { stamps: 3, activityDay: { tatame: '2026-10-02', feira: '2026-10-02' } };
@@ -85,9 +78,11 @@ describe('cartela stamps', () => {
     const res = tryCartelaStamp(old, 'tatame', today);
     expect(res.ok && res.next.stamps).toBe(4);
     expect(res.ok && res.next.activityDay.tatame).toBe(today);
-    // a key from a zone ahead of the player's (not today's) also rolls over, never resets the card
-    const ahead = tryCartelaStamp({ stamps: 5, activityDay: { balcao: '2026-10-04' } }, 'balcao', today);
-    expect(ahead.ok && ahead.next.stamps).toBe(6);
+    // a key from a zone ahead of the player's (a later day) is today: no second stamp now, and the card is kept
+    const ahead = { stamps: 5, activityDay: { balcao: '2026-10-04' } };
+    expect(stampsOnDay(ahead, today)).toBe(1);
+    expect(tryCartelaStamp(ahead, 'balcao', today).ok).toBe(false);
+    expect(tryCartelaStamp(ahead, 'tatame', today)).toMatchObject({ ok: true, next: { stamps: 6 } });
   });
 
   it('caps at four stamps per player day across activities', () => {

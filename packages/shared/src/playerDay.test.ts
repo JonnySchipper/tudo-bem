@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { acceptTz, addCalendarDays, clampTz, dayDiff, playerDay, profileDay, profileTz, viewerDay } from './playerDay.js';
-import { localDay } from './escola.js';
+import { acceptTz, addCalendarDays, clampTz, dayDiff, playerDay, profileDay, profileTz, sameOrFutureDay, viewerDay, viewerProfileDay } from './playerDay.js';
+import { addXp, bumpStreak, freshEscola, localDay, payRv, rvRoom, studiedToday, todayXp } from './escola.js';
 
 const at = (iso: string) => Date.parse(iso);
 
@@ -78,6 +78,52 @@ describe('playerDay', () => {
     expect(days.size).toBe(2);
   });
 
+  it('a São Paulo evening: a key stored under the UTC day (tomorrow) is still today, an earlier key rolls over', () => {
+    // 21:30 on 10-08 in São Paulo (UTC-3) is 00:30 UTC on 10-09: the old server wrote 10-09 for what was her 10-08
+    const now = at('2026-10-09T00:30:00.000Z');
+    const stored = playerDay(now, 0);
+    const today = playerDay(now, -180);
+    expect([stored, today]).toEqual(['2026-10-09', '2026-10-08']);
+    expect(sameOrFutureDay(stored, today)).toBe(true);
+    expect(sameOrFutureDay(today, today)).toBe(true);
+    // at her midnight the key is today's, still no second rollover; the next day it rolls over once
+    expect(sameOrFutureDay(stored, playerDay(at('2026-10-09T03:30:00.000Z'), -180))).toBe(true);
+    expect(sameOrFutureDay(stored, '2026-10-10')).toBe(false);
+    expect(sameOrFutureDay('2026-10-07', today)).toBe(false);
+    for (const bad of [undefined, null, '', 'ontem', '2026-10-9', 42]) expect(sameOrFutureDay(bad, today)).toBe(false);
+  });
+
+  it('the Escola reads that key as today: no second streak day, XP or RV room, and it writes back her day', () => {
+    const today = '2026-10-08';
+    const st = { ...freshEscola(), streak: 4, best: 4, lastDay: '2026-10-09', day: '2026-10-09', dayXp: 30, rv: { day: '2026-10-09', n: 999 } };
+    expect(studiedToday(st, today)).toBe(true);
+    expect(todayXp(st, today)).toBe(30);
+    expect(rvRoom(st, today, 0)).toBe(0);
+    expect(bumpStreak(st, today)).toMatchObject({ streak: 4, extended: false });
+    expect(st.lastDay).toBe(today);
+    addXp(st, today, 5);
+    expect([st.day, st.dayXp]).toEqual([today, 35]);
+    payRv(st, today, 1);
+    expect(st.rv).toEqual({ day: today, n: 1000 });
+    // her next day grows the streak once
+    expect(bumpStreak(st, '2026-10-09')).toMatchObject({ streak: 5, extended: true });
+  });
+
+  it('viewerProfileDay: the client reads the stored offset like the server, the browser offset only when none is stored', () => {
+    // 01:00 UTC on 10-09: a São Paulo profile (stored -180) on a laptop still set to UTC sees 10-08, the server's day
+    const t = at('2026-10-09T01:00:00.000Z');
+    const sp = { escola: { tz: -180 } };
+    expect(viewerProfileDay(sp, t, 0)).toBe('2026-10-08');
+    expect(viewerProfileDay(sp, t, 0)).toBe(profileDay(sp, t));
+    expect(viewerProfileDay({ escola: { tz: 0 } }, t, -180)).toBe('2026-10-09');
+    // nothing stored yet: the browser's zone
+    expect(viewerProfileDay({ escola: {} }, t, -180)).toBe('2026-10-08');
+    expect(viewerProfileDay(null, t, 540)).toBe('2026-10-09');
+    // a Testes day roll on top, as on the server
+    expect(viewerProfileDay({ escola: { tz: -180 }, testDayOffset: 2 }, t, 0)).toBe(profileDay({ escola: { tz: -180 }, testDayOffset: 2 }, t));
+    expect(viewerProfileDay(undefined, t)).toBe(viewerDay(t));
+  });
+
   it('viewerDay is the runtime zone’s own day', () => {
     const t = at('2026-10-09T02:30:00.000Z');
     expect(viewerDay(t)).toBe(playerDay(t, -new Date(t).getTimezoneOffset()));
@@ -127,8 +173,8 @@ describe('one day boundary for caps', () => {
       const rel = relative(SERVER, file).replace(/\\/g, '/');
       const text = readFileSync(file, 'utf8');
       if (/America\/(New_York|Sao_Paulo)/.test(text)) offenders.push(`${rel}: fixed zone`);
-      // viewerDay (and its deprecated client name) read the runtime zone: right in a browser, wrong on a server
-      if (/\b(viewerDay|todayEastern)\b/.test(text)) offenders.push(`${rel}: viewer day`);
+      // viewerDay and viewerProfileDay fall back on the runtime zone: right in a browser, wrong on a server
+      if (/\b(viewerDay|viewerProfileDay|todayEastern)\b/.test(text)) offenders.push(`${rel}: viewer day`);
     }
     expect(offenders).toEqual([]);
   });
