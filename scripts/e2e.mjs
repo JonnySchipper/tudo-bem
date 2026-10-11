@@ -58,20 +58,20 @@ const profile = (page) => page.evaluate(() => window.__tb.game.profile);
 const bakerNow = (page) => page.evaluate(() => (window.__tb.clock.minutes() >= 360 && window.__tb.clock.minutes() < 1320 ? { id: 'carlos', name: 'Seu Carlos' } : { id: 'graca', name: 'Dona Graça' }));
 
 /**
- * Tap a floor tile (pointer events — the world listens on pointerup, not click). The point is read and the events dispatched in one page
- * turn: the camera eases after a walk (for seconds on a slow headless frame rate), so a point read a round trip earlier lands on the wrong tile.
+ * Tap a floor tile (pointer events — the world listens on pointerup, not click).
+ * The camera eases after a walk. Reading the point in Playwright and dispatching on the next
+ * round trip lets that ease slide a one-tile seat out from under the cursor (the floor tile
+ * next to it is wide enough that the same gap still hits). Sample and dispatch in one turn.
  */
 async function clickTile(page, x, y, lift = 0) {
-  await page.evaluate(
-    ([x, y, lift]) => {
-      const p = window.__tb.tileToClient(x, y);
-      const at = { pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, bubbles: true, clientX: p.px, clientY: p.py - lift * window.__tb.renderer.cam.scale };
-      const canvas = document.querySelector('canvas#world');
-      canvas.dispatchEvent(new PointerEvent('pointerdown', at));
-      canvas.dispatchEvent(new PointerEvent('pointerup', at));
-    },
-    [x, y, lift],
-  );
+  await page.evaluate(([x, y, lift]) => {
+    const canvas = document.querySelector('canvas#world');
+    const scale = window.__tb.renderer.cam.scale;
+    const p = window.__tb.tileToClient(x, y);
+    const init = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, clientX: p.px, clientY: p.py - lift * scale };
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { ...init, buttons: 1 }));
+    canvas.dispatchEvent(new PointerEvent('pointerup', { ...init, buttons: 0 }));
+  }, [x, y, lift]);
 }
 
 /**
@@ -298,9 +298,16 @@ async function main() {
   // 2. Walk, sit on a bench, wave, chat
   await clickTile(page, 14, 6);
   await waitIdleAt(page, 14, 6);
-  await clickTile(page, 12, 6, 4); // banco_1 (Praça Central, by the kiosk): a real click on a bench
+  // banco_1 (Praça Central, by the kiosk) is two tiles. A real click on one of them; the other is the spare if a neighbour is standing on the first.
+  const sitting = () => {
+    const me = window.__tb.game.avatars.get(window.__tb.game.room.selfId);
+    return !!(me?.pub.sitting || me?.sitOnArrive);
+  };
+  await clickTile(page, 12, 6, 4);
+  const sat = await page.waitForFunction(sitting, null, { timeout: 3000 }).then(() => true).catch(() => false);
+  if (!sat) await clickTile(page, 11, 6, 4);
   // the welcome chain no longer has the hall-taught steps (done when the hall is): the avatar itself says it sat
-  await waitFor(page, () => { const me = window.__tb.game.avatars.get(window.__tb.game.room.selfId); return !!(me?.pub.sitting || me?.sitOnArrive); }, null, 8000, 'sat on bench');
+  await waitFor(page, sitting, null, 8000, 'sat on bench');
   // a newcomer's emotes wait behind the smiley next to the chat field, on desktop too
   if (!(await page.isVisible('[data-emote="oi"]'))) await page.click('#btn-emotes');
   await page.click('[data-emote="oi"]');
