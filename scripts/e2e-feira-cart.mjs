@@ -192,7 +192,9 @@ async function main() {
     const featured = await page.textContent('#feira-cart-game');
     assert((featured ?? '').includes('Pastel'), `expected Pastel, got ${featured}`);
     assert(errors.length === 0, errors.join('\n'));
-    // back to the shipped default: one cart game, Tapioca
+    // back to the shipped default: one cart game, Tapioca (close the cart panel first: it covers the gear)
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#feira-cart-play', { state: 'hidden', timeout: 5_000 });
     await setCart(page, { tapioca: true, pastel: false });
     await page.evaluate(() => window.__tb.interact({ prop: 'carrinho_jogos' }));
     await page.waitForSelector('#feira-cart-play', { timeout: 8_000 });

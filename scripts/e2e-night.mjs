@@ -138,7 +138,10 @@ async function main() {
     await page.waitForSelector('#dialogue-box[data-dialogue="counter-graca"]', { timeout: 12_000 });
     const name = ((await page.textContent('#dialogue-box[data-dialogue="counter-graca"] .npc-name')) ?? '').trim();
     assert(name === 'Dona Graça', `the counter is Dona Graça's at night (${name})`);
-    await page.click('#dialogue-box[data-dialogue="counter-graca"] [data-chip="0"]');
+    // the counter lists its chips cheapest first until the first order (SIMPLIFICATION-REVIEW E2), so pick the coxinha by name
+    const coxinhaChip = page.locator('#dialogue-box[data-dialogue="counter-graca"] [data-chip]', { hasText: 'coxinha' }).first();
+    assert((await coxinhaChip.count()) === 1, 'the coxinha is on Dona Graça\'s counter');
+    await coxinhaChip.click();
     await waitFor(page, () => window.__tb.game.self?.pub.carry === 'coxinha', null, 8000, 'carrying the coxinha');
     const afterScene = await page.evaluate(() => window.__tb.game.profile);
     assert(afterScene.tutorial.carlos, 'ordering at the counter completed the padaria step with Dona Graça');
