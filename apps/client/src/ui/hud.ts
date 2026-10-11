@@ -9,7 +9,7 @@ import {
   MISSION_COPY,
   MISSION_STEPS,
   stampsOnDay,
-  todayEastern,
+  viewerProfileDay,
   currentStreak,
   localDay,
   normalizeBjj,
@@ -531,7 +531,8 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
         h('span', { class: 'hud-chip-text' }, `${MISSION_COPY.header.pt} ${done}/${MISSION_STEPS.length}`),
         h('span', { class: 'mini-steps', 'aria-hidden': 'true' }, ...MISSION_STEPS.map((s) => h('span', { class: `mini ${m?.steps[s.id] ? 'done' : ''}`, title: s.pt }, icon(s.id, 16)))),
       );
-      const day = todayEastern();
+      // the server's day for this profile (its stored offset), so the chip's "today" matches the stamps
+      const day = viewerProfileDay(p);
       const cst = p.cartela;
       // a full card stays full on the chip while the payout banner plays; then the chip turns over to the fresh card
       const cStamps = cartelaHeld ?? cst?.stamps ?? 0;

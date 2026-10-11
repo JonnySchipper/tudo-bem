@@ -96,3 +96,13 @@ export function acceptTz(nowMs: number, stored: number | undefined, incoming: un
 export function viewerDay(nowMs = Date.now()): string {
   return playerDay(nowMs, -new Date(nowMs).getTimezoneOffset());
 }
+
+/**
+ * Today's day key for the signed-in player, client side (the Cartela card and HUD chip): the server's `profileDay`, from the
+ * offset stored on the profile (`escola.tz`), so "stamped today" on screen is the day the server stamps on. The browser's
+ * own offset stands in only while the profile has none stored. A Testes day roll is added like on the server.
+ */
+export function viewerProfileDay(p: DayHolder | null | undefined, nowMs = Date.now(), browserTz = -new Date(nowMs).getTimezoneOffset()): string {
+  const tz = typeof p?.escola?.tz === 'number' ? p.escola.tz : browserTz;
+  return addCalendarDays(playerDay(nowMs, tz), p?.testDayOffset ?? 0);
+}

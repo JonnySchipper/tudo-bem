@@ -6,7 +6,7 @@ import {
   CARTELA_REWARD,
   activityStampedToday,
   stampsOnDay,
-  todayEastern,
+  viewerProfileDay,
   type CartelaActivity,
 } from '@tudobem/shared';
 import { game } from '../state';
@@ -21,10 +21,6 @@ const ACTIVITY_ICON: Record<CartelaActivity, IconName> = {
   feira: 'map',
   conversa: 'cumprimenta',
 };
-
-function easternDay() {
-  return todayEastern();
-}
 
 /** How long the payout banner stays up; the HUD chip holds the full card for the same time. */
 export const CARTELA_BANNER_MS = 4600;
@@ -62,7 +58,7 @@ export function openCartela() {
   const body = h('div');
   const render = () => {
     const st = game.profile?.cartela;
-    const day = easternDay();
+    const day = viewerProfileDay(game.profile);
     const todayN = st ? stampsOnDay(st, day) : 0;
     const stamps = st?.stamps ?? 0;
     const slots = Array.from({ length: CARTELA_GOAL }, (_, i) => i < stamps);

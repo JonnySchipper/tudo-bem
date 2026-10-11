@@ -3,7 +3,7 @@
  * calendar day), seven stamps pay once (then a fresh card). Progress survives logout on the profile.
  */
 import { ROLL_RV_LOSS } from './academia.js';
-import { sameOrFutureDay, viewerDay } from './playerDay.js';
+import { sameOrFutureDay } from './playerDay.js';
 import type { Bilingual } from './types.js';
 
 export const CARTELA_GOAL = 7;
@@ -27,14 +27,6 @@ export interface CartelaState {
 }
 
 export const freshCartela = (): CartelaState => ({ stamps: 0, activityDay: {} });
-
-/**
- * @deprecated The Cartela no longer keys on New York. This is the viewer's own day (`viewerDay`), kept under the old name
- * for the client's Cartela card and HUD chip until they import `viewerDay`. The server uses `profileDay`.
- */
-export function todayEastern(nowMs = Date.now()): string {
-  return viewerDay(nowMs);
-}
 
 export function normalizeCartela(raw: unknown): CartelaState {
   const r = raw as CartelaState | undefined;

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { acceptTz, addCalendarDays, clampTz, dayDiff, playerDay, profileDay, profileTz, sameOrFutureDay, viewerDay } from './playerDay.js';
+import { acceptTz, addCalendarDays, clampTz, dayDiff, playerDay, profileDay, profileTz, sameOrFutureDay, viewerDay, viewerProfileDay } from './playerDay.js';
 import { addXp, bumpStreak, freshEscola, localDay, payRv, rvRoom, studiedToday, todayXp } from './escola.js';
 
 const at = (iso: string) => Date.parse(iso);
@@ -109,6 +109,21 @@ describe('playerDay', () => {
     expect(bumpStreak(st, '2026-10-09')).toMatchObject({ streak: 5, extended: true });
   });
 
+  it('viewerProfileDay: the client reads the stored offset like the server, the browser offset only when none is stored', () => {
+    // 01:00 UTC on 10-09: a São Paulo profile (stored -180) on a laptop still set to UTC sees 10-08, the server's day
+    const t = at('2026-10-09T01:00:00.000Z');
+    const sp = { escola: { tz: -180 } };
+    expect(viewerProfileDay(sp, t, 0)).toBe('2026-10-08');
+    expect(viewerProfileDay(sp, t, 0)).toBe(profileDay(sp, t));
+    expect(viewerProfileDay({ escola: { tz: 0 } }, t, -180)).toBe('2026-10-09');
+    // nothing stored yet: the browser's zone
+    expect(viewerProfileDay({ escola: {} }, t, -180)).toBe('2026-10-08');
+    expect(viewerProfileDay(null, t, 540)).toBe('2026-10-09');
+    // a Testes day roll on top, as on the server
+    expect(viewerProfileDay({ escola: { tz: -180 }, testDayOffset: 2 }, t, 0)).toBe(profileDay({ escola: { tz: -180 }, testDayOffset: 2 }, t));
+    expect(viewerProfileDay(undefined, t)).toBe(viewerDay(t));
+  });
+
   it('viewerDay is the runtime zone’s own day', () => {
     const t = at('2026-10-09T02:30:00.000Z');
     expect(viewerDay(t)).toBe(playerDay(t, -new Date(t).getTimezoneOffset()));
@@ -158,8 +173,8 @@ describe('one day boundary for caps', () => {
       const rel = relative(SERVER, file).replace(/\\/g, '/');
       const text = readFileSync(file, 'utf8');
       if (/America\/(New_York|Sao_Paulo)/.test(text)) offenders.push(`${rel}: fixed zone`);
-      // viewerDay (and its deprecated client name) read the runtime zone: right in a browser, wrong on a server
-      if (/\b(viewerDay|todayEastern)\b/.test(text)) offenders.push(`${rel}: viewer day`);
+      // viewerDay and viewerProfileDay fall back on the runtime zone: right in a browser, wrong on a server
+      if (/\b(viewerDay|viewerProfileDay|todayEastern)\b/.test(text)) offenders.push(`${rel}: viewer day`);
     }
     expect(offenders).toEqual([]);
   });

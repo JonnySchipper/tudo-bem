@@ -6,11 +6,10 @@ import {
   freshCartela,
   normalizeCartela,
   stampsOnDay,
-  todayEastern,
   tryCartelaStamp,
   type CartelaState,
 } from './cartela.js';
-import { playerDay, viewerDay } from './playerDay.js';
+import { playerDay } from './playerDay.js';
 
 const DAY = '2026-10-03';
 const NEXT = '2026-10-04';
@@ -68,12 +67,6 @@ describe('cartela stamps', () => {
       stamps: 6,
       activityDay: { balcao: '2026-01-02' },
     });
-  });
-
-  it('todayEastern is now the viewer\'s own day (the old name the client still imports)', () => {
-    const t = Date.parse('2026-10-03T03:59:00.000Z');
-    expect(todayEastern(t)).toBe(viewerDay(t));
-    expect(todayEastern(t)).toBe(playerDay(t, -new Date(t).getTimezoneOffset()));
   });
 
   it('a New York key from an older save is yesterday on the player day: the card keeps its stamps and the activity stamps again', () => {
