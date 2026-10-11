@@ -151,16 +151,32 @@ describe('art track 3 wall art and props', () => {
     expect(propArtKey({ ...chair, seat: 'NE' })).toBe('props/cadeira_padaria_n');
   });
 
-  it('a bench the diary can photograph is still a seat', () => {
+  it('a photographable object is scenery unless it is also a seat or has an action', () => {
+    const taught = cameraObjectIds();
     const bench = ROOMS.praca.props.find((p) => p.id === 'banco_1');
     if (!bench) throw new Error('banco_1');
-    expect(cameraObjectIds().has('banco_1')).toBe(true);
+    expect(taught.has('banco_1')).toBe(true);
     expect(propClickKind(bench)).toBe('seat');
     for (const id of ['banco_2', 'banco_3', 'banco_4', 'banco_5', 'banco_feira']) {
       const p = Object.values(ROOMS).flatMap((r) => r.props).find((x) => x.id === id);
       expect(propClickKind(p!), id).toBe('seat');
     }
+    // the fountain can only be photographed: no hit, so a click walks
     const fonte = ROOMS.praca.props.find((p) => p.id === 'fonte');
-    expect(propClickKind(fonte!)).toBe('prop');
+    expect(taught.has('fonte')).toBe(true);
+    expect(fonte?.action).toBeUndefined();
+    expect(propClickKind(fonte!)).toBeNull();
+    // the display case is a photo and the bakery game: the game click stays
+    const vitrine = ROOMS.padaria.props.find((p) => p.id === 'vitrine');
+    expect(taught.has('vitrine')).toBe(true);
+    expect(propClickKind(vitrine!)).toBe('prop');
+    for (const room of Object.values(ROOMS)) {
+      for (const p of room.props) {
+        if (!taught.has(p.id)) continue;
+        if (p.seat) expect(propClickKind(p), p.id).toBe('seat');
+        else if (p.action) expect(propClickKind(p), p.id).toBe('prop');
+        else expect(propClickKind(p), p.id).toBeNull();
+      }
+    }
   });
 });
